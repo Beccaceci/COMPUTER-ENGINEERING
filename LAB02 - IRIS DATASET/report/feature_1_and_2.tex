@@ -1,0 +1,28 @@
+\section*{Analysis of features 1 and 2}
+
+\subsection*{What do you observe?}
+The two classes ("Fake" and "Genuine") occupy distinct regions but are not perfectly separable. Observing the scatter plot (\texttt{features\_1\_2\_scatter.png}), the "Genuine" class (label 1) generally clusters towards the top-left (lower Feature 1, higher Feature 2), while the "Fake" class (label 0) clusters towards the bottom-right (higher Feature 1, lower Feature 2).
+
+\subsection*{Do the classes overlap? If so, where?}
+Yes, the classes overlap significantly. According to the computed data in \texttt{lab02\_project\_feature\_overlap\_ranges.csv}:
+\begin{itemize}
+    \item \textbf{Feature 1} overlaps between -1.16104 and 2.14620 (an overlap width of 3.30724).
+    \item \textbf{Feature 2} overlaps between -0.61203 and 1.25841 (an overlap width of 1.87044).
+\end{itemize}
+
+\subsection*{Do the classes show similar mean for the first two features?}
+No, the means are distinctly different, reflecting the class separation seen in the scatter plots. Extracted from \texttt{lab02\_project\_statistics.csv}:
+\begin{itemize}
+    \item \textbf{Feature 1:} The "Fake" mean is 0.609, while the "Genuine" mean is much lower at -0.655.
+    \item \textbf{Feature 2:} The "Fake" mean is -0.198, while the "Genuine" mean is higher at 0.704.
+\end{itemize}
+
+\subsection*{Are the variances similar for the two classes?}
+The variances are in a similar general range, though not identical. According to \texttt{lab02\_project\_statistics.csv}:
+\begin{itemize}
+    \item \textbf{Feature 1:} The variance for "Fake" (0.370) is slightly higher than for "Genuine" (0.316).
+    \item \textbf{Feature 2:} The variance for "Fake" (0.264) is noticeably lower than for "Genuine" (0.395), which corresponds to the histograms where the "Fake" distribution appears slightly narrower.
+\end{itemize}
+
+\subsection*{How many modes are evident from the histograms?}
+Based on \texttt{feature\_1\_histogram.png} and \texttt{feature\_2\_histogram.png}, exactly one mode is evident for each class. Both the "Fake" and "Genuine" distributions exhibit a single, distinct peak (a unimodal distribution) for both Feature 1 and Feature 2.

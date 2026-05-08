@@ -1,0 +1,11 @@
+PWD /Users/nicolabeccaceci/Desktop/MACHINE LEARNING AND PATTERN RECOGNITION/LABS/LAB02/report
+INPUT /usr/local/texlive/2026/texmf.cnf
+INPUT /usr/local/texlive/2026/texmf-dist/web2c/texmf.cnf
+INPUT /usr/local/texlive/2026/texmf-var/web2c/pdftex/pdflatex.fmt
+INPUT /Users/nicolabeccaceci/Desktop/MACHINE LEARNING AND PATTERN RECOGNITION/LABS/LAB02/report/feature_5_and_6.tex
+OUTPUT feature_5_and_6.log
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/map/fontname/texfonts.map
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/cm/cmtt10.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm
+OUTPUT feature_5_and_6.pdf
+INPUT /usr/local/texlive/2026/texmf-var/fonts/map/pdftex/updmap/pdftex.map
