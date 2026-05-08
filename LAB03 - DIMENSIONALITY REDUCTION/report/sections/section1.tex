@@ -1,0 +1,44 @@
+% --- BEGIN LAB 03 INCLUSION FILE ---
+\section{PCA analysis}
+
+\subsection*{What do you observe from the PCA projected histograms? What are the effects on the class distribution?}
+
+Applying Principal Component Analysis (PCA) transforms the dataset by projecting it onto a new set of orthogonal axes ordered by their variance. Observing the histograms of the projected features, the first PCA direction (Direction 1) captures the maximum overall spread of the dataset. As we move towards Direction 6, the variance noticeably decreases. 
+
+However, the effect on the class distribution reveals a crucial limitation of unsupervised dimensionality reduction. Both the "Fake" (label 0) and "Genuine" (label 1) classes span across the entire range of these new axes and heavily overlap. Because PCA maximizes the total variance of the data regardless of class labels, the direction of maximum data spread does not align with the direction of maximum class discrimination. The distributions morph into largely unimodal shapes, but they do not separate.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\linewidth]{feature_1_histogram.png}
+    \includegraphics[width=0.48\linewidth]{feature_2_histogram.png}
+    \caption{Histograms of the data projected onto the first two PCA directions. Notice the heavy overlap between the Fake and Genuine classes despite the high overall variance.}
+    \label{fig:pca_hist_1_2}
+\end{figure}
+
+\subsection*{Can you spot the different clusters inside each class?}
+
+Examining the pairwise scatter plots of the PCA-transformed features, we look for distinct, isolated sub-populations (clusters) within the individual classes. The scatter plots show that both the "Fake" and "Genuine" classes form dense, continuous, and somewhat elongated clouds. There are no visually distinct or separated sub-clusters within either class. The structural variations captured by the principal components do not break the classes apart into isolated islands.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\linewidth]{features_1_2_scatter.png}
+    \includegraphics[width=0.48\linewidth]{features_1_5_scatter.png}
+    \caption{Scatter plots of PCA Direction 1 vs 2 (left) and Direction 1 vs 5 (right). The classes form single, continuous clouds without isolated internal sub-clusters.}
+    \label{fig:pca_scatters}
+\end{figure}
+
+\subsection*{Have the clusters really changed? Have the classes really become ``more separated''?}
+
+No, the clusters have not changed, and the classes have not become more separated. 
+
+Applying PCA and retaining all $m=6$ dimensions acts mathematically as a rigid orthogonal rotation of the original feature space. Because an orthogonal transformation perfectly preserves Euclidean distances ($L_2$ norm), any two data points that were overlapping or close together in the raw feature space remain exactly the same distance apart in the PCA-transformed space. We are simply viewing the exact same geometric structure from a newly rotated coordinate system. 
+
+This confirms that exploratory analyses (like viewing 1D and 2D shadows of a 6D object) are often insufficient to understand global characteristics. To actually increase separability, a supervised approach is required. For instance, applying Linear Discriminant Analysis (LDA) specifically targets the direction that maximizes the distance between class means while minimizing intra-class variance. As seen below, the LDA projection successfully reveals a distinct shift between the classes that PCA's blind rotation could not achieve.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{lda_histogram.png}
+    \caption{LDA Projection (1D). Unlike PCA, the supervised LDA projection clearly separates the density centers of the Fake and Genuine classes.}
+    \label{fig:lda_histogram}
+\end{figure}
+% --- END LAB 03 INCLUSION FILE ---

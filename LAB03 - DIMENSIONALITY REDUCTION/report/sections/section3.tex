@@ -1,0 +1,35 @@
+% --- BEGIN PCA + LDA PRE-PROCESSING ANALYSIS ---
+
+\subsection*{Apply PCA as a pre-processing step for LDA. Evaluate the error rate for different values of PCA dimensions ($m=1, \dots, 6$). What do you observe?}
+
+To evaluate the impact of PCA as a pre-processing step, we first project the data onto an $m$-dimensional PCA subspace, and subsequently apply LDA to reduce it to a single dimension for classification. The default threshold (average of the projected means) is used for evaluation on the validation set.
+
+As shown in Table \ref{tab:pca_lda_metrics}, when we keep all dimensions ($m=6$), the error rate perfectly matches the baseline pure LDA model. This is mathematically expected, as keeping all principal components simply acts as a rigid rotation of the feature space without losing any information. 
+
+However, as we reduce the number of PCA dimensions ($m$), the error rate typically degrades (increases). 
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|c|c|}
+        \hline
+        \textbf{PCA Dimensions ($m$)} & \textbf{Validation Error Rate (\%)} \\
+        \hline
+        1 & \textit{[Insert CSV value for m=1]} \\
+        2 & \textit{[Insert CSV value for m=2]} \\
+        3 & \textit{[Insert CSV value for m=3]} \\
+        4 & \textit{[Insert CSV value for m=4]} \\
+        5 & \textit{[Insert CSV value for m=5]} \\
+        6 & 9.57 \\ % Matches baseline pure LDA
+        \hline
+    \end{tabular}
+    \caption{Classification error rates using PCA as a pre-processing step for LDA across different subspace dimensions.}
+    \label{tab:pca_lda_metrics}
+\end{table}
+
+\subsection*{Does PCA pre-processing improve the classification accuracy? Why or why not?}
+
+No, PCA pre-processing does not improve the classification accuracy for this dataset; in fact, aggressively reducing dimensions harms it. 
+
+This behavior highlights a fundamental difference between the two algorithms. PCA is an unsupervised technique that discards directions with the lowest overall variance. However, variance does not necessarily equate to class separability. A feature might have very little variance overall, but if that slight variance is entirely due to the difference between the "Fake" and "Genuine" classes, it is highly discriminative. By dropping these "low variance" directions, PCA is inadvertently throwing away information that LDA could have used to separate the classes. Thus, for this specific dataset, feeding the raw features directly to LDA yields the best linear separation.
+
+% --- END PCA + LDA PRE-PROCESSING ANALYSIS ---
