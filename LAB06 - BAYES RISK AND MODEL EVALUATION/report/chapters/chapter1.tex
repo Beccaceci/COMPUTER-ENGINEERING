@@ -1,0 +1,42 @@
+\chapter{MVG classifier performance across applications}
+\label{chap:mvg_applications}
+
+In this chapter, we analyze the performance of the baseline Multivariate Gaussian (MVG) classifier across five different applications. Each application is parameterized by a specific triplet $(\pi_1, C_{fn}, C_{fp})$, representing the prior probability of the authentic class, the cost of a false negative, and the cost of a false positive, respectively.
+
+\section{Evaluation of the Applications}
+
+\textbf{Question: What do you obtain?}
+
+The evaluation of the Standard MVG classifier across the five specified applications yields the normalized Detection Cost Function ($\text{DCF}_n$) and the minimum DCF ($\text{min DCF}$) values shown in Table \ref{tab:mvg_results}.
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{lccccc}
+        \toprule
+        \textbf{Application Triplet} & $\pi_1$ & $C_{fn}$ & $C_{fp}$ & \textbf{Actual $\text{DCF}_n$} & \textbf{Min DCF} \\
+        \midrule
+        App 1 (Baseline) & 0.5 & 1.0 & 1.0 & 0.140 & 0.130 \\
+        App 2 (High Legit Prior) & 0.9 & 1.0 & 1.0 & 0.400 & 0.342 \\
+        App 3 (High Impostor Prior) & 0.1 & 1.0 & 1.0 & 0.305 & 0.263 \\
+        App 4 (Strong Security) & 0.5 & 1.0 & 9.0 & 0.305 & 0.263 \\
+        App 5 (Ease of Use) & 0.5 & 9.0 & 1.0 & 0.400 & 0.342 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Performance of the Standard MVG classifier across five target applications.}
+    \label{tab:mvg_results}
+\end{table}
+
+\section{Equivalence of Costs and Effective Priors}
+
+\textbf{Question: Observe how the costs of mis-classifications are reflected in the prior: stronger security (higher false positive cost) corresponds to an equivalent lower prior probability of a legit user.}
+
+The cost of misclassifications mathematically mirrors a shift in the prior probabilities. This relationship is formalized by the effective prior ($\tilde{\pi}$), which translates any application triplet into an equivalent application assuming uniform unit costs ($C_{fn}=1, C_{fp}=1$):
+\begin{equation}
+    \tilde{\pi} = \frac{\pi_1 C_{fn}}{\pi_1 C_{fn} + (1 - \pi_1) C_{fp}}
+\end{equation}
+
+The empirical results in Table \ref{tab:mvg_results} perfectly demonstrate this theoretical property:
+
+\textbf{Stronger Security Scenario:} Application 4 imposes a high cost on granting access to an impostor ($C_{fp}=9.0$) with a uniform prior ($\pi_1=0.5$). The effective prior calculation yields $\tilde{\pi} = 0.10$. Application 3 utilizes a naturally low prior for authentic users ($\pi_1=0.1$) with uniform costs. Both applications evaluate to the exact same actual $\text{DCF}_n$ (0.305) and minimum DCF (0.263). Demanding stronger security forces the decision threshold to become far more conservative, which is mathematically indistinguishable from assuming that genuine users are inherently rare.
+
+\textbf{Ease of Use Scenario:} Application 5 imposes a high cost on rejecting a legitimate user ($C_{fn}=9.0$), yielding an effective prior of $\tilde{\pi} = 0.90$. Application 2 explicitly sets the genuine user prior to $\pi_1=0.9$. Once again, both configurations produce identical actual $\text{DCF}_n$ (0.400) and minimum DCF (0.342) metrics. Lowering the barrier for entry shifts the decision boundary identically to assuming the vast majority of all users are legitimate.

@@ -1,0 +1,87 @@
+\chapter{Comparison of Gaussian Classifier Variants}
+\label{chap:variants_comparison}
+
+This chapter expands our analysis to compare three distinct Gaussian classifier variants: the Standard MVG, the Tied Covariance MVG, and the Naive Bayes classifier. We evaluate these models across three specific applications represented purely in terms of their effective priors ($\tilde{\pi} = 0.1$, $\tilde{\pi} = 0.5$, and $\tilde{\pi} = 0.9$) with uniform costs.
+
+Table \ref{tab:comparison_results} summarizes the Actual $\text{DCF}_n$ and Minimum DCF extracted for these configurations.
+
+\begin{table}[htbp]
+    \centering
+    \small % Slightly reduces font size to prevent the table from overflowing the margins
+    \begin{tabular}{llccc}
+        \toprule
+        \textbf{Eff. Prior ($\tilde{\pi}$)} & \textbf{Model} & \textbf{Actual $\text{DCF}_n$} & \textbf{Min DCF} & \textbf{Calib. Loss (\%)} \\
+        \midrule
+        \multirow{3}{*}{\textbf{0.5}} 
+        & Standard MVG & 0.140 & 0.130 & 7.7\% \\
+        & Naive Bayes  & 0.144 & 0.131 & 9.9\% \\
+        & Tied MVG     & 0.186 & 0.181 & 2.7\% \\
+        \midrule
+        \multirow{3}{*}{\textbf{0.9}} 
+        & Standard MVG & 0.400 & 0.342 & 17.0\% \\
+        & Naive Bayes  & 0.389 & 0.351 & 10.8\% \\
+        & Tied MVG     & 0.463 & 0.442 & 4.7\% \\
+        \midrule
+        \multirow{3}{*}{\textbf{0.1}} 
+        & Standard MVG & 0.305 & 0.263 & 16.0\% \\
+        & Naive Bayes  & 0.302 & 0.257 & 17.5\% \\
+        & Tied MVG     & 0.406 & 0.363 & 11.8\% \\
+        \bottomrule
+    \end{tabular}
+    \caption{Performance metrics and calibration loss (calculated as $\frac{\text{Actual} - \text{Min}}{\text{Min}}$) for the three models across different effective priors.}
+    \label{tab:comparison_results}
+\end{table}
+
+\section{Analysis of the Three Applications}
+
+\textbf{Question: Which models perform best?}
+
+The intrinsic discriminative power of a model is measured by its Minimum DCF. Based on the data in Table \ref{tab:comparison_results}, the \textbf{Standard MVG} and the \textbf{Naive Bayes} classifiers perform the best. At $\tilde{\pi} = 0.5$, the Standard MVG achieves the lowest overall cost (0.130), closely followed by Naive Bayes (0.131). At $\tilde{\pi} = 0.9$, the Standard MVG again holds a slight edge (0.342 vs 0.351). At $\tilde{\pi} = 0.1$, Naive Bayes narrowly outperforms the Standard MVG (0.257 vs 0.263). The Tied MVG classifier is demonstrably the worst-performing model across all scenarios.
+
+\textbf{Question: Are the relative results of the models consistent over the different applications?}
+
+The relative performance rankings are largely consistent across the different applications. The Standard MVG and Naive Bayes classifiers consistently form the top tier of performance, always exhibiting very similar Minimum DCFs. While they swap the exact first and second place positions at the extreme prior of $\tilde{\pi} = 0.1$, the gap between them remains marginal. The Tied MVG classifier is absolutely consistent in its ranking, remaining the worst-performing model across all three effective prior configurations.
+
+\textbf{Question: Now consider also actual DCFs. Are the models well calibrated (i.e., with a calibration loss in the range of few percents of the minimum DCF value) for the given applications?}
+
+To evaluate calibration, we assess the calibration loss, which is the difference between the Actual $\text{DCF}_n$ and the Minimum DCF. The models are relatively well-calibrated only at the uniform prior ($\tilde{\pi} = 0.5$). Here, the calibration losses are minimal: 7.7\% for Standard MVG, 9.9\% for Naive Bayes, and 2.7\% for Tied MVG, falling within an acceptable range of a few percents of the minimum DCF value. However, the models are \textit{not} well-calibrated at the extreme priors ($\tilde{\pi} = 0.9$ and $\tilde{\pi} = 0.1$). As seen in Table \ref{tab:comparison_results}, the calibration losses jump to the 10\%--17\% range for the top-performing models, indicating a significant degradation in the reliability of the theoretical thresholds.
+
+\textbf{Question: Are there models that are better calibrated than others for the different applications?}
+
+Yes. Ironically, the worst-performing model (\textbf{Tied MVG}) is the best calibrated. Its calibration loss remains remarkably low at $\tilde{\pi} = 0.5$ (2.7\%) and $\tilde{\pi} = 0.9$ (4.7\%), and it exhibits the lowest calibration loss at $\tilde{\pi} = 0.1$ (11.8\%). Between the two best-performing models, neither is strictly dominant in calibration; Naive Bayes is better calibrated at $\tilde{\pi} = 0.9$ (10.8\% vs 17.0\%), while Standard MVG is slightly better calibrated at $\tilde{\pi} = 0.1$ (16.0\% vs 17.5\%).
+
+\section{Extended Range Analysis (Bayes Error Plots)}
+To fully understand the behavior of the classifiers, we evaluated the Bayes Error plots over an extended range of prior log-odds from $-4$ to $+4$, capturing highly skewed and extreme applications. These plots are shown in Figures \ref{fig:bayes_mvg}, \ref{fig:bayes_tied}, and \ref{fig:bayes_nb}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/Bayes_Error_Standard_MVG.png}
+    \caption{Bayes Error plot for the Standard MVG classifier. Note the increasing gap between the curves at extreme log-odds.}
+    \label{fig:bayes_mvg}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/Bayes_Error_Tied_MVG.png}
+    \caption{Bayes Error plot for the Tied MVG classifier. The curves remain closer together compared to the other models, indicating better relative calibration despite higher absolute costs.}
+    \label{fig:bayes_tied}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/Bayes_Error_Naive_Bayes.png}
+    \caption{Bayes Error plot for the Naive Bayes classifier.}
+    \label{fig:bayes_nb}
+\end{figure}
+
+\textbf{Question: What do you observe?}
+
+Across all three classifiers (Figures \ref{fig:bayes_mvg}, \ref{fig:bayes_tied}, and \ref{fig:bayes_nb}), the minimum achievable cost is lowest at the center (prior log-odds $= 0$, corresponding to a uniform effective prior of $\tilde{\pi}=0.5$). As the applications become more extreme (moving towards $-4$ or $+4$), both the minimum DCF and the actual DCF increase. Most importantly, the gap between the theoretical optimal performance (Minimum DCF) and the empirical performance (Actual DCF) noticeably widens at these extremes.
+
+\textbf{Question: Are model rankings consistent across applications (minimum DCF)?}
+
+Yes, the model rankings are highly consistent. By observing the Minimum DCF (blue curves) across the entire range from $-4$ to $+4$, the Standard MVG and Naive Bayes classifiers consistently maintain a lower profile than the Tied MVG classifier. The Standard MVG and Naive Bayes models trace nearly identical paths across the entire spectrum, proving that their superiority over the Tied MVG is independent of the specific target application.
+
+\textbf{Question: Are models well-calibrated over the considered range of applications?}
+
+No, the models are not well-calibrated over the entire range. While they exhibit excellent calibration near log-odds $= 0$ (where the Actual DCF and Minimum DCF curves converge), they suffer from severe calibration loss at the extremes. This is most visibly prominent in the Tied MVG classifier (Figure \ref{fig:bayes_tied}), where at prior log-odds $= +4$, the Actual DCF reaches $1.0$, while the Minimum DCF is approximately $0.8$. The Standard MVG and Naive Bayes models also show a widening gap at the edges. This indicates that for highly unbalanced applications (e.g., severe class imbalance or highly asymmetric costs), the theoretical decision thresholds derived from the raw scores are sub-optimal, and explicit score re-calibration would be required to achieve the minimum theoretical cost.
