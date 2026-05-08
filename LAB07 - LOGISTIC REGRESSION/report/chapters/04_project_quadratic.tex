@@ -1,0 +1,59 @@
+\chapter{Quadratic logistic regression analysis}
+
+In this section, we move beyond linear decision boundaries by applying a quadratic feature expansion to the project dataset. By mapping the original features into a higher-dimensional space that includes all pairwise products of the features, we allow the Logistic Regression model to learn non-linear boundaries in the original feature space.
+
+\section{Experimental results}
+
+The model was trained on the full expanded dataset using a standard (non-prior-weighted) objective function. We evaluated the performance across the same range of $\lambda$ values for the primary application $\pi_T = 0.1$.
+
+\begin{table}[h]
+\centering
+\caption{Quadratic logistic regression results ($\pi_T = 0.1$)}
+\begin{tabular}{ccc}
+\toprule
+$\lambda$ & minDCF & actDCF \\
+\midrule
+$1.0000 \times 10^{-4}$ & 0.2602 & 0.2768 \\
+$1.0000 \times 10^{-3}$ & 0.2587 & 0.2765 \\
+$3.1623 \times 10^{-3}$ & 0.2527 & 0.2771 \\
+$1.0000 \times 10^{-2}$ & 0.2487 & 0.3464 \\
+$3.1623 \times 10^{-2}$ & 0.2436 & 0.4972 \\
+$1.0000 \times 10^{-1}$ & 0.2466 & 0.7520 \\
+$1.0000 \times 10^{0}$  & 0.2840 & 1.0000 \\
+$1.0000 \times 10^{2}$  & 0.3263 & 1.0000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{results/LR_Quadratic_DCF_vs_Lambda.png}
+    \caption{Quadratic logistic regression: DCF vs $\lambda$ ($\pi_T = 0.1$)}
+\end{figure}
+
+\section{Analysis and discussion}
+
+\textbf{What do you observe?}
+
+The most striking observation is the significant improvement in discriminatory power compared to the linear models. The minimum DCF drops from approximately $0.36$ in the linear case to a best value of $0.2436$ in the quadratic case. This indicates that the relationship between the features and the classes is inherently non-linear, and the quadratic expansion successfully captures this complexity. 
+
+Furthermore, we observe that the minDCF is no longer flat as it was in the linear full-dataset analysis; it shows a distinct downward trend as $\lambda$ increases toward $10^{-2}$ before rising again. The actDCF remains very close to the minDCF for small values of $\lambda$ ($\le 10^{-3}$), showing excellent calibration initially, but it degrades much faster than the linear model as regularization increases.
+
+\textbf{In this case is regularization effective?}
+
+Yes, in the quadratic case, regularization is highly effective and necessary. In the linear analysis on the full dataset, the number of parameters was small relative to the number of samples, making regularization almost irrelevant for the minDCF. However, the quadratic expansion significantly increases the number of parameters (the dimensionality of the weight vector $w$). 
+
+With more parameters, the model has a higher capacity, which introduces a greater risk of overfitting the training data. We can see regularization at work by looking at the minDCF: it improves as we increase $\lambda$ from $10^{-4}$ up to $3.1623 \times 10^{-2}$. This shows that penalizing the weights helps the model generalize better to the validation set by preventing it from fitting noise in the expanded feature space.
+
+\textbf{How does it affect the two metrics?}
+
+The regularization coefficient $\lambda$ affects the metrics as follows:
+
+\begin{itemize}
+    \item \textbf{Effect on minDCF:} Regularization manages the bias-variance tradeoff. For very low $\lambda$, the model overfits (higher minDCF due to variance). As $\lambda$ increases toward $3 \times 10^{-2}$, the minDCF reaches its optimum because the regularization prevents over-fitting without losing the signal. Beyond this point, the model begins to underfit (higher minDCF due to bias), as the penalty prevents the weights from capturing the actual patterns in the data.
+    
+    \item \textbf{Effect on actDCF:} For low $\lambda$, the calibration is quite good because the quadratic model is complex enough to accurately model the log-posterior probabilities. However, as $\lambda$ increases beyond the optimal point, the actDCF explodes. Theoretically, this happens because the regularization pushes the weights toward zero, compressing the scores $s(x) = w^T\phi(x) + b$. These compressed scores lose their alignment with the required LLR threshold for $\pi_T = 0.1$, resulting in a massive increase in the actual cost, eventually reaching the default cost of 1.0.
+\end{itemize}
+
+\section{Theoretical motivation}
+The superiority of the quadratic model stems from the fact that it can model covariance differences between classes even when using a discriminative approach. While a linear model is roughly equivalent to a Tied Covariance Gaussian model (assuming a linear boundary), the quadratic expansion allows the Logistic Regression model to simulate the behavior of an MVG model with different covariance matrices for each class. The results confirm that the flexibility provided by the expanded feature space $\phi(x) = [vec(xx^T), x]$ is crucial for this specific dataset.

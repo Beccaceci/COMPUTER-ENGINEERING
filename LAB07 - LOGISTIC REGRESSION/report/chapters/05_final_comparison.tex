@@ -1,0 +1,54 @@
+\chapter{Final model comparison and conclusions}
+
+In this final section, we consolidate the results obtained across all experimental setups, including the generative Gaussian models from previous laboratories and the discriminative Logistic Regression models developed in this laboratory. The comparison is based on the minimum DCF for the primary application $\pi_T = 0.1$, as this metric represents the optimal discriminatory potential of each model regardless of its current calibration.
+
+\section{Summary of results}
+
+The following table summarizes the best performance achieved by each model type. For Logistic Regression models, the results corresponding to the optimal regularization parameter $\lambda$ are reported.
+
+\begin{table}[h]
+\centering
+\caption{Overall model comparison ($\pi_T = 0.1$)}
+\begin{tabular}{lccc}
+\toprule
+Model & Optimal $\lambda$ & minDCF & actDCF \\
+\midrule
+MVG (Full Covariance) & - & 0.2629 & 0.3051 \\
+Naive Bayes & - & 0.2570 & 0.3022 \\
+Tied MVG & - & 0.3628 & 0.4061 \\
+\midrule
+Standard Logistic Regression & $10^{-2}$ & 0.3611 & 0.4568 \\
+Prior-Weighted Logistic Regression & $3.16 \times 10^1$ & 0.3620 & 1.0000 \\
+Quadratic Logistic Regression & $3.16 \times 10^{-2}$ & \textbf{0.2436} & 0.4972 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Analysis and comparative discussion}
+
+\textbf{Which model(s) achieve(s) the best results?}
+
+The best overall result is achieved by the **Quadratic Logistic Regression** model, which reaches a minimum DCF of $0.2436$. Among the generative models, **Naive Bayes** ($0.2570$) and the **Multivariate Gaussian (MVG)** model ($0.2629$) also perform significantly better than any of the linear models. The linear Logistic Regression models and the Tied MVG model consistently show higher (worse) minDCF values, plateauing around $0.36$.
+
+\textbf{What kind of separation rules or distribution assumptions characterize this / these model(s)?}
+
+The top-performing models share a common characteristic: they allow for **non-linear decision boundaries**.
+
+\begin{itemize}
+    \item \textbf{Quadratic logistic regression:} This is a discriminative model that does not make explicit assumptions about the distribution of the features. However, by expanding the feature space to include quadratic terms, it learns a quadratic decision boundary. This allows the model to capture differences in the "spread" or orientation (covariances) of the two classes.
+    \item \textbf{MVG and Naive Bayes:} These are generative models. MVG assumes that each class follows a Gaussian distribution with its own specific mean and full covariance matrix. Naive Bayes is a simplified version that assumes diagonal covariance matrices (feature independence). These models naturally result in quadratic decision boundaries (Quadratic Discriminant Analysis) when the covariance matrices of the classes differ.
+    \item \textbf{Linear models (Standard LR, Tied MVG):} These models assume, either explicitly or implicitly, that the classes can be separated by a simple hyperplane. Tied MVG assumes that both classes share the same covariance matrix, which mathematically restricts the decision boundary to be linear. The poor performance of these models indicates that a linear rule is insufficient for this dataset.
+\end{itemize}
+
+\textbf{How are the results related to the characteristics of the dataset features?}
+
+The results provide strong evidence regarding the statistical structure of the project dataset:
+
+\begin{enumerate}
+    \item \textbf{Covariance mismatch:} The fact that Quadratic LR and MVG significantly outperform Tied MVG and Linear LR strongly suggests that the two classes (authentic and impostor) have **different covariance structures**. In other words, the way features correlate with each other in the "authentic" class is different from how they correlate in the "impostor" class. A linear model cannot capture this "second-order" information.
+    \item \textbf{Quadratic benefit:} The Quadratic Logistic Regression outperforms the MVG model ($0.2436$ vs $0.2629$). This suggests that while the classes might be "Gaussian-like," they do not perfectly follow a Gaussian distribution. As a discriminative model, Logistic Regression is more robust to modeling errors because it focuses directly on the decision boundary rather than trying to model the entire density of the features.
+    \item \textbf{Feature interaction:} The high performance of the quadratic expansion indicates that interactions between different features (cross-terms) carry significant discriminative information that is lost when considering features only in their linear form.
+\end{enumerate}
+
+\section{Final considerations on calibration}
+While Quadratic Logistic Regression provides the best discriminatory potential (lowest minDCF), it also shows a significant **calibration gap** ($actDCF - minDCF = 0.2536$). This reinforces the laboratory's conclusion that complex models, especially those with many parameters or high regularization, require post-processing calibration to ensure that their scores can be reliably used as Log-Likelihood Ratios in a real-world application. Currently, the generative models (MVG and Naive Bayes) appear more "naturally" calibrated for this specific application.

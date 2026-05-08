@@ -1,0 +1,19 @@
+\babel@toc {english}{}\relax 
+\contentsline {chapter}{\numberline {1}Standard logistic regression analysis}{2}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Experimental Results}{2}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Performance Analysis}{2}{section.1.2}%
+\contentsline {chapter}{\numberline {2}Reduced dataset analysis}{4}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Experimental results}{4}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Analysis and Discussion}{4}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Theoretical conclusion}{6}{section.2.3}%
+\contentsline {chapter}{\numberline {3}Prior-weighted logistic regression analysis}{7}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Experimental results}{7}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Analysis and discussion}{7}{section.3.2}%
+\contentsline {chapter}{\numberline {4}Quadratic logistic regression analysis}{9}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Experimental results}{9}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Analysis and discussion}{9}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Theoretical motivation}{11}{section.4.3}%
+\contentsline {chapter}{\numberline {5}Final model comparison and conclusions}{12}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Summary of results}{12}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Analysis and comparative discussion}{12}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Final considerations on calibration}{13}{section.5.3}%

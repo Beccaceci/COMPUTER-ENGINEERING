@@ -1,0 +1,60 @@
+\chapter{Reduced dataset analysis}
+
+In this section, we analyze the behavior of the Logistic Regression model when training data is scarce. By keeping only 1 out of every 50 samples from the original training set, we reduce the number of observations available for parameter estimation. This setup allows us to highlight the role of regularization as a tool to prevent overfitting in low-data regimes.
+
+\section{Experimental results}
+
+The model was trained on the reduced dataset $DTR_{reduced}, LTR_{reduced}$ using the same range of $\lambda$ values as the previous analysis. The validation was still performed on the full validation set to ensure a reliable estimate of the generalization error.
+
+\begin{table}[h]
+\centering
+\caption{Reduced dataset logistic regression results ($\pi_T = 0.1$)}
+\begin{tabular}{ccc}
+\toprule
+$\lambda$ & minDCF & actDCF \\
+\midrule
+$1.0000 \times 10^{-4}$ & 0.4466 & 0.9780 \\
+$1.0000 \times 10^{-3}$ & 0.4487 & 0.7466 \\
+$1.0000 \times 10^{-2}$ & 0.4407 & 0.4652 \\
+$1.0000 \times 10^{-1}$ & 0.3988 & 0.7164 \\
+$1.0000 \times 10^{0}$  & 0.3874 & 1.0000 \\
+$1.0000 \times 10^{1}$  & 0.3783 & 1.0000 \\
+$1.0000 \times 10^{2}$  & 0.3783 & 1.0000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{results/LR_Standard_Reduced_DCF_vs_Lambda.png}
+    \caption{Reduced Dataset: DCF vs $\lambda$ ($\pi_T = 0.1$)}
+\end{figure}
+
+\section{Analysis and Discussion}
+
+\textbf{What do you observe?}
+
+In this reduced data scenario, the behavior of the metrics changes significantly compared to the full-dataset case. The minDCF is no longer flat; it starts at a higher value ($\approx 0.44$) for low $\lambda$ and gradually improves (decreases) as $\lambda$ increases, reaching its best value around $\lambda = 10$. 
+
+More importantly, the actDCF curve now exhibits a clear "U-shape." For very small values of $\lambda$, the actDCF is extremely high ($\approx 0.98$), nearly matching the cost of a non-informative system. It reaches a minimum at an intermediate value ($\lambda = 10^{-2}$) before rising again to $1.0$ as regularization becomes too strong.
+
+\textbf{Can you explain the results in this case? Remember that lower values of the regularizer imply larger risk of overfitting, while higher values of the regularizer reduce overfitting, but may lead to underfitting and to scores that lose their probabilistic interpretation.}
+
+The results can be explained by the relationship between model complexity, sample size, and regularization:
+
+\begin{itemize}
+    \item \textbf{Low regularization ($\lambda < 10^{-2}$): Overfitting.} 
+    With only 1/50th of the data, the model has very few samples to define the decision boundary. For small $\lambda$, the optimizer is free to choose weights that "perfectly" fit these few points, including their specific noise. This leads to extremely overconfident scores. While the ranking might be somewhat correct (minDCF $\approx 0.44$), the scores are poorly calibrated, resulting in an actDCF near $1.0$. The model has high variance and fails to generalize.
+    
+    \item \textbf{Optimal regularization ($\lambda \approx 10^{-2}$): Generalization.} 
+    At this intermediate range, the regularization term effectively penalizes large weight values. This prevents the model from fitting the noise of the small training set too closely. Theoretically, regularization reduces the effective capacity of the model, bringing the empirical risk closer to the true risk. This results in the best-calibrated scores and the lowest actDCF ($0.4652$).
+
+    \item \textbf{High regularization ($\lambda > 10^{-1}$): Underfitting and calibration Loss.} 
+    As $\lambda$ increases further, the penalty term dominates the cross-entropy loss. The weights $w$ are pushed toward zero, and the model becomes too simple to capture the underlying data distribution (underfitting). Furthermore, as the weights shrink, the scores $s(x) = w^Tx + b$ are compressed toward a constant value. These "shrunken" scores no longer represent valid Log-Likelihood Ratios, losing their probabilistic interpretation. Consequently, the system can no longer make informative decisions at the application threshold $\pi_T = 0.1$, and the actDCF returns to $1.0$.
+\end{itemize}
+
+
+Interestingly, the minDCF improves for high $\lambda$ because the reduction in weight magnitude can sometimes lead to a more stable ranking of samples in a low-data regime, even if the absolute values of the scores are useless for direct thresholding.
+
+\section{Theoretical conclusion}
+In conclusion, when data is abundant, the model is naturally regularized by the volume of information. However, when data is scarce, explicit regularization via $\lambda$ is mandatory to bridge the gap between minimum and actual performance by controlling the trade-off between bias (underfitting) and variance (overfitting).

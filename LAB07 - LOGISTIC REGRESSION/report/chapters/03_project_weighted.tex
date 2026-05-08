@@ -1,0 +1,51 @@
+\chapter{Prior-weighted logistic regression analysis}
+
+In this section, we analyze the performance of the Prior-weighted logistic regression model. Unlike the standard model, this version explicitly incorporates the target application prior $\pi_T = 0.1$ into the objective function during the training phase.
+
+\section{Experimental results}
+
+The model was trained on the full project dataset using 13 values of $\lambda$ logarithmically spaced between $10^{-4}$ and $10^{2}$. To obtain the Log-Likelihood Ratios (LLRs), we subtracted the log-odds of the target prior used during training ($\pi_T = 0.1$).
+
+\begin{table}[h]
+\centering
+\caption{Prior-weighted logistic regression results ($\pi_T = 0.1$)}
+\begin{tabular}{ccc}
+\toprule
+$\lambda$ & minDCF & actDCF \\
+\midrule
+$1.0000 \times 10^{-4}$ & 0.3721 & 0.4071 \\
+$1.0000 \times 10^{-3}$ & 0.3699 & 0.4129 \\
+$1.0000 \times 10^{-2}$ & 0.3630 & 0.4487 \\
+$1.0000 \times 10^{-1}$ & 0.3648 & 0.9147 \\
+$1.0000 \times 10^{0}$  & 0.3640 & 1.0000 \\
+$1.0000 \times 10^{1}$  & 0.3630 & 1.0000 \\
+$3.1623 \times 10^{1}$  & 0.3620 & 1.0000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{results/LR_Weighted_DCF_vs_Lambda.png}
+    \caption{Prior-weighted logistic regression: DCF vs $\lambda$ ($\pi_T = 0.1$)}
+\end{figure}
+
+\section{Analysis and discussion}
+
+\textbf{Are there significant differences for this task?}
+
+No, there are no significant differences in terms of performance between the standard and the prior-weighted models for this specific task. Comparing the best minimum DCF obtained by the standard model ($0.3611$) with the best minimum DCF of the prior-weighted model ($0.3620$), the values are nearly identical. Both models exhibit the same trend: a stable minDCF across the lambda range and a degrading actDCF that reaches 1.0 as regularization increases. 
+
+The lack of difference is motivated by the fact that the project dataset is sufficiently large. In high-data regimes, the model is able to learn the underlying class distributions effectively regardless of whether the classes are weighted in the objective function or not, provided the empirical prior of the training set is not extremely skewed compared to the target application.
+
+\textbf{Are there advantages using the prior-weighted model for our application (remember that the prior-weighted model requires that we know the target prior when we build the model)?}
+
+In this specific case, the prior-weighted model does not offer a numerical advantage, but it provides a theoretical one. The primary advantage of the prior-weighted model is its ability to "focus" the training on a specific operating point. By incorporating $\pi_T$ into the loss function, we are telling the optimizer to penalize errors on the minority class more heavily (in our case, the impostors if we consider the target prior of 0.1). 
+
+However, this approach has two main drawbacks:
+\begin{itemize}
+    \item \textbf{Requirement of prior knowledge:} We must know the target application prior at training time. If the application changes (e.g., if we need to evaluate for $\pi_T = 0.5$), the prior-weighted model trained for $0.1$ will be poorly calibrated and may yield sub-optimal results.
+    \item \textbf{Calibration sensitivity:} As seen in the results, even with the correct prior weighted into the training, the actDCF still diverges from the minDCF at high lambda values. This confirms that regularization still compresses the scores, leading to a loss of probabilistic meaning that the prior weighting alone cannot fix.
+\end{itemize}
+
+Theoretically, the prior-weighted model is most advantageous when the training set is highly imbalanced or unrepresentative of the real-world

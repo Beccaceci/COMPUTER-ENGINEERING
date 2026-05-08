@@ -1,0 +1,51 @@
+\chapter{Standard logistic regression analysis}
+
+In this section, we analyze the performance of a standard (non-prior-weighted) Logistic Regression model on the project dataset. The goal is to evaluate the impact of the regularization parameter $\lambda$ on both the discriminative capability (minDCF) and the calibration (actDCF) of the model for a target application with $\pi_T = 0.1$.
+
+\section{Experimental Results}
+
+The model was trained using 13 values of $\lambda$ logarithmically spaced between $10^{-4}$ and $10^{2}$ [cite: 4-17]. [cite\_start]For each value, we computed the minDCF and actDCF, after converting the raw scores into Log-Likelihood Ratios (LLRs) by removing the training set's empirical prior log-odds.
+The numerical results are summarized in Table \ref{tab:std_lr_results}.
+
+\begin{table}[h]
+    \centering
+    \caption{Standard Logistic Regression Performance ($\pi_T = 0.1$)}
+    \label{tab:std_lr_results}
+    \begin{tabular}{@{}ccc@{}}
+        \toprule
+        $\lambda$ & minDCF & actDCF \\ \midrule
+        $1.0000 \times 10^{-4}$ & 0.3640 & 0.4021 \\
+        $1.0000 \times 10^{-3}$ & 0.3650 & 0.4130 \\
+        $1.0000 \times 10^{-2}$ & 0.3611 & 0.4568 \\
+        $1.0000 \times 10^{-1}$ & 0.3641 & 0.8522 \\
+        $1.0000 \times 10^{0}$  & 0.3640 & 1.0000 \\
+        $1.0000 \times 10^{1}$  & 0.3630 & 1.0000 \\
+        $1.0000 \times 10^{2}$  & 0.3620 & 1.0000 \\ \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{results/LR_Standard_DCF_vs_Lambda.png}
+    \caption{Standard Logistic Regression: DCF vs $\lambda$ ($\pi_T = 0.1$)}
+    \label{fig:std_lr_plot}
+\end{figure}
+
+\section{Performance Analysis}
+
+\textbf{What do you observe?}
+Based on the results in Table \ref{tab:std_lr_results} and Figure \ref{fig:std_lr_plot}, we observe that the minDCF remains remarkably stable around a value of $0.36$ across the entire range of $\lambda$. 
+In contrast, the actDCF is relatively close to the minDCF only for very small values of $\lambda$ (e.g., $0.4021$ at $\lambda=10^{-4}$). 
+As $\lambda$ increases, the actDCF rises sharply, eventually reaching a value of $1.0$ for $\lambda \ge 1$, which corresponds to the cost of a non-informative system.
+
+\textbf{Can you see significant differences for the different values of lambda?}
+There are no significant differences in terms of the model's potential discriminatory power (minDCF), as the fluctuations are minimal. 
+However, there is a very significant difference in terms of calibration (actDCF). 
+The model is reasonably well-calibrated for low $\lambda$, but becomes completely mis-calibrated as regularization increases, showing that $\lambda$ has a much stronger impact on the reliability of the scores than on their ranking ability.
+
+\textbf{How does the regularization coefficient affects the two metrics?}
+The regularization coefficient $\lambda$ affects the two metrics in fundamentally different ways:
+\begin{itemize}
+    \item \textbf{Effect on minDCF:} The impact is negligible here. This is because the training dataset is sufficiently large, meaning the model is not prone to overfitting in this linear configuration. Therefore, penalizing the magnitude of the weights does not change the relative ordering of the validation samples significantly.
+    \item \textbf{Effect on actDCF:} Regularization has a severe negative impact on actDCF. Theoretically, Logistic Regression minimizes the cross-entropy to produce scores that behave like LLRs. As $\lambda \to \infty$, the penalty forces the weights $w \to 0$. When weights are extremely small, the scores $s(x) = w^Tx + b$ become nearly constant, losing their probabilistic meaning and their alignment with the application's required threshold. This leads to the massive "calibration gap" observed in the plots.
+\end{itemize}
