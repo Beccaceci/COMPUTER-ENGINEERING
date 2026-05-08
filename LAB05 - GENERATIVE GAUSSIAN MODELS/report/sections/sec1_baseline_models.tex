@@ -1,0 +1,14 @@
+\section{Baseline Model Evaluation}
+
+\subsection*{Apply the MVG model to the project data. Compute the corresponding error rate.}
+Running the Standard Multivariate Gaussian (MVG) model on the full 6-dimensional dataset yields an accuracy of \textbf{93.0\%}, which corresponds to an error rate of \textbf{7.0\%}.
+
+\subsection*{Apply now the tied Gaussian model, and compare the results with MVG and LDA. Which model seems to perform better?}
+The Tied Covariance MVG model results in an error rate of \textbf{9.3\%}. 
+
+Compared to the Standard MVG (7.0\%), the Tied model performs significantly worse. If we compare it to previous LDA results (which historically sat around 9.1\% to 9.5\% for this dataset), the Tied MVG performs almost identically to LDA. This makes theoretical sense: both LDA and Tied MVG assume that all classes share the exact same covariance matrix, resulting in a linear decision boundary. Because the true classes in this dataset have different variances, the Standard MVG (which allows for class-specific covariance matrices and computes quadratic boundaries) performs the best.
+
+\subsection*{Finally, test the Naive Bayes Gaussian model. How does it compare with the previous two?}
+The Naive Bayes model achieves an error rate of \textbf{7.2\%}. 
+
+It performs remarkably well—vastly outperforming the Tied MVG (9.3\%) and coming extremely close to the fully parameterized Standard MVG (7.0\%).

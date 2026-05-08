@@ -1,0 +1,9 @@
+\section{Covariance and Correlation Analysis}
+
+\subsection*{Start by printing the covariance matrix of each class. Compare the covariance of different feature pairs with the respective variances. What do you observe?}
+Looking at the computed covariance matrices, the elements on the main diagonal (the variances) are orders of magnitude larger than the off-diagonal elements (the co-variances). For example, in Class 0, the variance for Feature 1 is roughly 0.60, while its covariance with Feature 2 is a negligible 0.00005. The co-variance values are generally very small compared to the variances across both classes.
+
+\subsection*{Compute the correlation matrices for the two classes. Are the features strongly or weakly correlated? How is this related to the Naive Bayes results?}
+Looking at the correlation matrices, the off-diagonal values are exceptionally low—mostly hovering between -0.05 and 0.05, with only a few instances reaching around 0.3. This indicates that the features are \textbf{weakly correlated} and almost entirely independent. 
+
+This directly explains the success of the Naive Bayes classifier. Naive Bayes mathematically assumes that all features are completely independent (forcing all off-diagonal covariances to zero). Because the actual dataset features are indeed weakly correlated, the Naive Bayes assumption is highly accurate here, allowing it to perform almost as well as the Standard MVG while computing far fewer parameters.
