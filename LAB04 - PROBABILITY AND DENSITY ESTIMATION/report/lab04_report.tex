@@ -1,0 +1,103 @@
+\documentclass[12pt, a4paper]{article}
+
+% --- Core Packages ---
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{a4paper, margin=2.5cm}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{hyperref}
+
+% --- Code Formatting Packages ---
+\usepackage{listings}
+\usepackage{xcolor}
+
+% --- Custom Colors for Code ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% --- Python Code Style Setup ---
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4
+}
+\lstset{style=mystyle}
+
+% --- Document Information ---
+\title{Machine Learning and Pattern Recognition\\ \Large Laboratory Report}
+\author{Your Name}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This report details the implementation and analysis of dimensionality reduction techniques (PCA and LDA) and Generative Models (Multivariate Gaussian Classifiers) applied to the provided datasets.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% ==========================================
+% MAIN CONTENT INCLUSIONS
+% ==========================================
+
+\section{Gaussian Density Estimation}
+
+\subsection*{What do you observe?}
+When superimposing the Maximum Likelihood (ML) estimated 1D Gaussian probability density functions over the normalized histograms, we observe that the fundamental assumption of normality (that the data follows a symmetric, bell-shaped curve) is highly inconsistent across the dataset. Because the Gaussian model forces a perfectly symmetric shape centered on the mean, it behaves predictably: it wraps nicely around symmetric data but completely fails to capture the true density of data that is heavily skewed or asymmetric.
+
+\subsection*{Are there features for which the Gaussian densities provide a good fit?}
+Yes, the Gaussian densities provide a reasonably good fit for features that naturally exhibit a roughly symmetric distribution. 
+
+\begin{itemize}
+    \item \textbf{Fake Class:} Features 1, 2, 3, and 4 provide a solid fit. The estimated red Gaussian curves successfully capture the central density peaks and the tapering tails of the empirical blue histograms.
+    \item \textbf{Genuine Class:} Features 3 and 4 show an acceptable, albeit slightly imperfect, alignment with the Gaussian fit.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\linewidth]{images/fake_feature_1.png}
+    \includegraphics[width=0.48\linewidth]{images/genuine_feature_3.png}
+    \caption{Examples of good Gaussian fits: Fake Feature 1 (left) and Genuine Feature 3 (right). Both exhibit a relatively symmetric, bell-shaped empirical distribution.}
+    \label{fig:good_gaussian_fits}
+\end{figure}
+
+\subsection*{Are there features for which the Gaussian model seems significantly less accurate?}
+Absolutely. The Gaussian model is highly inaccurate for features that exhibit strong asymmetry (skewness), as the mathematical model simply cannot bend to fit a skewed shape.
+
+\begin{itemize}
+    \item \textbf{Fake Class:} Features 5 and 6 are heavily skewed to the left. The symmetric Gaussian curve underestimates the sharp right-sided peaks and overestimates the density on the steep drop-off.
+    \item \textbf{Genuine Class:} The inaccuracy is even more pronounced here. Features 1, 2, 5, and 6 exhibit severe negative skewness (long left tails with very sharp, sudden drop-offs on the right). For instance, the model predicts a high probability of finding samples on the far right side where essentially zero empirical samples exist.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\linewidth]{images/fake_feature_5.png}
+    \includegraphics[width=0.48\linewidth]{images/genuine_feature_5.png}
+    \caption{Examples of inaccurate Gaussian fits: Fake Feature 5 (left) and Genuine Feature 5 (right). The rigid symmetry of the Gaussian model completely misses the sharp peaks and asymmetric tails.}
+    \label{fig:bad_gaussian_fits}
+\end{figure}
+
+This visual analysis indicates that while a Gaussian classifier is mathematically elegant and computationally fast, its rigid structural assumptions will likely cause classification errors when evaluating test samples based on these heavily skewed features.
+
+% ==========================================
+
+\end{document}

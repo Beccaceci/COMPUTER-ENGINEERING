@@ -1,0 +1,5 @@
+Metric,Value
+Total Validation Samples,50
+Misclassified Samples,2
+Error Rate (%),4.0
+Accuracy (%),96.0
