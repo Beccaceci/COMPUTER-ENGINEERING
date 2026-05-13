@@ -4,33 +4,33 @@
 
 \subsection*{Apply LDA and compute the histogram of the projected samples. What do you observe? Do the classes overlap over the found direction?}
 
-Observing the histogram of the samples projected onto the single LDA direction, we see a stark contrast to unsupervised methods like PCA. The data forms a clearly bimodal distribution with the "Fake" and "Genuine" classes occupying distinct regions of the projected space. However, the classes do still overlap over the found direction. The right tail of the "Fake" class intersects with the left tail of the "Genuine" class in the center. This indicates that while linear separability is high, a perfectly clean linear boundary that yields 0\% error does not exist for this dataset.
+Observing the histogram of the samples projected onto the single LDA direction, we see a stark contrast to unsupervised methods like PCA. The data forms a clearly bimodal distribution with the "Fake" and "Genuine" classes occupying distinct regions of the projected space. However, the classes do still overlap over the found direction. The right tail of the "Fake" class intersects with the left tail of the "Genuine" class in the center. This indicates that while linear separability is significantly improved, a perfectly clean linear boundary that yields 0\% error does not exist for this dataset.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\linewidth]{project_exploratory_lda_histogram.png}
+    \includegraphics[width=0.7\linewidth]{LDA/histograms/project_exploratory_lda_histogram.png}
     \caption{Histogram of the data projected onto the LDA direction. The density centers are separated, but the tails overlap.}
     \label{fig:lda_hist_overlap}
 \end{figure}
 
 \subsection*{Compared to the histograms of the 6 features you computed in Laboratory 2, is LDA finding a good direction with little class overlap?}
 
-Yes, LDA is finding an exceptionally good direction compared to the raw features. In Laboratory 2, the histograms of the 6 individual features showed massive overlap; the distributions for "Fake" and "Genuine" were nearly superimposed, meaning no single raw feature was a strong discriminator. LDA has successfully found a linear combination of these original features—an optimal viewing angle—along which the classes were already well separated, drastically reducing the overlap volume compared to any single raw axis.
+Yes, LDA is finding an exceptionally good direction compared to the raw features. In Laboratory 2, the histograms of the 6 individual features showed massive overlap; the distributions for "Fake" and "Genuine" were often nearly superimposed (especially for features 1 and 2), meaning no single raw feature could act as a strong linear classifier. By taking a linear combination of all features, LDA successfully finds a 1-dimensional subspace where the class overlap is drastically minimized. 
 
-\subsection*{Compute the predictions on the validation data, and the corresponding error rate.}
+\subsection*{Try applying LDA for classification... Compute the predictions on the validation data, and the corresponding error rate.}
 
-By splitting the dataset, training the LDA projection on the training set, and applying it to the validation set, we establish a baseline linear classifier. We oriented the projection so that the mean of the "Genuine" class is larger than the "Fake" class. Using the default threshold—calculated strictly as the geometric average of the two projected training class means (approx $0.015$)—the model achieved an error rate of \textbf{9.57\%} on the validation data.
+We divided the dataset into a model training set and a validation set (containing 2000 samples). We applied LDA and oriented the projection so that the mean of the "Genuine" class was larger than the "Fake" class. Using the default threshold—the simple average of the two projected training class means, which was calculated as approximately $-0.0185$—the model achieved an error rate of \textbf{9.3\%} on the validation data.
 
 \subsection*{Now try changing the value of the threshold. What do you observe? Can you find values that improve the classification accuracy?}
 
-By sweeping the threshold across the range of projected values and evaluating the validation error at each step, we observe that the error rate forms a distinct curve with a clear minimum. The default threshold (the mean of the projected classes) does not yield the absolute lowest error. 
+By sweeping the threshold across the range of projected values and evaluating the validation error at each step, we observe that the error rate forms a distinct curve with a clear minimum. The default geometric threshold (the midpoint of the projected means) does not yield the absolute lowest error. 
 
-We can indeed find values that improve classification accuracy. By shifting the threshold slightly higher (to approximately $0.021$), the validation error rate improves, dropping from 9.57\% down to \textbf{8.74\%}. This observation suggests that the two class distributions are not perfectly symmetric or do not share the exact same variance; therefore, a slightly biased decision boundary discriminates the overlapping tails more effectively than the exact geometric midpoint.
+We can indeed find values that improve classification accuracy. By shifting the threshold slightly lower to approximately $-0.1080$, the validation error rate improves, dropping from 9.3\% down to \textbf{9.1\%}. This observation suggests that the two class distributions are not perfectly symmetric or do not share the exact same variance; therefore, a slightly biased decision boundary discriminates the overlapping tails more effectively than the exact geometric midpoint.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\linewidth]{lda_threshold_sweep.png}
-    \caption{Validation error rate as a function of the classification threshold. The green dashed line indicates the empirical optimum, which achieves a lower error rate (8.74\%) than the default geometric mean threshold (9.57\%, red dashed line).}
+    \includegraphics[width=0.7\linewidth]{LDA/lda_threshold_sweep.png}
+    \caption{Validation error rate as a function of the classification threshold. The green dashed line indicates the empirical optimum, which achieves a slightly lower error rate (9.1\%) than the default geometric mean threshold (9.3\%, red dashed line).}
     \label{fig:lda_threshold_sweep}
 \end{figure}
 

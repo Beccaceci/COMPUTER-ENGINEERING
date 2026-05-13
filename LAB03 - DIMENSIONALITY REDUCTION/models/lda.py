@@ -43,6 +43,16 @@ def compute_between_class_covariance (D, L):
 
 
 def compute_lda (D, L, m):
+    """
+    Computes the projection matrix W for LDA.
+    Parameters:
+        - D: data matrix (n_features x n_samples)
+        - L: label vector (n_samples,)
+        - m: number of dimensions to project onto (m <= C-1, where C is the number of classes)
+    Returns:
+        - s: eigenvalues sorted in descending order
+        - W: projection matrix (n_features x m)
+    """
     SW = compute_within_class_covariance(D, L)
     SB = compute_between_class_covariance (D, L)
 

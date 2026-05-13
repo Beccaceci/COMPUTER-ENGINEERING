@@ -1,21 +1,19 @@
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy
 from pathlib import Path
 
-# Make sure these match your imports exactly
+# Data & Math utils
 from utils.data_loaders import load_dataset, split_dataset
+from utils.io_utils import write_matrix
 from models.pca import compute_pca
 from models.lda import compute_lda
-from utils.plot_utils import plot_histograms, plot_scatter_pairs, plot_1d_histograms
-from utils.io_utils import write_matrix
 
-matplotlib.use("Agg")
+# Plot utils
+from utils.plot_utils import *
 
 ROOT = Path(".")
 PROJECT_LABEL_NAMES = {0: "Fake", 1: "Genuine"}
-
-def run_project_analysis():
+    
+if __name__ == "__main__":
     D, L = load_dataset(ROOT / "data" / "project" / "trainData.txt")
     
     # 1. Setup Folder Structure
@@ -27,7 +25,6 @@ def run_project_analysis():
     pca_scatter_dir = pca_dir / "scatter"
     lda_hist_dir = lda_dir / "histograms"
     
-    # Create the directories
     for d in [pca_hist_dir, pca_scatter_dir, lda_hist_dir]:
         d.mkdir(parents=True, exist_ok=True)
     
@@ -39,6 +36,7 @@ def run_project_analysis():
     _, P_pca = compute_pca(D, m=6)
     DP_pca = P_pca.T @ D
     pca_feature_names = [f"PCA Direction {i+1}" for i in range(6)]
+    
     plot_histograms(DP_pca, L, pca_feature_names, PROJECT_LABEL_NAMES, pca_hist_dir, "Project PCA", bins=40)
     plot_scatter_pairs(DP_pca, L, pca_feature_names, PROJECT_LABEL_NAMES, pca_scatter_dir, "Project PCA")
     
@@ -87,18 +85,13 @@ def run_project_analysis():
     best_threshold = thresholds[best_idx]
     best_error_rate = error_rates[best_idx]
 
-    # Plot the threshold sweep
-    plt.figure(figsize=(7, 5))
-    plt.plot(thresholds, [e * 100 for e in error_rates], label="Validation Error")
-    plt.axvline(threshold, color='red', linestyle='--', label=f'Mean Threshold ({error_rate*100:.2f}%)')
-    plt.axvline(best_threshold, color='green', linestyle='--', label=f'Best Threshold ({best_error_rate*100:.2f}%)')
-    plt.xlabel("Threshold")
-    plt.ylabel("Error Rate (%)")
-    plt.title("LDA Threshold Sweep")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(lda_dir / "lda_threshold_sweep.png", dpi=160)
-    plt.close()
+    # Plot the threshold sweep using our new util
+    plot_lda_threshold_sweep(
+        thresholds, error_rates, 
+        threshold, error_rate, 
+        best_threshold, best_error_rate, 
+        lda_dir / "lda_threshold_sweep.png"
+    )
 
     # Save the LDA metrics
     write_matrix(lda_dir / "lda_classification_metrics.csv", ["Metric", "Value"], [
@@ -138,8 +131,3 @@ def run_project_analysis():
 
     # Save PCA+LDA Metrics
     write_matrix(pca_dir / "pca_lda_classification_metrics.csv", ["PCA Dimensions (m)", "Error Rate (%)"], pca_lda_results)
-
-
-if __name__ == "__main__":
-    run_project_analysis()
-    print("Lab 03 Project classification outputs successfully generated in results/project/LDA/ and results/project/PCA/.")

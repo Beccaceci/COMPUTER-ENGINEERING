@@ -52,3 +52,17 @@ def plot_1d_histograms(D_proj, L, label_names, output_dir, title, bins=40):
     plt.tight_layout()
     plt.savefig(output_dir / f"{title.lower().replace(' ', '_')}_histogram.png", dpi=160)
     plt.close()
+
+def plot_lda_threshold_sweep(thresholds, error_rates, default_threshold, default_error_rate, best_threshold, best_error_rate, output_path):
+    """Plots the error rate as a function of the chosen classification threshold."""
+    plt.figure(figsize=(7, 5))
+    plt.plot(thresholds, [e * 100 for e in error_rates], label="Validation Error")
+    plt.axvline(default_threshold, color='red', linestyle='--', label=f'Mean Threshold ({default_error_rate*100:.2f}%)')
+    plt.axvline(best_threshold, color='green', linestyle='--', label=f'Best Threshold ({best_error_rate*100:.2f}%)')
+    plt.xlabel("Threshold")
+    plt.ylabel("Error Rate (%)")
+    plt.title("LDA Threshold Sweep")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=160)
+    plt.close()
