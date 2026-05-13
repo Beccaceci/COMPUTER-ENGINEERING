@@ -1,8 +1,8 @@
-PWD /Users/nicolabeccaceci/Desktop/MACHINE LEARNING AND PATTERN RECOGNITION/LABS/LAB02/report
+PWD /Users/nicolabeccaceci/Desktop/MACHINE LEARNING AND PATTERN RECOGNITION/LABS/LAB02 - IRIS DATASET/report
 INPUT /usr/local/texlive/2026/texmf.cnf
 INPUT /usr/local/texlive/2026/texmf-dist/web2c/texmf.cnf
 INPUT /usr/local/texlive/2026/texmf-var/web2c/pdftex/pdflatex.fmt
-INPUT /Users/nicolabeccaceci/Desktop/MACHINE LEARNING AND PATTERN RECOGNITION/LABS/LAB02/report/lab02_report.tex
+INPUT /Users/nicolabeccaceci/Desktop/MACHINE LEARNING AND PATTERN RECOGNITION/LABS/LAB02 - IRIS DATASET/report/lab02_report.tex
 OUTPUT lab02_report.log
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/base/article.cls
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/base/article.cls
@@ -132,11 +132,11 @@ INPUT ../results/iris/hist_4_petal_width.png
 INPUT ../results/iris/hist_4_petal_width.png
 INPUT /usr/local/texlive/2026/texmf-var/fonts/map/pdftex/updmap/pdftex.map
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/cm/cmtt10.tfm
-INPUT ./feature_1_and_2.tex
-INPUT ./feature_1_and_2.tex
-INPUT ./feature_1_and_2.tex
-INPUT ./feature_1_and_2.tex
-INPUT feature_1_and_2.tex
+INPUT ./chapters/feature_1_and_2.tex
+INPUT ./chapters/feature_1_and_2.tex
+INPUT ./chapters/feature_1_and_2.tex
+INPUT ./chapters/feature_1_and_2.tex
+INPUT chapters/feature_1_and_2.tex
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/jknappen/ec/tcrm1095.tfm
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm
 INPUT ../results/project/histograms/feature_1_histogram.png
@@ -148,11 +148,11 @@ INPUT ../results/project/histograms/feature_2_histogram.png
 INPUT ../results/project/histograms/feature_2_histogram.png
 INPUT ../results/project/histograms/feature_2_histogram.png
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
-INPUT ./feature_3_and_4.tex
-INPUT ./feature_3_and_4.tex
-INPUT ./feature_3_and_4.tex
-INPUT ./feature_3_and_4.tex
-INPUT feature_3_and_4.tex
+INPUT ./chapters/feature_3_and_4.tex
+INPUT ./chapters/feature_3_and_4.tex
+INPUT ./chapters/feature_3_and_4.tex
+INPUT ./chapters/feature_3_and_4.tex
+INPUT chapters/feature_3_and_4.tex
 INPUT ../results/project/histograms/feature_3_histogram.png
 INPUT ../results/project/histograms/feature_3_histogram.png
 INPUT ../results/project/histograms/feature_3_histogram.png
@@ -161,11 +161,11 @@ INPUT ../results/project/histograms/feature_4_histogram.png
 INPUT ../results/project/histograms/feature_4_histogram.png
 INPUT ../results/project/histograms/feature_4_histogram.png
 INPUT ../results/project/histograms/feature_4_histogram.png
-INPUT ./feature_5_and_6.tex
-INPUT ./feature_5_and_6.tex
-INPUT ./feature_5_and_6.tex
-INPUT ./feature_5_and_6.tex
-INPUT feature_5_and_6.tex
+INPUT ./chapters/feature_5_and_6.tex
+INPUT ./chapters/feature_5_and_6.tex
+INPUT ./chapters/feature_5_and_6.tex
+INPUT ./chapters/feature_5_and_6.tex
+INPUT chapters/feature_5_and_6.tex
 INPUT ../results/project/histograms/feature_5_histogram.png
 INPUT ../results/project/histograms/feature_5_histogram.png
 INPUT ../results/project/histograms/feature_5_histogram.png

@@ -1,0 +1,32 @@
+\section*{Analysis of features 3 and 4}
+
+\subsection*{What do you observe?}
+Observing the scatter plot (\texttt{features\_3\_4\_scatter.png}), we can analyze the distribution of the two classes ("Fake" and "Genuine"). Given that the mean values for the two classes have opposite signs for both features, the classes appear to occupy distinct regions (specifically, opposite quadrants), although they are somewhat mixed in the center. The "Genuine" class tends to have higher values for Feature 3 and lower values for Feature 4, while the "Fake" class shows the exact opposite behavior.
+
+\subsection*{Do the classes overlap? If so, where?}
+Yes, the classes exhibit overlap. According to the computed data in \texttt{lab02\_project\_feature\_overlap\_ranges.csv}:
+\begin{itemize}
+    \item \textbf{Feature 3} overlaps between -2.0146 and 1.9045 (an overlap width of 3.9190).
+    \item \textbf{Feature 4} overlaps between -1.6829 and 1.8171 (an overlap width of 3.5000).
+\end{itemize}
+
+\subsection*{Do the classes show similar mean for these two features?}
+No, the means are distinctly different and exhibit roughly opposite signs. Extracted from \texttt{lab02\_project\_statistics.csv}:
+\begin{itemize}
+    \item \textbf{Feature 3:} The "Fake" mean is -0.6809, while the "Genuine" mean is 0.6652.
+    \item \textbf{Feature 4:} The "Fake" mean is 0.6708, while the "Genuine" mean is -0.6642.
+\end{itemize}
+
+\subsection*{Are the variances similar for the two classes?}
+Yes, the variances are relatively similar and almost identical. According to \texttt{lab02\_project\_statistics.csv}:
+\begin{itemize}
+    \item \textbf{Feature 3:} The variance for "Fake" is 0.5500, and for "Genuine" it is 0.5489.
+    \item \textbf{Feature 4:} The variance for "Fake" is 0.5360, and for "Genuine" it is 0.5533.
+\end{itemize}
+
+\subsection*{How many modes are evident from the histograms?}
+Based on \texttt{feature\_3\_histogram.png} and \texttt{feature\_4\_histogram.png}, we can observe the following modes:
+\begin{itemize}
+    \item \textbf{Feature 3:} The "Fake" distribution exhibits one mode, and the "Genuine" distribution exhibits one mode.
+    \item \textbf{Feature 4:} The "Fake" distribution exhibits one mode, and the "Genuine" distribution exhibits one mode.
+\end{itemize}

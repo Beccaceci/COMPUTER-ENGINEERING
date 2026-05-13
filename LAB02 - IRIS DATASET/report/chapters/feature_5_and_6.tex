@@ -1,0 +1,39 @@
+\section*{Analysis of features 5 and 6}
+
+\subsection*{What do you observe?}
+Observing the scatter plot (\texttt{features\_5\_6\_scatter.png}), the classes exhibit a highly structured, non-linear distribution. The "Fake" class forms a cross-like shape with clusters situated along the axes, while the "Genuine" class forms a ring of clusters situated in the four corners (quadrants) of the plot. Because of this geometry, the classes are heavily mixed in a way that a simple linear decision boundary would fail to separate them effectively.
+
+\subsection*{Do the classes overlap? If so, where?}
+Yes, the classes overlap extensively across almost the entire range of values. According to the computed data in \texttt{lab02\_project\_feature\_overlap\_ranges.csv}:
+\begin{itemize}
+    \item \textbf{Feature 5} overlaps between -2.0731 and 1.9972 (an overlap width of 4.0703).
+    \item \textbf{Feature 6} overlaps between -2.0130 and 2.1906 (an overlap width of 4.2035).
+\end{itemize}
+
+\subsection*{Do the classes show similar mean for these two features?}
+Yes, the means are very similar and both are centered extremely close to zero. Extracted from \texttt{lab02\_project\_statistics.csv}:
+\begin{itemize}
+    \item \textbf{Feature 5:} The "Fake" mean is 0.0280, while the "Genuine" mean is -0.0417.
+    \item \textbf{Feature 6:} The "Fake" mean is -0.0058, while the "Genuine" mean is 0.0239.
+\end{itemize}
+
+\subsection*{Are the variances similar for the two classes?}
+No, the variances show a significant difference, with the "Genuine" class having nearly double the variance of the "Fake" class. According to \texttt{lab02\_project\_statistics.csv}:
+\begin{itemize}
+    \item \textbf{Feature 5:} The variance for "Fake" is 0.6801, and for "Genuine" it is 1.3178.
+    \item \textbf{Feature 6:} The variance for "Fake" is 0.7050, and for "Genuine" it is 1.2870.
+\end{itemize}
+
+\subsection*{How many modes are evident from the histograms?}
+Based on \texttt{feature\_5\_histogram.png} and \texttt{feature\_6\_histogram.png}, we can observe the following modes:
+\begin{itemize}
+    \item \textbf{Feature 5:} The "Fake" distribution exhibits one mode (centered at 0), and the "Genuine" distribution exhibits two distinct modes.
+    \item \textbf{Feature 6:} The "Fake" distribution exhibits one mode (centered at 0), and the "Genuine" distribution exhibits two distinct modes.
+\end{itemize}
+
+\subsection*{How many clusters can you notice from the scatter plots for each class?}
+Based on the visual distribution in \texttt{features\_5\_6\_scatter.png}, we can notice:
+\begin{itemize}
+    \item \textbf{Fake class:} 4 distinct clusters (located radially along the x and y axes).
+    \item \textbf{Genuine class:} 4 distinct clusters (located in the four diagonal quadrants).
+\end{itemize}

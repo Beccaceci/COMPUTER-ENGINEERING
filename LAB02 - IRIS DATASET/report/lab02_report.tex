@@ -53,11 +53,13 @@ Petal width & 1.199 & 0.577 & 0.760 \\
 \subsection{Per-Class Comparison}
 The per-class means confirm that petal features provide the strongest class separation. Setosa has mean petal length 1.462 and mean petal width 0.246, while Versicolor has 4.260 and 1.326 and Virginica has 5.552 and 2.026. Sepal features are less discriminative because their class means are closer and their distributions overlap more. Variances are also smaller for Setosa petal features, reinforcing the compact cluster visible in the plots.
 
+\newpage
+
 \section{Project Section: Fingerprint Spoofing Dataset}
 
 The project dataset used in this report is \texttt{LAB02/data/project/trainData.txt}. It contains 6000 samples, 6 features, and binary labels: 0 for fake fingerprints and 1 for genuine fingerprints.
 
-\input{feature_1_and_2}
+\input{chapters/feature_1_and_2}
 
 \begin{figure}[H]
 \centering
@@ -66,7 +68,9 @@ The project dataset used in this report is \texttt{LAB02/data/project/trainData.
 \caption{Project features 1 and 2. The classes have similar means but different variances.}
 \end{figure}
 
-\input{feature_3_and_4}
+\newpage
+
+\input{chapters/feature_3_and_4}
 
 \begin{figure}[H]
 \centering
@@ -75,7 +79,9 @@ The project dataset used in this report is \texttt{LAB02/data/project/trainData.
 \caption{Project features 3 and 4. The classes mainly differ by mean.}
 \end{figure}
 
-\input{feature_5_and_6}
+\newpage
+
+\input{chapters/feature_5_and_6}
 
 \begin{figure}[H]
 \centering
@@ -83,23 +89,5 @@ The project dataset used in this report is \texttt{LAB02/data/project/trainData.
 \includegraphics[width=0.48\linewidth]{project/histograms/feature_6_histogram.png}
 \caption{Project features 5 and 6. The classes overlap strongly, with larger genuine variance.}
 \end{figure}
-
-\subsection{Summary of Project Statistics}
-\begin{table}[H]
-\centering
-\begin{tabular}{lrrrr}
-\toprule
-Feature & Fake mean & Genuine mean & Fake var. & Genuine var. \\
-\midrule
-1 & 0.003 & 0.001 & 0.570 & 1.430 \\
-2 & 0.019 & -0.009 & 1.421 & 0.578 \\
-3 & -0.681 & 0.665 & 0.550 & 0.549 \\
-4 & 0.671 & -0.664 & 0.536 & 0.553 \\
-5 & 0.028 & -0.042 & 0.680 & 1.318 \\
-6 & -0.006 & 0.024 & 0.705 & 1.287 \\
-\bottomrule
-\end{tabular}
-\caption{Project dataset class-conditional means and variances.}
-\end{table}
 
 \end{document}
