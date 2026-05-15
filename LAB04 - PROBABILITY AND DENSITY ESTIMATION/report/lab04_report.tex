@@ -39,65 +39,66 @@
 }
 \lstset{style=mystyle}
 
+\graphicspath{{../results/project/}}
+
 % --- Document Information ---
-\title{Machine Learning and Pattern Recognition\\ \Large Laboratory Report}
-\author{Your Name}
-\date{\today}
+\title{Machine Learning and Pattern Recognition\\ \large Laboratory 04: Probability and Density Estimation}
+\author{Nicola Beccaceci}
 
 \begin{document}
 
 \maketitle
 
-\begin{abstract}
-This report details the implementation and analysis of dimensionality reduction techniques (PCA and LDA) and Generative Models (Multivariate Gaussian Classifiers) applied to the provided datasets.
-\end{abstract}
+\section*{1D Gaussian Density Estimation}
 
-\tableofcontents
-\newpage
-
-% ==========================================
-% MAIN CONTENT INCLUSIONS
-% ==========================================
-
-\section{Gaussian Density Estimation}
-
-\subsection*{What do you observe?}
-When superimposing the Maximum Likelihood (ML) estimated 1D Gaussian probability density functions over the normalized histograms, we observe that the fundamental assumption of normality (that the data follows a symmetric, bell-shaped curve) is highly inconsistent across the dataset. Because the Gaussian model forces a perfectly symmetric shape centered on the mean, it behaves predictably: it wraps nicely around symmetric data but completely fails to capture the true density of data that is heavily skewed or asymmetric.
-
-\subsection*{Are there features for which the Gaussian densities provide a good fit?}
-Yes, the Gaussian densities provide a reasonably good fit for features that naturally exhibit a roughly symmetric distribution. 
+\subsection*{Features with a Good Gaussian Fit}
+The Maximum Likelihood (ML) 1D Gaussian model provides a good, accurate fit for features that exhibit symmetric, bell-shaped distributions. For these features, the empirical data closely follows the theoretical exponential decay from the mean dictated by the computed variance.
 
 \begin{itemize}
-    \item \textbf{Fake Class:} Features 1, 2, 3, and 4 provide a solid fit. The estimated red Gaussian curves successfully capture the central density peaks and the tapering tails of the empirical blue histograms.
-    \item \textbf{Genuine Class:} Features 3 and 4 show an acceptable, albeit slightly imperfect, alignment with the Gaussian fit.
+    \item \textbf{Fake Class:} Features 1, 2, 3, and 4. The histograms show a clear, symmetric distribution around their respective means (e.g., Feature 1 has a mean of $0.0029$ and a variance of $0.5696$, and visually matches the theoretical curve well).
+    \item \textbf{Genuine Class:} Features 1, 2, 3, and 4. These features present a strong symmetric distribution around their empirical means. For instance, Feature 1 (mean $0.0005$, variance $1.4302$) and Feature 2 (mean $-0.0085$, variance $0.5783$) are well-approximated by the Gaussian bell curve without severe skewness.
 \end{itemize}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.48\linewidth]{images/fake_feature_1.png}
-    \includegraphics[width=0.48\linewidth]{images/genuine_feature_3.png}
-    \caption{Examples of good Gaussian fits: Fake Feature 1 (left) and Genuine Feature 3 (right). Both exhibit a relatively symmetric, bell-shaped empirical distribution.}
+    \includegraphics[width=0.48\linewidth]{plots/fake_feature_1.png}
+    \includegraphics[width=0.48\linewidth]{plots/fake_feature_2.png}
+    \includegraphics[width=0.48\linewidth]{plots/fake_feature_3.png}
+    
+    \vspace{0.5cm}
+    \includegraphics[width=0.48\linewidth]{plots/fake_feature_4.png}
+    \includegraphics[width=0.48\linewidth]{plots/genuine_feature_1.png}
+    \includegraphics[width=0.48\linewidth]{plots/genuine_feature_2.png}
+    
+    \vspace{0.5cm}
+    \includegraphics[width=0.48\linewidth]{plots/genuine_feature_3.png}
+    \includegraphics[width=0.48\linewidth]{plots/genuine_feature_4.png}
+    \caption{Features exhibiting a good fit with the 1D Gaussian density estimation.}
     \label{fig:good_gaussian_fits}
 \end{figure}
 
-\subsection*{Are there features for which the Gaussian model seems significantly less accurate?}
-Absolutely. The Gaussian model is highly inaccurate for features that exhibit strong asymmetry (skewness), as the mathematical model simply cannot bend to fit a skewed shape.
+\newpage
+
+\subsection*{Features with an Inaccurate Gaussian Fit}
+The Gaussian model is highly inaccurate for features that exhibit strong asymmetry (skewness), multiple modes, or sharp drop-offs. The strict mathematical constraints of the Gaussian model (perfect symmetry around the mean) fail to capture these irregular empirical geometries.
 
 \begin{itemize}
-    \item \textbf{Fake Class:} Features 5 and 6 are heavily skewed to the left. The symmetric Gaussian curve underestimates the sharp right-sided peaks and overestimates the density on the steep drop-off.
-    \item \textbf{Genuine Class:} The inaccuracy is even more pronounced here. Features 1, 2, 5, and 6 exhibit severe negative skewness (long left tails with very sharp, sudden drop-offs on the right). For instance, the model predicts a high probability of finding samples on the far right side where essentially zero empirical samples exist.
+    \item \textbf{Fake Class:} Features 5 and 6 are heavily skewed to the left. For instance, despite Feature 5 having a computed ML mean of $0.0280$ and variance of $0.6801$, the visual data has sharp right-sided peaks and long left tails that the symmetric curve over-estimates or misses entirely.
+    \item \textbf{Genuine Class:} Features 5 and 6 exhibit severe negative skewness. The rigid symmetry of the Gaussian model fails here because it predicts high probabilities in regions on the right side where empirical samples are virtually nonexistent, while underestimating the heavy tails on the left.
 \end{itemize}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.48\linewidth]{images/fake_feature_5.png}
-    \includegraphics[width=0.48\linewidth]{images/genuine_feature_5.png}
-    \caption{Examples of inaccurate Gaussian fits: Fake Feature 5 (left) and Genuine Feature 5 (right). The rigid symmetry of the Gaussian model completely misses the sharp peaks and asymmetric tails.}
+    \includegraphics[width=0.48\linewidth]{plots/fake_feature_5.png}
+    \includegraphics[width=0.48\linewidth]{plots/fake_feature_6.png}
+    
+    \vspace{0.5cm}
+    \includegraphics[width=0.48\linewidth]{plots/genuine_feature_5.png}
+    \includegraphics[width=0.48\linewidth]{plots/genuine_feature_6.png}
+    \caption{Features exhibiting a highly inaccurate fit due to skewness and sharp drop-offs.}
     \label{fig:bad_gaussian_fits}
 \end{figure}
 
 This visual analysis indicates that while a Gaussian classifier is mathematically elegant and computationally fast, its rigid structural assumptions will likely cause classification errors when evaluating test samples based on these heavily skewed features.
-
-% ==========================================
 
 \end{document}
