@@ -1,9 +1,63 @@
-\section{Covariance and Correlation Analysis}
+% --- BEGIN COVARIANCE AND CORRELATION ANALYSIS ---
+\section{Covariance and correlation analysis}
 
 \subsection*{Start by printing the covariance matrix of each class. Compare the covariance of different feature pairs with the respective variances. What do you observe?}
-Looking at the computed covariance matrices, the elements on the main diagonal (the variances) are orders of magnitude larger than the off-diagonal elements (the co-variances). For example, in Class 0, the variance for Feature 1 is roughly 0.60, while its covariance with Feature 2 is a negligible 0.00005. The co-variance values are generally very small compared to the variances across both classes.
+
+The empirical covariance matrices for the two classes, extracted directly from the Multivariate Gaussian model parameters, are printed below:
+
+\begin{small}
+\begin{verbatim}
+--- CLASS 0: Fake ---
+Covariance Matrix:
+[[ 0.6010  0.0001  0.0191  0.0193  0.0128 -0.0135]
+ [ 0.0001  1.4472 -0.0161 -0.0159 -0.0265  0.0229]
+ [ 0.0191 -0.0161  0.5653 -0.0018 -0.0069  0.0169]
+ [ 0.0193 -0.0159 -0.0018  0.5416  0.0053  0.0136]
+ [ 0.0128 -0.0265 -0.0069  0.0053  0.6961  0.0158]
+ [-0.0135  0.0229  0.0169  0.0136  0.0158  0.6865]]
+
+--- CLASS 1: Genuine ---
+Covariance Matrix:
+[[ 1.4481 -0.0147  0.0056  0.0157  0.0195 -0.0002]
+ [-0.0147  0.5534 -0.0112 -0.0091 -0.0147  0.0163]
+ [ 0.0056 -0.0112  0.5575  0.0276 -0.0038 -0.0146]
+ [ 0.0157 -0.0091  0.0276  0.5697 -0.0117  0.0350]
+ [ 0.0195 -0.0147 -0.0038 -0.0117  1.3420  0.0169]
+ [-0.0002  0.0163 -0.0146  0.0350  0.0169  1.3037]]
+\end{verbatim}
+\end{small}
+
+Comparing the off-diagonal entries (covariances) with the main diagonal elements (variances), we observe that the variances are orders of magnitude larger than the covariances across both classes. For example, in the "Fake" class, the variance of Feature 2 is $1.4472$, whereas its covariance with Feature 1 is a negligible $0.0001$. Even the largest off-diagonal value in the dataset (the covariance between Feature 4 and Feature 6 in the Genuine class) reaches only $0.0350$, which fades in comparison to their respective variances of $0.5697$ and $1.3037$. This pattern demonstrates that the directional spread of the data is concentrated along the primary axes of the feature space, indicating that cross-feature interactions are virtually non-existent.
 
 \subsection*{Compute the correlation matrices for the two classes. Are the features strongly or weakly correlated? How is this related to the Naive Bayes results?}
-Looking at the correlation matrices, the off-diagonal values are exceptionally low—mostly hovering between -0.05 and 0.05, with only a few instances reaching around 0.3. This indicates that the features are \textbf{weakly correlated} and almost entirely independent. 
 
-This directly explains the success of the Naive Bayes classifier. Naive Bayes mathematically assumes that all features are completely independent (forcing all off-diagonal covariances to zero). Because the actual dataset features are indeed weakly correlated, the Naive Bayes assumption is highly accurate here, allowing it to perform almost as well as the Standard MVG while computing far fewer parameters.
+To evaluate the normalized strength of these relationships, the Pearson correlation matrices were computed using the formula $\text{Corr}_{i,j} = \frac{\text{Cov}(i,j)}{\sqrt{\text{Var}(i)\text{Var}(j)}}$:
+
+\begin{small}
+\begin{verbatim}
+--- CLASS 0: Fake ---
+Correlation Matrix:
+[[ 1.0000  0.0001  0.0327  0.0337  0.0198 -0.0210]
+ [ 0.0001  1.0000 -0.0178 -0.0179 -0.0264  0.0230]
+ [ 0.0327 -0.0178  1.0000 -0.0033 -0.0110  0.0271]
+ [ 0.0337 -0.0179 -0.0033  1.0000  0.0086  0.0223]
+ [ 0.0198 -0.0264 -0.0110  0.0086  1.0000  0.0229]
+ [-0.0210  0.0230  0.0271  0.0223  0.0229  1.0000]]
+
+--- CLASS 1: Genuine ---
+Correlation Matrix:
+[[ 1.0000 -0.0164  0.0062  0.0173  0.0140 -0.0001]
+ [-0.0164  1.0000 -0.0202 -0.0161 -0.0170  0.0192]
+ [ 0.0062 -0.0202  1.0000  0.0489 -0.0044 -0.0171]
+ [ 0.0173 -0.0161  0.0489  1.0000 -0.0134  0.0406]
+ [ 0.0140 -0.0170 -0.0044 -0.0134  1.0000  0.0128]
+ [-0.0001  0.0192 -0.0171  0.0406  0.0128  1.0000]]
+\end{verbatim}
+\end{small}
+
+Looking at the off-diagonal correlation values, we can conclude that the features are exceptionally \textbf{weakly correlated}. Almost all correlation coefficients hover tightly between $-0.03$ and $+0.05$. The maximum linear dependency found in the entire dataset occurs between Feature 3 and Feature 4 in the Genuine class, reaching a correlation coefficient of just $0.0489$, which still represents a negligible relationship.
+
+This complete absence of correlation provides a direct mathematical explanation for the remarkable success of the Naive Bayes Gaussian classifier. The Naive Bayes model operates under the strict assumption that all features are conditionally independent given the class label, which forces all out-of-diagonal elements of the estimated covariance matrices to zero. 
+
+Because the empirical data shows that these off-diagonal correlation values are already effectively zero, the simplification made by Naive Bayes introduces almost no estimation error or structural distortion. By omitting the estimation of these redundant covariance parameters, the Naive Bayes model eliminates background noise without sacrificing discriminative capacity. This is why the Naive Bayes model matches the unconstrained Multivariate Gaussian classifier almost perfectly, achieving a highly competitive validation error rate of $7.2\%$ compared to the full MVG's $7.0\%$.
+% --- END COVARIANCE AND CORRELATION ANALYSIS ---

@@ -1,5 +1,4 @@
-\contentsline {section}{\numberline {1}Baseline Model Evaluation}{2}{section.1}%
-\contentsline {section}{\numberline {2}Covariance and Correlation Analysis}{3}{section.2}%
-\contentsline {section}{\numberline {3}Gaussian Assumption Analysis}{4}{section.3}%
-\contentsline {section}{\numberline {4}Feature Ablation Study}{5}{section.4}%
-\contentsline {section}{\numberline {5}PCA Pre-processing and Conclusion}{7}{section.5}%
+\contentsline {section}{\numberline {1}Baseline model evaluation}{2}{section.1}%
+\contentsline {section}{\numberline {2}Covariance and correlation analysis}{4}{section.2}%
+\contentsline {section}{\numberline {3}Feature ablation study}{6}{section.3}%
+\contentsline {section}{\numberline {4}PCA pre-processing and conclusion}{9}{section.4}%

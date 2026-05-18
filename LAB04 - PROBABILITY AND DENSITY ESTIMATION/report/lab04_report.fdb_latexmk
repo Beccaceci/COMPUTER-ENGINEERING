@@ -1,5 +1,5 @@
 # Fdb version 4
-["pdflatex"] 1778862144.82298 "/Users/nicolabeccaceci/Desktop/MACHINE LEARNING AND PATTERN RECOGNITION/LABS/LAB04 - PROBABILITY AND DENSITY ESTIMATION/report/lab04_report.tex" "lab04_report.pdf" "lab04_report" 1778862145.86356 0
+["pdflatex"] 1778862234.59792 "/Users/nicolabeccaceci/Desktop/MACHINE LEARNING AND PATTERN RECOGNITION/LABS/LAB04 - PROBABILITY AND DENSITY ESTIMATION/report/lab04_report.tex" "lab04_report.pdf" "lab04_report" 1778862235.63589 0
   "../results/project/plots/fake_feature_1.png" 1778861532.41233 25476 d016b75df3a402643a971415a3b8c9b8 ""
   "../results/project/plots/fake_feature_2.png" 1778861532.47717 28319 c97f813ad010285bbdbfdb5ec598b51f ""
   "../results/project/plots/fake_feature_3.png" 1778861532.53765 25880 aa0eb1a1f15b4353e42585f8588ddac9 ""
@@ -12,7 +12,7 @@
   "../results/project/plots/genuine_feature_4.png" 1778861532.97602 25800 72fa131b1381f30aa0efcbda475b8865 ""
   "../results/project/plots/genuine_feature_5.png" 1778861533.04002 25864 ce6878a08f88418754923831e2bf18b9 ""
   "../results/project/plots/genuine_feature_6.png" 1778861533.10045 25914 f6e4de959e6bc81d314e5ac21cace535 ""
-  "/Users/nicolabeccaceci/Desktop/MACHINE LEARNING AND PATTERN RECOGNITION/LABS/LAB04 - PROBABILITY AND DENSITY ESTIMATION/report/lab04_report.tex" 1778862144.60229 4884 817189f602737466199f68f2668ad946 ""
+  "/Users/nicolabeccaceci/Desktop/MACHINE LEARNING AND PATTERN RECOGNITION/LABS/LAB04 - PROBABILITY AND DENSITY ESTIMATION/report/lab04_report.tex" 1778862234.39431 4887 be2e8414a6d14b407e650e615089ccc5 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/tfm/jknappen/ec/tcrm1200.tfm" 1136768653 1536 74b7293ec3713bb7fdca8dd1bd1f469c ""
@@ -84,9 +84,9 @@
   "/usr/local/texlive/2026/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1776262231 5573038 b99aad5e4898a9034e953632f940512b ""
   "/usr/local/texlive/2026/texmf-var/web2c/pdftex/pdflatex.fmt" 1776262170 3636770 6e0e6b4d54c61beb9d415a876a84121a ""
   "/usr/local/texlive/2026/texmf.cnf" 1774209515 577 648cd9f92f9c0eac486f4c71c85cfbbe ""
-  "lab04_report.aux" 1778862145.80581 795 bb42639a77e041473820da0b6a1147ba "pdflatex"
-  "lab04_report.out" 1778862145.20305 0 d41d8cd98f00b204e9800998ecf8427e "pdflatex"
-  "lab04_report.tex" 1778862144.60229 4884 817189f602737466199f68f2668ad946 ""
+  "lab04_report.aux" 1778862235.58296 795 bb42639a77e041473820da0b6a1147ba "pdflatex"
+  "lab04_report.out" 1778862234.97576 0 d41d8cd98f00b204e9800998ecf8427e "pdflatex"
+  "lab04_report.tex" 1778862234.39431 4887 be2e8414a6d14b407e650e615089ccc5 ""
   (generated)
   "lab04_report.aux"
   "lab04_report.log"

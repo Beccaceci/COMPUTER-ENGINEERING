@@ -8,10 +8,10 @@
 \usepackage{float}
 \usepackage{hyperref}
 \usepackage{subcaption} % Required for side-by-side images
+\usepackage{amsmath}    % FIX: Required for \text{} macro in math mode
 
 % --- Image Path Configuration ---
-% Update this path to point to the folder containing your feature distribution PNGs.
-\graphicspath{{results/project/histograms/}}
+\graphicspath{{../results/project/}}
 
 % --- Document Information ---
 \title{Laboratory 05: Generative Models for Classification\\ \Large Pattern Recognition}
@@ -38,13 +38,10 @@ This report details the implementation, evaluation, and analysis of Generative M
 
 \newpage
 
-\input{sections/sec3_gaussian_assumption}
+\input{sections/sec3_feature_ablation}
 
 \newpage
 
-\input{sections/sec4_feature_ablation}
+\input{sections/sec4_pca_preprocessing}
 
-\newpage
-
-\input{sections/sec5_pca_preprocessing}
 \end{document}

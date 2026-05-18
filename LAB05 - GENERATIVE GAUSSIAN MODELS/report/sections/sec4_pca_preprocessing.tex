@@ -1,0 +1,56 @@
+% --- BEGIN PCA PRE-PROCESSING AND CONCLUSION ---
+\section{PCA pre-processing and conclusion}
+
+\subsection*{Use PCA to reduce the dimensionality of the feature space, and apply the three classification approaches. What do you observe?}
+
+By preprocessing the dataset with Principal Component Analysis (PCA) across a varying number of principal dimensions ($m = 1, \dots, 6$), we obtain the validation error rates compiled in Table \ref{tab:mvg_pca_results}.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|c|c|c|c|}
+        \hline
+        \textbf{PCA Dimension ($m$)} & \textbf{Standard MVG (\%)} & \textbf{Naive Bayes (\%)} & \textbf{Tied MVG (\%)} \\
+        \hline
+        1 & 9.3 & 9.3 & 9.4 \\
+        2 & 8.8 & 8.9 & 9.3 \\
+        3 & 8.8 & 9.0 & 9.3 \\
+        4 & 8.0 & 8.9 & 9.3 \\
+        5 & 7.1 & 8.8 & 9.3 \\
+        6 & 7.0 & 8.9 & 9.3 \\
+        \hline
+        \textbf{Raw Baseline (6D)} & \textbf{7.0} & \textbf{7.2} & \textbf{9.3} \\
+        \hline
+    \end{tabular}
+    \caption{Generative classifier error rates as a function of the number of retained PCA dimensions ($m$) compared against the unreduced 6D baseline parameters.}
+    \label{tab:mvg_pca_results}
+\end{table}
+
+Evaluating the trends in the experimental data, we observe distinct behaviors for each classification architecture:
+\begin{itemize}
+    \item \textbf{Standard MVG:} The error rate scales inversely with the number of dimensions, steadily dropping from 9.3\% at $m=1$ down to 7.0\% at $m=6$. Retaining all 6 principal components perfectly recovers the raw unconstrained baseline error rate.
+    \item \textbf{Tied MVG:} The error rate remains completely invariant at 9.3\% for all dimensions $m \ge 2$, matching its baseline. It experiences a minor degradation to 9.4\% only when compressed down to a single dimension ($m=1$).
+    \item \textbf{Naive Bayes:} The classifier displays an irregular performance profile that is consistently and significantly worse than its raw baseline. Even when keeping all dimensions ($m=6$), its error rate settles at 8.9\%, representing a steep drop in accuracy compared to its unprojected performance of 7.2\%.
+\end{itemize}
+
+\subsection*{Is PCA effective for this dataset with the Gaussian models?}
+
+No, PCA is entirely ineffective as a predictive enhancement step for this specific dataset, and when paired with the Naive Bayes classifier, it proves highly destructive. 
+
+For the Standard and Tied MVG models, PCA fails to improve classification accuracy at any subspace dimension. Because PCA is an unsupervised technique, it blindly discards directions associated with the lowest global variance ($S_T$). The steady rise in the Standard MVG error rate as dimensions are discarded indicates that these low-variance components contain crucial discriminative info needed to form an accurate quadratic decision boundary.
+
+The most vital finding, however, is why the Naive Bayes model degrades so heavily under PCA pre-processing (jumping from 7.2\% to 8.9\% error at $m=6$). By definition, PCA computes an orthogonal rotation that decorrelates the *entire dataset as a unified global pool* ($S_T = S_B + S_W$). 
+
+While this rotation successfully eliminates correlation across the global mixture, it can mathematically introduce significant cross-feature correlation *within the localized distributions of each individual class*. Because the Naive Bayes classifier operates on the strict structural assumption of conditional independence within each class, forcing the class-conditional covariance matrices to be strictly diagonal creates a severe mismatch against this newly rotated data geometry. The model tries to fit independent axis-aligned Gaussians to data clusters that have been diagonally elongated by the rotation, leading to a substantial increase in classification errors.
+
+\subsection*{Overall, which is the model that provided the best accuracy on the validation set?}
+
+The model that provides the highest overall accuracy on the validation set is the \textbf{Standard Multivariate Gaussian (MVG) classifier operating on the full, unreduced 6-dimensional raw feature space}, achieving the optimal error rate of \textbf{7.0\%}. 
+
+This unconstrained configuration succeeds where the other variations fail due to three distinct data characteristics:
+\begin{enumerate}
+    \item Unlike the Tied MVG and LDA (9.3\% error), the unconstrained MVG implements separate class covariance matrices, allowing its quadratic decision boundary to successfully exploit the massive differences in feature variance between the Fake and Genuine classes.
+    \item Unlike the Naive Bayes classifier post-PCA rotation, the raw full MVG retains the complete mathematical capacity to map minor cross-feature interactions without being disrupted by artificial class-conditional dependencies introduced via unsupervised coordinate transformations.
+    \item As established in our ablation study, although Features 5 and 6 violate the ideal symmetric Gaussian assumption due to left-sided skewness, they still contain essential boundary information. The unconstrained 6D MVG is robust enough to leverage this remaining information, outperforming its own 4-dimensional subspace alternative (8.0\% error).
+\end{enumerate}
+Therefore, preserving the full 6-dimensional unrotated feature space under a fully parameterized, class-specific Multivariate Gaussian distribution represents the mathematically optimal configuration for this pattern recognition task.
+% --- END PCA PRE-PROCESSING AND CONCLUSION ---

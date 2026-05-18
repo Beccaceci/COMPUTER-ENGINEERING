@@ -2,7 +2,6 @@ import sys
 import numpy
 import scipy.special
 
-from utils.data_loaders import load_dataset, split_dataset
 from utils.math_utils import compute_covariance_matrix, compute_logdensity, mcol, vrow
 
 
@@ -70,51 +69,3 @@ def compute_tied_mvg_parameters(DTR, LTR, DTE):
     logSPost = logSJoint - logSMarginal
 
     return logSJoint, logSMarginal, logSPost
-
-
-if __name__ == "__main__":
-    
-    # ==========================================
-    # SETUP & CONFIGURATION
-    # ==========================================
-    if len(sys.argv) > 1: # Fixed: sys[1] changed to sys.argv[1]
-        file_path = sys.argv[1]
-    else:
-        file_path = "data/iris_dataset.csv"
-
-    # Pre-load instructor solutions for sanity checks
-    try:
-        expected_logSJoint = numpy.load("SOLUTIONS/logSJoint_TiedMVG.npy")
-        expected_logSMarginal = numpy.load("SOLUTIONS/logMarginal_TiedMVG.npy")
-        expected_logSPost = numpy.load("SOLUTIONS/logPosterior_TiedMVG.npy")
-    except FileNotFoundError:
-        print("Warning: Could not find the .npy solution files. Check the folder path.")
-        
-    # ==========================================
-    # DATA PIPELINE
-    # ==========================================
-    D, L = load_dataset(file_path)
-    ((DTR, LTR), (DTE, LTE)) = split_dataset(D, L, 2/3)
-
-    # ==========================================
-    # MODEL EXECUTION & PREDICTION
-    # ==========================================
-    logSJoint, logSMarginal, logSPost = compute_tied_mvg_parameters(DTR, LTR, DTE)
-
-    # Predict labels using argmax
-    predicted_labels = numpy.argmax(logSJoint, axis=0)
-
-    # ==========================================
-    # EVALUATION & METRICS
-    # ==========================================
-    accuracy = numpy.sum(predicted_labels == LTE) / len(LTE)
-    error_rate = round((1 - accuracy) * 100, 1)
-    
-    print(f"Accuracy: {accuracy * 100:.1f}%")
-    print(f"Error Rate: {error_rate}%")
-
-    print("\n--- Running laboratory checks ---")
-    print(f"logSJoint matches perfectly: {numpy.allclose(logSJoint, expected_logSJoint)}")
-    print(f"logSMarginal matches perfectly: {numpy.allclose(logSMarginal, expected_logSMarginal)}")
-    print(f"logSPost matches perfectly: {numpy.allclose(logSPost, expected_logSPost)}")
-    print(f"Error Rate match: {numpy.isclose(error_rate, 2.0)}")
