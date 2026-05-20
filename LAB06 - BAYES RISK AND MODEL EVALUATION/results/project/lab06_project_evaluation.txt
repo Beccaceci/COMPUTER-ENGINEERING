@@ -1,7 +1,9 @@
+LAB 06: PROJECT EVALUATION (BAYES DECISIONS)
+================================================================================
 Training models and computing log-likelihoods...
 
 =========================================================================
---- PROJECT EVALUATION: ACTUAL DCF AND MIN DCF ---
+--- PART 1: PROJECT EVALUATION (ACTUAL DCF AND MIN DCF) ---
 =========================================================================
 
 Application: (pi1=0.5, Cfn=1.0, Cfp=1.0) ---> Effective Prior: 0.50
@@ -12,6 +14,29 @@ Standard MVG       |      0.140      |      0.130
 Naive Bayes        |      0.144      |      0.131     
 Tied MVG           |      0.186      |      0.181     
 
+  [Confusion Matrices]
+  -> Standard MVG:
+          Class
+           0    1
+___________________
+Pred i 0 |  927   75
+Pred i 1 |   65  933
+
+  -> Naive Bayes:
+          Class
+           0    1
+___________________
+Pred i 0 |  925   77
+Pred i 1 |   67  931
+
+  -> Tied MVG:
+          Class
+           0    1
+___________________
+Pred i 0 |  898   92
+Pred i 1 |   94  916
+
+
 Application: (pi1=0.9, Cfn=1.0, Cfp=1.0) ---> Effective Prior: 0.90
 -----------------------------------------------------------------
 Model Name         |  Actual DCF_n   |     Min DCF    
@@ -19,6 +44,29 @@ Model Name         |  Actual DCF_n   |     Min DCF
 Standard MVG       |      0.400      |      0.342     
 Naive Bayes        |      0.389      |      0.351     
 Tied MVG           |      0.463      |      0.442     
+
+  [Confusion Matrices]
+  -> Standard MVG:
+          Class
+           0    1
+___________________
+Pred i 0 |  728   15
+Pred i 1 |  264  993
+
+  -> Naive Bayes:
+          Class
+           0    1
+___________________
+Pred i 0 |  721   13
+Pred i 1 |  271  995
+
+  -> Tied MVG:
+          Class
+           0    1
+___________________
+Pred i 0 |  666   15
+Pred i 1 |  326  993
+
 
 Application: (pi1=0.1, Cfn=1.0, Cfp=1.0) ---> Effective Prior: 0.10
 -----------------------------------------------------------------
@@ -28,6 +76,29 @@ Standard MVG       |      0.305      |      0.263
 Naive Bayes        |      0.302      |      0.257     
 Tied MVG           |      0.406      |      0.363     
 
+  [Confusion Matrices]
+  -> Standard MVG:
+          Class
+           0    1
+___________________
+Pred i 0 |  988  271
+Pred i 1 |    4  737
+
+  -> Naive Bayes:
+          Class
+           0    1
+___________________
+Pred i 0 |  988  268
+Pred i 1 |    4  740
+
+  -> Tied MVG:
+          Class
+           0    1
+___________________
+Pred i 0 |  983  327
+Pred i 1 |    9  681
+
+
 Application: (pi1=0.5, Cfn=1.0, Cfp=9.0) ---> Effective Prior: 0.10
 -----------------------------------------------------------------
 Model Name         |  Actual DCF_n   |     Min DCF    
@@ -36,6 +107,29 @@ Standard MVG       |      0.305      |      0.263
 Naive Bayes        |      0.302      |      0.257     
 Tied MVG           |      0.406      |      0.363     
 
+  [Confusion Matrices]
+  -> Standard MVG:
+          Class
+           0    1
+___________________
+Pred i 0 |  988  271
+Pred i 1 |    4  737
+
+  -> Naive Bayes:
+          Class
+           0    1
+___________________
+Pred i 0 |  988  268
+Pred i 1 |    4  740
+
+  -> Tied MVG:
+          Class
+           0    1
+___________________
+Pred i 0 |  983  327
+Pred i 1 |    9  681
+
+
 Application: (pi1=0.5, Cfn=9.0, Cfp=1.0) ---> Effective Prior: 0.90
 -----------------------------------------------------------------
 Model Name         |  Actual DCF_n   |     Min DCF    
@@ -43,3 +137,56 @@ Model Name         |  Actual DCF_n   |     Min DCF
 Standard MVG       |      0.400      |      0.342     
 Naive Bayes        |      0.389      |      0.351     
 Tied MVG           |      0.463      |      0.442     
+
+  [Confusion Matrices]
+  -> Standard MVG:
+          Class
+           0    1
+___________________
+Pred i 0 |  728   15
+Pred i 1 |  264  993
+
+  -> Naive Bayes:
+          Class
+           0    1
+___________________
+Pred i 0 |  721   13
+Pred i 1 |  271  995
+
+  -> Tied MVG:
+          Class
+           0    1
+___________________
+Pred i 0 |  666   15
+Pred i 1 |  326  993
+
+=========================================================================
+--- PART 2: EFFECTIVE PRIORS EVALUATION ---
+=========================================================================
+
+Application: pi_tilde=0.1 (Cfn=1, Cfp=1)
+-----------------------------------------------------------------
+Model Name         |  Actual DCF_n   |     Min DCF    
+-----------------------------------------------------------------
+Standard MVG       |      0.305      |      0.263     
+Naive Bayes        |      0.302      |      0.257     
+Tied MVG           |      0.406      |      0.363     
+
+
+Application: pi_tilde=0.5 (Cfn=1, Cfp=1)
+-----------------------------------------------------------------
+Model Name         |  Actual DCF_n   |     Min DCF    
+-----------------------------------------------------------------
+Standard MVG       |      0.140      |      0.130     
+Naive Bayes        |      0.144      |      0.131     
+Tied MVG           |      0.186      |      0.181     
+
+
+Application: pi_tilde=0.9 (Cfn=1, Cfp=1)
+-----------------------------------------------------------------
+Model Name         |  Actual DCF_n   |     Min DCF    
+-----------------------------------------------------------------
+Standard MVG       |      0.400      |      0.342     
+Naive Bayes        |      0.389      |      0.351     
+Tied MVG           |      0.463      |      0.442     
+

@@ -1,15 +1,15 @@
 import numpy
 from pathlib import Path
 
-from utils.data_loaders import load_dataset, split_dataset
-from utils.bayes_utils import compute_optimal_bayes_binary, compute_normalised_empirical_Bayes_risk_binary, compute_min_dcf
+from utils.data_loaders import *
+from utils.bayes_utils import *
 from utils.math_utils import compute_confusion_matrix
+from utils.io_utils import *
 from utils.plot_utils import plot_bayes_error
 
 from models.MVG import compute_mvg_loglikelihoods
 from models.TiedMVG import compute_tied_mvg_loglikelihoods
 from models.NaiveBayes import compute_naive_bayes_loglikelihoods
-
 
 if __name__ == "__main__":
     ROOT = Path(".")
@@ -19,11 +19,10 @@ if __name__ == "__main__":
     results_dir.mkdir(parents=True, exist_ok=True)
     output_file = results_dir / "lab06_project_evaluation.txt"
     
-    # Helper to print and save simultaneously
-    output_lines = []
-    def emit(text=""):
-        print(text)
-        output_lines.append(text)
+    # Helper to print and save simultaneously (using the new title parameter)
+    emit = create_emitter(output_file, title="LAB 06: PROJECT EVALUATION (BAYES DECISIONS)")
+
+    emit("Training models and computing log-likelihoods...\n")
 
     # 1. Load the Project Dataset
     D, L = load_dataset(ROOT / "data" / "project" / "trainData.txt")
@@ -34,7 +33,6 @@ if __name__ == "__main__":
     # =========================================================================
     
     # 2. Get the Class-Conditional Log-Likelihoods for all 3 models
-    emit("Training models and computing log-likelihoods...")
     S_log_mvg = compute_mvg_loglikelihoods(DTR, LTR, DTE)
     S_log_tied = compute_tied_mvg_loglikelihoods(DTR, LTR, DTE)
     S_log_nb = compute_naive_bayes_loglikelihoods(DTR, LTR, DTE)
@@ -60,12 +58,11 @@ if __name__ == "__main__":
     ]
     
     # 5. Evaluate
-    emit("\n=========================================================================")
-    emit("--- PROJECT EVALUATION: ACTUAL DCF AND MIN DCF ---")
+    emit("=========================================================================")
+    emit("--- PART 1: PROJECT EVALUATION (ACTUAL DCF AND MIN DCF) ---")
     emit("=========================================================================")
     
     for pi1, Cfn, Cfp in applications:
-        # Calculate Effective Prior to show the theoretical link
         pi_tilde = (pi1 * Cfn) / (pi1 * Cfn + (1 - pi1) * Cfp)
         
         emit(f"\nApplication: (pi1={pi1}, Cfn={Cfn}, Cfp={Cfp}) ---> Effective Prior: {pi_tilde:.2f}")
@@ -73,39 +70,38 @@ if __name__ == "__main__":
         emit(f"{'Model Name':<18} | {'Actual DCF_n':^15} | {'Min DCF':^15}")
         emit("-" * 65)
         
+        matrices_to_print = {}
+        
         for name, llr in models.items():
-            # A. Get optimal predictions
             pred = compute_optimal_bayes_binary(llr, pi1, Cfn, Cfp)
-            
-            # B. Compute confusion matrix
             M = compute_confusion_matrix(pred, LTE, num_classes=2)
+            matrices_to_print[name] = M
             
-            # C. Compute normalized DCF and Min DCF
             DCF_n = compute_normalised_empirical_Bayes_risk_binary(M, pi1, Cfn, Cfp)
             min_DCF = compute_min_dcf(llr, LTE, pi1, Cfn, Cfp)
             
-            # Record row
+            # Print the clean table row
             emit(f"{name:<18} | {DCF_n:^15.3f} | {min_DCF:^15.3f}")
-
-    # 6. Save accumulated lines to file
-    with open(output_file, "w") as f:
-        f.write("\n".join(output_lines))
+            
+        # Print the confusion matrices safely OUTSIDE the table
+        emit("\nConfusion Matrices:")
+        for name, M in matrices_to_print.items():
+            emit(f"{name}:")
+            print_confusion_matrix(M, emit)
+            emit("")
         
-    print(f"\n[SUCCESS] Results successfully saved to {output_file}")
-
     # =========================================================================
     # PART 2: EVALUATION ON EFFECTIVE PRIORS (0.1, 0.5, 0.9)
     # =========================================================================
     
-    # Define the 3 effective prior applications with unit costs
     eff_applications = [
         (0.1, 1.0, 1.0),
         (0.5, 1.0, 1.0),
         (0.9, 1.0, 1.0)
     ]
     
-    emit("\n\n=========================================================================")
-    emit("--- EFFECTIVE PRIORS EVALUATION AND BAYES ERROR PLOTS ---")
+    emit("=========================================================================")
+    emit("--- PART 2: EFFECTIVE PRIORS EVALUATION ---")
     emit("=========================================================================")
     
     for pi_tilde, Cfn, Cfp in eff_applications:
@@ -115,23 +111,19 @@ if __name__ == "__main__":
         emit("-" * 65)
         
         for name, llr in models.items():
-            # Compute optimal decisions
             pred = compute_optimal_bayes_binary(llr, pi_tilde, Cfn, Cfp)
             M = compute_confusion_matrix(pred, LTE, num_classes=2)
             
-            # Compute actual DCF and minimum DCF
             DCF_n = compute_normalised_empirical_Bayes_risk_binary(M, pi_tilde, Cfn, Cfp)
             min_DCF = compute_min_dcf(llr, LTE, pi_tilde, Cfn, Cfp)
             
             emit(f"{name:<18} | {DCF_n:^15.3f} | {min_DCF:^15.3f}")
-
+            
+        emit("") # Add a blank space
 
     # =========================================================================
     # PART 3: BAYES ERROR PLOTS
     # =========================================================================
-    emit("\nGenerating Bayes Error plots for MVG, Tied, and Naive Bayes...")
-    
-    # Sweep prior log odds in the range (-4, +4)
     effPriorLogOdds = numpy.linspace(-4, 4, 21)
     pi_array = 1 / (1 + numpy.exp(-effPriorLogOdds))
     
@@ -143,15 +135,10 @@ if __name__ == "__main__":
             pred = compute_optimal_bayes_binary(llr, pi_tilde, 1.0, 1.0)
             M = compute_confusion_matrix(pred, LTE, num_classes=2)
             
-            # For each model, gather both minimum and actual DCF
             dcf_values.append(compute_normalised_empirical_Bayes_risk_binary(M, pi_tilde, 1.0, 1.0))
             min_dcf_values.append(compute_min_dcf(llr, LTE, pi_tilde, 1.0, 1.0))
             
-        # Format filename to avoid spaces
         safe_name = name.replace(" ", "_")
         plot_path = results_dir / f"Bayes_Error_{safe_name}.png"
         
-        # Plot the Bayes error plot for the specific classifier
         plot_bayes_error(effPriorLogOdds, dcf_values, min_dcf_values, plot_path, xlim=[-4, 4], ylim=[0, 1.1])
-        
-        emit(f"Saved Bayes Error Plot for {name} -> {plot_path.name}")

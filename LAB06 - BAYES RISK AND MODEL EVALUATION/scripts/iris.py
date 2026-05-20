@@ -8,18 +8,19 @@ from models.TiedMVG import compute_tied_mvg_loglikelihoods
 from utils.bayes_utils import *
 from utils.data_loaders import *
 from utils.plot_utils import *
-from utils.math_utils import compute_confusion_matrix, mcol, vrow
+from utils.io_utils import *
+from utils.math_utils import compute_confusion_matrix
 
 # ======================================================
 # HELPER FUNCTIONS
 # ======================================================
-def evaluate_binary_applications(llr, LTE, applications, model_name):
+def evaluate_binary_applications(llr, LTE, applications, model_name, emit=print):
     """
     Evaluates a set of specific applications for a given binary classifier and prints a formatted table.
     """
-    print(f"\n--- Application Metrics for {model_name} ---")
-    print(f"{'(pi1, Cfn, Cfp)':^18} | {'DCF_u':^10} | {'DCF_n':^10} | {'min_DCF':^10}")
-    print("-" * 59)
+    emit(f"\n--- Application Metrics for {model_name} ---")
+    emit(f"{'(pi1, Cfn, Cfp)':^18} | {'DCF_u':^10} | {'DCF_n':^10} | {'min_DCF':^10}")
+    emit("-" * 59)
     
     for pi1, Cfn, Cfp in applications:
         # Get optimal predictions and confusion matrix
@@ -33,7 +34,7 @@ def evaluate_binary_applications(llr, LTE, applications, model_name):
         
         # Print row
         triplet_str = f"({pi1}, {Cfn}, {Cfp})"
-        print(f"{triplet_str:>18} | {DCF_u:>10.3f} | {DCF_n:>10.3f} | {min_DCF:>10.3f}")
+        emit(f"{triplet_str:>18} | {DCF_u:>10.3f} | {DCF_n:>10.3f} | {min_DCF:>10.3f}")
 
 def sweep_bayes_error(llr, LTE, pi_array, Cfn=1, Cfp=1):
     """
@@ -60,9 +61,11 @@ if __name__ == "__main__":
     ROOT = Path(".")
 
     # Paths
-    results_dir = ROOT / "results"
+    results_dir = ROOT / "results" / "iris"
     results_dir.mkdir(parents=True, exist_ok=True)
     dataset_dir = ROOT / "data" / "iris"
+
+    emit = create_emitter(results_dir / "iris_results.txt")
 
     # Data loading
     D, L = load_dataset(dataset_dir / "iris_dataset.csv")
@@ -72,37 +75,35 @@ if __name__ == "__main__":
     class_names = ["Setosa", "Versicolor", "Virginica"]
     prior_uniform = numpy.ones(num_classes) / num_classes
 
+    emit("1. CONFUSION MATRICES\n")
 
     # ======================================================
     # 1. STANDARD MVG EVALUATION
     # ======================================================
-    print("\nEvaluating Standard MVG...")
     S_log_mvg = compute_mvg_loglikelihoods(DTR, LTR, DTE)
     _, _, logSPost_mvg = compute_posteriors(S_log_mvg, prior_uniform)
     pred_mvg = numpy.argmax(logSPost_mvg, axis=0)
     M_mvg = compute_confusion_matrix(pred_mvg, LTE, num_classes)
     
-    print("Standard MVG Confusion Matrix:")
-    print_confusion_matrix(M_mvg)
+    emit("Standard MVG confusion matrix:")
+    print_confusion_matrix(M_mvg, emit)
 
 
     # ======================================================
     # 2. TIED MVG EVALUATION
     # ======================================================
-    print("\nEvaluating Tied MVG...")
     S_log_tied = compute_tied_mvg_loglikelihoods(DTR, LTR, DTE)
     _, _, logSPost_tied = compute_posteriors(S_log_tied, prior_uniform)
     pred_tied = numpy.argmax(logSPost_tied, axis=0)
     M_tied = compute_confusion_matrix(pred_tied, LTE, num_classes)
     
-    print("Tied MVG Confusion Matrix:")
-    print_confusion_matrix(M_tied)
+    emit("\nTied MVG confusion matrix:")
+    print_confusion_matrix(M_tied, emit)
 
 
     # ======================================================
     # 3. PROVIDED MULTICLASS DATASET EVALUATION
     # ======================================================
-    print("\nEvaluating provided multiclass dataset...")
     S_log_provided = numpy.load(ROOT / "data" / "iris" / "evalset_ll.npy")
     LTE_multi = numpy.load(ROOT / "data" / "iris" / "evalset_labels.npy")
 
@@ -112,15 +113,14 @@ if __name__ == "__main__":
     pred_provided = numpy.argmax(logSPost_provided, axis=0)
     M_provided = compute_confusion_matrix(pred_provided, LTE_multi, num_classes_prov)
     
-    print("Provided dataset Confusion Matrix:")
-    print_confusion_matrix(M_provided)
+    emit("\nProvided dataset confusion matrix:")
+    print_confusion_matrix(M_provided, emit)
 
 
+    emit("\n\n2. OPTIMAL BAYES DECISIONS\n")
     # ======================================================
     # 4. BINARY EVALUATION (TABULAR METRICS)
     # ======================================================
-    print("\nEvaluating binary decisions with Bayes risk...")
-
     # Load binary datasets
     llr1 = numpy.load(ROOT / "data" / "iris" / "evalset_llr_binary.npy")
     llr2 = numpy.load(ROOT / "data" / "iris" / "evalset_llr_binary_2.npy")
@@ -134,25 +134,22 @@ if __name__ == "__main__":
     ]
     
     # Process both classifiers cleanly
-    evaluate_binary_applications(llr1, LTE_bin, applications, "Classifier 1")
-    evaluate_binary_applications(llr2, LTE_bin, applications, "Classifier 2")
+    evaluate_binary_applications(llr1, LTE_bin, applications, "Classifier 1", emit)
+    evaluate_binary_applications(llr2, LTE_bin, applications, "Classifier 2", emit)
 
 
     # ======================================================
     # 5. ROC CURVE
     # ======================================================
-    print("\nComputing and plotting ROC curve for Classifier 1...")
     FPR, TPR = compute_roc_coordinates(llr1, LTE_bin)
     
-    roc_output_path = results_dir / "iris" / "ROC_binary_evaluation.png"
+    roc_output_path = results_dir / "ROC_binary_evaluation.png"
     plot_roc_curve(FPR, TPR, roc_output_path)
-    print(f"ROC curve successfully saved to {roc_output_path}")
 
 
     # ======================================================
     # 6. BAYES ERROR PLOTS
     # ======================================================
-    print("\nComputing and plotting Bayes Error Plots...")
 
     effPriorLogOdds = numpy.linspace(-3, 3, 21)
     pi_array = 1 / (1 + numpy.exp(-effPriorLogOdds))
@@ -164,12 +161,12 @@ if __name__ == "__main__":
     dcf_2, min_dcf_2 = sweep_bayes_error(llr2, LTE_bin, pi_array)
 
     # Plot single Bayes Error
-    bayes_single_path = results_dir / "iris" / "Bayes_Error_binary_evaluation_classifier1.png"
+    bayes_single_path = results_dir / "Bayes_Error_binary_evaluation_classifier1.png"
     plot_bayes_error(effPriorLogOdds, dcf_1, min_dcf_1, bayes_single_path)
-    plot_bayes_error(effPriorLogOdds, dcf_2, min_dcf_2, results_dir / "iris" / "Bayes_Error_binary_evaluation_classifier2.png")
+    plot_bayes_error(effPriorLogOdds, dcf_2, min_dcf_2, results_dir / "Bayes_Error_binary_evaluation_classifier2.png")
     
     # Plot comparative Bayes Error (Classifier 1 vs Classifier 2)
-    bayes_comp_path = results_dir / "iris" / "Bayes_Error_Comparison.png"
+    bayes_comp_path = results_dir / "Bayes_Error_Comparison.png"
     plot_bayes_error_comparison(
         effPriorLogOdds, 
         dcf_1, min_dcf_1, 
@@ -183,7 +180,7 @@ if __name__ == "__main__":
     # ======================================================
     # 7. MULTICLASS EVALUATION WITH BAYES RISK
     # ======================================================
-    print("\nComputing multiclass evaluation with Bayes risk...")
+    emit("\n\n3. MULTICLASS EVALUATION")
 
     # Load multiclass datasets
     ll_multi_1 = numpy.load(ROOT / "data" / "iris" / "evalset_ll.npy")
@@ -204,32 +201,26 @@ if __name__ == "__main__":
     num_classes_multi = 3
 
     # --- Evaluate Classifier 1 ---
-    print("\n--- Classifier 1 (evalset_ll.npy) ---")
+    emit("\n--- Confusion matrix of classifier 1 (evalset_ll.npy) ---")
     
     _, _, logSPost_multi_1 = compute_posteriors(ll_multi_1, prior_multi)
     pred_multi_1 = compute_optimal_bayes_multiclass(logSPost_multi_1, Cost_multi)
     M_multi_1 = compute_confusion_matrix(pred_multi_1, LTE_multi, num_classes_multi)
     
-    print_confusion_matrix(M_multi_1)
+    print_confusion_matrix(M_multi_1, emit)
     DCF_u_1 = compute_empirical_Bayes_risk_multiclass(M_multi_1, prior_multi, Cost_multi)
     DCF_n_1 = compute_normalised_empirical_Bayes_risk_multiclass(M_multi_1, prior_multi, Cost_multi)
-    
-    print(f"\nDCF_u = {DCF_u_1:.3f}")
-    print(f"DCF_n = {DCF_n_1:.3f}")
 
     # --- Evaluate Classifier 2 ---
-    print("\n--- Classifier 2 (evalset_ll_2.npy) ---")
+    emit("\n--- Confusion matrix of classifier 2 (evalset_ll_2.npy) ---")
     
     _, _, logSPost_multi_2 = compute_posteriors(ll_multi_2, prior_multi)
     pred_multi_2 = compute_optimal_bayes_multiclass(logSPost_multi_2, Cost_multi)
     M_multi_2 = compute_confusion_matrix(pred_multi_2, LTE_multi, num_classes_multi)
     
-    print_confusion_matrix(M_multi_2)
+    print_confusion_matrix(M_multi_2, emit)
     DCF_u_2 = compute_empirical_Bayes_risk_multiclass(M_multi_2, prior_multi, Cost_multi)
     DCF_n_2 = compute_normalised_empirical_Bayes_risk_multiclass(M_multi_2, prior_multi, Cost_multi)
-    
-    print(f"\nDCF_u = {DCF_u_2:.3f}")
-    print(f"DCF_n = {DCF_n_2:.3f}")
 
     # ------------------------------------------------------
     # PART B: Uniform priors and costs
@@ -252,10 +243,10 @@ if __name__ == "__main__":
     DCF_n_uni_2 = compute_normalised_empirical_Bayes_risk_multiclass(M_uni_2, prior_uniform, Cost_uniform)
 
     # Print the requested comparative table
-    print("\n--- Multiclass Evaluation (Uniform Priors and Costs) ---")
-    print("-" * 37)
-    print(f"{'':<15} | {'DCF_u':^7} | {'DCF':^7}")
-    print("-" * 37)
-    print(f"{'Classifier 1':<15} | {DCF_u_uni_1:^7.3f} | {DCF_n_uni_1:^7.3f}")
-    print(f"{'Classifier 2':<15} | {DCF_u_uni_2:^7.3f} | {DCF_n_uni_2:^7.3f}")
-    print("-" * 37)
+    emit("\n--- Multiclass evaluation (Uniform priors and costs) ---")
+    emit("-" * 37)
+    emit(f"{'':<15} | {'DCF_u':^7} | {'DCF':^7}")
+    emit("-" * 37)
+    emit(f"{'Classifier 1':<15} | {DCF_u_uni_1:^7.3f} | {DCF_n_uni_1:^7.3f}")
+    emit(f"{'Classifier 2':<15} | {DCF_u_uni_2:^7.3f} | {DCF_n_uni_2:^7.3f}")
+    emit("-" * 37)

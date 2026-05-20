@@ -1,17 +1,6 @@
 import numpy
 import matplotlib.pyplot as plt
 
-def print_confusion_matrix(M):
-    """
-    Prints the confusion matrix to the console mimicking the Lab 6 PDF format.
-    """
-    num_classes = M.shape[0]
-    print("          Class")
-    print("       " + "   ".join([str(i) for i in range(num_classes)]))
-    for i in range(num_classes):
-        row_str = f"Pred {i} | " + "  ".join([f"{M[i, j]:2d}" for j in range(num_classes)])
-        print(row_str)
-
 def plot_confusion_matrix_heatmap(M, class_names, title, output_path):
     """
     Plots a graphical heatmap of the confusion matrix and saves it.

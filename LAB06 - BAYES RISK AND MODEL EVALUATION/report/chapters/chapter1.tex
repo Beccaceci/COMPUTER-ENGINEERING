@@ -1,42 +1,65 @@
-\chapter{MVG classifier performance across applications}
+\chapter{Gaussian Classifiers Performance Across Applications}
 \label{chap:mvg_applications}
 
-In this chapter, we analyze the performance of the baseline Multivariate Gaussian (MVG) classifier across five different applications. Each application is parameterized by a specific triplet $(\pi_1, C_{fn}, C_{fp})$, representing the prior probability of the authentic class, the cost of a false negative, and the cost of a false positive, respectively.
+In this chapter, we analyze the performance of the baseline Multivariate Gaussian (MVG) classifier, along with its Naive Bayes and Tied Covariance variants, across five distinct operational applications. Each application is parameterized by a specific triplet $(\pi_1, C_{fn}, C_{fp})$, representing the prior probability of the authentic (genuine) class, the cost of a false negative, and the cost of a false positive, respectively.
 
 \section{Evaluation of the Applications}
 
-\textbf{Question: What do you obtain?}
+\subsection*{Question: What do you obtain?}
 
-The evaluation of the Standard MVG classifier across the five specified applications yields the normalized Detection Cost Function ($\text{DCF}_n$) and the minimum DCF ($\text{min DCF}$) values shown in Table \ref{tab:mvg_results}.
+When applying the three generative classifiers to the validation set across the five targeted configurations, we extract the normalized Detection Cost Function ($\text{DCF}_n$) and the Minimum DCF, compiled in Table \ref{tab:all_models_results}.
 
 \begin{table}[h!]
     \centering
-    \begin{tabular}{lccccc}
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{lcccccc}
         \toprule
-        \textbf{Application Triplet} & $\pi_1$ & $C_{fn}$ & $C_{fp}$ & \textbf{Actual $\text{DCF}_n$} & \textbf{Min DCF} \\
+        \multirow{2}{*}{\textbf{Application Triplet ($\pi_1, C_{fn}, C_{fp}$)}} & \multicolumn{2}{c}{\textbf{Standard MVG}} & \multicolumn{2}{c}{\textbf{Naive Bayes}} & \multicolumn{2}{c}{\textbf{Tied MVG}} \\
+        \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+        & \textbf{Act. $\text{DCF}_n$} & \textbf{Min DCF} & \textbf{Act. $\text{DCF}_n$} & \textbf{Min DCF} & \textbf{Act. $\text{DCF}_n$} & \textbf{Min DCF} \\
         \midrule
-        App 1 (Baseline) & 0.5 & 1.0 & 1.0 & 0.140 & 0.130 \\
-        App 2 (High Legit Prior) & 0.9 & 1.0 & 1.0 & 0.400 & 0.342 \\
-        App 3 (High Impostor Prior) & 0.1 & 1.0 & 1.0 & 0.305 & 0.263 \\
-        App 4 (Strong Security) & 0.5 & 1.0 & 9.0 & 0.305 & 0.263 \\
-        App 5 (Ease of Use) & 0.5 & 9.0 & 1.0 & 0.400 & 0.342 \\
+        App 1: Baseline (0.5, 1.0, 1.0) & 0.140 & 0.130 & 0.144 & 0.131 & 0.186 & 0.181 \\
+        App 2: High Legit Prior (0.9, 1.0, 1.0) & 0.400 & 0.342 & 0.389 & 0.351 & 0.463 & 0.442 \\
+        App 3: High Impostor Prior (0.1, 1.0, 1.0) & 0.305 & 0.263 & 0.302 & 0.257 & 0.406 & 0.363 \\
+        App 4: Strong Security (0.5, 1.0, 9.0) & 0.305 & 0.263 & 0.302 & 0.257 & 0.406 & 0.363 \\
+        App 5: Ease of Use (0.5, 9.0, 1.0) & 0.400 & 0.342 & 0.389 & 0.351 & 0.463 & 0.442 \\
         \bottomrule
     \end{tabular}
-    \caption{Performance of the Standard MVG classifier across five target applications.}
-    \label{tab:mvg_results}
+    }
+    \caption{Performance of the Gaussian classifier variants across five target applications.}
+    \label{tab:all_models_results}
 \end{table}
+
+Evaluating these results one application at a time yields the following observations:
+
+\begin{itemize}
+    \item \textbf{Application 1 (Uniform Prior and Costs):} Operating with parameters $(0.5, 1.0, 1.0)$, the system assumes equal probability for both classes and penalizes all errors equally. The Standard MVG and Naive Bayes models perform optimally here, yielding Actual $\text{DCF}_n$ values of $0.140$ and $0.144$, respectively. The Tied MVG performs noticeably worse with an Actual $\text{DCF}_n$ of $0.186$.
+    
+    \item \textbf{Application 2 (High Legit Prior):} Operating with parameters $(0.9, 1.0, 1.0)$, the system assumes the vast majority of users are genuine. The error rates universally increase across all architectures, with the Tied MVG degrading to a $0.463$ Actual $\text{DCF}_n$.
+    
+    \item \textbf{Application 3 (High Impostor Prior):} Operating with parameters $(0.1, 1.0, 1.0)$, the system expects most samples to be fake. In this highly skeptical configuration, the Naive Bayes model slightly edges out the Standard MVG, yielding an Actual $\text{DCF}_n$ of $0.302$ against the Standard's $0.305$.
+    
+    \item \textbf{Application 4 (Strong Security):} Operating with parameters $(0.5, 1.0, 9.0)$, the system assumes an equal prior distribution but heavily penalizes false positives (accepting an impostor). The performance perfectly mirrors Application 3 across all three models.
+    
+    \item \textbf{Application 5 (Ease of Use):} Operating with parameters $(0.5, 9.0, 1.0)$, the system assumes an equal prior distribution but heavily penalizes false negatives (rejecting a legitimate user). The performance perfectly mirrors Application 2 across all three models.
+\end{itemize}
 
 \section{Equivalence of Costs and Effective Priors}
 
-\textbf{Question: Observe how the costs of mis-classifications are reflected in the prior: stronger security (higher false positive cost) corresponds to an equivalent lower prior probability of a legit user.}
+\subsection*{Question: Observe how the costs of mis-classifications are reflected in the prior: stronger security (higher false positive cost) corresponds to an equivalent lower prior probability of a legit user.}
 
-The cost of misclassifications mathematically mirrors a shift in the prior probabilities. This relationship is formalized by the effective prior ($\tilde{\pi}$), which translates any application triplet into an equivalent application assuming uniform unit costs ($C_{fn}=1, C_{fp}=1$):
+The optimal Bayes decision relies on comparing the log-likelihood ratio $s(x)$ against a threshold $t$, defined mathematically as:
+\begin{equation}
+    t = -\log \frac{\pi_1 C_{fn}}{(1 - \pi_1) C_{fp}}
+\end{equation}
+
+By inspecting this threshold, it becomes evident that the cost of misclassifications mathematically mirrors a shift in the prior probabilities. An increase in $C_{fp}$ shrinks the argument of the logarithm in the exact same proportion as a decrease in $\pi_1$. This relationship is formalized by the effective prior ($\tilde{\pi}$), which translates any application triplet into an equivalent application assuming uniform unit costs ($C_{fn}=1, C_{fp}=1$):
 \begin{equation}
     \tilde{\pi} = \frac{\pi_1 C_{fn}}{\pi_1 C_{fn} + (1 - \pi_1) C_{fp}}
 \end{equation}
 
-The empirical results in Table \ref{tab:mvg_results} perfectly demonstrate this theoretical property:
+Our empirical results perfectly validate this theoretical property across all three distinct classification architectures:
 
-\textbf{Stronger Security Scenario:} Application 4 imposes a high cost on granting access to an impostor ($C_{fp}=9.0$) with a uniform prior ($\pi_1=0.5$). The effective prior calculation yields $\tilde{\pi} = 0.10$. Application 3 utilizes a naturally low prior for authentic users ($\pi_1=0.1$) with uniform costs. Both applications evaluate to the exact same actual $\text{DCF}_n$ (0.305) and minimum DCF (0.263). Demanding stronger security forces the decision threshold to become far more conservative, which is mathematically indistinguishable from assuming that genuine users are inherently rare.
+\textbf{Stronger Security Scenario:} Application 4 imposes a high cost on granting access to an impostor ($C_{fp}=9.0$) while maintaining a uniform prior ($\pi_1=0.5$). Plugging these values into the effective prior calculation yields $\tilde{\pi} = 0.10$. Application 3 utilizes a naturally low prior for authentic users ($\pi_1=0.1$) with uniform costs. Because their effective priors are identical, the decision threshold $t$ evaluates to the exact same value. Consequently, the configurations evaluate to identical metrics for every model. For instance, both applications yield an Actual $\text{DCF}_n$ of $0.305$ for Standard MVG, $0.302$ for Naive Bayes, and $0.406$ for Tied MVG. Demanding stronger security forces the decision boundary to become far more conservative, requiring overwhelming evidence to accept a sample. Penalizing false positives heavily is mathematically indistinguishable from assuming that genuine users are inherently rare.
 
-\textbf{Ease of Use Scenario:} Application 5 imposes a high cost on rejecting a legitimate user ($C_{fn}=9.0$), yielding an effective prior of $\tilde{\pi} = 0.90$. Application 2 explicitly sets the genuine user prior to $\pi_1=0.9$. Once again, both configurations produce identical actual $\text{DCF}_n$ (0.400) and minimum DCF (0.342) metrics. Lowering the barrier for entry shifts the decision boundary identically to assuming the vast majority of all users are legitimate.
+\textbf{Ease of Use Scenario:} Application 5 flips the operational goal, imposing a high cost on rejecting a legitimate user ($C_{fn}=9.0$) with a uniform prior, yielding an effective prior of $\tilde{\pi} = 0.90$. Application 2 explicitly sets the genuine user prior to $\pi_1=0.9$ with uniform costs. Once again, both configurations produce identical outputs across the board. Lowering the barrier for entry shifts the decision boundary in the opposite direction. The system becomes highly permissive to avoid frustrating real users, acting entirely identically to an environment where it is assumed that 90\% of all login attempts are legitimate.

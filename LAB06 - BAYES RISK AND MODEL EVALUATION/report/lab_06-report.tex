@@ -5,7 +5,7 @@
 \usepackage{amsmath}
 \usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{multirow} % REQUIRED for the table in Chapter 2
+\usepackage{multirow}
 \usepackage{geometry}
 \geometry{a4paper, margin=1in}
 
@@ -13,6 +13,8 @@
 \makeatletter
 \def\input@path{{}{report/}}
 \makeatother
+
+\graphicspath{{../results/project/}}
 
 \title{Laboratory 6: Bayes Decisions and Model Evaluation}
 \author{Nicola Beccaceci}
@@ -25,6 +27,8 @@
 
 % Include the chapters
 \input{chapters/chapter1}
+\newpage
+
 \input{chapters/chapter2}
 
 \end{document}
