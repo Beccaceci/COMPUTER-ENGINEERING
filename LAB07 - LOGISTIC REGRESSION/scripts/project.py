@@ -30,7 +30,7 @@ if __name__ == "__main__":
     # -----------------------------------------------------------------------
     # Setup paths
     # -----------------------------------------------------------------------
-    dataset_dir = ROOT / "data" / "project" # Assume project data is here
+    dataset_dir = ROOT / "data" / "project"
     results_dir = ROOT / "results" / "project"
     plots_dir = results_dir / "plots"
     results_dir.mkdir(parents=True, exist_ok=True)
