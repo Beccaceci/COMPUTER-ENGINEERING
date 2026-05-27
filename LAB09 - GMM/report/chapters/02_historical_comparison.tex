@@ -1,0 +1,75 @@
+\chapter{Model comparison}
+\label{chap:historical_comparison}
+
+In this chapter, we perform a comprehensive evaluation by comparing the newly trained Gaussian Mixture Models against the best-performing candidates from all previously analyzed classification algorithms: the baseline Generative Gaussian models (MVG, Naive Bayes), Logistic Regression (Linear and Quadratic), and Support Vector Machines (Linear, Polynomial, and RBF).
+
+\section{Summary of all evaluated models}
+
+Table \ref{tab:master_comparison} aggregates the Minimum DCF and Actual DCF of the optimal configurations for each classifier type, evaluated on the validation set for the primary target application ($\pi_T = 0.1$).
+
+\begin{table}[H]
+    \centering
+    \caption{Comprehensive Historical Model Comparison ($\pi_T = 0.1$)}
+    \label{tab:master_comparison}
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{llccc}
+        \toprule
+        \textbf{Algorithm family} & \textbf{Best model configuration} & \textbf{minDCF} & \textbf{actDCF} & \textbf{Calib. Gap} \\
+        \midrule
+        \multirow{3}{*}{\textbf{Single generative}} 
+        & Naive Bayes & 0.2570 & 0.3022 & 0.0452 \\
+        & Standard MVG & 0.2629 & 0.3051 & 0.0422 \\
+        & Tied MVG & 0.3628 & 0.4061 & 0.0433 \\
+        \midrule
+        \multirow{2}{*}{\textbf{Logistic Regression}} 
+        & Quadratic LR ($\lambda = 3.16 \times 10^{-2}$) & 0.2436 & 0.4972 & 0.2536 \\
+        & Standard Linear LR ($\lambda = 10^{-2}$) & 0.3611 & 0.4568 & 0.0957 \\
+        \midrule
+        \multirow{4}{*}{\textbf{Support Vector Machines}} 
+        & Polynomial $d=4$ ($C = 3.16 \times 10^{-3}$) & 0.1767 & 0.3975 & 0.2208 \\
+        & RBF Kernel ($C = 10^2, \gamma = 10^{-1}$) & 0.1845 & 0.4367 & 0.2522 \\
+        & Polynomial $d=2$ ($C = 3.16 \times 10^{-2}$) & 0.2455 & 0.6291 & 0.3836 \\
+        & Linear SVM (Centered, $C = 10^{-1}$) & 0.3582 & 0.9573 & 0.5991 \\
+        \midrule
+        \multirow{3}{*}{\textbf{Gaussian Mixture Models}} 
+        & \textbf{Diagonal GMM (16 Components)} & \textbf{0.0579} & \textbf{0.0599} & \textbf{0.0020} \\
+        & Full Covariance GMM (16 Components) & 0.0620 & 0.0640 & 0.0020 \\
+        & Tied Covariance GMM (16 Components) & 0.0900 & 0.0910 & 0.0010 \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}
+
+\section{Comparative analysis}
+
+\subsection*{Question: Which is the most promising method for the given application?}
+
+The \textbf{Diagonal covariance Gaussian Mixture Model with 16 components} is indisputably the most promising method for this application. It achieves a globally optimal Minimum DCF of \textbf{0.0579}, completely eclipsing the performance of every other model evaluated in this course. Furthermore, it yields an Actual DCF of $0.0599$, demonstrating virtually perfect native calibration without requiring any complex post-processing steps.
+
+\subsection*{Question: What do you observe? Are there combinations which work better?}
+
+When observing the historical trajectory of our models, a clear hierarchy emerges based on structural complexity and distribution assumptions:
+\begin{itemize}
+    \item \textbf{Linear boundaries fail:} Models restricted to linear decision boundaries (Linear SVM, Standard LR, Tied MVG) universally hit a performance ceiling, plateauing around $0.358 - 0.363$ minDCF.
+    \item \textbf{Quadratic boundaries plateau:} Models that natively compute quadratic boundaries (Quadratic LR, Poly SVM $d=2$, Standard MVG, Naive Bayes) successfully capture the covariance differences between classes, but their performance stalls in a tight cluster around $0.243 - 0.262$ minDCF. 
+    \item \textbf{High-Capacity discriminative models mis-calibrate:} The complex RBF Kernel and Polynomial $d=4$ SVMs broke the quadratic plateau (reaching $\sim 0.17$ minDCF), but suffered from massive calibration gaps (actDCF $\sim 0.40$), requiring post-processing.
+    \item \textbf{GMMs dominate:} The GMMs bypass all these limitations, dropping the error by an order of magnitude (down to $0.0579$) while maintaining calibration. The combination of a \textit{Diagonal covariance structure} with \textit{high component counts (16)} proved to be the absolute best strategy, balancing high geometric flexibility with protection against parameter overfitting.
+\end{itemize}
+
+\subsection*{Question: Are the results in line with your expectation, given the characteristics that you observed in the dataset?}
+
+Yes, the overwhelming success of the GMM is perfectly aligned with the physical characteristics of our dataset discovered in exploratory analyses. 
+
+Throughout the previous laboratories, we proved two critical characteristics of the project data:
+\begin{enumerate}
+    \item \textbf{Non-Gaussian skewness:} Features 5 and 6 are heavily skewed and asymmetric. The Standard MVG failed to reach optimal accuracy because it rigidly assumed these features could be described by a single, symmetric Gaussian bell curve. The GMM directly solves this by defining the class-conditional density as a weighted sum of multiple Gaussians. Therefore, the GMM can perfectly mold itself to match the heavily skewed, asymmetric, or multi-modal true distributions of Features 5 and 6.
+    \item \textbf{Feature independence:} In Laboratory 05, we computed the correlation matrix and observed that the features are highly uncorrelated (the maximum off-diagonal correlation was $< 0.05$). Because the features already lack correlation, computing full covariance matrices across 16 components merely introduces parameter estimation noise and t, consequently, leads to overfetting trainig data; this perfectly explains why the \textit{Diagonal} GMM outperformed the Full Covariance GMM.  The Diagonal GMM leverages this known independence, acting as a powerful structural regularizer.
+\end{enumerate}
+
+\subsection*{Question: Are there results that are surprising?}
+
+The most surprising result is the sheer magnitude of the performance gap between the GMM and the complex Kernel SVMs. 
+
+It is standard to expect non-linear discriminative models (like the RBF SVM) to outperform generative models because they focus directly on optimizing the classification boundary (the margin) rather than wasting mathematical capacity modeling the entire data density. However, our dataset proved the exact opposite. 
+
+The RBF SVM peaked at $0.1845$ minDCF. By simply estimating the true probability density accurately with a 16-component Diagonal GMM, the error rate plummeted to $0.0579$. This surprisingly proves that the difficulty in classifying this specific dataset did not stem from highly overlapping geometric boundaries (which an SVM would excel at splitting), but rather from highly complex, non-standard probability densities. Once the true density was mapped effectively by the mixture model, the classification task became trivial.
