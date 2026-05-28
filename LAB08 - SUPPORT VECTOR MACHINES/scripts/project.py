@@ -8,16 +8,7 @@ from utils.plot_utils import *
 
 # Helper to run the sweep over C
 def run_linear_experiment(D_train, L_train, D_test, L_test, C_array, K_bias, pi_t=0.1):
-    min_dcfs = []
-    act_dcfs = []
-    for C in C_array:
-        w_hat, J_primal, J_dual, gap = train_linear_svm(D_train, L_train, C, K_bias)
-        error_rate, min_dcf, act_dcf = evaluate_linear_svm(D_test, L_test, w_hat, K_bias, pi=pi_t)
-        
-        min_dcfs.append(min_dcf)
-        act_dcfs.append(act_dcf)
-        
-        emit(f"{K_bias:<4.1f} | {C:<7.1e} | {J_primal:<14.6e} | {J_dual:<14.6e} | {gap:<12.6e} | {error_rate*100:<6.1f}% | {min_dcf:<7.4f} | {act_dcf:<7.4f}")
+    
     return min_dcfs, act_dcfs
 
 if __name__ == "__main__":
@@ -46,34 +37,47 @@ if __name__ == "__main__":
     # Load dataset
     D, L = load_dataset(dataset_dir / "trainData.txt")
 
-    # Map labels {1, 2} -> {-1, 1}
-    Z = 2 * L - 1
-
     # Split dataset
-    (DTR, LTR), (DTE, LTE) = split_dataset(D, Z, 2/3)
+    (DTR, LTR), (DTE, LTE) = split_dataset(D, L, 2/3)
+
+    # Map labels {1, 2} -> {-1, 1}
+    Z = 2 * LTR - 1
 
 
     # ===========================
     # 1. Linear SVM
     # ===========================
-
     # --- EXPERIMENT CONFIGURATION ---
     K = 1.0
-    C_values = numpy.logspace(-5, 0, 11).tolist()  # The values requested in the laboratory table
+    C_values = numpy.logspace(-5, 0, 11).tolist()
+    pi_t = 0.1
 
     min_dcfs = []
     act_dcfs = []
     
     # Update the table header to include K
+    emit("\n" + "=" * 50)
+    emit("LINEAR SVM (Raw Data)")
+    emit("=" * 50)
     emit(f"{'K':<4} | {'C':<5} | {'Primal Loss':<14} | {'Dual Loss':<14} | {'Gap':<12} | {'Error%':<7} | {'minDCF':<7} | {'actDCF':<7}")
     emit("-" * 90)
     
     # --- RUN EVALUATIONS ---
-    min_dcfs, act_dcfs = run_linear_experiment(DTR, LTR, DTE, LTE, C_values, K, pi_t=0.1)
+    min_dcfs = []
+    act_dcfs = []
+    for C in C_values:
+        # Train the linear SVM and get the primal/dual losses and gap
+        w_hat, J_primal, J_dual, gap = train_linear_svm(DTR, Z, C, K)
+        
+        # Evaluate the model on the test set to get error rate, minDCF, and actDCF
+        error_rate, min_dcf, act_dcf = evaluate_linear_svm(DTE, LTE, w_hat, K, pi=pi_t)
+        
+        min_dcfs.append(min_dcf)
+        act_dcfs.append(act_dcf)
+        
+        emit(f"{K:<4.1f} | {C:<7.1e} | {J_primal:<14.6e} | {J_dual:<14.6e} | {gap:<12.6e} | {error_rate*100:<6.1f}% | {min_dcf:<7.4f} | {act_dcf:<7.4f}")
 
-    plot_dcf_vs_c(C_values, min_dcfs, act_dcfs,
-                  "Linear SVM (Raw Data): DCF vs C", 
-                  plots_dir / "Linear_SVM_Raw_DCF_vs_C.png")
+    plot_dcf_vs_c(C_values, min_dcfs, act_dcfs, "Linear SVM (Raw Data): DCF vs C", plots_dir / "Linear_SVM_Raw_DCF_vs_C.png")
     
     # --- CENTER THE DATA ---
     # Compute the mean of the training set only
@@ -87,21 +91,37 @@ if __name__ == "__main__":
     act_centered_dcfs = []
 
     # Update the table header to include K
+    emit("\n" + "=" * 50)
+    emit("LINEAR SVM (Centered Data)")
+    emit("=" * 50)
     emit(f"{'K':<4} | {'C':<5} | {'Primal Loss':<14} | {'Dual Loss':<14} | {'Gap':<12} | {'Error%':<7} | {'minDCF':<7} | {'actDCF':<7}")
     emit("-" * 90)
     
     # --- RUN EVALUATIONS ---
-    min_centered_dcfs, act_centered_dcfs = run_linear_experiment(DTR_centered, LTR, DTE_centered, LTE, C_values, K, pi_t=0.1)
+    min_dcfs = []
+    act_dcfs = []
+    for C in C_values:
+        # Train the linear SVM and get the primal/dual losses and gap
+        w_hat, J_primal, J_dual, gap = train_linear_svm(DTR_centered, Z, C, K)
+        
+        # Evaluate the model on the test set to get error rate, minDCF, and actDCF
+        error_rate, min_dcf, act_dcf = evaluate_linear_svm(DTE_centered, LTE, w_hat, K, pi=pi_t)
+        
+        min_centered_dcfs.append(min_dcf)
+        act_centered_dcfs.append(act_dcf)
+        
+        emit(f"{K:<4.1f} | {C:<7.1e} | {J_primal:<14.6e} | {J_dual:<14.6e} | {gap:<12.6e} | {error_rate*100:<6.1f}% | {min_dcf:<7.4f} | {act_dcf:<7.4f}")
 
-    plot_dcf_vs_c(C_values, min_centered_dcfs, act_centered_dcfs, 
-                  "Linear SVM (Centered Data): DCF vs C", 
-                  plots_dir / "Linear_SVM_Centered_DCF_vs_C.png")
+    plot_dcf_vs_c(C_values, min_centered_dcfs, act_centered_dcfs, "Linear SVM (Centered Data): DCF vs C", plots_dir / "Linear_SVM_Centered_DCF_vs_C.png")
     
     # ===========================
     # 2. Kernel SVM
     # ===========================
 
     # --- 2.1 Kernel SVM (polynomial) ---
+    d = 2
+    c = 1
+    K = 0.0
     emit("\n" + "=" * 50)
     emit("POLYNOMIAL KERNEL SVM (d=2, c=1, K=0)")
     emit("=" * 50)
@@ -115,19 +135,18 @@ if __name__ == "__main__":
     # Iterate over the same logarithmic space used for the linear SVM
     for C in C_values:
         # K_bias is 0 because the kernel handles the bias intrinsically (xi=0)
-        alpha_opt, J_primal, J_dual, gap = train_kernel_svm(DTR, LTR, C, 0.0, "poly", d=2, c=1)
+        alpha_opt, J_primal, J_dual, gap = train_kernel_svm(DTR, Z, C, K, "poly", d=d, c=c)
         
-        error_rate, min_dcf, act_dcf = evaluate_kernel_svm(DTR, LTR, DTE, LTE, alpha_opt, 0.0, "poly", pi=0.1, d=2, c=1)
+        # Evaluate with pi_t = 0.1
+        error_rate, min_dcf, act_dcf = evaluate_kernel_svm(DTR, Z, DTE, LTE, alpha_opt, K, "poly", pi=pi_t, d=d, c=c)
         
         min_poly_dcfs.append(min_dcf)
         act_poly_dcfs.append(act_dcf)
         
-        emit(f"{0.0:<4.1f} | {C:<7.1e} | {J_primal:<14.6e} | {J_dual:<14.6e} | {gap:<12.6e} | {error_rate*100:<6.1f}% | {min_dcf:<7.4f} | {act_dcf:<7.4f}")
+        emit(f"{K:<4.1f} | {C:<7.1e} | {J_primal:<14.6e} | {J_dual:<14.6e} | {gap:<12.6e} | {error_rate*100:<6.1f}% | {min_dcf:<7.4f} | {act_dcf:<7.4f}")
 
     # Plot the results
-    plot_dcf_vs_c(C_values, min_poly_dcfs, act_poly_dcfs,
-                  "Polynomial Kernel SVM: DCF vs C", 
-                  plots_dir / "Poly_Kernel_SVM_DCF_vs_C.png")
+    plot_dcf_vs_c(C_values, min_poly_dcfs, act_poly_dcfs, "Polynomial Kernel SVM: DCF vs C", plots_dir / "Poly_Kernel_SVM_DCF_vs_C.png")
     
     # --- 2.2 Kernel SVM (RBF) ---
     emit("\n" + "=" * 50)
@@ -148,10 +167,10 @@ if __name__ == "__main__":
     for gamma in gamma_values:
         for C in C_values_rbf:
             # Train the RBF model
-            alpha_opt, J_primal, J_dual, gap = train_kernel_svm(DTR, LTR, C, K_rbf, "rbf", gamma=gamma)
+            alpha_opt, J_primal, J_dual, gap = train_kernel_svm(DTR, Z, C, K_rbf, "rbf", gamma=gamma)
             
             # Evaluate using pi_t = 0.1
-            error_rate, min_dcf, act_dcf = evaluate_kernel_svm(DTR, LTR, DTE, LTE, alpha_opt, K_rbf, "rbf", pi=0.1, gamma=gamma)
+            error_rate, min_dcf, act_dcf = evaluate_kernel_svm(DTR, Z, DTE, LTE, alpha_opt, K_rbf, "rbf", pi=0.1, gamma=gamma)
             
             # Track metrics
             min_rbf_dcfs[gamma].append(min_dcf)
@@ -182,10 +201,10 @@ if __name__ == "__main__":
     # Iterate over the same logarithmic space used for the linear SVM
     for C in C_values: # C_values is numpy.logspace(-5, 0, 11)
         # K_bias is 0.0 because the kernel handles the bias intrinsically (xi=0)
-        alpha_opt, J_primal, J_dual, gap = train_kernel_svm(DTR, LTR, C, 0.0, "poly", d=4, c=1)
+        alpha_opt, J_primal, J_dual, gap = train_kernel_svm(DTR, Z, C, 0.0, "poly", d=4, c=1)
         
         # Evaluate with pi_t = 0.1
-        error_rate, min_dcf, act_dcf = evaluate_kernel_svm(DTR, LTR, DTE, LTE, alpha_opt, 0.0, "poly", pi=0.1, d=4, c=1)
+        error_rate, min_dcf, act_dcf = evaluate_kernel_svm(DTR, Z, DTE, LTE, alpha_opt, 0.0, "poly", pi=0.1, d=4, c=1)
         
         min_poly4_dcfs.append(min_dcf)
         act_poly4_dcfs.append(act_dcf)
@@ -193,6 +212,4 @@ if __name__ == "__main__":
         emit(f"{0.0:<4.1f} | {C:<7.1e} | {J_primal:<14.6e} | {J_dual:<14.6e} | {gap:<12.6e} | {error_rate*100:<6.1f}% | {min_dcf:<7.4f} | {act_dcf:<7.4f}")
 
     # Plot the results
-    plot_dcf_vs_c(C_values, min_poly4_dcfs, act_poly4_dcfs,
-                  "Optional Polynomial Kernel SVM (d=4): DCF vs C", 
-                  plots_dir / "Poly_Kernel_SVM_d4_DCF_vs_C.png")
+    plot_dcf_vs_c(C_values, min_poly4_dcfs, act_poly4_dcfs, "Optional Polynomial Kernel SVM (d=4): DCF vs C", plots_dir / "Poly_Kernel_SVM_d4_DCF_vs_C.png")

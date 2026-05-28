@@ -40,6 +40,9 @@ if __name__ == "__main__":
     # ===========================
     # 1. Linear SVM
     # ===========================
+    emit("\n" + "=" * 30)
+    emit("LINEAR SVM")
+    emit("=" * 30)
 
     # --- EXPERIMENT CONFIGURATION ---
     K_values = [1.0, 10.0]
@@ -81,8 +84,10 @@ if __name__ == "__main__":
     
     for K in K_values_kernel:
         for c in c_values:
+            # Train and evaluate the polynomial kernel SVM
             alpha_opt, J_primal, J_dual, gap = train_kernel_svm(DTR, LTR, C_fixed, K, "poly", d=2, c=c)
             error_rate, min_dcf, act_dcf = evaluate_kernel_svm(DTR, LTR, DTE, LTE, alpha_opt, K, "poly", d=2, c=c)
+
             emit(f"{K:<4.1f} | {c:<4} | {J_primal:<14.6e} | {J_dual:<14.6e} | {error_rate*100:<6.1f}% | {min_dcf:<7.4f} | {act_dcf:<7.4f}")
 
 
@@ -98,6 +103,8 @@ if __name__ == "__main__":
     
     for K in K_values_kernel:
         for gamma in gamma_values:
+            # Train and evaluate the RBF kernel SVM
             alpha_opt, J_primal, J_dual, gap = train_kernel_svm(DTR, LTR, C_fixed, K, "rbf", gamma=gamma)
             error_rate, min_dcf, act_dcf = evaluate_kernel_svm(DTR, LTR, DTE, LTE, alpha_opt, K, "rbf", gamma=gamma)
+            
             emit(f"{K:<4.1f} | {gamma:<4.1f} | {J_primal:<14.6e} | {J_dual:<14.6e} | {error_rate*100:<6.1f}% | {min_dcf:<7.4f} | {act_dcf:<7.4f}")
