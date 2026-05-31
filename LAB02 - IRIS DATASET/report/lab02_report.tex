@@ -7,7 +7,7 @@
 \usepackage{amssymb}
 \usepackage{siunitx}
 
-\graphicspath{{../results/}}
+\graphicspath{{../results/project}}
 
 \title{Laboratory 02 Report: Dataset Analysis}
 \author{Machine Learning and Pattern Recognition}
@@ -16,78 +16,16 @@
 \begin{document}
 \maketitle
 
-\section{Theory Section: Iris Dataset}
-
-\subsection{Loading the Dataset}
-The Iris dataset was loaded into a data matrix $D \in \mathbb{R}^{4 \times 150}$, where each column is one sample and each row is one feature. The label vector $L$ has 150 entries and maps Iris-setosa to 0, Iris-versicolor to 1, and Iris-virginica to 2. This organization is useful because feature-wise statistics can be computed along rows, while class masks can select sample columns.
-
-\subsection{Visualizing the Features}
-Normalized histograms were generated for all four Iris features and scatter plots were generated for every pair of features. The first two features, sepal length and sepal width, show substantial overlap between classes. Petal length and petal width are much more informative: Iris-setosa is clearly separated from the other classes, while Iris-versicolor and Iris-virginica still overlap partially.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.48\linewidth]{iris/hist_3_petal_length.png}
-\includegraphics[width=0.48\linewidth]{iris/hist_4_petal_width.png}
-\caption{Iris petal-feature histograms. Setosa is well separated from the other classes.}
-\end{figure}
-
-\subsection{Dataset Mean, Covariance, Variance, and Standard Deviation}
-The empirical mean was computed as $\mu = \frac{1}{N}\sum_i x_i$ and the covariance matrix as $C = \frac{1}{N}D_CD_C^T$, where $D_C$ is the centered data matrix. The global feature statistics are shown in Table~\ref{tab:iris-global}.
-
-\begin{table}[H]
-\centering
-\begin{tabular}{lrrr}
-\toprule
-Feature & Mean & Variance & Std. dev. \\
-\midrule
-Sepal length & 5.843 & 0.681 & 0.825 \\
-Sepal width & 3.057 & 0.189 & 0.434 \\
-Petal length & 3.758 & 3.096 & 1.759 \\
-Petal width & 1.199 & 0.577 & 0.760 \\
-\bottomrule
-\end{tabular}
-\caption{Global Iris feature statistics.}
-\label{tab:iris-global}
-\end{table}
-
-\subsection{Per-Class Comparison}
-The per-class means confirm that petal features provide the strongest class separation. Setosa has mean petal length 1.462 and mean petal width 0.246, while Versicolor has 4.260 and 1.326 and Virginica has 5.552 and 2.026. Sepal features are less discriminative because their class means are closer and their distributions overlap more. Variances are also smaller for Setosa petal features, reinforcing the compact cluster visible in the plots.
-
-\newpage
-
 \section{Project Section: Fingerprint Spoofing Dataset}
 
-The project dataset used in this report is \texttt{LAB02/data/project/trainData.txt}. It contains 6000 samples, 6 features, and binary labels: 0 for fake fingerprints and 1 for genuine fingerprints.
+The project dataset contains 6000 samples, 6 features, and binary labels: 0 for fake fingerprints and 1 for genuine fingerprints.
 
 \input{chapters/feature_1_and_2}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.48\linewidth]{project/histograms/feature_1_histogram.png}
-\includegraphics[width=0.48\linewidth]{project/histograms/feature_2_histogram.png}
-\caption{Project features 1 and 2. The classes have similar means but different variances.}
-\end{figure}
-
 \newpage
 
 \input{chapters/feature_3_and_4}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.48\linewidth]{project/histograms/feature_3_histogram.png}
-\includegraphics[width=0.48\linewidth]{project/histograms/feature_4_histogram.png}
-\caption{Project features 3 and 4. The classes mainly differ by mean.}
-\end{figure}
-
 \newpage
 
 \input{chapters/feature_5_and_6}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.48\linewidth]{project/histograms/feature_5_histogram.png}
-\includegraphics[width=0.48\linewidth]{project/histograms/feature_6_histogram.png}
-\caption{Project features 5 and 6. The classes overlap strongly, with larger genuine variance.}
-\end{figure}
 
 \end{document}

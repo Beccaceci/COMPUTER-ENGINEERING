@@ -5,36 +5,29 @@ from pathlib import Path
 from utils.data_loaders import load_dataset 
 from utils.math_utils import compute_covariance, compute_mean, compute_std, compute_variance
 from utils.plot_utils import plot_histograms, plot_scatter_pairs
-
-matplotlib.use("Agg")
-
-# Constants derived from the lab instructions
-ROOT = Path(".")
-PROJECT_LABEL_NAMES = {0: "Fake", 1: "Genuine"}
-PROJECT_FEATURE_NAMES = [f"Feature_{i+1}" for i in range(6)]
-
-def create_emitter(file_path):
-    """
-    Creates an emit function that prints to standard output AND appends to a text file.
-    It automatically clears the target file upon initialization.
-    """
-    file_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(file_path, "w") as f:
-        f.write("PROJECT DATASET: STATISTICAL ANALYSIS REPORT\n")
-        f.write("=" * 75 + "\n")
-        
-    def emit(text=""):
-        print(text)
-        with open(file_path, "a") as f:
-            f.write(str(text) + "\n")
-    return emit
-
-def analyze_and_report(D, L, emit):
-    """
-    Computes all mathematical statistics (means, variances, overlaps, covariances)
-    and formats them into a single comprehensive report using the emit function.
-    """
+from utils.io_utils import create_emitter
     
+
+if __name__ == "__main__":
+    # Setup paths and labels
+    matplotlib.use("Agg")
+
+    ROOT = Path(".")
+    PROJECT_LABEL_NAMES = {0: "Fake", 1: "Genuine"}
+    PROJECT_FEATURE_NAMES = [f"Feature_{i+1}" for i in range(6)]
+
+    # Load the dataset
+    D, L = load_dataset(ROOT / "data" / "project" / "trainData.txt")
+
+    # Define output paths
+    output_dir = ROOT / "results" / "project"
+    report_path = output_dir / "project_statistics_summary.txt"
+    
+    # Initialize our logger/emitter
+    emit = create_emitter(report_path)
+    emit(f"Dataset Shape: {D.shape[1]} samples, {D.shape[0]} features.")
+
+    # Run mathematical analysis and write the single unified report
     # ==========================================
     # 1. CLASS-CONDITIONAL STATISTICS
     # ==========================================
@@ -117,22 +110,6 @@ def analyze_and_report(D, L, emit):
         for i, row in enumerate(cov_matrix):
             row_vals = " ".join([f"{val:>10.4f}" for val in row])
             emit(f"{PROJECT_FEATURE_NAMES[i]:<12} {row_vals}")
-    
-
-if __name__ == "__main__":
-    # Load the dataset
-    D, L = load_dataset(ROOT / "data" / "project" / "trainData.txt")
-
-    # Define output paths
-    output_dir = ROOT / "results" / "project"
-    report_path = output_dir / "project_statistics_summary.txt"
-    
-    # Initialize our logger/emitter
-    emit = create_emitter(report_path)
-    emit(f"Dataset Shape: {D.shape[1]} samples, {D.shape[0]} features.")
-
-    # 1. Run mathematical analysis and write the single unified report
-    analyze_and_report(D, L, emit)
     
     print(f"\n[+] Statistical report successfully saved to: {report_path}")
 
