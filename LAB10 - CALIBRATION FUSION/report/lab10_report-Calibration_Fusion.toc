@@ -1,0 +1,15 @@
+\babel@toc {english}{}\relax 
+\contentsline {chapter}{\numberline {1}System Evaluation on the Evaluation Set}{2}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Experimental Results}{2}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Analysis and Observations}{2}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Theoretical Considerations}{3}{section.1.3}%
+\contentsline {chapter}{\numberline {2}Score Calibration Analysis}{4}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Calibration Results (K-Fold Validation)}{4}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Theoretical Considerations}{6}{section.2.2}%
+\contentsline {chapter}{\numberline {3}Score-Level Fusion}{7}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Experimental Results}{7}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Theoretical Considerations}{8}{section.3.2}%
+\contentsline {chapter}{\numberline {4}Final System Selection and Conclusion}{10}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Evaluation of the Delivered System}{10}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Comparison of Actual DCF and Fusion Effectiveness}{10}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Calibration Strategy Effectiveness}{11}{section.4.3}%

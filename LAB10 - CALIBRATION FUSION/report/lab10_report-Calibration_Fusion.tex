@@ -1,0 +1,53 @@
+\documentclass[11pt,a4paper]{report}
+
+% --- Packages ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{multirow}
+
+% --- Layout Configuration ---
+\geometry{margin=25mm}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=cyan,
+    pdftitle={Lab 10 Report - Score Calibration and Score-Level Fusion},
+}
+
+% --- Image Path Configuration ---
+\graphicspath{{../results/project/plots/}}
+
+% --- Title Page ---
+\title{Laboratory 10: Score Calibration and Score-Level Fusion \\ Project Results and Final Evaluation}
+\author{Nicola Beccaceci}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+% --- Chapters ---
+\include{chapters/01_system_evaluation}
+\newpage
+
+\include{chapters/02_score_calibration}
+\newpage
+
+\include{chapters/03_score_fusion}
+\newpage
+
+\include{chapters/04_conclusion}
+\end{document}

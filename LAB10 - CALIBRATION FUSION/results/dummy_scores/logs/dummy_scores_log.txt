@@ -1,0 +1,40 @@
+LAB 10: CALIBRATION AND FUSION (Dummy Data)
+============================================================
+
+--- 1. Raw Scores (Full Dataset) ---
+System 1 - minDCF: 0.204, actDCF: 0.298
+System 2 - minDCF: 0.311, actDCF: 0.328
+
+--- 2. Single-fold Calibration ---
+Validation Dataset (Raw):
+System 1 - minDCF: 0.182, actDCF: 0.274
+System 2 - minDCF: 0.311, actDCF: 0.329
+Validation Dataset (Calibrated):
+System 1 - minDCF: 0.182, actDCF: 0.206
+System 2 - minDCF: 0.311, actDCF: 0.336
+
+Evaluation Dataset (Raw):
+System 1 - minDCF: 0.205, actDCF: 0.290
+System 2 - minDCF: 0.280, actDCF: 0.284
+Evaluation Dataset (Calibrated - Single Fold Model):
+System 1 - minDCF: 0.205, actDCF: 0.225
+System 2 - minDCF: 0.280, actDCF: 0.312
+
+--- 3. K-Fold Calibration (K=5) ---
+Validation Dataset (K-fold Calibrated):
+System 1 - minDCF: 0.204, actDCF: 0.219
+System 2 - minDCF: 0.315, actDCF: 0.326
+Evaluation Dataset (Calibrated - K-Fold Final Model):
+System 1 - minDCF: 0.205, actDCF: 0.225
+System 2 - minDCF: 0.280, actDCF: 0.283
+
+--- 4. Score-Level Fusion ---
+Validation Dataset (Single-Fold Fusion):
+Fusion - minDCF: 0.161, actDCF: 0.161
+Evaluation Dataset (Single-Fold Fusion):
+Fusion - minDCF: 0.175, actDCF: 0.196
+
+Validation Dataset (K-Fold Fusion):
+Fusion - minDCF: 0.177, actDCF: 0.185
+Evaluation Dataset (K-Fold Final Model Fusion):
+Fusion - minDCF: 0.178, actDCF: 0.189
