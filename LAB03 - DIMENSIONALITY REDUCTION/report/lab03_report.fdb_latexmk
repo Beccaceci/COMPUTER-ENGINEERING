@@ -1,11 +1,11 @@
 # Fdb version 4
-["pdflatex"] 1778685945.87204 "/Users/nicolabeccaceci/Desktop/MACHINE LEARNING AND PATTERN RECOGNITION/LABS/LAB03 - DIMENSIONALITY REDUCTION/report/lab03_report.tex" "lab03_report.pdf" "lab03_report" 1778685946.74794 0
+["pdflatex"] 1780238530.48063 "/Users/nicolabeccaceci/Desktop/MACHINE LEARNING AND PATTERN RECOGNITION/LABS/LAB03 - DIMENSIONALITY REDUCTION/report/lab03_report.tex" "lab03_report.pdf" "lab03_report" 1780238531.35972 0
   "../results/project/LDA/histograms/project_exploratory_lda_histogram.png" 1778684748.37413 36280 105ac8dfebe4462865ab7917a8a73b60 ""
   "../results/project/LDA/lda_threshold_sweep.png" 1778684748.47827 65782 ce012ebd25b6cc3638e08c05bba415e1 ""
   "../results/project/PCA/histograms/feature_1_histogram.png" 1778684745.41347 32215 47fae64f977dca74024a1da645921ac1 ""
   "../results/project/PCA/histograms/feature_2_histogram.png" 1778684745.53127 32199 a175ef3f570e2a0d7d5078b427fc7fe9 ""
   "../results/project/PCA/scatter/features_1_2_scatter.png" 1778684746.15355 319665 dba5ed3bacd7d2077f14265e9811d123 ""
-  "/Users/nicolabeccaceci/Desktop/MACHINE LEARNING AND PATTERN RECOGNITION/LABS/LAB03 - DIMENSIONALITY REDUCTION/report/lab03_report.tex" 1778685444.0112 467 65c5979cc1f252fbbb54c2c56d47d4ae ""
+  "/Users/nicolabeccaceci/Desktop/MACHINE LEARNING AND PATTERN RECOGNITION/LABS/LAB03 - DIMENSIONALITY REDUCTION/report/lab03_report.tex" 1780238529.27801 439 bff544c66cf523852da6d9a4c00addaa ""
   "/usr/local/texlive/2026/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1246382020 1004 54797486969f23fa377b128694d548df ""
   "/usr/local/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex8.tfm" 1246382020 988 bdf658c3bfc2d96d3c8b02cfc1c94c20 ""
@@ -69,8 +69,8 @@
   "/usr/local/texlive/2026/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1776262231 5573038 b99aad5e4898a9034e953632f940512b ""
   "/usr/local/texlive/2026/texmf-var/web2c/pdftex/pdflatex.fmt" 1776262170 3636770 6e0e6b4d54c61beb9d415a876a84121a ""
   "/usr/local/texlive/2026/texmf.cnf" 1774209515 577 648cd9f92f9c0eac486f4c71c85cfbbe ""
-  "lab03_report.aux" 1778685946.69482 2286 46fe38aa4f96208594447c4f8548c36c "pdflatex"
-  "lab03_report.tex" 1778685444.0112 467 65c5979cc1f252fbbb54c2c56d47d4ae ""
+  "lab03_report.aux" 1780238531.30588 2183 8ab2a84c25770799cd67335427d7b02e "pdflatex"
+  "lab03_report.tex" 1780238529.27801 439 bff544c66cf523852da6d9a4c00addaa ""
   "sections/section1.tex" 1778685584.34043 3399 32784be3e7fc1e83b9f0dcee5f2a9f04 ""
   "sections/section2.tex" 1778685734.99898 3710 97c152b666f36276dcf51b6519f6694b ""
   "sections/section3.tex" 1778685944.76082 3845 37f4596c70aa38336c4e51aeccb3751a ""

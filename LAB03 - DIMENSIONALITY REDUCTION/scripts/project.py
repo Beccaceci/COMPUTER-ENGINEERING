@@ -10,13 +10,12 @@ from models.lda import compute_lda
 # Plot utils
 from utils.plot_utils import *
 
-ROOT = Path(".")
+
 PROJECT_LABEL_NAMES = {0: "Fake", 1: "Genuine"}
     
-if __name__ == "__main__":
-    D, L = load_dataset(ROOT / "data" / "project" / "trainData.txt")
-    
-    # 1. Setup Folder Structure
+if __name__ == "__main__": 
+    # Setup folder structure
+    ROOT = Path(".")
     output_dir = ROOT / "results" / "project"
     lda_dir = output_dir / "LDA"
     pca_dir = output_dir / "PCA"
@@ -27,22 +26,25 @@ if __name__ == "__main__":
     
     for d in [pca_hist_dir, pca_scatter_dir, lda_hist_dir]:
         d.mkdir(parents=True, exist_ok=True)
+
+    # Load the dataset
+    D, L = load_dataset(ROOT / "data" / "project" / "trainData.txt")
     
     # ==========================================
     # PART A: Exploratory Analysis (Whole Dataset)
     # ==========================================
     
     # --- PCA (m=6) ---
-    _, P_pca = compute_pca(D, m=6)
-    DP_pca = P_pca.T @ D
+    _, P_pca = compute_pca(D, m=6) # compute PCA on the training set
+    DP_pca = P_pca.T @ D # project the training data onto the PCA direction
     pca_feature_names = [f"PCA Direction {i+1}" for i in range(6)]
     
     plot_histograms(DP_pca, L, pca_feature_names, PROJECT_LABEL_NAMES, pca_hist_dir, "Project PCA", bins=40)
     plot_scatter_pairs(DP_pca, L, pca_feature_names, PROJECT_LABEL_NAMES, pca_scatter_dir, "Project PCA")
     
     # --- LDA (m=1) ---
-    _, W_lda = compute_lda(D, L, m=1)
-    DP_lda = W_lda.T @ D
+    _, W_lda = compute_lda(D, L, m=1) # compute LDA on the training set
+    DP_lda = W_lda.T @ D # project the training data onto the LDA direction
     plot_1d_histograms(DP_lda, L, PROJECT_LABEL_NAMES, lda_hist_dir, "Project Exploratory LDA")
 
 
@@ -54,34 +56,34 @@ if __name__ == "__main__":
     (DTR, LTR), (DVAL, LVAL) = split_dataset(D, L, train_ratio=2.0/3.0)
 
     # --- 1. Standard LDA Classification ---
-    _, W_lda_tr = compute_lda(DTR, LTR, m=1)
-    DTR_lda = W_lda_tr.T @ DTR
-    DVAL_lda = W_lda_tr.T @ DVAL
+    _, W_lda_tr = compute_lda(DTR, LTR, m=1) # compute LDA on the training set
+    DTR_lda = W_lda_tr.T @ DTR # project the training data onto the LDA direction
+    DVAL_lda = W_lda_tr.T @ DVAL # project the validation data onto the LDA direction
 
     # Orient the projection so the mean of Genuine (1) > Fake (0)
-    if DTR_lda[0, LTR == 1].mean() < DTR_lda[0, LTR == 0].mean():
-        DTR_lda = -DTR_lda
-        DVAL_lda = -DVAL_lda
+    if DTR_lda[0, LTR == 1].mean() < DTR_lda[0, LTR == 0].mean(): # check if the mean of Genuine is less than the mean of Fake
+        DTR_lda = -DTR_lda # flip the sign of the projection
+        DVAL_lda = -DVAL_lda # flip the sign of the projection
 
-    mean_0 = DTR_lda[0, LTR == 0].mean()
-    mean_1 = DTR_lda[0, LTR == 1].mean()
-    threshold = (mean_0 + mean_1) / 2.0
+    mean_0 = numpy.mean(DTR_lda[0, LTR == 0]) # compute the mean of the projection for the Fake class
+    mean_1 = numpy.mean(DTR_lda[0, LTR == 1]) # compute the mean of the projection for the Genuine class
+    threshold = (mean_0 + mean_1) / 2.0 # compute the threshold as the average of the two class means
 
     # Predictions using the default threshold
-    PVAL = numpy.zeros(LVAL.shape, dtype=numpy.int32)
+    PVAL = numpy.zeros(LVAL.shape, dtype=numpy.int32) # initialize the predicted labels array to zeros
     PVAL[DVAL_lda[0] >= threshold] = 1
     error_rate = numpy.sum(PVAL != LVAL) / LVAL.size
 
     # Sweep thresholds to find if accuracy can be improved
-    thresholds = numpy.linspace(DTR_lda.min(), DTR_lda.max(), 1000)
+    thresholds = numpy.linspace(DTR_lda.min(), DTR_lda.max(), 1000) # generate 1000 thresholds between the min and max of the projection
     error_rates = []
     
-    for t in thresholds:
-        p = numpy.zeros(LVAL.shape, dtype=numpy.int32)
-        p[DVAL_lda[0] >= t] = 1
-        error_rates.append(numpy.sum(p != LVAL) / LVAL.size)
+    for t in thresholds: # iterate over the thresholds
+        p = numpy.zeros(LVAL.shape, dtype=numpy.int32) # initialize the predicted labels array to zeros
+        p[DVAL_lda[0] >= t] = 1 # set the predicted label to 1 if the projection is greater than or equal to the threshold
+        error_rates.append(numpy.sum(p != LVAL) / LVAL.size) # compute the error rate
 
-    best_idx = numpy.argmin(error_rates)
+    best_idx = numpy.argmin(error_rates) # find the index of the best threshold
     best_threshold = thresholds[best_idx]
     best_error_rate = error_rates[best_idx]
 

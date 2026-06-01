@@ -36,4 +36,16 @@ PROJECTIONS (PCA & LDA)
 [+] PCA projections computed and plotted successfully.
 [+] LDA projections computed and plotted successfully.
 
-[+] All outputs successfully generated and saved to: results/iris/iris_lab03_matrices.txt
+[+] All outputs successfully generated and saved to: results/iris/iris_results.txt
+
+=================================================================
+BINARY CLASSIFICATION (Versicolor vs Virginica)
+=================================================================
+LDA Classification Error Rate: 2 / 34 (5.88%)
+PCA Classification Error Rate (m=1): 4 / 34 (11.76%)
+
+PCA + LDA Classification:
+  PCA (m=1) + LDA Error Rate: 4 / 34 (11.76%)
+  PCA (m=2) + LDA Error Rate: 2 / 34 (5.88%)
+  PCA (m=3) + LDA Error Rate: 2 / 34 (5.88%)
+  PCA (m=4) + LDA Error Rate: 2 / 34 (5.88%)
