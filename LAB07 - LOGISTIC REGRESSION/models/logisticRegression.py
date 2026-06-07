@@ -7,8 +7,6 @@ from utils.math_utils import mcol, vrow
 # BINARY LOGISTIC REGRESSION
 # =======================================================
 
-# Logistic Regression objective functions (standard and prior-weighted) and their gradients
-
 def logreg_obj_standard(v, DTR, LTR, l):
     """
     Computes the Logistic Regression objective function and its analytical gradient.
@@ -61,8 +59,16 @@ def logreg_obj_standard(v, DTR, LTR, l):
 
 def logreg_obj_weighted(v, DTR, LTR, l, pi_T):
     """
-    Objective function for Prior-Weighted Logistic Regression.
-    Explicitly computes and applies xi weights based on target prior pi_T.
+    Computes the Prior-Weighted Logistic Regression objective function and its analytical gradient.
+    Parameters:
+        v: A 1D array containing the parameters (w and b) concatenated.
+        DTR: Training data matrix (D, N)
+        LTR: Training labels array (N,)
+        l: Regularization parameter (lambda)
+        pi_T: Target prior probability for class 1
+    Returns:
+        J: The value of the objective function at the given parameters.
+        grad: A 1D array containing the gradient of the objective function with respect to the
     """
     # Unpack w and b
     w, b = v[:-1], v[-1]
@@ -102,8 +108,6 @@ def logreg_obj_weighted(v, DTR, LTR, l, pi_T):
     
     grad = numpy.hstack([grad_w, grad_b])
     return J, grad
-
-# Logistic Regression training function using L-BFGS optimization
 
 def trainLogReg(DTR, LTR, l, pi_T=None):
     """
@@ -151,7 +155,15 @@ def trainLogReg(DTR, LTR, l, pi_T=None):
 
 def logreg_obj_multiclass(v, DTR, LTR, l):
     """
-    Objective function for Multiclass Logistic Regression.
+    Computes the Multiclass Logistic Regression objective function and its analytical gradient.
+    Parameters:
+        v: A 1D array containing the parameters (w and b) concatenated.
+        DTR: Training data matrix (D, N)
+        LTR: Training labels array (N,)
+        l: Regularization parameter (lambda)
+    Returns:
+        J: The value of the objective function at the given parameters.
+        grad: A 1D array containing the gradient of the objective function with respect to the
     """
     n = DTR.shape[1]
     D = DTR.shape[0]
@@ -195,6 +207,12 @@ def logreg_obj_multiclass(v, DTR, LTR, l):
 def trainLogReg_Multiclass(DTR, LTR, l):
     """
     Trains a Multiclass Logistic Regression model using L-BFGS.
+    Parameters:
+        DTR: Training data matrix (D, N)
+        LTR: Training labels array (N,)
+        l: Regularization parameter (lambda)
+    Returns:
+        W_opt, b_opt: The optimized weight matrix and bias vector.
     """
     D = DTR.shape[0]
     K = numpy.max(LTR) + 1

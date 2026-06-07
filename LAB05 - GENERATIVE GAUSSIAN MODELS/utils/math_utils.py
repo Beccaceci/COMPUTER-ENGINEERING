@@ -18,9 +18,13 @@ def compute_covariance_matrix (M, u):
 def compute_logdensity(X, mu, C):
     """
     Computes the log-density for a set of N samples
-    X: matrix of shape (M, N)
-    mu: mean vector of shape (M, 1)
-    C: covariance matrix of shape (M, M)
+    Args:   
+        X: matrix of shape (M, N)
+        mu: mean vector of shape (M, 1)
+        C: covariance matrix of shape (M, M)
+        
+    Returns:
+        Y: vector of shape (N,)
     """
     M = X.shape[0]
     N = X.shape[1]

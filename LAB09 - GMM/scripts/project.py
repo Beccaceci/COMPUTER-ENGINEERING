@@ -53,44 +53,44 @@ if __name__ == "__main__":
     # --- EVALUATION LOOP ---
     print("\nTraining GMM Variants (This may take a moment)...")
 
-    for cov_type in cov_types:
-        LBG_fn, EM_fn = algorithms[cov_type]
-        current_gmms = {}
+    for cov_type in cov_types: # for each model type (full, diagonal, tied)
+        LBG_fn, EM_fn = algorithms[cov_type] # get the appropriate LBG and EM functions
+        current_gmms = {} # dictionary to store the GMM for each class
 
         # 1. Initialize 1-component GMMs
-        for cls in [0, 1]:
-            DTR_cls = DTR[:, LTR == cls]
-            mu_cls = np.mean(DTR_cls, axis=1, keepdims=True)
-            C_cls = np.cov(DTR_cls, bias=True) 
+        for cls in [0, 1]: # for each class
+            DTR_cls = DTR[:, LTR == cls] # select the training samples for the current class
+            mu_cls = np.mean(DTR_cls, axis=1, keepdims=True) # compute the mean of the current class
+            C_cls = np.cov(DTR_cls, bias=True) # compute the covariance of the current class
             
-            if cov_type == 'diag':
+            if cov_type == 'diag': # if diagonal, enforce diagonal covariance
                 C_cls = C_cls * np.eye(C_cls.shape[0])
             
-            C_cls = apply_eigenvalue_constraint(C_cls, psi_val)
-            current_gmms[cls] = [(1.0, mu_cls, C_cls)]
+            C_cls = apply_eigenvalue_constraint(C_cls, psi_val) # apply eigenvalue constraint
+            current_gmms[cls] = [(1.0, mu_cls, C_cls)] # initialize the GMM with 1 component
             
-            if cov_type != 'full':
-                current_gmms[cls] = EM_fn(DTR_cls, current_gmms[cls], psi=psi_val)
+            if cov_type != 'full': # if full, skip EM
+                current_gmms[cls] = EM_fn(DTR_cls, current_gmms[cls], psi=psi_val) # run EM algorithm
 
         # 2. Iteratively split, train, and evaluate
         comp_count = 1
-        while comp_count <= 16:
-            if comp_count in target_components:
-                log_pdf_1 = logpdf_GMM(DTE, current_gmms[1])
-                log_pdf_0 = logpdf_GMM(DTE, current_gmms[0])
-                llr = log_pdf_1 - log_pdf_0
+        while comp_count <= 16: # while number of components is less than or equal to 16
+            if comp_count in target_components: # if number of components is in the target components
+                log_pdf_1 = logpdf_GMM(DTE, current_gmms[1]) # compute log-pdf for class 1
+                log_pdf_0 = logpdf_GMM(DTE, current_gmms[0]) # compute log-pdf for class 0
+                llr = log_pdf_1 - log_pdf_0 # compute log-likelihood ratio
 
-                pi1, Cfn, Cfp = 0.5, 1, 1
-                min_dcf = compute_min_dcf(llr, LTE, pi1, Cfn, Cfp)
+                pi1, Cfn, Cfp = 0.5, 1, 1 # set prior probabilities and costs
+                min_dcf = compute_min_dcf(llr, LTE, pi1, Cfn, Cfp) # compute minimum DCF
 
-                threshold = -np.log((pi1 * Cfn) / ((1 - pi1) * Cfp))
-                predictions = (llr > threshold).astype(int)
+                threshold = -np.log((pi1 * Cfn) / ((1 - pi1) * Cfp)) # compute threshold
+                predictions = (llr > threshold).astype(int) # make predictions
                 
-                M = np.zeros((2, 2))
+                M = np.zeros((2, 2)) # confusion matrix
                 M[0, 0] = np.sum((predictions == 0) & (LTE == 0)) 
                 M[0, 1] = np.sum((predictions == 0) & (LTE == 1)) 
                 M[1, 0] = np.sum((predictions == 1) & (LTE == 0)) 
-                M[1, 1] = np.sum((predictions == 1) & (LTE == 1)) 
+                M[1, 1] = np.sum((predictions == 1) & (LTE == 1))
                 
                 act_dcf = compute_normalised_empirical_Bayes_risk_binary(M, pi1, Cfn, Cfp)
                 results[cov_type][comp_count] = (min_dcf, act_dcf)
@@ -129,29 +129,29 @@ if __name__ == "__main__":
     pi_eff_array = 1 / (1 + np.exp(-eff_prior_log_odds))
     
     # For each selected model, compute the minDCF and actDCF across the range of effective priors and plot the results
-    for cov_type, best_llr in llrs_to_plot.items():
-        comp = selected_components[cov_type]
-        min_dcf_list = []
-        act_dcf_list = []
+    for cov_type, best_llr in llrs_to_plot.items(): # for each model type (full, diagonal, tied)
+        comp = selected_components[cov_type] # get the number of components for the current model type
+        min_dcf_list = [] # list to store the minimum DCF
+        act_dcf_list = [] # list to store the actual DCF
         
         # Compute minDCF and actDCF for each effective prior
-        for pi in pi_eff_array:
+        for pi in pi_eff_array: # for each effective prior
             # Recompute minDCF and actDCF for the current effective prior
-            m_dcf = compute_min_dcf(best_llr, LTE, pi, 1, 1)
-            thresh = -np.log(pi / (1 - pi))
-            preds = (best_llr > thresh).astype(int)
+            m_dcf = compute_min_dcf(best_llr, LTE, pi, 1, 1) # compute minimum DCF
+            thresh = -np.log(pi / (1 - pi)) # compute threshold
+            preds = (best_llr > thresh).astype(int) # make predictions
             
-            M = np.zeros((2, 2))
+            M = np.zeros((2, 2)) # confusion matrix
             M[0, 0] = np.sum((preds == 0) & (LTE == 0))
             M[0, 1] = np.sum((preds == 0) & (LTE == 1))
             M[1, 0] = np.sum((preds == 1) & (LTE == 0))
             M[1, 1] = np.sum((preds == 1) & (LTE == 1))
             a_dcf = compute_normalised_empirical_Bayes_risk_binary(M, pi, 1, 1)
             
-            min_dcf_list.append(m_dcf)
-            act_dcf_list.append(a_dcf)
+            min_dcf_list.append(m_dcf) # append minimum DCF to list
+            act_dcf_list.append(a_dcf) # append actual DCF to list
             
-        plot_filename = plots_dir / f"bayes_error_{cov_type}_{comp}comp.png"
+        plot_filename = plots_dir / f"bayes_error_{cov_type}_{comp}comp.png" # filename for the plot
         
         plot_bayes_error(
             eff_prior_log_odds, 

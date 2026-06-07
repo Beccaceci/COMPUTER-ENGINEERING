@@ -10,9 +10,9 @@ from utils.plot_utils import plot_feature_histogram
 
 
 if __name__ == "__main__":
+    # 1. Setup directories and emitter
     ROOT = Path(".")
-    
-    # 1. Setup output directories and emitter
+    dataset_dir = ROOT / "data" / "project"
     output_dir = ROOT / "results" / "project"
     plots_dir = output_dir / "plots"
     plots_dir.mkdir(parents=True, exist_ok=True)
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     emit = create_emitter(report_path)
 
     # 2. Load the PROJECT dataset
-    X, y = load_dataset(ROOT / "data" / "project" / "trainData.txt")
+    X, y = load_dataset(dataset_dir / "trainData.txt")
     
     emit(f"Dataset Loaded: {X.shape[1]} samples, {X.shape[0]} features.")
     emit("=" * 65)

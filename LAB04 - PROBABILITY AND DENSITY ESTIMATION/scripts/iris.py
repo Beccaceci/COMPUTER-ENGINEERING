@@ -1,121 +1,68 @@
-import numpy
-import matplotlib
-import matplotlib.pyplot as plt
+import numpy as np
 from pathlib import Path
 
-# Ensure these match your actual import paths
-from utils.data_loaders import load_dataset, split_dataset
-from utils.math_utils import compute_covariance_matrix, vrow
-from models.MVG import log_MVG
-from utils.io_utils import *
-from utils.plot_utils import plot_feature_histogram
-
-# Set backend to avoid GUI pop-ups during bulk plot generation
-matplotlib.use("Agg")
-
-
-def validate_array(computed_array, expected_path, name, emit):
-    """
-    Validates a computed array against a saved .npy expected result, using the emit function.
-    """
-    if Path(expected_path).exists():
-        expected_array = numpy.load(expected_path)
-        max_diff = numpy.max(numpy.abs(computed_array - expected_array))
-        if numpy.allclose(computed_array, expected_array, atol=1e-5):
-            emit(f"  [PASS] {name} matches the expected results! (Max diff: {max_diff:.2e})")
-        else:
-            emit(f"  [FAIL] {name} DIFFERS from expected! Max diff: {max_diff:.2e}")
-    else:
-        emit(f"  [SKIP] Validation file for {name} not found at {expected_path}")
-
+from utils.data_loaders import load_dataset
+from utils.math_utils import vrow, log_GAU_ND, mcol
+from utils.plot_utils import plot_1d_density
 
 if __name__ == "__main__":
+    # Setup paths
     ROOT = Path(".")
     
-    # Paths for saving outputs and finding validation files
+    # Dataset path
+    dataset_dir = ROOT / "data" / "iris"
     output_dir = ROOT / "results" / "iris"
-    mle_dir = output_dir / "MLE"
-    mvg_dir = output_dir / "MVG"
-    
-    # Assuming your validation .npy files are in a "Solution" or similar folder
-    validation_dir = ROOT / "Solution" 
-    
-    mle_dir.mkdir(parents=True, exist_ok=True)
-    mvg_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Initialize the emitter
-    report_path = output_dir / "iris_lab04_metrics.txt"
-    emit = create_emitter(report_path)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load and split dataset
-    D, L = load_dataset(ROOT / "data" / "iris" / "iris_dataset.csv")
-    (DTR, LTR), (DVAL, LVAL) = split_dataset(D, L, 2.0 / 3.0)
+    # Load dataset
+    D, L = load_dataset(dataset_dir / "iris_dataset.csv")
+    class_names_dict = {0: 'Setosa', 1: 'Versicolor', 2: 'Virginica'}
+    feature_names = {0: 'Sepal length', 1: 'Sepal width', 2: 'Petal length', 3: 'Petal width'}
     
-    classes = [0, 1, 2]
-    num_classes = len(classes)
-    
-    emit("1. Training MVG Model (Computing mu and C for each class)...")
-    
-    # 1. Train the MVG model
-    mu_c = []
-    C_c = []
-    for cls in classes:
-        DTR_c = DTR[:, LTR == cls]
-        # Keep dimensions for mu so it remains a column vector
-        mu = numpy.mean(DTR_c, axis=1, keepdims=True)
-        C = compute_covariance_matrix(DTR_c)
-        mu_c.append(mu)
-        C_c.append(C)
+    # Loop over each of the 4 features
+    for idx_feat in range(4):
+        # Data collectors for the plotting function
+        X_c_list = []
+        X_plot_list = []
+        densities_list = []
+        class_names = []
+        
+        # Loop over each of the 3 classes
+        for idx_class in range(3):
+            # Extract 1D array of data for this specific feature and class
+            X_c = D[idx_feat, L == idx_class]
+            
+            # 1. Compute ML estimates (Mean and Variance)
+            mu_ML = np.mean(X_c)
+            C_ML = np.var(X_c) # 1D Variance
+            
+            # 2. Reshape into matrices to feed into log_GAU_ND (1x1 matrices)
+            mu_ML_2d = mcol(np.array([mu_ML]))
+            C_ML_2d = np.array([[C_ML]])
+            
+            # 3. Create a continuous X-axis for the plot curve
+            X_plot = np.linspace(np.min(X_c) - 1, np.max(X_c) + 1, 1000)
+            X_plot_2d = vrow(X_plot) # shape (1, 1000)
+            
+            # 4. Compute Log-Density and Exponentiate to get normal Density
+            log_densities = log_GAU_ND(X_plot_2d, mu_ML_2d, C_ML_2d)
+            densities = np.exp(log_densities)
+            
+            # Append computed data to lists
+            X_c_list.append(X_c)
+            X_plot_list.append(X_plot)
+            densities_list.append(densities)
+            class_names.append(class_names_dict[idx_class])
+            
+        # 5. Pass all computed math to the plotting function
+        filepath = output_dir / f'{feature_names[idx_feat].replace(" ", "_")}_gaussian_density.png'
+        plot_1d_density(
+            X_c_list=X_c_list,
+            X_plot_list=X_plot_list,
+            densities_list=densities_list,
+            class_names=class_names,
+            feature_name=feature_names[idx_feat],
+            filepath=filepath
+        )
 
-    emit(f"  [INFO] Class Means (mu_c):")
-    for i, mu in enumerate(mu_c):
-        emit(f"    Class {i}: {mu.flatten()}")
-    
-    emit(f"\n  [INFO] Class Covariance Matrices (C_c):")
-    for i, C in enumerate(C_c):
-        emit(f"    Class {i}:\n{C}\n")
-
-    emit("2. Testing MVG Model (Computing Log-Likelihoods)...")
-    
-    # 2. Test the MVG model
-    log_prior = numpy.log(1.0 / num_classes)
-    
-    # Compute class-conditional log-likelihoods
-    S_log = numpy.zeros((num_classes, DVAL.shape[1]))
-    for cls in classes:
-        S_log[cls, :] = log_MVG(DVAL, mu_c[cls], C_c[cls])
-
-    emit(f"\n  [INFO] Class Conditionals (S_log):")
-    for i, row in enumerate(S_log):
-        emit(f"    Sample {i}: {row}")
-
-    emit("\n--- VALIDATION: Class Conditionals (S_log) ---")
-    # VALIDATION 1: Check S_log matrix against the file provided by the lab
-    validate_array(S_log, validation_dir / "llND.npy", "S_log (Class Conditionals)", emit)
-    
-    # Compute Joint Log-Likelihoods
-    log_S_joint = S_log + log_prior
-    
-    emit("\n--- VALIDATION: Joint Log-Likelihoods (log_S_joint) ---")
-    # VALIDATION 2: Check Joint Log-Likelihood matrix against the file provided by the lab
-    validate_array(log_S_joint, validation_dir / "llGAU.npy", "log_S_joint (Joint Log-Likelihoods)", emit)
-    
-    # Predict the class by finding the index (class) with the maximum joint log-probability
-    PVAL = numpy.argmax(log_S_joint, axis=0)
-    
-    # Compute Final Evaluation Metrics
-    correct_predictions = numpy.sum(PVAL == LVAL)
-    total_samples = len(LVAL)
-    accuracy = correct_predictions / total_samples
-    error_rate = 1.0 - accuracy
-    
-    emit("\n" + "=" * 70)
-    emit("FINAL CLASSIFICATION METRICS (MVG)")
-    emit("=" * 70)
-    emit(f"Total Validation Samples : {total_samples}")
-    emit(f"Correct Predictions      : {correct_predictions}")
-    emit(f"Accuracy                 : {accuracy * 100:.2f}%")
-    emit(f"Error Rate               : {error_rate * 100:.2f}%")
-    emit("=" * 70)
-    
-    emit(f"\n[+] Script execution complete. Results saved to: {report_path}")
+        print(f"Saved plot -> {filepath}")

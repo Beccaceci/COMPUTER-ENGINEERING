@@ -5,12 +5,6 @@ from models.linearSVM import *
 from models.kernelSVM import *
 from utils.plot_utils import *
 
-
-# Helper to run the sweep over C
-def run_linear_experiment(D_train, L_train, D_test, L_test, C_array, K_bias, pi_t=0.1):
-    
-    return min_dcfs, act_dcfs
-
 if __name__ == "__main__":
     # --- SETUP & DATA LOADING ---
     ROOT = Path(".")

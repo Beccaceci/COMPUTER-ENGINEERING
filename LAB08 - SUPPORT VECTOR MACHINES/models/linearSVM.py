@@ -67,6 +67,20 @@ def train_linear_svm(DTR, LTR, C, K=1.0):
 def evaluate_linear_svm(DTE, LTE, w_hat_star, K=1.0, pi=0.5, Cfn=1.0, Cfp=1.0):
     """
     Scores the test set and evaluates the SVM performance.
+
+    Parameters:
+        DTE: Test data matrix (Features, Samples)
+        LTE: Test labels encoded as {-1, 1}
+        w_hat_star: The optimized extended weight vector
+        K: Bias extension factor
+        pi: Prior probability of class 1
+        Cfn: Cost of a false negative
+        Cfp: Cost of a false positive
+        
+    Returns:
+        error_rate: The error rate
+        min_dcf: The minimum DCF
+        act_dcf: The actual DCF
     """
     # 1. Extend test matrix
     row_te = numpy.ones((1, DTE.shape[1])) * K

@@ -7,9 +7,14 @@ def compute_posteriors(S_log, prior_array):
     """
     Computes joint, marginal, and posterior log-probabilities dynamically.
     
-    Parameters:
+    Args:
         S_log: Class-conditional log-likelihoods (C, Nte)
         prior_array: 1D numpy array of class priors (shape: (C,))
+    
+    Returns:
+        logSJoint: Joint log-probabilities (C, Nte)
+        logSMarginal: Marginal log-probabilities (1, Nte)
+        logSPost: Posterior log-probabilities (C, Nte)
     """
     # 1. log(Likelihood) + log(Prior)
     logSJoint = S_log + mcol(numpy.log(prior_array))

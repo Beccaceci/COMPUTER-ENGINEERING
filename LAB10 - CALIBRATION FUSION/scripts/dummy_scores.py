@@ -47,14 +47,20 @@ if __name__ == "__main__":
     # 1. Raw Scores
     # ==========================================
     emit("--- 1. Raw Scores (Full Dataset) ---")
-    min_1 = compute_minDCF_binary_fast(scores_1, labels, pi_T, 1.0, 1.0)
-    act_1 = compute_actDCF_binary_fast(scores_1, labels, pi_T, 1.0, 1.0)
-    min_2 = compute_minDCF_binary_fast(scores_2, labels, pi_T, 1.0, 1.0)
-    act_2 = compute_actDCF_binary_fast(scores_2, labels, pi_T, 1.0, 1.0)
     
+    # System 1 raw scores
+    min_1 = compute_minDCF_binary_fast(scores_1, labels, pi_T, 1.0, 1.0) # compute minimum DCF using fast algorithm
+    act_1 = compute_actDCF_binary_fast(scores_1, labels, pi_T, 1.0, 1.0) # compute actual DCF using fast algorithm
+
+    # System 2 raw scores
+    min_2 = compute_minDCF_binary_fast(scores_2, labels, pi_T, 1.0, 1.0) # compute minimum DCF using fast algorithm
+    act_2 = compute_actDCF_binary_fast(scores_2, labels, pi_T, 1.0, 1.0) # compute actual DCF using fast algorithm
+    
+    # Print minimum and actual DCF for both systems
     emit(f"System 1 - minDCF: {min_1:.3f}, actDCF: {act_1:.3f}")
     emit(f"System 2 - minDCF: {min_2:.3f}, actDCF: {act_2:.3f}")
-    
+
+    # Bayes error plot for raw scores
     x, min_1_list, act_1_list = compute_bayes_error_data(scores_1, labels)
     _, min_2_list, act_2_list = compute_bayes_error_data(scores_2, labels)
     
@@ -68,12 +74,12 @@ if __name__ == "__main__":
     # ==========================================
     emit("\n--- 2. Single-fold Calibration ---")
     
-    # Split
-    s_train_1 = scores_1[::3]
-    s_val_1 = np.hstack([scores_1[1::3], scores_1[2::3]])
+    # Split the dataset into training and validation sets (2:1 ratio)
+    s_train_1 = scores_1[::3] # Training set (2/3 of the data)
+    s_val_1 = np.hstack([scores_1[1::3], scores_1[2::3]]) # Validation set (1/3 of the data)
     
-    s_train_2 = scores_2[::3]
-    s_val_2 = np.hstack([scores_2[1::3], scores_2[2::3]])
+    s_train_2 = scores_2[::3] # Training set (2/3 of the data)
+    s_val_2 = np.hstack([scores_2[1::3], scores_2[2::3]]) # Validation set (1/3 of the data)
     
     l_train = labels[::3]
     l_val = np.hstack([labels[1::3], labels[2::3]])
@@ -96,23 +102,23 @@ if __name__ == "__main__":
     
     # Calibrated scores on validation set
     emit("Validation Dataset (Calibrated):")
-    cmin_1_val = compute_minDCF_binary_fast(cal_val_1, l_val, pi_T, 1.0, 1.0)
-    cact_1_val = compute_actDCF_binary_fast(cal_val_1, l_val, pi_T, 1.0, 1.0)
-    cmin_2_val = compute_minDCF_binary_fast(cal_val_2, l_val, pi_T, 1.0, 1.0)
-    cact_2_val = compute_actDCF_binary_fast(cal_val_2, l_val, pi_T, 1.0, 1.0)
+    cmin_1_val = compute_minDCF_binary_fast(cal_val_1, l_val, pi_T, 1.0, 1.0) # compute minimum DCF using fast algorithm
+    cact_1_val = compute_actDCF_binary_fast(cal_val_1, l_val, pi_T, 1.0, 1.0) # compute actual DCF using fast algorithm
+    cmin_2_val = compute_minDCF_binary_fast(cal_val_2, l_val, pi_T, 1.0, 1.0) # compute minimum DCF using fast algorithm
+    cact_2_val = compute_actDCF_binary_fast(cal_val_2, l_val, pi_T, 1.0, 1.0) # compute actual DCF using fast algorithm
     emit(f"System 1 - minDCF: {cmin_1_val:.3f}, actDCF: {cact_1_val:.3f}")
     emit(f"System 2 - minDCF: {cmin_2_val:.3f}, actDCF: {cact_2_val:.3f}")
     
     # Plots for System 1 & 2 (calibrated vs raw on validation)
-    _, rmin_1_v, ract_1_v = compute_bayes_error_data(s_val_1, l_val)
-    _, cmin_1_v, cact_1_v = compute_bayes_error_data(cal_val_1, l_val)
+    _, rmin_1_v, ract_1_v = compute_bayes_error_data(s_val_1, l_val) # compute minimum and actual DCF using fast algorithm
+    _, cmin_1_v, cact_1_v = compute_bayes_error_data(cal_val_1, l_val) # compute minimum and actual DCF using fast algorithm
     plot_bayes_errors_multi(x, {
         'pre-cal.': {'min_dcf': rmin_1_v, 'act_dcf': ract_1_v, 'style': ':'},
         'cal.': {'min_dcf': None, 'act_dcf': cact_1_v, 'style': '-'}
     }, "System 1 - Validation (Single-fold)", plots_dir / "sys1_singlefold_val.png")
     
-    _, rmin_2_v, ract_2_v = compute_bayes_error_data(s_val_2, l_val)
-    _, cmin_2_v, cact_2_v = compute_bayes_error_data(cal_val_2, l_val)
+    _, rmin_2_v, ract_2_v = compute_bayes_error_data(s_val_2, l_val) # compute minimum and actual DCF using fast algorithm
+    _, cmin_2_v, cact_2_v = compute_bayes_error_data(cal_val_2, l_val) # compute minimum and actual DCF using fast algorithm
     plot_bayes_errors_multi(x, {
         'pre-cal.': {'min_dcf': rmin_2_v, 'act_dcf': ract_2_v, 'style': ':'},
         'cal.': {'min_dcf': None, 'act_dcf': cact_2_v, 'style': '-'}
@@ -120,10 +126,10 @@ if __name__ == "__main__":
     
     # Evaluate on Evaluation set
     emit("\nEvaluation Dataset (Raw):")
-    emin_1 = compute_minDCF_binary_fast(eval_scores_1, eval_labels, pi_T, 1.0, 1.0)
-    eact_1 = compute_actDCF_binary_fast(eval_scores_1, eval_labels, pi_T, 1.0, 1.0)
-    emin_2 = compute_minDCF_binary_fast(eval_scores_2, eval_labels, pi_T, 1.0, 1.0)
-    eact_2 = compute_actDCF_binary_fast(eval_scores_2, eval_labels, pi_T, 1.0, 1.0)
+    emin_1 = compute_minDCF_binary_fast(eval_scores_1, eval_labels, pi_T, 1.0, 1.0) # compute minimum DCF using fast algorithm
+    eact_1 = compute_actDCF_binary_fast(eval_scores_1, eval_labels, pi_T, 1.0, 1.0) # compute actual DCF using fast algorithm
+    emin_2 = compute_minDCF_binary_fast(eval_scores_2, eval_labels, pi_T, 1.0, 1.0) # compute minimum DCF using fast algorithm
+    eact_2 = compute_actDCF_binary_fast(eval_scores_2, eval_labels, pi_T, 1.0, 1.0) # compute actual DCF using fast algorithm
     emit(f"System 1 - minDCF: {emin_1:.3f}, actDCF: {eact_1:.3f}")
     emit(f"System 2 - minDCF: {emin_2:.3f}, actDCF: {eact_2:.3f}")
     
@@ -131,22 +137,22 @@ if __name__ == "__main__":
     cal_eval_2 = apply_calibration(eval_scores_2, alpha_2, beta_2, pi_T)
     
     emit("Evaluation Dataset (Calibrated - Single Fold Model):")
-    ce_min_1 = compute_minDCF_binary_fast(cal_eval_1, eval_labels, pi_T, 1.0, 1.0)
-    ce_act_1 = compute_actDCF_binary_fast(cal_eval_1, eval_labels, pi_T, 1.0, 1.0)
-    ce_min_2 = compute_minDCF_binary_fast(cal_eval_2, eval_labels, pi_T, 1.0, 1.0)
-    ce_act_2 = compute_actDCF_binary_fast(cal_eval_2, eval_labels, pi_T, 1.0, 1.0)
+    ce_min_1 = compute_minDCF_binary_fast(cal_eval_1, eval_labels, pi_T, 1.0, 1.0) # compute minimum DCF using fast algorithm
+    ce_act_1 = compute_actDCF_binary_fast(cal_eval_1, eval_labels, pi_T, 1.0, 1.0) # compute actual DCF using fast algorithm
+    ce_min_2 = compute_minDCF_binary_fast(cal_eval_2, eval_labels, pi_T, 1.0, 1.0) # compute minimum DCF using fast algorithm
+    ce_act_2 = compute_actDCF_binary_fast(cal_eval_2, eval_labels, pi_T, 1.0, 1.0) # compute actual DCF using fast algorithm
     emit(f"System 1 - minDCF: {ce_min_1:.3f}, actDCF: {ce_act_1:.3f}")
     emit(f"System 2 - minDCF: {ce_min_2:.3f}, actDCF: {ce_act_2:.3f}")
     
-    _, remin_1, react_1 = compute_bayes_error_data(eval_scores_1, eval_labels)
-    _, cemin_1, ceact_1 = compute_bayes_error_data(cal_eval_1, eval_labels)
+    _, remin_1, react_1 = compute_bayes_error_data(eval_scores_1, eval_labels) # compute minimum and actual DCF using fast algorithm
+    _, cemin_1, ceact_1 = compute_bayes_error_data(cal_eval_1, eval_labels) # compute minimum and actual DCF using fast algorithm
     plot_bayes_errors_multi(x, {
         'pre-cal.': {'min_dcf': remin_1, 'act_dcf': react_1, 'style': ':'},
         'cal.': {'min_dcf': None, 'act_dcf': ceact_1, 'style': '-'}
     }, "System 1 - Evaluation (Single-fold)", plots_dir / "sys1_singlefold_eval.png")
     
-    _, remin_2, react_2 = compute_bayes_error_data(eval_scores_2, eval_labels)
-    _, cemin_2, ceact_2 = compute_bayes_error_data(cal_eval_2, eval_labels)
+    _, remin_2, react_2 = compute_bayes_error_data(eval_scores_2, eval_labels) # compute minimum and actual DCF using fast algorithm
+    _, cemin_2, ceact_2 = compute_bayes_error_data(cal_eval_2, eval_labels) # compute minimum and actual DCF using fast algorithm
     plot_bayes_errors_multi(x, {
         'pre-cal.': {'min_dcf': remin_2, 'act_dcf': react_2, 'style': ':'},
         'cal.': {'min_dcf': None, 'act_dcf': ceact_2, 'style': '-'}
@@ -159,45 +165,45 @@ if __name__ == "__main__":
     K = 5
     
     # K-fold calibration for a given system
-    kf_cal_1, kf_labels = kfold_calibrate(scores_1, labels, K=K, pi_T=pi_T)
-    kf_cal_2, _ = kfold_calibrate(scores_2, labels, K=K, pi_T=pi_T)
+    kf_cal_1, kf_labels = kfold_calibrate(scores_1, labels, K=K, pi_T=pi_T) # compute k-fold calibration for a given system
+    kf_cal_2, _ = kfold_calibrate(scores_2, labels, K=K, pi_T=pi_T) # compute k-fold calibration for a given system
     
     # Original scores aligned with K-fold pooled labels
-    aligned_scores_1 = []
-    aligned_scores_2 = []
-    for i in range(K):
-        val_idx = np.arange(i, len(scores_1), K)
-        aligned_scores_1.append(scores_1[val_idx])
-        aligned_scores_2.append(scores_2[val_idx])
-    aligned_scores_1 = np.hstack(aligned_scores_1)
-    aligned_scores_2 = np.hstack(aligned_scores_2)
+    aligned_scores_1 = [] # store the original scores aligned with K-fold pooled labels
+    aligned_scores_2 = [] # store the original scores aligned with K-fold pooled labels
+    for i in range(K): # iterate over the k-folds
+        val_idx = np.arange(i, len(scores_1), K) # get the validation indices
+        aligned_scores_1.append(scores_1[val_idx]) # append the validation scores
+        aligned_scores_2.append(scores_2[val_idx]) # append the validation scores
+    aligned_scores_1 = np.hstack(aligned_scores_1) # concatenate the validation scores
+    aligned_scores_2 = np.hstack(aligned_scores_2) # concatenate the validation scores
 
     emit("Validation Dataset (K-fold Calibrated):")
-    kmin_1 = compute_minDCF_binary_fast(kf_cal_1, kf_labels, pi_T, 1.0, 1.0)
-    kact_1 = compute_actDCF_binary_fast(kf_cal_1, kf_labels, pi_T, 1.0, 1.0)
-    kmin_2 = compute_minDCF_binary_fast(kf_cal_2, kf_labels, pi_T, 1.0, 1.0)
-    kact_2 = compute_actDCF_binary_fast(kf_cal_2, kf_labels, pi_T, 1.0, 1.0)
+    kmin_1 = compute_minDCF_binary_fast(kf_cal_1, kf_labels, pi_T, 1.0, 1.0) # compute minimum DCF using fast algorithm
+    kact_1 = compute_actDCF_binary_fast(kf_cal_1, kf_labels, pi_T, 1.0, 1.0) # compute actual DCF using fast algorithm
+    kmin_2 = compute_minDCF_binary_fast(kf_cal_2, kf_labels, pi_T, 1.0, 1.0) # compute minimum DCF using fast algorithm
+    kact_2 = compute_actDCF_binary_fast(kf_cal_2, kf_labels, pi_T, 1.0, 1.0) # compute actual DCF using fast algorithm
     emit(f"System 1 - minDCF: {kmin_1:.3f}, actDCF: {kact_1:.3f}")
     emit(f"System 2 - minDCF: {kmin_2:.3f}, actDCF: {kact_2:.3f}")
     
     # Train final models on ALL scores
-    alpha_1_f, beta_1_f = train_calibration(scores_1, labels, pi_T)
-    alpha_2_f, beta_2_f = train_calibration(scores_2, labels, pi_T)
+    alpha_1_f, beta_1_f = train_calibration(scores_1, labels, pi_T) # compute calibration parameters
+    alpha_2_f, beta_2_f = train_calibration(scores_2, labels, pi_T) # compute calibration parameters
     
     # Apply final models to evaluation set
-    kf_eval_1 = apply_calibration(eval_scores_1, alpha_1_f, beta_1_f, pi_T)
-    kf_eval_2 = apply_calibration(eval_scores_2, alpha_2_f, beta_2_f, pi_T)
+    kf_eval_1 = apply_calibration(eval_scores_1, alpha_1_f, beta_1_f, pi_T) # apply calibration to evaluation set
+    kf_eval_2 = apply_calibration(eval_scores_2, alpha_2_f, beta_2_f, pi_T) # apply calibration to evaluation set
     
     emit("Evaluation Dataset (Calibrated - K-Fold Final Model):")
-    kfe_min_1 = compute_minDCF_binary_fast(kf_eval_1, eval_labels, pi_T, 1.0, 1.0)
-    kfe_act_1 = compute_actDCF_binary_fast(kf_eval_1, eval_labels, pi_T, 1.0, 1.0)
-    kfe_min_2 = compute_minDCF_binary_fast(kf_eval_2, eval_labels, pi_T, 1.0, 1.0)
-    kfe_act_2 = compute_actDCF_binary_fast(kf_eval_2, eval_labels, pi_T, 1.0, 1.0)
+    kfe_min_1 = compute_minDCF_binary_fast(kf_eval_1, eval_labels, pi_T, 1.0, 1.0) # compute minimum DCF using fast algorithm
+    kfe_act_1 = compute_actDCF_binary_fast(kf_eval_1, eval_labels, pi_T, 1.0, 1.0) # compute actual DCF using fast algorithm
+    kfe_min_2 = compute_minDCF_binary_fast(kf_eval_2, eval_labels, pi_T, 1.0, 1.0) # compute minimum DCF using fast algorithm
+    kfe_act_2 = compute_actDCF_binary_fast(kf_eval_2, eval_labels, pi_T, 1.0, 1.0) # compute actual DCF using fast algorithm
     emit(f"System 1 - minDCF: {kfe_min_1:.3f}, actDCF: {kfe_act_1:.3f}")
     emit(f"System 2 - minDCF: {kfe_min_2:.3f}, actDCF: {kfe_act_2:.3f}")
     
-    _, kremin_1, kreact_1 = compute_bayes_error_data(aligned_scores_1, kf_labels)
-    _, kcmin_1, kcact_1 = compute_bayes_error_data(kf_cal_1, kf_labels)
+    _, kremin_1, kreact_1 = compute_bayes_error_data(aligned_scores_1, kf_labels) # compute minimum and actual DCF using fast algorithm
+    _, kcmin_1, kcact_1 = compute_bayes_error_data(kf_cal_1, kf_labels) # compute minimum and actual DCF using fast algorithm
     plot_bayes_errors_multi(x, {
         'pre-cal.': {'min_dcf': kremin_1, 'act_dcf': kreact_1, 'style': ':'},
         'cal.': {'min_dcf': None, 'act_dcf': kcact_1, 'style': '-'}
@@ -213,44 +219,44 @@ if __name__ == "__main__":
     fusion_val = np.vstack([s_val_1, s_val_2])
     
     # Train and calibrate fusion model
-    alpha_fus, beta_fus = train_calibration(fusion_train, l_train, pi_T)
-    cal_val_fus = apply_calibration(fusion_val, alpha_fus, beta_fus, pi_T)
+    alpha_fus, beta_fus = train_calibration(fusion_train, l_train, pi_T) # compute calibration parameters
+    cal_val_fus = apply_calibration(fusion_val, alpha_fus, beta_fus, pi_T) # apply calibration to fusion model
     
     # Evaluate fusion model on validation set
     emit("Validation Dataset (Single-Fold Fusion):")
-    sf_min_fus = compute_minDCF_binary_fast(cal_val_fus, l_val, pi_T, 1.0, 1.0)
-    sf_act_fus = compute_actDCF_binary_fast(cal_val_fus, l_val, pi_T, 1.0, 1.0)
+    sf_min_fus = compute_minDCF_binary_fast(cal_val_fus, l_val, pi_T, 1.0, 1.0) # compute minimum DCF using fast algorithm
+    sf_act_fus = compute_actDCF_binary_fast(cal_val_fus, l_val, pi_T, 1.0, 1.0) # compute actual DCF using fast algorithm
     emit(f"Fusion - minDCF: {sf_min_fus:.3f}, actDCF: {sf_act_fus:.3f}")
     
     fusion_eval = np.vstack([eval_scores_1, eval_scores_2])
-    cal_eval_fus = apply_calibration(fusion_eval, alpha_fus, beta_fus, pi_T)
+    cal_eval_fus = apply_calibration(fusion_eval, alpha_fus, beta_fus, pi_T) # apply calibration to fusion model
     
     emit("Evaluation Dataset (Single-Fold Fusion):")
-    ef_min_fus = compute_minDCF_binary_fast(cal_eval_fus, eval_labels, pi_T, 1.0, 1.0)
-    ef_act_fus = compute_actDCF_binary_fast(cal_eval_fus, eval_labels, pi_T, 1.0, 1.0)
+    ef_min_fus = compute_minDCF_binary_fast(cal_eval_fus, eval_labels, pi_T, 1.0, 1.0) # compute minimum DCF using fast algorithm
+    ef_act_fus = compute_actDCF_binary_fast(cal_eval_fus, eval_labels, pi_T, 1.0, 1.0) # compute actual DCF using fast algorithm
     emit(f"Fusion - minDCF: {ef_min_fus:.3f}, actDCF: {ef_act_fus:.3f}")
     
     
-    kf_cal_fus, kf_labels_fus = kfold_fusion(scores_1, scores_2, labels)
+    kf_cal_fus, kf_labels_fus = kfold_fusion(scores_1, scores_2, labels) # compute k-fold fusion for a given system
     
     emit("\nValidation Dataset (K-Fold Fusion):")
-    kf_min_fus = compute_minDCF_binary_fast(kf_cal_fus, kf_labels_fus, pi_T, 1.0, 1.0)
-    kf_act_fus = compute_actDCF_binary_fast(kf_cal_fus, kf_labels_fus, pi_T, 1.0, 1.0)
+    kf_min_fus = compute_minDCF_binary_fast(kf_cal_fus, kf_labels_fus, pi_T, 1.0, 1.0) # compute minimum DCF using fast algorithm
+    kf_act_fus = compute_actDCF_binary_fast(kf_cal_fus, kf_labels_fus, pi_T, 1.0, 1.0) # compute actual DCF using fast algorithm
     emit(f"Fusion - minDCF: {kf_min_fus:.3f}, actDCF: {kf_act_fus:.3f}")
     
     # Final model for Evaluation
-    alpha_fus_f, beta_fus_f = train_calibration(np.vstack([scores_1, scores_2]), labels, pi_T)
-    kfe_cal_fus = apply_calibration(fusion_eval, alpha_fus_f, beta_fus_f, pi_T)
+    alpha_fus_f, beta_fus_f = train_calibration(np.vstack([scores_1, scores_2]), labels, pi_T) # compute calibration parameters
+    kfe_cal_fus = apply_calibration(fusion_eval, alpha_fus_f, beta_fus_f, pi_T) # apply calibration to fusion model
     
     emit("Evaluation Dataset (K-Fold Final Model Fusion):")
-    kfe_min_fus = compute_minDCF_binary_fast(kfe_cal_fus, eval_labels, pi_T, 1.0, 1.0)
-    kfe_act_fus = compute_actDCF_binary_fast(kfe_cal_fus, eval_labels, pi_T, 1.0, 1.0)
+    kfe_min_fus = compute_minDCF_binary_fast(kfe_cal_fus, eval_labels, pi_T, 1.0, 1.0) # compute minimum DCF using fast algorithm
+    kfe_act_fus = compute_actDCF_binary_fast(kfe_cal_fus, eval_labels, pi_T, 1.0, 1.0) # compute actual DCF using fast algorithm
     emit(f"Fusion - minDCF: {kfe_min_fus:.3f}, actDCF: {kfe_act_fus:.3f}")
 
     # Plot Single-Fold Fusion
-    _, s1_min, s1_act = compute_bayes_error_data(cal_val_1, l_val)
-    _, s2_min, s2_act = compute_bayes_error_data(cal_val_2, l_val)
-    _, fus_min, fus_act = compute_bayes_error_data(cal_val_fus, l_val)
+    _, s1_min, s1_act = compute_bayes_error_data(cal_val_1, l_val) # compute minimum and actual DCF using fast algorithm
+    _, s2_min, s2_act = compute_bayes_error_data(cal_val_2, l_val) # compute minimum and actual DCF using fast algorithm
+    _, fus_min, fus_act = compute_bayes_error_data(cal_val_fus, l_val) # compute minimum and actual DCF using fast algorithm
     plot_bayes_errors_multi(x, {
         'S1 - actDCF': {'min_dcf': s1_min, 'act_dcf': s1_act},
         'S2 - actDCF': {'min_dcf': s2_min, 'act_dcf': s2_act},
@@ -258,9 +264,9 @@ if __name__ == "__main__":
     }, "Single fold - score-level fusion (Validation)", results_dir / "singlefold_fusion_val.png")
 
     # Plot K-Fold Fusion
-    _, ks1_min, ks1_act = compute_bayes_error_data(kf_cal_1, kf_labels)
-    _, ks2_min, ks2_act = compute_bayes_error_data(kf_cal_2, kf_labels)
-    _, kfus_min, kfus_act = compute_bayes_error_data(kf_cal_fus, kf_labels_fus)
+    _, ks1_min, ks1_act = compute_bayes_error_data(kf_cal_1, kf_labels) # compute minimum and actual DCF using fast algorithm
+    _, ks2_min, ks2_act = compute_bayes_error_data(kf_cal_2, kf_labels) # compute minimum and actual DCF using fast algorithm
+    _, kfus_min, kfus_act = compute_bayes_error_data(kf_cal_fus, kf_labels_fus) # compute minimum and actual DCF using fast algorithm
     plot_bayes_errors_multi(x, {
         'S1 - actDCF': {'min_dcf': ks1_min, 'act_dcf': ks1_act},
         'S2 - actDCF': {'min_dcf': ks2_min, 'act_dcf': ks2_act},

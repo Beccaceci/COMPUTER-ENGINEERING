@@ -50,17 +50,17 @@ def compute_log_joint(X, gmm):
     Helper function to compute the log-joint matrix S
     Parameters:
         X: (D, N) matrix of samples
-        gmm: List of tuples [(w1, mu1, C1), (w
+        gmm: List of tuples [(w1, mu1, C1), (w2, mu2, C2), ...]
     Returns:
         S: (M, N) matrix of log-joint probabilities for each sample under each Gaussian component
     """
-    M = len(gmm)
-    N = X.shape[1] # Corrected: N is the number of columns (axis 1)
+    M = len(gmm) # num of gaussians
+    N = X.shape[1] # num of samples
     S = np.zeros((M, N))
 
     # Compute the log-joint probabilities
-    for g in range(M):
-        w, mu, C = gmm[g]
+    for g in range(M): # loop over gaussians
+        w, mu, C = gmm[g] # get weights, means, and covariances
         
         # Calculate log-conditional probability
         log_conditional = logpdf_GAU_ND(X, mu, C)

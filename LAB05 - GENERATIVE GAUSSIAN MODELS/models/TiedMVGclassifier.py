@@ -4,6 +4,34 @@ import scipy.special
 
 from utils.math_utils import compute_covariance_matrix, compute_logdensity, mcol, vrow
 
+def compute_binary_tied_mvg(DTR, LTR, DTE):
+    """
+    Computes the Log-Likelihood Ratio for classes 2 and 1 using Tied MVG.
+    Parameters:
+        DTR: training data matrix of shape (M, Ntr)
+        LTR: training labels vector of shape (Ntr,)
+        DTE: test data matrix of shape (M, Nte)
+    Returns:
+        logS: log-likelihood ratio for classes 2 and 1 of shape (Nte,)
+    """
+    logS = {}
+    tied_sigma = numpy.zeros((DTR.shape[0], DTR.shape[0]))
+    
+    # 1. Compute pooled within-class covariance
+    for c in [1, 2]:
+        Dc = DTR[:, LTR == c]
+        uc = numpy.mean(Dc, axis=1, keepdims=True)
+        sigmac = compute_covariance_matrix(Dc, uc)
+        tied_sigma += sigmac * Dc.shape[1]
+    tied_sigma /= DTR.shape[1]
+
+    # 2. Compute log-densities with the shared covariance matrix
+    for c in [1, 2]:
+        Dc = DTR[:, LTR == c]
+        uc = numpy.mean(Dc, axis=1, keepdims=True)
+        logS[c] = compute_logdensity(DTE, uc, tied_sigma)
+        
+    return logS[2] - logS[1]
 
 def compute_tied_mvg_parameters(DTR, LTR, DTE):
     """
@@ -21,7 +49,6 @@ def compute_tied_mvg_parameters(DTR, LTR, DTE):
         logSPost: Posterior log-probabilities for the test samples (shape: (C, Nte))
     """
     # Initialize a matrix of zeros to accumulate the scaled covariances
-    # DTR.shape[0] dynamically gets the number of features (M)
     tied_sigma = numpy.zeros((DTR.shape[0], DTR.shape[0]))
 
     # Dictionary to save the computed means so we don't recalculate them in Phase 2
@@ -32,7 +59,6 @@ def compute_tied_mvg_parameters(DTR, LTR, DTE):
     num_classes = len(classes)
     Pc = numpy.ones(num_classes) / num_classes
 
-    # --- PHASE 1: TRAINING (Compute means and tied covariance matrices) ---
     for c in classes:
         Dc = DTR[:, LTR == c]
         Nc = Dc.shape[1] # Number of samples belonging to class c
@@ -49,10 +75,8 @@ def compute_tied_mvg_parameters(DTR, LTR, DTE):
     # Divide by the total number of training samples to finalize the tied covariance
     tied_sigma = tied_sigma / DTR.shape[1]
 
-    # --- PHASE 2: INFERENCE (Compute log-densities) ---
     S = []
-    for c in numpy.unique(LTR):
-        # Evaluate all test samples using the specific class mean and the SHARED tied_sigma
+    for c in classes:
         S.append(compute_logdensity(DTE, class_means[c], tied_sigma))
 
     # Convert the list of arrays into a 2D matrix

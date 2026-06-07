@@ -185,4 +185,3 @@ if __name__ == "__main__":
         error_rate = numpy.mean(predictions != LTE_m) * 100
         
         emit(f"{l:<10.0e} | {J_opt:<12.6e} | {error_rate:>5.1f}%")
-

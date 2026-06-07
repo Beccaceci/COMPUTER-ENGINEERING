@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     # --- EXPERIMENT CONFIGURATION ---
     K_values = [1.0, 10.0]
-    C_values = [0.1, 1.0, 10.0]  # The values requested in the laboratory table
+    C_values = [0.1, 1.0, 10.0]
     
     # Update the table header to include K
     emit(f"{'K':<4} | {'C':<5} | {'Primal Loss':<14} | {'Dual Loss':<14} | {'Gap':<12} | {'Error%':<7} | {'minDCF':<7} | {'actDCF':<7}")

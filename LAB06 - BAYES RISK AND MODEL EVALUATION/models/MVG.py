@@ -6,6 +6,11 @@ def compute_mvg_loglikelihoods(DTR, LTR, DTE):
     """
     Trains the MVG model and computes the class-conditional log-likelihoods.
     
+    Args:
+        DTR: Training data
+        LTR: Training labels
+        DTE: Test data
+    
     Returns:
         S_log: Matrix of shape (C, Nte) containing log f(x_t | c)
     """

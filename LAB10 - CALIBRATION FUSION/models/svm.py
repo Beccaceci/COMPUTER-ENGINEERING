@@ -56,11 +56,16 @@ def train_and_eval_project_svm(DTR_centered, LTR, DVAL_centered, D_eval_centered
         s_eval_svm: scores on evaluation set
     """
     ZTR = LTR * 2 - 1
+
+    # Train Kernel SVM model with RBF kernel for the project part and evaluate it.
+    # Returns scores on validation and evaluation sets
     alpha_opt, _, _, _ = train_kernel_svm(DTR_centered, ZTR, C=1.0, K_bias=1.0, kernel_type="rbf", gamma=1e-2)
     
+    # Apply model to validation and evaluation sets
     K_val = radial_basis_kernel(DTR_centered, DVAL_centered, gamma=1e-2) + 1.0
     s_val_svm = ((alpha_opt * ZTR) @ K_val).ravel()
     
+    # Apply model to evaluation set
     K_eval = radial_basis_kernel(DTR_centered, D_eval_centered, gamma=1e-2) + 1.0
     s_eval_svm = ((alpha_opt * ZTR) @ K_eval).ravel()
     

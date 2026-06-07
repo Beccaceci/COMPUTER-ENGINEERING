@@ -14,7 +14,8 @@ from models.NaiveBayes import compute_naive_bayes_loglikelihoods
 if __name__ == "__main__":
     ROOT = Path(".")
     
-    # Define output directory and file
+    # Define output directory and file+
+    dataset_dir = ROOT / "data" / "project"
     results_dir = ROOT / "results" / "project"
     results_dir.mkdir(parents=True, exist_ok=True)
     output_file = results_dir / "lab06_project_evaluation.txt"
@@ -25,7 +26,7 @@ if __name__ == "__main__":
     emit("Training models and computing log-likelihoods...\n")
 
     # 1. Load the Project Dataset
-    D, L = load_dataset(ROOT / "data" / "project" / "trainData.txt")
+    D, L = load_dataset(dataset_dir / "trainData.txt")
     (DTR, LTR), (DTE, LTE) = split_dataset(D, L, percTrain=2.0 / 3.0)
 
     # =========================================================================
@@ -33,15 +34,16 @@ if __name__ == "__main__":
     # =========================================================================
     
     # 2. Get the Class-Conditional Log-Likelihoods for all 3 models
-    S_log_mvg = compute_mvg_loglikelihoods(DTR, LTR, DTE)
-    S_log_tied = compute_tied_mvg_loglikelihoods(DTR, LTR, DTE)
-    S_log_nb = compute_naive_bayes_loglikelihoods(DTR, LTR, DTE)
+    S_log_mvg = compute_mvg_loglikelihoods(DTR, LTR, DTE) # compute the log-likelihoods for each class and store them in a matrix
+    S_log_tied = compute_tied_mvg_loglikelihoods(DTR, LTR, DTE) # compute the log-likelihoods for each class and store them in a matrix
+    S_log_nb = compute_naive_bayes_loglikelihoods(DTR, LTR, DTE) # compute the log-likelihoods for each class and store them in a matrix
     
     # 3. Convert to Binary Log-Likelihood Ratios (LLR = log(f|1) - log(f|0))
-    llr_mvg = S_log_mvg[1, :] - S_log_mvg[0, :]
-    llr_tied = S_log_tied[1, :] - S_log_tied[0, :]
-    llr_nb = S_log_nb[1, :] - S_log_nb[0, :]
+    llr_mvg = S_log_mvg[1, :] - S_log_mvg[0, :] # compute the log-likelihood ratios for each class and store them in a matrix
+    llr_tied = S_log_tied[1, :] - S_log_tied[0, :] # compute the log-likelihood ratios for each class and store them in a matrix
+    llr_nb = S_log_nb[1, :] - S_log_nb[0, :] # compute the log-likelihood ratios for each class and store them in a matrix
     
+    # Store the models in a dictionary
     models = {
         "Standard MVG": llr_mvg,
         "Naive Bayes": llr_nb,
@@ -62,8 +64,9 @@ if __name__ == "__main__":
     emit("--- PART 1: PROJECT EVALUATION (ACTUAL DCF AND MIN DCF) ---")
     emit("=========================================================================")
     
+    # Loop through each application
     for pi1, Cfn, Cfp in applications:
-        pi_tilde = (pi1 * Cfn) / (pi1 * Cfn + (1 - pi1) * Cfp)
+        pi_tilde = (pi1 * Cfn) / (pi1 * Cfn + (1 - pi1) * Cfp) # compute the effective prior from the actual prior and the costs
         
         emit(f"\nApplication: (pi1={pi1}, Cfn={Cfn}, Cfp={Cfp}) ---> Effective Prior: {pi_tilde:.2f}")
         emit("-" * 65)
@@ -72,13 +75,14 @@ if __name__ == "__main__":
         
         matrices_to_print = {}
         
-        for name, llr in models.items():
-            pred = compute_optimal_bayes_binary(llr, pi1, Cfn, Cfp)
-            M = compute_confusion_matrix(pred, LTE, num_classes=2)
+        # Iterate through each model (Standard MVG, Naive Bayes and Tied MVG)
+        for name, llr in models.items(): 
+            pred = compute_optimal_bayes_binary(llr, pi1, Cfn, Cfp) # compute the optimal bayes decision for each class and store them in a matrix
+            M = compute_confusion_matrix(pred, LTE, num_classes=2) # compute the confusion matrix for each class and store them in a matrix
             matrices_to_print[name] = M
             
-            DCF_n = compute_normalised_empirical_Bayes_risk_binary(M, pi1, Cfn, Cfp)
-            min_DCF = compute_min_dcf(llr, LTE, pi1, Cfn, Cfp)
+            DCF_n = compute_normalised_empirical_Bayes_risk_binary(M, pi1, Cfn, Cfp) # compute the normalized empirical bayes risk for each class and store them in a matrix
+            min_DCF = compute_min_dcf(llr, LTE, pi1, Cfn, Cfp) # compute the minimum dcf for each class and store them in a matrix
             
             # Print the clean table row
             emit(f"{name:<18} | {DCF_n:^15.3f} | {min_DCF:^15.3f}")
@@ -104,18 +108,20 @@ if __name__ == "__main__":
     emit("--- PART 2: EFFECTIVE PRIORS EVALUATION ---")
     emit("=========================================================================")
     
+    # Iterate through each application
     for pi_tilde, Cfn, Cfp in eff_applications:
         emit(f"\nApplication: pi_tilde={pi_tilde:.1f} (Cfn=1, Cfp=1)")
         emit("-" * 65)
         emit(f"{'Model Name':<18} | {'Actual DCF_n':^15} | {'Min DCF':^15}")
         emit("-" * 65)
         
+        # Iterate through each model (Standard MVG, Naive Bayes and Tied MVG)
         for name, llr in models.items():
-            pred = compute_optimal_bayes_binary(llr, pi_tilde, Cfn, Cfp)
-            M = compute_confusion_matrix(pred, LTE, num_classes=2)
+            pred = compute_optimal_bayes_binary(llr, pi_tilde, Cfn, Cfp) # compute the optimal bayes decision for each class and store them in a matrix
+            M = compute_confusion_matrix(pred, LTE, num_classes=2) # compute the confusion matrix for each class and store them in a matrix
             
-            DCF_n = compute_normalised_empirical_Bayes_risk_binary(M, pi_tilde, Cfn, Cfp)
-            min_DCF = compute_min_dcf(llr, LTE, pi_tilde, Cfn, Cfp)
+            DCF_n = compute_normalised_empirical_Bayes_risk_binary(M, pi_tilde, Cfn, Cfp) # compute the normalized empirical bayes risk for each class and store them in a matrix
+            min_DCF = compute_min_dcf(llr, LTE, pi_tilde, Cfn, Cfp) # compute the minimum dcf for each class and store them in a matrix
             
             emit(f"{name:<18} | {DCF_n:^15.3f} | {min_DCF:^15.3f}")
             
@@ -127,16 +133,18 @@ if __name__ == "__main__":
     effPriorLogOdds = numpy.linspace(-4, 4, 21)
     pi_array = 1 / (1 + numpy.exp(-effPriorLogOdds))
     
+    # Iterate through each model (Standard MVG, Naive Bayes and Tied MVG)
     for name, llr in models.items():
         dcf_values = []
         min_dcf_values = []
         
+        # Iterate through each effective prior
         for pi_tilde in pi_array:
-            pred = compute_optimal_bayes_binary(llr, pi_tilde, 1.0, 1.0)
-            M = compute_confusion_matrix(pred, LTE, num_classes=2)
+            pred = compute_optimal_bayes_binary(llr, pi_tilde, 1.0, 1.0) # compute the optimal bayes decision for each class and store them in a matrix
+            M = compute_confusion_matrix(pred, LTE, num_classes=2) # compute the confusion matrix for each class and store them in a matrix
             
-            dcf_values.append(compute_normalised_empirical_Bayes_risk_binary(M, pi_tilde, 1.0, 1.0))
-            min_dcf_values.append(compute_min_dcf(llr, LTE, pi_tilde, 1.0, 1.0))
+            dcf_values.append(compute_normalised_empirical_Bayes_risk_binary(M, pi_tilde, 1.0, 1.0)) # compute the normalized empirical bayes risk for each class and store them in a matrix
+            min_dcf_values.append(compute_min_dcf(llr, LTE, pi_tilde, 1.0, 1.0)) # compute the minimum dcf for each class and store them in a matrix
             
         safe_name = name.replace(" ", "_")
         plot_path = results_dir / f"Bayes_Error_{safe_name}.png"

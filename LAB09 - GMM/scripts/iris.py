@@ -197,21 +197,21 @@ if __name__ == "__main__":
 
     results_multi = {ct: {} for ct in cov_types}
 
-    for cov_type in cov_types:
-        LBG_fn, EM_fn = algorithms[cov_type]
-        current_gmms = {}
+    for cov_type in cov_types: # for each model type (full, diagonal, tied)
+        LBG_fn, EM_fn = algorithms[cov_type] # get the appropriate LBG and EM functions
+        current_gmms = {} # dictionary to store the GMM for each class
         
         # Initialize 1-component GMMs
-        for cls in classes_multi:
-            DTR_cls = DTR_m[:, LTR_m == cls]
-            mu_cls = np.mean(DTR_cls, axis=1, keepdims=True)
-            C_cls = np.cov(DTR_cls, bias=True)
+        for cls in classes_multi: # for each class
+            DTR_cls = DTR_m[:, LTR_m == cls] # select the training samples for the current class
+            mu_cls = np.mean(DTR_cls, axis=1, keepdims=True) # compute the mean of the current class
+            C_cls = np.cov(DTR_cls, bias=True) # compute the covariance of the current class
             
-            if cov_type == 'diag':
+            if cov_type == 'diag': # if diagonal, enforce diagonal covariance
                 C_cls = C_cls * np.eye(C_cls.shape[0])
             
-            C_cls = apply_eigenvalue_constraint(C_cls, psi_val)
-            current_gmms[cls] = [(1.0, mu_cls, C_cls)]
+            C_cls = apply_eigenvalue_constraint(C_cls, psi_val) # apply eigenvalue constraint
+            current_gmms[cls] = [(1.0, mu_cls, C_cls)] # initialize the GMM with 1 component
             
             if cov_type != 'full': 
                 current_gmms[cls] = EM_fn(DTR_cls, current_gmms[cls], psi=psi_val)

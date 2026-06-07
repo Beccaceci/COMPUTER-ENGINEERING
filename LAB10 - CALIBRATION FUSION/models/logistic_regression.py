@@ -58,7 +58,11 @@ def train_and_eval_project_lr(DTR_centered, LTR, DVAL_centered, D_eval_centered,
         s_val_lr: scores on validation set
         s_eval_lr: scores on evaluation set
     """
+    # Train weighted logistic regression model with regularization parameter lambda = 1e-3
+    # pi_T is the target application prior probability, used to correct for differences between empirical training priors and the target application prior.
     w_lr, b_lr = trainWeightedLogRegBinary(DTR_centered, LTR, 1e-3, pi_T)
+    
+    # Apply model to validation and evaluation sets
     s_val_lr = (w_lr.T @ DVAL_centered + b_lr).ravel()
     s_eval_lr = (w_lr.T @ D_eval_centered + b_lr).ravel()
     return s_val_lr, s_eval_lr
