@@ -44,3 +44,15 @@ def log_GAU_ND(X, mu, C):
     third_term = -0.5 * numpy.sum(X_centered * invC_X, axis=0)
     
     return first_term + second_term + third_term
+
+def loglikelihood(X, mu, C):
+    """
+    Computes the log-likelihood for a set of samples.
+    Args:
+        X (np.ndarray): Input matrix (d, n)
+        mu (np.ndarray): Mean vector (d, 1)
+        C (np.ndarray): Covariance matrix (d, d)
+    Returns:
+        float: Log-likelihood
+    """
+    return numpy.sum(log_GAU_ND(X, mu, C))

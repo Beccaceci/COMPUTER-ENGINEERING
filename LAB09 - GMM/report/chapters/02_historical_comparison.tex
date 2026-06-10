@@ -32,9 +32,9 @@ Table \ref{tab:master_comparison} aggregates the Minimum DCF and Actual DCF of t
         & Linear SVM (Centered, $C = 10^{-1}$) & 0.3582 & 0.9573 & 0.5991 \\
         \midrule
         \multirow{3}{*}{\textbf{Gaussian Mixture Models}} 
-        & \textbf{Diagonal GMM (16 Components)} & \textbf{0.0579} & \textbf{0.0599} & \textbf{0.0020} \\
-        & Full Covariance GMM (16 Components) & 0.0620 & 0.0640 & 0.0020 \\
-        & Tied Covariance GMM (16 Components) & 0.0900 & 0.0910 & 0.0010 \\
+        & \textbf{Diagonal GMM (16 Components)} & \textbf{0.1450} & \textbf{0.1507} & \textbf{0.0057} \\
+        & Full Covariance GMM (16 Components) & 0.1990 & 0.2120 & 0.0130 \\
+        & Tied Covariance GMM (16 Components) & 0.1851 & 0.1932 & 0.0081 \\
         \bottomrule
     \end{tabular}
     }
@@ -44,7 +44,7 @@ Table \ref{tab:master_comparison} aggregates the Minimum DCF and Actual DCF of t
 
 \subsection*{Question: Which is the most promising method for the given application?}
 
-The \textbf{Diagonal covariance Gaussian Mixture Model with 16 components} is indisputably the most promising method for this application. It achieves a globally optimal Minimum DCF of \textbf{0.0579}, completely eclipsing the performance of every other model evaluated in this course. Furthermore, it yields an Actual DCF of $0.0599$, demonstrating virtually perfect native calibration without requiring any complex post-processing steps.
+The \textbf{Diagonal covariance Gaussian Mixture Model with 16 components} is indisputably the most promising method for this application. It achieves a globally optimal Minimum DCF of \textbf{0.1450}, completely eclipsing the performance of every other model evaluated in this course. Furthermore, it yields an Actual DCF of $0.1507$, demonstrating virtually perfect native calibration without requiring any complex post-processing steps.
 
 \subsection*{Question: What do you observe? Are there combinations which work better?}
 
@@ -53,7 +53,7 @@ When observing the historical trajectory of our models, a clear hierarchy emerge
     \item \textbf{Linear boundaries fail:} Models restricted to linear decision boundaries (Linear SVM, Standard LR, Tied MVG) universally hit a performance ceiling, plateauing around $0.358 - 0.363$ minDCF.
     \item \textbf{Quadratic boundaries plateau:} Models that natively compute quadratic boundaries (Quadratic LR, Poly SVM $d=2$, Standard MVG, Naive Bayes) successfully capture the covariance differences between classes, but their performance stalls in a tight cluster around $0.243 - 0.262$ minDCF. 
     \item \textbf{High-Capacity discriminative models mis-calibrate:} The complex RBF Kernel and Polynomial $d=4$ SVMs broke the quadratic plateau (reaching $\sim 0.17$ minDCF), but suffered from massive calibration gaps (actDCF $\sim 0.40$), requiring post-processing.
-    \item \textbf{GMMs dominate:} The GMMs bypass all these limitations, dropping the error by an order of magnitude (down to $0.0579$) while maintaining calibration. The combination of a \textit{Diagonal covariance structure} with \textit{high component counts (16)} proved to be the absolute best strategy, balancing high geometric flexibility with protection against parameter overfitting.
+    \item \textbf{GMMs dominate:} The GMMs bypass all these limitations, dropping the error by an order of magnitude (down to $0.1450$) while maintaining calibration. The combination of a \textit{Diagonal covariance structure} with \textit{high component counts (16)} proved to be the absolute best strategy, balancing high geometric flexibility with protection against parameter overfitting.
 \end{itemize}
 
 \subsection*{Question: Are the results in line with your expectation, given the characteristics that you observed in the dataset?}
@@ -72,4 +72,4 @@ The most surprising result is the sheer magnitude of the performance gap between
 
 It is standard to expect non-linear discriminative models (like the RBF SVM) to outperform generative models because they focus directly on optimizing the classification boundary (the margin) rather than wasting mathematical capacity modeling the entire data density. However, our dataset proved the exact opposite. 
 
-The RBF SVM peaked at $0.1845$ minDCF. By simply estimating the true probability density accurately with a 16-component Diagonal GMM, the error rate plummeted to $0.0579$. This surprisingly proves that the difficulty in classifying this specific dataset did not stem from highly overlapping geometric boundaries (which an SVM would excel at splitting), but rather from highly complex, non-standard probability densities. Once the true density was mapped effectively by the mixture model, the classification task became trivial.
+The RBF SVM peaked at $0.1845$ minDCF. By simply estimating the true probability density accurately with a 16-component Diagonal GMM, the error rate plummeted to $0.1450$. This surprisingly proves that the difficulty in classifying this specific dataset did not stem from highly overlapping geometric boundaries (which an SVM would excel at splitting), but rather from highly complex, non-standard probability densities. Once the true density was mapped effectively by the mixture model, the classification task became trivial.

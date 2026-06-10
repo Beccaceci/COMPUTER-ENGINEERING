@@ -50,7 +50,7 @@ try:
                 # Store the price per copy for each book in a queue to calculate the gain later.
                 if ISBN not in prices_queue:
                     prices_queue[ISBN] = []
-                prices_queue[ISBN].append(pricePerCopy)
+                prices_queue[ISBN].extend([pricePerCopy] * numCopies)
             elif operation == "S":
                 # Update the number of copies sold for each book.
                 numCopiesAvailable[ISBN] = numCopiesAvailable.get(ISBN, 0) - numCopies
@@ -64,11 +64,13 @@ try:
                 numCopiesSoldPerMonth[month_year] = numCopiesSoldPerMonth.get(month_year, 0) + numCopies
 
                 # Update the gain for each book
-                if prices_queue[ISBN]:
-                    buy_price = prices_queue[ISBN].pop(0)
-                else:
-                    buy_price = 0.0
-                total_profit = (pricePerCopy - buy_price) * numCopies
+                total_profit = 0.0
+                for _ in range(numCopies):
+                    if prices_queue[ISBN]:
+                        buy_price = prices_queue[ISBN].pop(0)
+                    else:
+                        buy_price = 0.0
+                    total_profit += (pricePerCopy - buy_price)
                 
                 if ISBN not in gain:
                     gain[ISBN] = [0, 0.0]

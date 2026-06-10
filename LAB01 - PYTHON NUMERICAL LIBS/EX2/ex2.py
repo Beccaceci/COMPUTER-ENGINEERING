@@ -24,7 +24,7 @@ def distance(x1, y1, x2, y2):
 # Compute the total distance traveled by a bus given its tracks
 def computeBusDistance (bus_tracks, busID):
     # Sort the tracks based on the expired seconds
-    bus_tracks[busID].sort(key=lambda x: x[2])
+    bus_tracks[busID].sort(key=lambda x: int(x[2]))
 
     # Compute the total distance traveled by the bus by summing the distances between consecutive tracks
     d = 0

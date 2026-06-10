@@ -16,12 +16,13 @@ def compute_binary_mvg (DTR, LTR, DTE):
         logS: log-likelihood ratio for classes 2 and 1 of shape (Nte,)
     """
     logS = {}
-    for c in [1, 2]: # Iterate over the two classes
+    classes = numpy.unique(LTR)
+    for c in classes: # Iterate over the two classes
         Dc = DTR[:, LTR == c] # Select the samples belonging to class c
         uc = numpy.mean(Dc, axis=1, keepdims=True) # Compute the empirical mean
         sigmac = compute_covariance_matrix(Dc, uc) # Compute the empirical covariance matrix
         logS[c] = compute_logdensity(DTE, uc, sigmac) # Compute the log-density
-    return logS[2] - logS[1] # Return the log-likelihood ratio
+    return logS[classes[1]] - logS[classes[0]] # Return the log-likelihood ratio
 
 def compute_MVG_parameters(DTR, LTR, DTE):
     """

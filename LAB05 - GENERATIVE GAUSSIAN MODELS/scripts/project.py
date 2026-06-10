@@ -184,7 +184,8 @@ if __name__ == "__main__":
         metrics["Naive Bayes"] = round(err_nb * 100, 1)
 
         # --- Tied MVG ---
-        llr_tied = compute_tied_mvg_parameters(DTR_sub, LTR, DTE_sub)
+        logSJoint_tied, _, _ = compute_tied_mvg_parameters(DTR_sub, LTR, DTE_sub)
+        llr_tied = logSJoint_tied[1, :] - logSJoint_tied[0, :]
         pred_tied = (llr_tied >= 0).astype(int)
         err_tied = 1 - (numpy.sum(pred_tied == LTE) / len(LTE))
         metrics["Tied MVG"] = round(err_tied * 100, 1)

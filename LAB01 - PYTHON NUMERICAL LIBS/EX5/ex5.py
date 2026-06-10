@@ -1,9 +1,8 @@
-import numpy as np
 import sys
 
 # Check for the correct number of command-line arguments
 if len(sys.argv) != 2:
-    print("Usage: python ex6.py <filename>")
+    print("Usage: python ex5.py <filename>")
     sys.exit(1)
 filename = sys.argv[1]
 
@@ -13,9 +12,9 @@ try:
         if not lines: # Check if the file is empty
             sys.exit(0)
 
-        # Read N and initialize the NumPy array
+        # Read N and initialize the list of lists
         N = int(lines[0].strip())
-        room = np.zeros((N, N), dtype=np.float64)
+        room = [[0.0 for _ in range(N)] for _ in range(N)]
 
         # Process lightspots
         for line in lines[1:]:
@@ -29,11 +28,16 @@ try:
             x, y = int(coords[0]), int(coords[1])
 
             # Update the room array based on the lightspot's influence
-            room[max(0, x-2):min(N, x+3), max(0, y-2):min(N, y+3)] += 0.2
-            room[max(0, x-1):min(N, x+2), max(0, y-1):min(N, y+2)] += 0.3
+            for i in range(max(0, x-2), min(N, x+3)):
+                for j in range(max(0, y-2), min(N, y+3)):
+                    room[i][j] += 0.2
+                    
+            for i in range(max(0, x-1), min(N, x+2)):
+                for j in range(max(0, y-1), min(N, y+2)):
+                    room[i][j] += 0.3
 
-            # The lightspot itself is fully lit
-            room[x, y] = 1.0
+            # The lightspot itself receives an additional 0.5 to reach +1.0 total
+            room[x][y] += 0.5
 
         # Print the resulting room array
         for row in room:

@@ -1,6 +1,6 @@
 import numpy
 import matplotlib.pyplot as plt
-from models.MVG import log_MVG
+from utils.math_utils import log_GAU_ND
 from utils.math_utils import vrow
 
 def plot_feature_histogram (x_feature, mu, C, title, filepath, bins=20, hist_color='blue'):
@@ -15,7 +15,7 @@ def plot_feature_histogram (x_feature, mu, C, title, filepath, bins=20, hist_col
     x_plot = numpy.linspace(x_min, x_max, 1000)
     
     # Compute Gaussian PDF (Calculate in log-domain, then exponentiate for plotting)
-    y_pdf = numpy.exp(log_MVG(vrow(x_plot), mu, C))
+    y_pdf = numpy.exp(log_GAU_ND(vrow(x_plot), mu, C))
     plt.plot(x_plot, y_pdf, 'r', linewidth=2, label='Gaussian Fit')
     
     plt.title(title)
@@ -24,7 +24,7 @@ def plot_feature_histogram (x_feature, mu, C, title, filepath, bins=20, hist_col
     plt.legend()
 
     filename = title.replace(" - ", "_").replace(" ", "_").lower() + ".png"
-    plt.savefig(output_dir / filename)
+    plt.savefig(filepath / filename)
     plt.close()
 
 def plot_1d_density(X_c_list, X_plot_list, densities_list, class_names, feature_name, filepath):

@@ -98,16 +98,7 @@ if __name__ == "__main__":
     # Print the results in a table format
     print_model_table("Tied Covariance Gaussian", logSJoint_tied, logSMarginal_tied, logSPost_tied, error_rate_tied, emit)
 
-    # Compute the predict labels
-    predicted_labels_tied = numpy.argmax(logSJoint_tied, axis=0)
 
-    # Compute the accuracy and error rate
-    accuracy_tied = numpy.sum(predicted_labels_tied == LTE) / len(LTE)
-    error_rate_tied = round((1 - accuracy_tied) * 100, 2)
-    results["Tied MVG"] = error_rate_tied
-
-    # Print the results in a table format
-    print_model_table("Tied Covariance Gaussian", logSJoint_tied, logSMarginal_tied, logSPost_tied, error_rate_tied, emit)
 
 
     # ======================================================

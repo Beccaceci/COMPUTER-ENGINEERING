@@ -80,7 +80,7 @@ if __name__ == "__main__":
                 log_pdf_0 = logpdf_GMM(DTE, current_gmms[0]) # compute log-pdf for class 0
                 llr = log_pdf_1 - log_pdf_0 # compute log-likelihood ratio
 
-                pi1, Cfn, Cfp = 0.5, 1, 1 # set prior probabilities and costs
+                pi1, Cfn, Cfp = 0.1, 1, 1 # set prior probabilities and costs
                 min_dcf = compute_min_dcf(llr, LTE, pi1, Cfn, Cfp) # compute minimum DCF
 
                 threshold = -np.log((pi1 * Cfn) / ((1 - pi1) * Cfp)) # compute threshold

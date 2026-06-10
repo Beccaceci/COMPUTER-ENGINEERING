@@ -5,35 +5,35 @@
 
 Applying Principal Component Analysis (PCA) transforms the dataset by projecting it onto a new set of orthogonal axes ordered by their variance. Observing the histograms of the projected features, the first PCA direction (Direction 1) captures the maximum overall spread of the dataset. As we move towards Direction 6, the variance noticeably decreases. 
 
-However, the effect on the class distribution reveals a crucial limitation of unsupervised dimensionality reduction. Both the "Fake" (label 0) and "Genuine" (label 1) classes span across the entire range of these new axes and heavily overlap. Because PCA maximizes the total variance of the data regardless of class labels, the direction of maximum data spread does not align with the direction of maximum class discrimination. The distributions morph into largely unimodal shapes, but they do not separate.
+However, the effect on the class distribution reveals an interesting property for this dataset. Along the first PCA direction, the "Fake" (label 0) and "Genuine" (label 1) classes are quite effectively separated. Although PCA is unsupervised and maximizes the total variance of the data regardless of class labels, for this specific data, the direction of maximum data spread aligns with the direction of maximum class discrimination. This causes the two classes to separate notably along the first principal component.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.48\linewidth]{PCA/histograms/feature_1_histogram.png}
     \includegraphics[width=0.48\linewidth]{PCA/histograms/feature_2_histogram.png}
-    \caption{Histograms of the data projected onto the first two PCA directions. Notice the heavy overlap between the Fake and Genuine classes despite the high overall variance.}
+    \caption{Histograms of the data projected onto the first two PCA directions. Notice the effective separation between the Fake and Genuine classes along the first PCA direction.}
     \label{fig:pca_hist_1_2}
 \end{figure}
 
 \subsection*{Can you spot the different clusters inside each class? Have the clusters really changed? Have the classes really become ``more separated''?}
 
-No, the clusters have not changed, and the classes have not become more separated. 
+Yes, by projecting onto the first principal component, the classes have become separated in that 1D subspace, highlighting the difference between them. 
 
-Applying PCA and retaining all $m=6$ dimensions acts mathematically as a rigid orthogonal rotation of the original feature space. Because an orthogonal transformation perfectly preserves Euclidean distances ($L_2$ norm), any two data points that were overlapping or close together in the raw feature space remain exactly the same distance apart in the PCA-transformed space. We are simply viewing the exact same geometric structure from a newly rotated coordinate system. 
+Applying PCA and retaining all $m=6$ dimensions acts mathematically as a rigid orthogonal rotation of the original feature space. Because an orthogonal transformation perfectly preserves Euclidean distances ($L_2$ norm), any two data points that were overlapping or close together in the raw feature space remain exactly the same distance apart in the PCA-transformed space. We are simply viewing the exact same geometric structure from a newly rotated coordinate system, where the first axis now clearly shows the separation.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.6\linewidth]{PCA/scatter/features_1_2_scatter.png}
-    \caption{Scatter plot of the first two PCA directions. The geometric clusters of the original dataset are merely rotated; the classes remain heavily intertwined.}
+    \caption{Scatter plot of the first two PCA directions. The geometric clusters of the original dataset are rotated so that the classes become separated along the first dimension.}
     \label{fig:pca_scatter_1_2}
 \end{figure}
 
-This confirms that exploratory analyses (like viewing 1D and 2D shadows of a 6D object) are often insufficient to understand global characteristics. To actually increase separability, a supervised approach is required. For instance, applying Linear Discriminant Analysis (LDA) specifically targets the direction that maximizes the distance between class means while minimizing intra-class variance. As seen below, the LDA projection successfully reveals a distinct shift between the classes that PCA's blind rotation could not achieve.
+This confirms that exploratory analyses (like viewing 1D and 2D shadows of a 6D object) can sometimes reveal the global separation between classes even with an unsupervised method. Because the direction of maximum variance aligns with the class separation, PCA behaves similarly to a supervised approach for this dataset. Applying Linear Discriminant Analysis (LDA), which specifically targets the direction that maximizes the distance between class means while minimizing intra-class variance, reveals a separation very similar to that achieved by the first PCA direction.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.6\linewidth]{LDA/histograms/project_exploratory_lda_histogram.png}
-    \caption{LDA Projection (1D). Unlike PCA, the supervised LDA projection clearly separates the density centers of the Fake and Genuine classes.}
+    \caption{LDA Projection (1D). The supervised LDA projection clearly separates the density centers of the Fake and Genuine classes, achieving a result similar to the first PCA direction.}
     \label{fig:lda_histogram}
 \end{figure}
 

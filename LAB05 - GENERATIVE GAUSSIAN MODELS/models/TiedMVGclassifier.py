@@ -15,10 +15,11 @@ def compute_binary_tied_mvg(DTR, LTR, DTE):
         logS: log-likelihood ratio for classes 2 and 1 of shape (Nte,)
     """
     logS = {}
+    classes = numpy.unique(LTR)
     tied_sigma = numpy.zeros((DTR.shape[0], DTR.shape[0]))
     
     # 1. Compute pooled within-class covariance
-    for c in [1, 2]:
+    for c in classes:
         Dc = DTR[:, LTR == c]
         uc = numpy.mean(Dc, axis=1, keepdims=True)
         sigmac = compute_covariance_matrix(Dc, uc)
@@ -26,12 +27,12 @@ def compute_binary_tied_mvg(DTR, LTR, DTE):
     tied_sigma /= DTR.shape[1]
 
     # 2. Compute log-densities with the shared covariance matrix
-    for c in [1, 2]:
+    for c in classes:
         Dc = DTR[:, LTR == c]
         uc = numpy.mean(Dc, axis=1, keepdims=True)
         logS[c] = compute_logdensity(DTE, uc, tied_sigma)
         
-    return logS[2] - logS[1]
+    return logS[classes[1]] - logS[classes[0]]
 
 def compute_tied_mvg_parameters(DTR, LTR, DTE):
     """

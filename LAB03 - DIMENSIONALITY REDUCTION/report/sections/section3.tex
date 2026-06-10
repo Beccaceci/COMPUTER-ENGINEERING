@@ -28,21 +28,38 @@ As shown in Table \ref{tab:pca_lda_metrics}, varying the number of PCA dimension
 
 \subsection*{Does PCA pre-processing improve the classification accuracy? Why or why not?}
 
-No, PCA pre-processing does not significantly improve or degrade the classification accuracy for this dataset; we obtain roughly the same results regardless of the chosen dimensionality. 
+No, PCA pre-processing does not significantly alter the classification accuracy for this dataset; the error rates remain virtually identical regardless of the chosen dimensionality $m$.
 
-To deeply understand why PCA does not alter the LDA classification outcome, we must analyze the mathematical relationship between their optimization objectives.
+To deeply understand why PCA does not impact the LDA classification outcome, we must trace the mathematical relationship between their optimization objectives step-by-step.
 
-Linear Discriminant Analysis (LDA) is a supervised method that seeks to find a projection that maximizes class separability. Mathematically, it does this by maximizing the between-class scatter matrix ($S_B$) while minimizing the within-class scatter matrix ($S_W$). Conceptually, it optimizes a ratio proportional to:
-$$ \text{LDA Objective} \propto \frac{S_B}{S_W} $$
+\vspace{0.3cm}
+\noindent\textbf{Step 1: The Core Optimization Objectives}\\
+Linear Discriminant Analysis (LDA) is a supervised method that seeks to find a projection that maximizes class separability. It does this by maximizing the between-class scatter matrix ($S_B$) while minimizing the within-class scatter matrix ($S_W$). Conceptually, it optimizes a ratio proportional to:
+\[
+\text{LDA Objective} \propto \frac{S_B}{S_W}
+\]
+Principal Component Analysis (PCA), conversely, is an unsupervised method. It is entirely blind to class labels and seeks only to maximize the total overall variance of the dataset, represented by the total scatter matrix ($S_T$).
 
-Principal Component Analysis (PCA), on the other hand, is an unsupervised method that seeks to maximize the total variance of the entire dataset, represented by the total scatter matrix ($S_T$). 
+\vspace{0.3cm}
+\noindent\textbf{Step 2: The Scatter Matrix Identity}\\
+The fundamental mathematical link between these two algorithms is the Total Scatter Identity:
+\[
+S_T = S_B + S_W
+\]
+This identity dictates that the total variance in the dataset ($S_T$) is always exactly equal to the sum of the variance between the classes ($S_B$) and the variance within the classes ($S_W$).
 
-The fundamental link between these two algorithms is the scatter matrix identity:
-$$ S_T = S_B + S_W $$
-This equation states that the total variance in the dataset ($S_T$) is exactly equal to the sum of the variance between the classes ($S_B$) and the variance within the classes ($S_W$).
+\vspace{0.3cm}
+\noindent\textbf{Step 3: The Uniformity Constraint}\\
+For this specific dataset, empirical observation implies that the within-class variance ($S_W$) is relatively stable and isotropic (uniform in all directions). Mathematically, this means $S_W$ acts roughly as a constant scaling factor across the feature space ($S_W \approx cI$, where $c$ is a constant).
 
-If the within-class variance ($S_W$) is roughly fixed, isotropic (uniform in all directions), or relatively small, then the total scatter $S_T$ becomes heavily dominated by $S_B$. In this mathematical scenario, when PCA searches for the directions of maximum total variance ($S_T$), it is inadvertently finding the directions of maximum between-class variance ($S_B$). 
+\vspace{0.3cm}
+\noindent\textbf{Step 4: Objective Convergence}\\
+If we substitute this uniformity constraint into the Total Scatter Identity, the equation becomes:
+\[
+S_T \approx S_B + \text{Constant}
+\]
+When PCA searches for the directions of maximum total variance ($\arg\max S_T$), it is evaluating $\arg\max(S_B + \text{Constant})$. Because the constant term does not affect the location of the mathematical maximum, PCA inadvertently finds the exact directions that maximize the between-class variance ($S_B$). Under this specific geometric condition, the unsupervised PCA objective mathematically aligns with the supervised LDA objective.
 
-Because PCA and LDA are essentially aligning with the same fundamental variations in the data, dropping the "lowest variance" PCA dimensions only discards background noise, rather than discriminative information. When LDA is subsequently applied to this PCA-reduced subspace, it has access to the exact same discriminant directions it would have found in the raw feature space. Consequently, the pre-processing step is mathematically redundant, and the combination of PCA and LDA yields virtually identical error rates as using LDA alone.
-
-% --- END PCA + LDA PRE-PROCESSING ANALYSIS ---
+\vspace{0.3cm}
+\noindent\textbf{Step 5: The Redundancy of Dimensionality Reduction}\\
+Because both algorithms are ultimately aligning with the same fundamental variations (the separation between the class means), the dimensions with the lowest total variance---which are discarded by PCA---contain only background noise. They contain absolutely zero discriminative information. When LDA is subsequently applied to this PCA-reduced subspace, it is provided the exact same optimal discriminant directions it would have found by searching the raw, uncompressed feature space. Consequently, dropping dimensions via PCA removes no valuable information, making the pre-processing step mathematically redundant for classification purposes.
