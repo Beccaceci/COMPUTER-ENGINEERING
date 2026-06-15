@@ -1,17 +1,23 @@
 LAB 10: SCORE CALIBRATION AND FUSION
 ================================================================================
+Loading Data and generating base model scores...
 
 ================================================================================
 EVALUATING APPLICATION: Target Prior (pi_T) = 0.1
 ================================================================================
 
 --- Base Models (Uncalibrated Validation) ---
-LogReg     -> Min DCF: 0.365 | Act DCF: 0.413
+LogReg     -> Min DCF: 0.242 | Act DCF: 0.496
 SVM        -> Min DCF: 0.309 | Act DCF: 0.631
 GMM        -> Min DCF: 0.271 | Act DCF: 0.303
 
+--- Base Models (Uncalibrated Evaluation) ---
+LogReg     -> Min DCF: 0.352 | Act DCF: 0.492
+SVM        -> Min DCF: 0.459 | Act DCF: 0.655
+GMM        -> Min DCF: 0.407 | Act DCF: 0.426
+
 --- Calibrated Models (K-Fold Validation) ---
-LogReg     -> Min DCF: 0.372 | Act DCF: 0.387
+LogReg     -> Min DCF: 0.245 | Act DCF: 0.264
 SVM        -> Min DCF: 0.319 | Act DCF: 0.347
 GMM        -> Min DCF: 0.265 | Act DCF: 0.279
 
@@ -28,12 +34,17 @@ EVALUATING APPLICATION: Target Prior (pi_T) = 0.5
 ================================================================================
 
 --- Base Models (Uncalibrated Validation) ---
-LogReg     -> Min DCF: 0.182 | Act DCF: 0.187
+LogReg     -> Min DCF: 0.114 | Act DCF: 0.119
 SVM        -> Min DCF: 0.151 | Act DCF: 0.159
 GMM        -> Min DCF: 0.134 | Act DCF: 0.145
 
+--- Base Models (Uncalibrated Evaluation) ---
+LogReg     -> Min DCF: 0.141 | Act DCF: 0.143
+SVM        -> Min DCF: 0.188 | Act DCF: 0.191
+GMM        -> Min DCF: 0.166 | Act DCF: 0.167
+
 --- Calibrated Models (K-Fold Validation) ---
-LogReg     -> Min DCF: 0.181 | Act DCF: 0.185
+LogReg     -> Min DCF: 0.113 | Act DCF: 0.114
 SVM        -> Min DCF: 0.151 | Act DCF: 0.158
 GMM        -> Min DCF: 0.135 | Act DCF: 0.144
 
@@ -50,12 +61,17 @@ EVALUATING APPLICATION: Target Prior (pi_T) = 0.9
 ================================================================================
 
 --- Base Models (Uncalibrated Validation) ---
-LogReg     -> Min DCF: 0.446 | Act DCF: 0.471
+LogReg     -> Min DCF: 0.311 | Act DCF: 0.499
 SVM        -> Min DCF: 0.398 | Act DCF: 0.694
 GMM        -> Min DCF: 0.347 | Act DCF: 0.390
 
+--- Base Models (Uncalibrated Evaluation) ---
+LogReg     -> Min DCF: 0.305 | Act DCF: 0.491
+SVM        -> Min DCF: 0.432 | Act DCF: 0.675
+GMM        -> Min DCF: 0.365 | Act DCF: 0.373
+
 --- Calibrated Models (K-Fold Validation) ---
-LogReg     -> Min DCF: 0.444 | Act DCF: 0.462
+LogReg     -> Min DCF: 0.305 | Act DCF: 0.319
 SVM        -> Min DCF: 0.397 | Act DCF: 0.411
 GMM        -> Min DCF: 0.353 | Act DCF: 0.383
 
@@ -66,3 +82,5 @@ SVM + GMM  -> Min DCF: 0.356 | Act DCF: 0.374
 Calibrated SVM Evaluation -> Min DCF: 0.432 | Act DCF: 0.437
 Calibrated GMM Evaluation -> Min DCF: 0.365 | Act DCF: 0.371
 Fused SVM+GMM Evaluation  -> Min DCF: 0.363 | Act DCF: 0.368
+
+Generating Bayes Error plots for Calibration and Fusion...

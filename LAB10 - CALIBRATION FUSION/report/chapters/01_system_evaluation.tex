@@ -4,7 +4,7 @@
 \section{Experimental Results}
 Before applying any score calibration or fusion strategies, it is crucial to benchmark the raw outputs of our selected optimal classifiers. We extracted the best-performing models from the previous laboratories to establish our baseline systems for the final project evaluation:
 \begin{enumerate}
-    \item \textbf{Logistic Regression:} Prior-weighted Logistic Regression ($\lambda=10^{-3}$, $\tilde{\pi}=0.5$).
+    \item \textbf{Quadratic Logistic Regression:} Prior-weighted Quadratic Logistic Regression ($\lambda=3.16 \times 10^{-2}$, $\tilde{\pi}=0.5$).
     \item \textbf{Support Vector Machine (SVM):} RBF Kernel SVM ($C=1.0$, $\gamma=0.01$).
     \item \textbf{Gaussian Mixture Model (GMM):} Tied Covariance GMM ($M=8$ components).
 \end{enumerate}
@@ -20,10 +20,10 @@ These models were trained on the designated training split and evaluated on the 
         \toprule
         \textbf{Model} & \textbf{Application Prior ($\tilde{\pi}$)} & \textbf{minDCF} & \textbf{actDCF} \\
         \midrule
-        \multirow{3}{*}{\textbf{Logistic Regression}} 
-        & $0.1$ & 0.5076 & 0.7286 \\
-        & $0.5$ & 0.2061 & 0.3698 \\
-        & $0.9$ & 0.5047 & 0.9514 \\
+        \multirow{3}{*}{\textbf{Quadratic Logistic Regression}} 
+        & $0.1$ & 0.3520 & 0.4920 \\
+        & $0.5$ & 0.1410 & 0.1430 \\
+        & $0.9$ & 0.3050 & 0.4910 \\
         \midrule
         \multirow{3}{*}{\textbf{RBF Kernel SVM}} 
         & $0.1$ & 0.4589 & 0.6550 \\
@@ -45,13 +45,13 @@ These models were trained on the designated training split and evaluated on the 
 
 Overall, the models exhibit varying and often severe degrees of miscalibration depending on the application prior. Calibration is measured by the gap between the \textit{Actual DCF} (the operational error using theoretical Bayes thresholds) and the \textit{Minimum DCF} (the lowest possible error achievable by searching for an optimal, data-driven threshold).
 
-For the Logistic Regression model, the calibration is notably poor across all priors. At $\tilde{\pi}=0.1$, the actDCF ($0.7286$) is significantly higher than the minDCF ($0.5076$). The SVM model suffers similarly at extreme priors, jumping from a minDCF of $0.4589$ to an actDCF of $0.6550$ at $\tilde{\pi}=0.1$. The generative GMM, however, shows significantly tighter bounds, demonstrating strong intrinsic calibration across all thresholds.
+For the Quadratic Logistic Regression model, the calibration suffers significantly at extreme priors. At $\tilde{\pi}=0.1$, the actDCF ($0.4920$) is notably higher than the minDCF ($0.3520$), and similarly at $\tilde{\pi}=0.9$ (actDCF $0.4910$ vs minDCF $0.3050$). The SVM model suffers similarly at extreme priors, jumping from a minDCF of $0.4589$ to an actDCF of $0.6550$ at $\tilde{\pi}=0.1$. The generative GMM, however, shows significantly tighter bounds, demonstrating strong intrinsic calibration across all thresholds.
 
 \subsection*{Question: Are there models that are better calibrated than others for the different applications?}
 
 Yes, the \textbf{Tied GMM} is spectacularly better calibrated than the discriminative models (LR and SVM). For the GMM at $\tilde{\pi}=0.5$, the gap between minDCF ($0.1656$) and actDCF ($0.1666$) is a mere $0.0010$. Even at the heavily skewed $\tilde{\pi}=0.9$, the GMM's actDCF ($0.3727$) stays incredibly close to its minDCF ($0.3654$).
 
-The \textbf{RBF Kernel SVM} is remarkably well calibrated \textit{only} at $\tilde{\pi}=0.5$ (gap of $0.0033$), but its calibration degrades catastrophically at extreme priors ($\tilde{\pi}=0.1$ and $\tilde{\pi}=0.9$). Finally, the \textbf{Logistic Regression} model is poorly calibrated across the board, rendering its raw output scores virtually unusable without proper score-to-LLR mapping.
+The \textbf{RBF Kernel SVM} is remarkably well calibrated \textit{only} at $\tilde{\pi}=0.5$ (gap of $0.0033$), but its calibration degrades catastrophically at extreme priors ($\tilde{\pi}=0.1$ and $\tilde{\pi}=0.9$). Finally, the \textbf{Quadratic Logistic Regression} model is very well calibrated at $\tilde{\pi}=0.5$, but its calibration diverges significantly at extreme priors, requiring proper score-to-LLR mapping to recover its true discriminative power.
 
 \section{Theoretical Considerations}
 
@@ -63,5 +63,5 @@ The Tied GMM is a generative model. By definition, it explicitly estimates the c
 \textbf{The Margin-based Nature of SVMs:}
 Conversely, the Support Vector Machine is not a probabilistic model. It is a strictly discriminative, margin-maximizing algorithm. The "score" it produces is simply the geometric distance of a sample from the separating hyperplane in the kernel-induced feature space. The SVM has absolutely no concept of probability densities or priors. At $\tilde{\pi}=0.5$, the theoretical threshold is 0, which perfectly coincides with the SVM's hyperplane ($w^T \phi(x) = 0$), explaining why it appears well-calibrated at $\tilde{\pi}=0.5$. However, at $\tilde{\pi}=0.1$ or $0.9$, the theoretical Bayes threshold shifts non-linearly. Because SVM distances do not scale like true LLRs, comparing an SVM margin distance to a probabilistic threshold yields severe calibration loss.
 
-\textbf{Logistic Regression Optimization Misalignment:}
-While Logistic Regression does model posterior probabilities using the sigmoid function, our specific LR model was trained using a target prior of $p_T = 0.5$. Furthermore, Logistic Regression relies on a linear log-odds assumption, meaning it assumes the class-conditional densities belong to the exponential family with identical covariance structures. Since we know from Laboratory 5 that our classes have misaligned covariance geometries, the LR boundary is inherently compromised. The resulting scores are systematically biased, causing the massive calibration penalty observed across all test points.
+\textbf{Quadratic Logistic Regression and $L_2$ Regularization:}
+Unlike the strictly linear baseline, the Quadratic Logistic Regression expands the feature space to natively model non-linear separation boundaries, successfully capturing the misaligned covariance structures of our dataset. However, its scores are still heavily miscalibrated at extreme application priors. The true cause of this calibration loss is not an overly simplistic linear boundary, but rather the $L_2$ regularization term ($\lambda = 3.16 \times 10^{-2}$). The regularization heavily penalizes large weights during optimization to prevent overfitting. This artificial compression of the weight vector mathematically squashes the output scores toward zero, preventing them from growing large enough to reflect extreme confidence levels. Consequently, the output scores are structurally distorted and no longer function as well-calibrated log-likelihood ratios, directly leading to the observed calibration penalty.

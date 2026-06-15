@@ -66,3 +66,37 @@ def train_and_eval_project_lr(DTR_centered, LTR, DVAL_centered, D_eval_centered,
     s_val_lr = (w_lr.T @ DVAL_centered + b_lr).ravel()
     s_eval_lr = (w_lr.T @ D_eval_centered + b_lr).ravel()
     return s_val_lr, s_eval_lr
+
+def quadratic_feature_expansion(D):
+    """
+    Expands the feature space to include quadratic terms.
+    For each column x, creates phi(x) = [vec(x * x.T), x]
+    """
+    D_expanded = []
+    for i in range(D.shape[1]):
+        x = D[:, i:i+1]
+        # Compute xxT, flatten it, and concatenate with the original x
+        xxT = np.dot(x, x.T).flatten()
+        phi_x = np.concatenate([xxT, x.flatten()])
+        D_expanded.append(phi_x)
+    return np.column_stack(D_expanded)
+
+def train_and_eval_project_quad_lr(DTR_centered, LTR, DVAL_centered, D_eval_centered, pi_T):
+    """
+    Trains the Quadratic Logistic Regression model for the project part and evaluates it.
+    Returns:
+        s_val_lr: scores on validation set
+        s_eval_lr: scores on evaluation set
+    """
+    DTR_expanded = quadratic_feature_expansion(DTR_centered)
+    DVAL_expanded = quadratic_feature_expansion(DVAL_centered)
+    D_eval_expanded = quadratic_feature_expansion(D_eval_centered)
+    
+    # Train weighted logistic regression model with regularization parameter lambda = 3.16e-2 (optimal from LAB07)
+    # pi_T is the target application prior probability
+    w_lr, b_lr = trainWeightedLogRegBinary(DTR_expanded, LTR, 3.16e-2, pi_T)
+    
+    # Apply model to validation and evaluation sets
+    s_val_lr = (w_lr.T @ DVAL_expanded + b_lr).ravel()
+    s_eval_lr = (w_lr.T @ D_eval_expanded + b_lr).ravel()
+    return s_val_lr, s_eval_lr

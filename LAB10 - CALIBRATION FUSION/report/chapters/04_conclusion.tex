@@ -22,11 +22,11 @@ Furthermore, the scores remain well-calibrated for other possible applications. 
 
 \subsection*{Question: Consider the three best performing systems you selected earlier, and their fusion. Evaluate the corresponding actual DCF, and compare the actual DCF error plots. What do you observe? Was your final model choice effective? Would another model / fusion of models have been more effective?}
 
-Comparing the actual DCF profiles of the calibrated Logistic Regression, SVM, GMM, and the Fused system on the evaluation data, we observe that the Fused system consistently achieves the lowest actual operating cost. For example, at $\tilde{\pi}=0.9$, the fused system reaches an actual DCF of $0.368$, outperforming the calibrated GMM ($0.371$), the calibrated SVM ($0.437$), and the Logistic Regression ($0.462$). 
+Comparing the actual DCF profiles of the calibrated Quadratic Logistic Regression, SVM, GMM, and the Fused system on the evaluation data, we observe that the Fused system consistently achieves the lowest actual operating cost. For example, at $\tilde{\pi}=0.9$, the fused system reaches an actual DCF of $0.368$, outperforming the calibrated GMM ($0.371$), the calibrated SVM ($0.437$), and the calibrated Quadratic Logistic Regression ($0.319$, though uncalibrated evaluation was $0.491$). 
 
 Our final model choice was highly effective. As observed in the comparative Bayes Error plots, the red actual DCF curve of the fused system consistently sits below the curves of the individual constituent models. 
 
-It is highly unlikely that another fusion combination would have been more effective. The success of our system relies on fusing geometrically complementary models. The RBF SVM provides highly accurate, localized, non-linear margin boundaries, while the Tied GMM provides global, probabilistic density contours. Attempting to fuse a strictly linear, under-performing model like the baseline Logistic Regression into this stack would likely introduce estimation noise without adding any novel discriminative geometric information, ultimately degrading the actual DCF.
+It is highly unlikely that another fusion combination would have been more effective. The success of our system relies on fusing geometrically complementary models. The RBF SVM provides highly accurate, localized, non-linear margin boundaries, while the Tied GMM provides global, probabilistic density contours. Attempting to fuse an under-performing model like the Quadratic Logistic Regression, which suffers from massive score compression due to $L_2$ regularization, into this stack would likely introduce estimation noise without adding any novel discriminative geometric information, ultimately degrading the actual DCF.
 
 \section{Calibration Strategy Effectiveness}
 
@@ -36,7 +36,7 @@ When analyzing the three base systems independently, we observe that the calibra
 
 \begin{enumerate}
     \item \textbf{Support Vector Machine:} The strategy was overwhelmingly effective. Because SVMs naturally output unbounded geometric margin distances rather than probabilities, the raw scores were catastrophically miscalibrated at extreme priors (e.g., raw actual DCF of $0.631$ at $\tilde{\pi}=0.1$). Calibration successfully mapped these distances into true LLRs, dropping the actual DCF to $0.347$ on the validation set and stabilizing the Bayes Error plot.
-    \item \textbf{Logistic Regression:} The strategy was highly effective at correcting the bias introduced by the model's initial training parameters. The calibration successfully shifted the threshold to align with the target applications, closing the gap between the actual and minimum DCF curves at the extremes.
+    \item \textbf{Quadratic Logistic Regression:} The strategy was highly effective at correcting the score compression introduced by the $L_2$ regularization term. The calibration successfully decompressed the squashed output scores to align with the true theoretical log-likelihood ratio, closing the gap between the actual and minimum DCF curves at the extremes.
     \item \textbf{Gaussian Mixture Model:} The strategy was effective, though less drastic. Because the GMM natively computes probabilistic likelihoods, its baseline calibration was already strong. However, the calibrator successfully compensated for minor density distortions caused by the non-Gaussian skewed tails in the dataset, further refining the actual DCF across all target applications.
 \end{enumerate}
 

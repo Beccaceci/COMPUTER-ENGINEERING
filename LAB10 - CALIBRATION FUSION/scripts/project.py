@@ -12,7 +12,7 @@ from utils.plot_utils import plot_bayes_errors_multi
 from utils.math_utils import vcol, vrow
 
 # Models
-from models.logistic_regression import train_and_eval_project_lr
+from models.logistic_regression import train_and_eval_project_lr, train_and_eval_project_quad_lr
 from models.svm import train_and_eval_project_svm
 from models.gmm import train_and_eval_project_gmm
 from utils.io_utils import create_emitter
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     D_eval_c = D_eval - mu_train
 
     # Generate scores using optimal hyperparameters from previous labs
-    S_val_lr, S_eval_lr = train_and_eval_project_lr(DTR_c, LTR, DVAL_c, D_eval_c, 0.5) # train and eval LR model for target prior 0.5
+    S_val_lr, S_eval_lr = train_and_eval_project_quad_lr(DTR_c, LTR, DVAL_c, D_eval_c, 0.5) # train and eval Quad LR model for target prior 0.5
     S_val_svm, S_eval_svm = train_and_eval_project_svm(DTR_c, LTR, DVAL_c, D_eval_c) # train and eval SVM model for target prior 0.5
     S_val_gmm, S_eval_gmm = train_and_eval_project_gmm(DTR_c, LTR, DVAL_c, D_eval_c) # train and eval GMM model for target prior 0.5
     
@@ -78,8 +78,14 @@ if __name__ == "__main__":
         # --- A. BASE MODEL EVALUATION (Uncalibrated) ---
         emit("\n--- Base Models (Uncalibrated Validation) ---")
         for name, s_val in [("LogReg", S_val_lr), ("SVM", S_val_svm), ("GMM", S_val_gmm)]:
-            min_dcf = compute_minDCF_binary_fast(s_val, LVAL, pi_T, Cfn, Cfp) # compute min DCF for target prior pi_T
-            act_dcf = compute_actDCF_binary_fast(s_val, LVAL, pi_T, Cfn, Cfp) # compute act DCF for target prior pi_T
+            min_dcf = compute_minDCF_binary_fast(s_val, LVAL, pi_T, Cfn, Cfp)
+            act_dcf = compute_actDCF_binary_fast(s_val, LVAL, pi_T, Cfn, Cfp)
+            emit(f"{name:<10} -> Min DCF: {min_dcf:.3f} | Act DCF: {act_dcf:.3f}")
+
+        emit("\n--- Base Models (Uncalibrated Evaluation) ---")
+        for name, s_eval in [("LogReg", S_eval_lr), ("SVM", S_eval_svm), ("GMM", S_eval_gmm)]:
+            min_dcf = compute_minDCF_binary_fast(s_eval, L_eval, pi_T, Cfn, Cfp)
+            act_dcf = compute_actDCF_binary_fast(s_eval, L_eval, pi_T, Cfn, Cfp)
             emit(f"{name:<10} -> Min DCF: {min_dcf:.3f} | Act DCF: {act_dcf:.3f}")
 
         # --- B. K-FOLD CALIBRATION EVALUATION ---
