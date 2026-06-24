@@ -19,6 +19,9 @@ Machine-Learning-Labs-2026/
 ├── LAB05 - GENERATIVE GAUSSIAN MODELS
 ├── LAB06 - BAYES RISK AND MODEL EVALUATION
 ├── LAB07 - LOGISTIC REGRESSION
+├── LAB08 - SUPPORT VECTOR MACHINES
+├── LAB09 - GMM
+├── LAB10 - CALIBRATION FUSION
 │
 ├── README.md
 └── .gitignore
@@ -108,6 +111,37 @@ Implementation of discriminative linear classifiers:
 
 ---
 
+## LAB08 — Support Vector Machines
+Implementation and analysis of Support Vector Machines:
+
+- Linear SVM
+- Polynomial kernel SVM
+- Radial Basis Function (RBF) kernel SVM
+- Margin optimization
+- Kernel trick
+
+---
+
+## LAB09 — GMM
+Study and implementation of Gaussian Mixture Models:
+
+- Expectation-Maximization (EM) algorithm
+- LBG algorithm for initialization
+- Gaussian Mixture Models classification
+- Diagonal and tied covariance matrices
+
+---
+
+## LAB10 — Calibration Fusion
+Advanced model evaluation and score fusion:
+
+- System evaluation
+- Score calibration
+- Score fusion techniques
+- Logistic regression for fusion
+
+---
+
 # Requirements
 
 The project is developed using Python 3.
@@ -140,7 +174,7 @@ pip install numpy scipy matplotlib scikit-learn
 Clone the repository:
 
 ```bash
-git clone https://github.com/Beccaceci/Machine-Learning-Labs-2026.git
+git clone https://github.com/NicolaBeccaceci/Machine-Learning-Labs-2026.git
 ```
 
 Move into the repository:
