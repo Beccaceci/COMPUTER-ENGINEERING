@@ -1,6 +1,0 @@
-\contentsline {chapter}{\numberline {1}Gaussian Classifiers Performance Across Applications}{2}{}%
-\contentsline {section}{\numberline {1.1}Evaluation of the Applications}{2}{}%
-\contentsline {section}{\numberline {1.2}Equivalence of Costs and Effective Priors}{3}{}%
-\contentsline {chapter}{\numberline {2}Comparison of Gaussian Classifier Variants}{5}{}%
-\contentsline {section}{\numberline {2.1}Evaluation on Effective Priors}{5}{}%
-\contentsline {section}{\numberline {2.2}Extended Range Analysis (Bayes Error Plots)}{7}{}%
