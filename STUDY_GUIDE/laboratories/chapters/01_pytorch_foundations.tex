@@ -881,7 +881,7 @@ Prior to training, random guessing on a 10-class dataset yields an accuracy of $
 While training an MLP from scratch yields $\approx 47\%$ accuracy on CIFAR-10, modern engineering relies on \textbf{transfer learning}: reusing representations acquired by deep models pretrained on massive datasets (such as ImageNet's 1.2 million images).
 
 \subsection{Deep residual learning (ResNet)}
-Introduced by He et al.\ \cite{he2016deep}, Deep Residual Networks solve the vanishing gradient problem in networks with dozens of layers by introducing \textbf{identity shortcut connections}:
+Introduced in \cite{he2016deep}, Deep Residual Networks solve the vanishing gradient problem in networks with dozens of layers by introducing \textbf{identity shortcut connections}:
 \begin{equation}
 \vy = \mathcal{F}(\vx, \{\mW_i\}) + \vx.
 \end{equation}

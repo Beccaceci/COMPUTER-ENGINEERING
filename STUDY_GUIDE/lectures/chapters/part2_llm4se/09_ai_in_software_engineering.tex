@@ -32,7 +32,7 @@ where $\mathcal{V}_N$ represents non-terminal syntactic constructs (e.g., \textt
 \end{definition}
 
 \begin{examinsight}[Exam comparison: CFG vs DFG]
-Professors Coppola and Giobergia frequently ask students to differentiate between Control Flow Graphs (CFG) and Data Flow Graphs (DFG):
+In course examinations, a recurrent question requires students to differentiate between Control Flow Graphs (CFG) and Data Flow Graphs (DFG):
 \begin{itemize}
     \item \textbf{Control Flow Graph (CFG)}: Nodes represent basic execution blocks; directed edges represent branch transitions (\texttt{if-else}, loops, returns). Shows the \emph{order} of execution.
     \item \textbf{Data Flow Graph (DFG)}: Directed edges trace the def-use chains of variables ($\text{var}_x \text{ defined at line } i \to \text{read at line } j$). Preserves semantic data dependencies invariant to code formatting and variable renaming.
@@ -40,7 +40,7 @@ Professors Coppola and Giobergia frequently ask students to differentiate betwee
 \end{examinsight}
 
 \begin{deepdive}[CodeBERT and pre-trained models of code]
-Feng et al. \citep{feng2020codebert} introduced CodeBERT, a bimodal pre-trained model combining natural language documentation with source code via masked language modeling and replaced token detection. Subsequent breakthroughs such as OpenAI's Codex \citep{chen2021codex} demonstrated that scaling causal decoders on hundreds of gigabytes of open-source code repositories produces emergent zero-shot code generation capabilities.
+In \citep{feng2020codebert}, CodeBERT was introduced as a bimodal pre-trained model combining natural language documentation with source code via masked language modeling and replaced token detection. Subsequent breakthroughs such as Codex \citep{chen2021codex} demonstrated that scaling causal decoders on hundreds of gigabytes of open-source code repositories produces emergent zero-shot code generation capabilities.
 \end{deepdive}
 
 \end{document}

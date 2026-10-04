@@ -11,7 +11,7 @@ Having established the probabilistic formulation of language modeling and the co
 
 The foundational building block of modern deep learning is the \emph{perceptron}, originally inspired by biological neurons in the human nervous system. A biological neuron receives electrochemical signals from upstream cells through branching \emph{dendrites}, integrates these incoming potentials in its central cell body (\emph{soma}), and, when the accumulated electrical voltage exceeds a physiological threshold (the action potential), fires a spike through its \emph{axon} to downstream synapses.
 
-In computational neural networks, this biological mechanism was first formalized by Warren McCulloch and Walter Pitts in 1943 \cite{mcculloch1943} as a threshold logic unit and subsequently refined by Frank Rosenblatt in 1958 \cite{rosenblatt1958} into the trainable \emph{Perceptron}.
+In computational neural networks, this biological mechanism was first formalized in 1943 \cite{mcculloch1943} as a threshold logic unit and subsequently refined in 1958 \cite{rosenblatt1958} into the trainable \emph{Perceptron} (examined on Slide 7 of the course deep learning foundations).
 
 \begin{definition}{The artificial perceptron}{perceptron}
 Let $\vx = [x_1, x_2, \dots, x_n]^\top \in \R^n$ represent an input feature vector, and let $\vw = [w_1, w_2, \dots, w_n]^\top \in \R^n$ represent the corresponding parameter weights, with scalar bias $w_0 = b \in \R$. The artificial perceptron computes:
@@ -411,7 +411,7 @@ satisfies uniform approximation error:
 \end{equation}
 \end{theorem}
 
-Originally proved by George Cybenko \cite{cybenko1989} for sigmoidal activations and generalized by Kurt Hornik et al.~\cite{hornik1989} and Moshe Leshno et al.~\cite{leshno1993} to arbitrary continuous non-polynomial activations, this theorem guarantees that a feedforward network with a single hidden layer has the mathematical capacity to approximate any continuous function.
+Originally proved in \cite{cybenko1989} for sigmoidal activations and generalized in \cite{hornik1989} and \cite{leshno1993} to arbitrary continuous non-polynomial activations, this theorem guarantees that a feedforward network with a single hidden layer has the mathematical capacity to approximate any continuous function (as discussed in the course theoretical foundations).
 
 \paragraph{Intuitive geometric derivation: bump-function synthesis.}
 To understand intuitively why a single hidden layer can approximate any continuous curve, consider a 1D function $g(x): [a, b] \to \R$.

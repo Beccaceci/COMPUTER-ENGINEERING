@@ -67,7 +67,7 @@ This formulation aligns directly with the classic psychological \emph{cloze test
 Every modern autoregressive language model, including GPT-4 and Claude, relies fundamentally on this conditional next-token formulation.
 
 \begin{intuition}[The core thesis: next-word prediction as full language modeling]
-In the opening lecture at Politecnico di Torino, Prof.~Giobergia crystallized the essence of modern language modeling:
+In the opening lecture of the Politecnico di Torino course, the fundamental essence of modern language modeling was crystallized:
 \begin{quote}
 \emph{``If we can predict the next word, then we have estimated this conditional probability. And then we can plug this into the chain rule, and estimate the probability of any arbitrary sentence. This is what a language model does: nothing more, nothing less. If you understand this idea, you understand the core mechanism driving the entire course, from 1980s Markov chains to modern trillion-parameter LLMs.''}
 \end{quote}
@@ -131,7 +131,7 @@ Although Equation~\eqref{eq:chain_rule_exact} is mathematically exact and preser
 \end{equation}
 Even for a modest vocabulary of $V = 10{,}000$ words, tracking histories of length $t = 4$ requires estimating probabilities over $10{,}000^3 = 10^{12}$ distinct conditioning states. In any finite training corpus, almost every sequence of length greater than three occurs exactly zero times.
 
-To make estimation mathematically tractable, the Russian mathematician Andrey Markov formulated the principle of conditional independence that now bears his name. In his landmark 1948 treatise on information theory, Claude Shannon \cite{shannon1948} demonstrated that modeling natural language as a discrete Markov process produces increasingly coherent synthetic English as the conditioning order increases. Modern pedagogical treatments, notably by Jurafsky and Martin \cite{jurafsky2024}, formalize this simplification as the foundation of classical statistical natural language processing.
+To make estimation mathematically tractable, the principle of conditional independence formalizes that future tokens depend only on a bounded historical window. In the landmark 1948 treatise on information theory \cite{shannon1948}, it was demonstrated that modeling natural language as a discrete Markov process produces increasingly coherent synthetic English as the conditioning order increases. Modern pedagogical treatments \cite{jurafsky2024} formalize this simplification as the foundation of classical statistical natural language processing.
 
 \begin{definition}{Markov assumption of order $n-1$}{markov_assumption}
 An $n$-gram language model assumes that the conditional probability of the current word $w_t$ depends exclusively on the immediately preceding $n-1$ words, rendering it conditionally independent of all earlier discourse history:
@@ -538,7 +538,7 @@ Although mathematically clean, Add-1 smoothing performs terribly in natural lang
 Add-1 smoothing steals more than $99.8\%$ of the probability mass from observed events and reallocates it uniformly to unobserved transitions. Even Lidstone smoothing ($\alpha = 0.05$) assigns the same probability to all unseen words, failing to recognize that some unseen words (e.g., common nouns) are inherently more probable than rare technical jargon.
 
 \subsection{Good-Turing discounting}
-Developed by I.J. Good and Alan Turing \cite{good1953} during their cryptographic work at Bletchley Park, \emph{Good-Turing discounting} derives the probability of events seen $r$ times directly from the count of events seen $r+1$ times.
+Originally formulated in \cite{good1953} during cryptographic research at Bletchley Park, \emph{Good-Turing discounting} derives the probability of events seen $r$ times directly from the count of events seen $r+1$ times.
 
 \paragraph{Frequency of frequencies.}
 Let $r = C(w_{t-n+1}^t) \ge 0$ denote the empirical frequency of an $n$-gram. We define the \emph{frequency of frequencies} $N_r$ as the total number of distinct $n$-grams that appeared exactly $r$ times in the training corpus:
@@ -574,7 +574,7 @@ Because there are $N_0$ unobserved $n$-grams, each individual unseen $n$-gram re
 For large values of $r$, empirical counts become sparse ($N_r$ fluctuates wildly or drops to zero, making $N_{r+1}/N_r$ undefined). In production systems, \emph{Simple Good-Turing} \cite{manning1999} replaces raw $N_r$ values with smoothed estimates derived from a linear regression fit in log space ($\log N_r = a + b \log r$) for $r > k$.
 
 \subsection{Katz backoff with \texorpdfstring{$\alpha$}{alpha} normalization}
-Slava Katz \cite{katz1987} extended Good-Turing discounting by introducing a hierarchical recursive backoff mechanism: if an $n$-gram has been observed, use its discounted probability; if it has never been observed, back off to the $(n-1)$-gram distribution, scaled by a normalizing factor.
+The recursive framework introduced in \cite{katz1987} extended Good-Turing discounting through a hierarchical backoff mechanism: if an $n$-gram has been observed, use its discounted probability; if it has never been observed, back off to the $(n-1)$-gram distribution, scaled by a normalizing factor.
 
 \paragraph{Mathematical formulation.}
 For a bigram model, the Katz backoff estimator is:
@@ -625,7 +625,7 @@ Consider predicting the missing word in the sentence:
 \end{center}
 The word \textit{``glasses''} should receive a high conditional probability. Now consider the word \textit{``Francisco''}. In any standard text corpus, \textit{``Francisco''} has a high unigram frequency because the proper noun \textit{``San Francisco''} appears frequently. Under Katz backoff, because the bigram \textit{``reading Francisco''} has zero count, the model backs off to the unigram frequency of \textit{``Francisco''}, assigning it a dangerously high probability of completing the sentence!
 
-Kneser and Ney recognized that the unigram backoff distribution should not reflect \emph{how often} a word appears overall, but \emph{how versatile} the word is across diverse preceding contexts.
+The breakthrough insight in \cite{kneser1995} recognized that the unigram backoff distribution should not reflect \emph{how often} a word appears overall, but \emph{how versatile} the word is across diverse preceding contexts.
 
 \begin{definition}{Continuation probability}{continuation_prob}
 The \emph{continuation probability} $\Prob_{\text{cont}}(w_t)$ is the ratio of the number of unique preceding word types that precede $w_t$ to the total number of unique bigram types in the vocabulary:
@@ -852,7 +852,7 @@ Understanding modern large language models requires appreciating the 75-year evo
 \node[eraCard, draw=politoNavy, fill=politoNavy!6] (era1) at (0, 0) {
     \begin{minipage}{14.2cm}
         \textcolor{politoNavy}{\faCalculator\enspace\textbf{\textsf{Era 1: Statistical foundations \& discrete counting (1948--1990s)}}}\\[3pt]
-        \tikz \node[badge, fill=politoNavy] {1948}; \textbf{Shannon Information Theory}: Entropy, Markov chains, $n$-gram letter approximations, Shannon game \cite{shannon1948}.\\[2pt]
+        \tikz \node[badge, fill=politoNavy] {1948}; \textbf{Information Theory and Markov Approximations}: Entropy, Markov chains, $n$-gram letter approximations, predictive games \cite{shannon1948}.\\[2pt]
         \tikz \node[badge, fill=politoNavy] {1990s}; \textbf{Statistical Smoothing \& Decision Trees}: Good-Turing, Kneser-Ney backoff, decision-tree context equivalence classes \cite{potamianos1998,katz1987,kneser1995}.\\
         \textit{Core limitation}: Orthogonal one-hot representations, combinatorial state explosion $|\vocab|^n$, zero-frequency catastrophe.
     \end{minipage}
@@ -862,7 +862,7 @@ Understanding modern large language models requires appreciating the 75-year evo
 \node[eraCard, draw=deepdiveTeal, fill=deepdiveTeal!6, below=12pt of era1] (era2) {
     \begin{minipage}{14.2cm}
         \textcolor{deepdiveTeal}{\faProjectDiagram\enspace\textbf{\textsf{Era 2: Continuous distributed representations (2000--2014)}}}\\[3pt]
-        \tikz \node[badge, fill=deepdiveTeal] {2003}; \textbf{Bengio Neural Probabilistic LM (NPLM)}: Continuous dense lookup $\mathbf{C} \in \R^{|\vocab| \times d}$, MLP, softmax over vocabulary \cite{bengio2003}.\\[2pt]
+        \tikz \node[badge, fill=deepdiveTeal] {2003}; \textbf{Neural Probabilistic Language Model (NPLM)}: Continuous dense lookup $\mathbf{C} \in \R^{|\vocab| \times d}$, MLP, softmax over vocabulary \cite{bengio2003}.\\[2pt]
         \tikz \node[badge, fill=deepdiveTeal] {2013}; \textbf{Word2Vec (CBOW \& Skip-gram)}: Continuous vector projections, negative sampling for billion-word corpus training.\\
         \textit{Core limitation}: Static embeddings unable to handle polysemy; fixed Markov window sizes; expensive softmax normalization.
     \end{minipage}
@@ -912,7 +912,7 @@ Understanding modern large language models requires appreciating the 75-year evo
 \subsection{1948--1980s: Shannon's information theory and Markov n-grams}
 \label{subsec:milestone_shannon_markov}
 
-The conceptual origin of language modeling stems from Claude Shannon's landmark 1948 paper \textit{``A Mathematical Theory of Communication''} \cite{shannon1948}. Shannon treated written human language as a discrete stochastic process generated by an underlying stationary Markov source over a finite alphabet. 
+The conceptual origin of language modeling stems from the landmark 1948 paper \textit{``A Mathematical Theory of Communication''} \cite{shannon1948}. In that work, written human language was treated as a discrete stochastic process generated by an underlying stationary Markov source over a finite alphabet. 
 
 Shannon introduced the \emph{Shannon game}---a pedagogical thought experiment where an observer attempts to predict the next letter in an unknown sequence of text given the preceding letters. Shannon demonstrated that as the conditioning context length increases from zero-order (independent uniform character selection) to unigram (individual character frequencies), bigram (pairs), and trigram (triplets) models, the generated text rapidly converges toward natural English orthography and syntax.
 
@@ -953,7 +953,7 @@ In this framework, the conditional probability of token $w_t$ given context $w_1
 
 Throughout the 1990s, as speech recognition and machine translation systems scaled, researchers recognized that flat $n$-gram tables could not condition on long histories without exponential parameter explosion. 
 
-To overcome this, Potamianos and Jelinek (1998) \cite{potamianos1998} introduced \emph{decision-tree language models} (Slide 19). Rather than conditioning probability on a rigid, exact sequence of $n-1$ tokens, a binary decision tree asks a sequence of syntactic and lexical questions about the historical context $\mathcal{H} = (w_{t-1}, w_{t-2}, \dots)$.
+To overcome this limitation in the course progression, \emph{decision-tree language models} were introduced in \cite{potamianos1998} (as examined on Slide 19 of the course lecture deck). Rather than conditioning probability on a rigid, exact sequence of $n-1$ tokens, a binary decision tree asks a sequence of syntactic and lexical questions about the historical context $\mathcal{H} = (w_{t-1}, w_{t-2}, \dots)$.
 
 \begin{figure}[htbp]
 \centering
@@ -980,16 +980,16 @@ To overcome this, Potamianos and Jelinek (1998) \cite{potamianos1998} introduced
 \draw[arr] (q3) -- node[edgeLabel, above left] {Yes} (l3);
 \draw[arr] (q3) -- node[edgeLabel, above right] {No} (l4);
 \end{tikzpicture}
-\caption{Decision tree context partitioning for conditional language modeling (Potamianos \& Jelinek 1998).}
+\caption{Decision tree context partitioning for conditional language modeling \cite{potamianos1998}.}
 \label{fig:decision_tree_lm}
 \end{figure}
 
 As illustrated in Figure~\ref{fig:decision_tree_lm}, context histories that share identical predictive characteristics are clustered into the same leaf node $\mathcal{L}_k$, yielding conditional distributions $\Prob(w_t \mid \mathcal{L}_k)$. While this reduced the number of free parameters compared to full tables, the model remained fundamentally bound to discrete categorical splitting without true semantic interpolation.
 
-\subsection{2000--2003: Bengio's neural probabilistic language model}
+\subsection{2000--2003: The neural probabilistic language model}
 \label{subsec:milestone_bengio_nplm}
 
-In their landmark 2003 paper \textit{``A Neural Probabilistic Language Model''}, Yoshua Bengio, R{\'e}jean Ducharme, Pascal Vincent, and Christian Jauvin \cite{bengio2003} permanently revolutionized NLP by introducing continuous distributed representations to defeat the curse of dimensionality (Slide 20).
+In the landmark 2003 paper \textit{``A Neural Probabilistic Language Model''} \cite{bengio2003}, natural language processing was revolutionized by introducing continuous distributed representations to defeat the curse of dimensionality (as highlighted on Slide 20 of the course lectures).
 
 \begin{figure}[htbp]
 \centering
@@ -1056,11 +1056,11 @@ In their landmark 2003 paper \textit{``A Neural Probabilistic Language Model''},
 \draw[arr, dashed, draw=bodyGray!80] (concat.east) to[bend right=45] node[right, font=\tiny\sffamily] {Direct skip $\mathbf{W}_{\text{dir}}$} (output.east);
 
 \end{tikzpicture}
-\caption{Yoshua Bengio's Neural Probabilistic Language Model (NPLM, 2003). Discrete context words are mapped into continuous dense feature vectors via shared matrix $\mathbf{C} \in \R^{|\vocab| \times d}$, concatenated, and processed through a non-linear hidden layer to predict next-token probabilities via softmax.}
+\caption{The Neural Probabilistic Language Model (NPLM) architecture \cite{bengio2003}. Discrete context words are mapped into continuous dense feature vectors via shared matrix $\mathbf{C} \in \R^{|\vocab| \times d}$, concatenated, and processed through a non-linear hidden layer to predict next-token probabilities via softmax.}
 \label{fig:bengio_nplm_arch}
 \end{figure}
 
-Bengio replaced discrete count tables with a continuous parameterized architecture (Figure~\ref{fig:bengio_nplm_arch}):
+The neural probabilistic formulation in \cite{bengio2003} replaced discrete count tables with a continuous parameterized architecture (Figure~\ref{fig:bengio_nplm_arch}):
 \begin{enumerate}
     \item \textbf{Continuous Embedding Projection}: Each word $w \in \vocab$ is associated with a real-valued distributed feature vector $\mathbf{c}_w \in \R^d$ ($d \ll |\vocab|$, e.g., $d = 100$). The vocabulary lookup matrix $\mathbf{C} \in \R^{|\vocab| \times d}$ is learned jointly via backpropagation.
     \item \textbf{Semantic Smoothing via Continuous Space}: If \textit{``cat''} and \textit{``feline''} have similar embedding vectors ($\mathbf{c}_{\text{cat}} \approx \mathbf{c}_{\text{feline}}$), observing \textit{``the cat chased the mouse''} automatically increases the model's confidence in \textit{``the feline chased the mouse''}. Continuous geometry solves the orthogonal symbol limitation.
@@ -1074,7 +1074,7 @@ Bengio replaced discrete count tables with a continuous parameterized architectu
 \subsection{2018--2019: Generative pre-training and GPT-2}
 \label{subsec:milestone_gpt2}
 
-While Bengio established continuous representations, models throughout the 2000s and 2010s remained restricted in scale and context length. In 2018--2019, Radford and colleagues at OpenAI published GPT-2 (\textit{``Language Models are Unsupervised Multitask Learners''} \cite{radford2019}, Slide 21).
+While continuous representations were established in \cite{bengio2003}, models throughout the 2000s and 2010s remained restricted in scale and context length. In 2018--2019, the GPT-2 architecture was introduced in \cite{radford2019} (\textit{``Language Models are Unsupervised Multitask Learners''}, examined on Slide 21 of the course slides).
 
 GPT-2 demonstrated that massive, autoregressive decoder-only models trained on hundreds of gigabytes of uncurated internet text (WebText) could perform diverse natural language and software tasks without task-specific supervised training. By predicting next tokens over context windows of $1{,}024$ tokens, the model exhibited emergent zero-shot transfer across reading comprehension, machine translation, and Python code generation.
 
@@ -1083,7 +1083,7 @@ GPT-2 demonstrated that massive, autoregressive decoder-only models trained on h
 
 Following GPT-2 and GPT-3, the deep learning industry initiated an aggressive scaling arms race, culminating in monolithic models such as the Megatron-Turing NLG 530B (Slide 22). However, early scaling heuristics \cite{kaplan2020} recommended scaling model parameters faster than training data. Consequently, models like Megatron-Turing NLG 530B and GPT-3 (175B parameters trained on 300B tokens) were severely \textbf{undertrained} relative to their parameter capacity.
 
-In 2022, Jordan Hoffmann and colleagues at DeepMind published \textit{``Training Compute-Optimal Large Language Models''} \cite{hoffmann2022}, establishing the \textbf{Chinchilla} scaling laws:
+In 2022, the landmark study \textit{``Training Compute-Optimal Large Language Models''} \cite{hoffmann2022} established the \textbf{Chinchilla} scaling laws:
 \begin{equation}
 \label{eq:chinchilla_ratio}
 D \approx 20 \times N,
