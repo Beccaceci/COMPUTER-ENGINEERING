@@ -81,7 +81,7 @@ Multiplying $\mW_{\text{in}}$ by the one-hot column vector $\ve_i$ extracts the 
 \vh = \mW_{\text{in}} \ve_i = \sum_{k=1}^V (\ve_i)_k (\mW_{\text{in}})_{:, k} = 1 \cdot (\mW_{\text{in}})_{:, i} + \sum_{k \neq i} 0 \cdot (\mW_{\text{in}})_{:, k} = \vw_i \in \R^d.
 \end{equation}
 
-\noindent\textbf{Case 2: Row-Vector Orientation (PyTorch and Raschka Convention).}  
+\noindent\textbf{Case 2: Row-Vector Orientation (PyTorch and Modern Deep Learning Convention).}  
 Let $\mW \in \R^{V \times d}$ be an embedding table whose $k$-th row contains the embedding vector $\vw_k^\top = \mW_{k, :} \in \R^{1 \times d}$. Multiplying the one-hot row vector $\ve_i^\top$ by $\mW$ extracts the $i$-th row of $\mW$:
 \begin{equation}
 \label{eq:row_lookup_proof}
@@ -1373,53 +1373,54 @@ Modern Large Language Models (LLMs) such as GPT-2, GPT-3, GPT-4, LLaMA, and Clau
 \begin{enumerate}
     \item \textbf{Subword Tokenization}: Segmenting raw text into atomic subword units using Byte Pair Encoding (BPE), resolving punctuation and whitespace losslessly.
     \item \textbf{Token ID Mapping}: Converting discrete subwords into numerical indices via an invertible vocabulary lookup table, enriched with special operational context markers.
-    \item \textbf{Autoregressive Sliding Window Sampling}: Constructing shifted input-target training pairs $(\mathbf{X}, \mathbf{Y})$ with causal next-token alignment.
-    \item \textbf{Composite Embedding Synthesis}: Injecting order into permutation-invariant neural layers by additively combining continuous token embeddings with position embeddings: $\mathbf{X}_{\text{in}} = \mathbf{E}_{\text{tok}} + \mathbf{E}_{\text{pos}}$.
+    \item \textbf{Continuous Embedding Projection}: Retrieving dense vector representations for each token index from a learned embedding table $\mW_{\text{tok}} \in \R^{V \times d}$.
+    \item \textbf{Composite Positional Synthesis}: Injecting sequential order into permutation-invariant neural layers by additively combining continuous token embeddings with positional embeddings: $\mathbf{X}_{\text{in}} = \mathbf{E}_{\text{tok}} + \mathbf{E}_{\text{pos}}$.
 \end{enumerate}
 
 Figure~\ref{fig:modern_tokenization_pipeline} illustrates this end-to-end data pipeline from raw textual strings to the final continuous tensor ingested by Transformer architectures.
 
 \begin{figure}[htbp]
 \centering
-\resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[
-    node distance=1.0cm and 1.2cm,
-    block/.style={rectangle, draw=politoNavy, fill=skyBlue!20, thick, rounded corners=3pt, minimum height=11mm, minimum width=26mm, align=center, font=\small\sffamily},
-    tokblock/.style={rectangle, draw=deepdiveTeal, fill=deepdiveTealBg, thick, rounded corners=3pt, minimum height=10mm, minimum width=22mm, align=center, font=\footnotesize\ttfamily},
-    matblock/.style={rectangle, draw=intuitionPurple, fill=intuitionPurpleBg, thick, rounded corners=3pt, minimum height=11mm, minimum width=28mm, align=center, font=\small\sffamily},
-    outblock/.style={rectangle, draw=examAmber, fill=examAmberBg, very thick, rounded corners=4pt, minimum height=12mm, minimum width=34mm, align=center, font=\small\bfseries\sffamily},
-    arr/.style={-{Stealth[scale=1.1]}, thick, draw=bodyDark},
-    dimlabel/.style={font=\tiny\ttfamily, text=bodyGray}
+    node distance=1.2cm,
+    block/.style={rectangle, draw=politoNavy, fill=skyBlue!20, thick, rounded corners=3pt, minimum height=11mm, text width=9.5cm, align=center, font=\small\sffamily},
+    tokblock/.style={rectangle, draw=deepdiveTeal, fill=deepdiveTealBg, thick, rounded corners=3pt, minimum height=11mm, text width=9.5cm, align=center, font=\small\sffamily},
+    matblock/.style={rectangle, draw=intuitionPurple, fill=intuitionPurpleBg, thick, rounded corners=3pt, minimum height=12mm, text width=4.8cm, align=center, font=\small\sffamily},
+    outblock/.style={rectangle, draw=examAmber, fill=examAmberBg, very thick, rounded corners=4pt, minimum height=12mm, text width=9.5cm, align=center, font=\small\bfseries\sffamily},
+    arr/.style={-{Stealth[scale=1.1]}, thick, draw=bodyDark}
 ]
 
-% Top pipeline: Text to Windowed Tokens
+% Vertical flow nodes
 \node[block] (raw) at (0, 0) {\textbf{1. Raw Text Stream}\\[2pt]\footnotesize\ttfamily "Hello, world! <|endoftext|>"};
-\node[tokblock] (bpe) at (4.0, 0) {\textbf{2. Byte-Level BPE}\\[2pt]['Hello', ',', 'Ġworld', '!', '<|endoftext|>']};
-\node[tokblock] (ids) at (8.5, 0) {\textbf{3. Token IDs}\\[2pt]\texttt{[15496, 11, 995, 0, 50256]}};
-\node[block] (window) at (12.8, 0) {\textbf{4. Sliding Window}\\[2pt]Shifted Causal Pairs $(\mathbf{X}, \mathbf{Y})$};
 
-% Bottom embeddings
-\node[matblock] (tok_emb) at (10.0, -2.4) {\textbf{Token Embedding Table}\\[2pt]$\mathbf{W}_{\text{tok}} \in \R^{V \times d} \implies \mathbf{E}_{\text{tok}} \in \R^{B \times L \times d}$};
-\node[matblock] (pos_emb) at (15.5, -2.4) {\textbf{Positional Embedding}\\[2pt]$\mathbf{W}_{\text{pos}} \in \R^{L_{\max} \times d} \implies \mathbf{E}_{\text{pos}} \in \R^{1 \times L \times d}$};
+\node[tokblock] (bpe) at (0, -1.8) {\textbf{2. Byte-Level BPE Tokenizer}\\[2pt]\footnotesize\ttfamily ['Hello', ',', 'Ġworld', '!', '<|endoftext|>']};
 
-\node[circle, draw=politoNavy, fill=skyBlue!30, thick, inner sep=2pt, font=\large\bfseries] (add) at (12.8, -3.9) {$+$};
-\node[outblock] (final) at (12.8, -5.3) {\textbf{Composite Input Tensor to Transformer}\\[2pt]$\mathbf{X}_{\text{in}} = \mathbf{E}_{\text{tok}} + \mathbf{E}_{\text{pos}} \in \R^{B \times L \times d}$};
+\node[tokblock] (ids) at (0, -3.6) {\textbf{3. Token ID Mapping ($\vocab \to \mathbb{Z}$)}\\[2pt]\footnotesize\ttfamily [15496, 11, 995, 0, 50256]};
 
-% Connections
+% Parallel embedding tables
+\node[matblock] (tok_emb) at (-2.8, -5.7) {\textbf{Token Embedding Table}\\[2pt]\footnotesize $\mW_{\text{tok}} \in \R^{V \times d} \implies \mathbf{E}_{\text{tok}} \in \R^{B \times L \times d}$};
+
+\node[matblock] (pos_emb) at (2.8, -5.7) {\textbf{Positional Embedding}\\[2pt]\footnotesize $\mW_{\text{pos}} \in \R^{L_{\max} \times d} \implies \mathbf{E}_{\text{pos}} \in \R^{1 \times L \times d}$};
+
+% Elementwise addition
+\node[circle, draw=politoNavy, fill=skyBlue!30, thick, inner sep=2pt, font=\large\bfseries] (add) at (0, -7.3) {$+$};
+
+% Composite input tensor
+\node[outblock] (final) at (0, -8.7) {\textbf{Composite Input Tensor to Transformer}\\[2pt]$\mathbf{X}_{\text{in}} = \mathbf{E}_{\text{tok}} + \mathbf{E}_{\text{pos}} \in \R^{B \times L \times d}$};
+
+% Forward sequential connections (arrows strictly pointing downward)
 \draw[arr] (raw) -- (bpe);
 \draw[arr] (bpe) -- (ids);
-\draw[arr] (ids) -- (window);
 
-\draw[arr] (window.south) -- ++(0, -0.6) -| (tok_emb.north);
-\draw[arr] (window.south) -- ++(0, -0.6) -| (pos_emb.north);
+\draw[arr] (ids.south) -- ++(0, -0.4) -| (tok_emb.north);
+\draw[arr] (ids.south) -- ++(0, -0.4) -| (pos_emb.north);
 
 \draw[arr] (tok_emb.south) |- (add.west);
 \draw[arr] (pos_emb.south) |- (add.east);
 \draw[arr] (add) -- (final);
 
-\end{tikzpicture}%
-}
-\caption{The complete modern foundation model tokenization and input preparation pipeline. Raw text is segmented into byte-level BPE subwords, mapped to unique token IDs, sliced into autoregressive input-target pairs via a sliding window, and mapped into continuous latent space where token embeddings and learned positional embeddings combine additively.}
+\end{tikzpicture}
+\caption{The modern foundation model tokenization and input preparation pipeline. Raw text is segmented into byte-level BPE subwords, mapped to unique integer token IDs, and converted into continuous latent vectors where token embeddings and positional embeddings combine additively.}
 \label{fig:modern_tokenization_pipeline}
 \end{figure}
 
@@ -1454,7 +1455,7 @@ A naive baseline approach to text tokenization splits raw strings on whitespace 
 The comma is fused to \texttt{"Hello"}, and periods are fused to \texttt{"world"} and \texttt{"test"}. Consequently, the model assigns distinct vocabulary indices to \texttt{"world"}, \texttt{"world!"}, \texttt{"world,"}, and \texttt{"world?"}. This fragments training counts, bloats the vocabulary with redundant punctuation variants, and destroys syntactic generalization.
 
 \paragraph{Regex-based tokenization with punctuation isolation.}
-To isolate punctuation while preserving them as distinct semantic tokens, Sebastian Raschka formulates a regular expression splitting rule that captures punctuation symbols, em-dashes, and whitespaces:
+To isolate punctuation while preserving them as distinct semantic tokens, a regular expression splitting rule can be formulated \cite{raschka2024llm} that captures punctuation symbols, em-dashes, and whitespaces:
 \begin{lstlisting}[language=Python, caption={Basic regular expression text tokenization with punctuation isolation and vocabulary construction \cite{raschka2024llm}.}, label={lst:simple_tokenizer}]
 import re
 
@@ -1515,39 +1516,183 @@ In practical machine learning and software engineering workflows, a vocabulary c
 To conquer the Out-of-Vocabulary barrier without blowing up sequence length, modern LLMs deploy \textbf{Byte Pair Encoding (BPE)}. Originally invented for data compression in \cite{gage1994}, BPE was adapted to natural language processing in \cite{sennrich2016}.
 
 \paragraph{Algorithmic formalization.}
-BPE constructs a subword vocabulary through an iterative bottom-up statistical merge procedure:
+BPE constructs a subword vocabulary through an iterative bottom-up statistical merge procedure partitioned into distinct training and inference phases:
 \begin{enumerate}
-    \item \textbf{Initialization}: Initialize vocabulary $\mathcal{V}_0$ with all unique characters occurring in the training corpus $\mathcal{C}$. Represent each word in $\mathcal{C}$ as a sequence of individual character symbols followed by an end-of-word boundary marker.
-    \item \textbf{Pair Counting}: At iteration $k$, count the frequency of all adjacent symbol pairs $(p_1, p_2)$ across all words in corpus $\mathcal{C}$:
+    \item \textbf{Base Alphabet Initialization}: Initialize base vocabulary $\mathcal{V}_0$ with all individual characters occurring across the training corpus $\mathcal{C}$, augmenting each word with an explicit end-of-word boundary marker (e.g., `\texttt{</w>}'):
+    \begin{equation}
+    \label{eq:bpe_init_vocab}
+    \mathcal{V}_0 = \{c \mid c \in w, \; w \in \mathcal{C}\} \cup \{\text{\texttt{</w>}}\}.
+    \end{equation}
+    Every word in $\mathcal{C}$ is initially split into a sequence of individual character symbols.
+    
+    \item \textbf{Adjacent Pair Frequency Tally}: At iteration $k$, construct the co-occurrence frequency histogram over all adjacent symbol pairs $(p_1, p_2)$ across all tokenized words in $\mathcal{C}$:
     \begin{equation}
     \label{eq:bpe_pair_freq}
     (p_1^*, p_2^*) = \argmax_{(p_1, p_2)} \sum_{w \in \mathcal{C}} \text{count}(w) \cdot \mathbb{I}\{(p_1, p_2) \subseteq w\}.
     \end{equation}
-    \item \textbf{Symbol Merge}: Merge the most frequent pair $(p_1^*, p_2^*)$ into a new atomic symbol $p_{\text{new}} = p_1^* \circ p_2^*$.
-    \item \textbf{Vocabulary Expansion}: Update the vocabulary: $\mathcal{V}_k = \mathcal{V}_{k-1} \cup \{p_{\text{new}}\}$, and replace all occurrences of the contiguous pair $(p_1^*, p_2^*)$ across corpus $\mathcal{C}$ with $p_{\text{new}}$.
-    \item \textbf{Termination}: Repeat Steps 2--4 for $M$ iterations until the target vocabulary size $|\mathcal{V}| = |\mathcal{V}_0| + M$ is reached.
+    
+    \item \textbf{Greedy Merge and Priority Rule Logging}: Merge the globally most frequent pair $(p_1^*, p_2^*)$ into an atomic new subword unit $p_{\text{new}} = p_1^* \circ p_2^*$. Crucially, record this merge operation in an ordered priority dictionary $\mathcal{M}$:
+    \begin{equation}
+    \label{eq:bpe_merge_rule}
+    \mathcal{M}[k] = ((p_1^*, p_2^*) \mapsto p_{\text{new}}).
+    \end{equation}
+    
+    \item \textbf{In-Place Corpus Contraction}: Substitute every contiguous occurrence of $(p_1^*, p_2^*)$ across corpus $\mathcal{C}$ with the merged symbol $p_{\text{new}}$, and expand the vocabulary:
+    \begin{equation}
+    \label{eq:bpe_vocab_update}
+    \mathcal{V}_k = \mathcal{V}_{k-1} \cup \{p_{\text{new}}\}.
+    \end{equation}
+    
+    \item \textbf{Termination and Inference Application}: Repeat Steps 2--4 until reaching the target vocabulary budget $|\mathcal{V}_k| = V_{\text{target}}$. At inference time, any arbitrary input word is first split into its constituent base characters, and the learned merge rules in $\mathcal{M}$ are applied sequentially according to their training rank.
 \end{enumerate}
 
-\begin{table}[htbp]
-\centering
-\small
-\caption{Step-by-step Byte Pair Encoding (BPE) merge walkthrough on a toy corpus: \texttt{\{"low": 5, "lower": 2, "newest": 6, "widest": 3\}}.}
-\label{tab:bpe_toy_walkthrough}
-\begin{tabularx}{\textwidth}{c c c c >{\raggedright\arraybackslash}X}
-\toprule
-\textbf{Iter ($k$)} & \textbf{Top Pair $(p_1^*, p_2^*)$} & \textbf{Freq} & \textbf{New Merged Symbol} & \textbf{Corpus Representation After Merge} \\
-\midrule
-$0$ & --- & --- & Base: \texttt{\{d, e, i, l, n, o, r, s, t, w\}} & \texttt{l o w : 5}, \; \texttt{l o w e r : 2}, \; \texttt{n e w e s t : 6}, \; \texttt{w i d e s t : 3} \\
-$1$ & \texttt{('e', 's')} & 9 & \texttt{'es'} & \texttt{l o w : 5}, \; \texttt{l o w e r : 2}, \; \texttt{n e w es t : 6}, \; \texttt{w i d es t : 3} \\
-$2$ & \texttt{('es', 't')} & 9 & \texttt{'est'} & \texttt{l o w : 5}, \; \texttt{l o w e r : 2}, \; \texttt{n e w est : 6}, \; \texttt{w i d est : 3} \\
-$3$ & \texttt{('l', 'o')} & 7 & \texttt{'lo'} & \texttt{lo w : 5}, \; \texttt{lo w e r : 2}, \; \texttt{n e w est : 6}, \; \texttt{w i d est : 3} \\
-$4$ & \texttt{('lo', 'w')} & 7 & \texttt{'low'} & \texttt{low : 5}, \; \texttt{low e r : 2}, \; \texttt{n e w est : 6}, \; \texttt{w i d est : 3} \\
-$5$ & \texttt{('n', 'e')} & 6 & \texttt{'ne'} & \texttt{low : 5}, \; \texttt{low e r : 2}, \; \texttt{ne w est : 6}, \; \texttt{w i d est : 3} \\
-\bottomrule
-\end{tabularx}
-\end{table}
+\paragraph{A concrete clarification example: training merges and inference on unseen words.}
+To illustrate how BPE resolves out-of-vocabulary tokens without explosion, consider a small transparent corpus consisting of four words with their occurrence frequencies:
+\begin{equation}
+\label{eq:toy_bpe_corpus}
+\mathcal{C} = \{\text{\texttt{"hug"}}: 10, \; \text{\texttt{"pug"}}: 5, \; \text{\texttt{"pun"}}: 12, \; \text{\texttt{"hugs"}}: 5\}.
+\end{equation}
+The total corpus count is $10 + 5 + 12 + 5 = 32$ word instances.
+The initial base vocabulary consists of 7 symbols: $\mathcal{V}_0 = \{\text{\texttt{'h'}}, \text{\texttt{'u'}}, \text{\texttt{'g'}}, \text{\texttt{'p'}}, \text{\texttt{'n'}}, \text{\texttt{'s'}}, \text{\texttt{'</w>'}}\}$.
+The segmented corpus begins as:
+\begin{center}
+\texttt{h u g </w> : 10} \qquad \texttt{p u g </w> : 5} \qquad \texttt{p u n </w> : 12} \qquad \texttt{h u g s </w> : 5}
+\end{center}
 
-As demonstrated in Table~\ref{tab:bpe_toy_walkthrough}, frequent words such as \texttt{"low"} coalesce into atomic single tokens, while rare words like \texttt{"widest"} decompose into common constituent subwords (\texttt{"w"}, \texttt{"i"}, \texttt{"d"}, \texttt{"est"}).
+\begin{itemize}
+    \item \textbf{Iteration 1}: We evaluate the frequency of all adjacent bigrams across the corpus:
+    \begin{itemize}
+        \item $(\text{\texttt{'u'}}, \text{\texttt{'g'}}): 10 (\text{hug}) + 5 (\text{pug}) + 5 (\text{hugs}) = 20$.
+        \item $(\text{\texttt{'p'}}, \text{\texttt{'u'}}): 5 (\text{pug}) + 12 (\text{pun}) = 17$.
+        \item $(\text{\texttt{'h'}}, \text{\texttt{'u'}}): 10 (\text{hug}) + 5 (\text{hugs}) = 15$.
+        \item $(\text{\texttt{'g'}}, \text{\texttt{'</w>'}}): 10 (\text{hug}) + 5 (\text{pug}) = 15$.
+        \item $(\text{\texttt{'u'}}, \text{\texttt{'n'}}): 12 (\text{pun})$, \quad $(\text{\texttt{'n'}}, \text{\texttt{'</w>'}}): 12 (\text{pun})$.
+        \item $(\text{\texttt{'g'}}, \text{\texttt{'s'}}): 5 (\text{hugs})$, \quad $(\text{\texttt{'s'}}, \text{\texttt{'</w>'}}): 5 (\text{hugs})$.
+    \end{itemize}
+    The most frequent pair is $(\text{\texttt{'u'}}, \text{\texttt{'g'}})$ with frequency $20$.
+    We log Merge Rule 1: $(\text{\texttt{'u'}}, \text{\texttt{'g'}}) \to \text{\texttt{'ug'}}$ and update $\mathcal{V}_1 = \mathcal{V}_0 \cup \{\text{\texttt{'ug'}}\}$.
+    The corpus contracts to:
+    \begin{center}
+    \texttt{h ug </w> : 10} \qquad \texttt{p ug </w> : 5} \qquad \texttt{p u n </w> : 12} \qquad \texttt{h ug s </w> : 5}
+    \end{center}
+
+    \item \textbf{Iteration 2}: We recompute adjacent pair frequencies with the merged symbol $\text{\texttt{'ug'}}$:
+    \begin{itemize}
+        \item $(\text{\texttt{'h'}}, \text{\texttt{'ug'}}): 10 + 5 = 15$.
+        \item $(\text{\texttt{'ug'}}, \text{\texttt{'</w>'}}): 10 + 5 = 15$.
+        \item $(\text{\texttt{'p'}}, \text{\texttt{'u'}}): 12 (\text{pun})$, \quad $(\text{\texttt{'u'}}, \text{\texttt{'n'}}): 12 (\text{pun})$, \quad $(\text{\texttt{'n'}}, \text{\texttt{'</w>'}}): 12 (\text{pun})$.
+        \item $(\text{\texttt{'p'}}, \text{\texttt{'ug'}}): 5 (\text{pug})$, \quad $(\text{\texttt{'ug'}}, \text{\texttt{'s'}}): 5 (\text{hugs})$, \quad $(\text{\texttt{'s'}}, \text{\texttt{'</w>'}}): 5 (\text{hugs})$.
+    \end{itemize}
+    The highest frequency is $15$. Selecting $(\text{\texttt{'h'}}, \text{\texttt{'ug'}})$, we log Merge Rule 2: $(\text{\texttt{'h'}}, \text{\texttt{'ug'}}) \to \text{\texttt{'hug'}}$ and update $\mathcal{V}_2 = \mathcal{V}_1 \cup \{\text{\texttt{'hug'}}\}$.
+    The corpus becomes:
+    \begin{center}
+    \texttt{hug </w> : 10} \qquad \texttt{p ug </w> : 5} \qquad \texttt{p u n </w> : 12} \qquad \texttt{hug s </w> : 5}
+    \end{center}
+\end{itemize}
+
+\paragraph{Inference walkthrough on the unseen word \texttt{"pugs"}.}
+Now consider what happens when a model deployed in production encounters the word \texttt{"pugs"} (the plural of pug).
+Notice that \texttt{"pugs"} \textbf{never appeared in the training corpus as a complete word} (the training data only contained \texttt{"pug"} and \texttt{"hugs"}).
+\begin{enumerate}
+    \item Under a traditional word-level tokenizer, \texttt{"pugs"} is completely absent from vocabulary $\mathcal{V}$ and collapses into the information-destroying token $\text{\texttt{<UNK>}}$.
+    \item Under Byte Pair Encoding:
+    \begin{itemize}
+        \item The word is initialized into base characters: $[\text{\texttt{'p'}}, \text{\texttt{'u'}}, \text{\texttt{'g'}}, \text{\texttt{'s'}}]$.
+        \item The tokenizer queries the learned merge rules in priority order. Merge Rule 1 $(\text{\texttt{'u'}}, \text{\texttt{'g'}}) \to \text{\texttt{'ug'}}$ matches immediately! The sequence is rewritten as:
+        \begin{equation*}
+        [\text{\texttt{'p'}}, \text{\texttt{'u'}}, \text{\texttt{'g'}}, \text{\texttt{'s'}}] \xrightarrow{\text{Merge 1}} [\text{\texttt{'p'}}, \text{\texttt{'ug'}}, \text{\texttt{'s'}}].
+        \end{equation*}
+        \item Merge Rule 2 $(\text{\texttt{'h'}}, \text{\texttt{'ug'}}) \to \text{\texttt{'hug'}}$ is queried next. It does not match because the preceding symbol is $\text{\texttt{'p'}}$, not $\text{\texttt{'h'}}$.
+        \item No further merge rules match adjacent symbols.
+    \end{itemize}
+    \item The final emitted token sequence is:
+    \begin{equation}
+    \label{eq:bpe_unseen_result}
+    \text{\texttt{encode}}(\text{\texttt{"pugs"}}) = [\text{\texttt{'p'}}, \; \text{\texttt{'ug'}}, \; \text{\texttt{'s'}}].
+    \end{equation}
+\end{enumerate}
+The Out-of-Vocabulary barrier is overcome: the model represents the novel word via known morphological primitives—the initial consonant $\text{\texttt{'p'}}$, the shared stem $\text{\texttt{'ug'}}$, and the plural suffix $\text{\texttt{'s'}}$.
+
+Figure~\ref{fig:bpe_merge_tree} visualizes both the bottom-up hierarchical merge tree constructed during training and the top-down decomposition of unseen words at inference time.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    char/.style={rectangle, draw=politoNavy, fill=skyBlue!15, thick, rounded corners=2pt, minimum width=9mm, minimum height=7mm, align=center, font=\small\ttfamily},
+    subword/.style={rectangle, draw=deepdiveTeal, fill=deepdiveTealBg, thick, rounded corners=3pt, minimum width=13mm, minimum height=8mm, align=center, font=\small\bfseries\ttfamily},
+    word/.style={rectangle, draw=examAmber, fill=examAmberBg, very thick, rounded corners=3pt, minimum width=16mm, minimum height=8mm, align=center, font=\small\bfseries\ttfamily},
+    infer/.style={rectangle, draw=intuitionPurple, fill=intuitionPurpleBg, thick, rounded corners=3pt, minimum width=10mm, minimum height=7mm, align=center, font=\small\ttfamily},
+    rulebox/.style={rectangle, draw=politoNavy, fill=white, rounded corners=2pt, font=\scriptsize\sffamily, text=politoNavy, align=center, inner sep=2.5pt},
+    arr/.style={-{Stealth[scale=0.9]}, thick, draw=bodyDark}
+]
+
+% Panel (a): Training Merge Tree (Left: x = 0 to 6.2)
+\node[font=\bfseries\sffamily, text=politoNavy] (titleA) at (2.6, 4.3) {(a) Training: Bottom-Up Merge Tree};
+
+% Base characters at y = 0
+\node[char] (c_h) at (0.4, 0) {'h'};
+\node[char] (c_u) at (1.8, 0) {'u'};
+\node[char] (c_g) at (3.2, 0) {'g'};
+\node[char] (c_s) at (4.8, 0) {'s'};
+
+% Merge 1: 'u' + 'g' -> 'ug' at y = 1.4
+\node[subword] (m_ug) at (2.5, 1.4) {'ug'};
+\draw[arr] (c_u.north) -- (m_ug.south);
+\draw[arr] (c_g.north) -- (m_ug.south);
+\node[font=\scriptsize\sffamily, text=deepdiveTeal, anchor=west] at (3.4, 1.4) {$\leftarrow$ Merge 1 (freq 20)};
+
+% Merge 2: 'h' + 'ug' -> 'hug' at y = 2.8
+\node[word] (m_hug) at (1.2, 2.8) {'hug'};
+\draw[arr] (c_h.north) -- (m_hug.south);
+\draw[arr] (m_ug.north) -- (m_hug.south);
+\node[font=\scriptsize\sffamily, text=examAmber, anchor=east] at (0.3, 2.8) {Merge 2 (freq 15) $\rightarrow$};
+
+% Unmerged suffix 's'
+\draw[arr, dashed, draw=bodyDark!60] (c_s.north) -- (4.8, 2.8);
+\node[font=\scriptsize\sffamily, text=bodyDark!70] at (4.8, 3.1) {Inflection 's'};
+
+% Vertical Divider
+\draw[thick, draw=bodyDark!20] (6.4, -0.6) -- (6.4, 4.5);
+
+% Panel (b): Inference on Unseen Word "pugs" (Right: x = 6.8 to 14.5)
+\node[font=\bfseries\sffamily, text=politoNavy] (titleB) at (10.6, 4.3) {(b) Inference: Parsing Unseen \texttt{"pugs"}};
+
+\node[rectangle, draw=examAmber, fill=examAmberBg, thick, rounded corners=3pt, font=\small\ttfamily, minimum width=26mm] (raw_pug) at (10.6, 3.4) {Input: "pugs"};
+
+\node[font=\scriptsize\sffamily, text=bodyDark!80] (step1) at (10.6, 2.7) {1. Base character decomposition};
+\draw[arr] (raw_pug.south) -- (step1.north);
+
+% Base character boxes at y = 1.9
+\node[infer] (i_p) at (7.8, 1.9) {'p'};
+\node[infer] (i_u) at (9.4, 1.9) {'u'};
+\node[infer] (i_g) at (11.0, 1.9) {'g'};
+\node[infer] (i_s) at (12.6, 1.9) {'s'};
+
+% Intermediate Merge 1 operator box at y = 1.05
+\node[rulebox] (rule1) at (10.2, 1.05) {Merge 1: \texttt{('u','g')} $\to$ \texttt{'ug'}};
+
+% Output tokens at y = 0.1
+\node[infer] (out_p) at (7.8, 0.1) {'p'};
+\node[subword] (out_ug) at (10.2, 0.1) {'ug'};
+\node[infer] (out_s) at (12.6, 0.1) {'s'};
+
+% Straight pass-through for 'p' and 's'
+\draw[arr] (i_p.south) -- (out_p.north);
+\draw[arr] (i_s.south) -- (out_s.north);
+
+% Converging arrows into rule1, then down to out_ug
+\draw[arr] (i_u.south) -- (rule1.north -| i_u);
+\draw[arr] (i_g.south) -- (rule1.north -| i_g);
+\draw[arr] (rule1.south) -- (out_ug.north);
+
+\node[rectangle, draw=deepdiveTeal, fill=deepdiveTealBg, rounded corners=3pt, font=\scriptsize\bfseries\sffamily, text=deepdiveTeal, inner sep=4pt] at (10.6, -0.6) {Zero OOV! Output Subwords: \texttt{['p', 'ug', 's']}};
+
+\end{tikzpicture}%
+}
+\caption{Byte Pair Encoding (BPE) mechanics. (a) During training, adjacent high-frequency symbol pairs are greedily merged into subwords. (b) At inference time, unseen words (e.g., \texttt{"pugs"}) are parsed by applying learned merge rules in priority order, resolving morphology without out-of-vocabulary collapse.}
+\label{fig:bpe_merge_tree}
+\end{figure}
 
 \subsection{Byte-level BPE: the 256 UTF-8 byte foundation and elimination of unknown tokens}
 \label{subsec:byte_level_bpe}
@@ -1613,227 +1758,13 @@ assert decoded_text == text, "Decoded text must match original string identicall
 print("Lossless decoding confirmed!")
 \end{lstlisting}
 
-\subsection{Regex pre-tokenization boundaries and LLM tokenization quirks}
-\label{subsec:regex_pretokenization_karpathy}
-
-While Byte-Level BPE ensures that any Unicode byte stream can be mapped without out-of-vocabulary errors, executing BPE naively on raw text introduces severe structural pathologies. As dissected in foundational tokenizer analyses and the companion repository \texttt{minbpe} \cite{karpathy2024tokenizer}, production foundation models never execute pair merging directly across an unconstrained document. Instead, they enforce strict category isolation using \textbf{regular expression pre-tokenization}.
-
-\paragraph{The naive BPE category-bleed dilemma.}
-Under unconstrained Byte-Level BPE, the merge algorithm scans adjacent byte pairs across the entire text corpus and greedily merges whichever pair exhibits the highest co-occurrence frequency. Because punctuation marks (such as periods, commas, colons, and quotation marks) frequently terminate common English words, naive BPE readily merges letters and punctuation marks together.
-For instance, if the word \texttt{"dog"} frequently occurs at the end of sentences, naive BPE creates the merged token \texttt{"dog."}. Similarly, tokens like \texttt{"world!"}, \texttt{"user123"}, \texttt{"return;"}, and \texttt{"fn()"} coalesce into monolithic single tokens.
-
-This induces three catastrophic failure modes:
-\begin{enumerate}[leftmargin=*]
-    \item \textbf{Combinatorial vocabulary bloat}: Rather than maintaining independent vocabulary entries for words and punctuation marks, the vocabulary $\mathcal{V}$ becomes clogged with multiple affixed variants of every common root (\texttt{"dog"}, \texttt{"dog."}, \texttt{"dog,"}, \texttt{"dog!"}, \texttt{"dog?"}). With a fixed vocabulary budget (e.g., $50{,}000$ tokens), this wastes thousands of token slots on redundant combinations.
-    \item \textbf{Representation fragmentation and broken parameter sharing}: In the token embedding matrix $\mW_{\text{in}} \in \R^{V \times d}$, the vector row for \texttt{"dog."} is parameterized completely independently of the vector row for \texttt{"dog"}. During backpropagation, error gradients for the sentence-final token \texttt{"dog."} do not update the base representation of \texttt{"dog"}, fragmenting semantic knowledge and degrading out-of-distribution generalization.
-    \item \textbf{Whitespace and indentation collapse}: If whitespace characters merge indiscriminately across word boundaries (e.g., merging \texttt{"in"} and \texttt{" the"} into \texttt{"in the"}), the tokenizer struggles to parse non-standard spacing, unusual code indentation, or structured YAML/JSON data.
-\end{enumerate}
-
-\paragraph{The regex pre-tokenization invariant.}
-To eliminate category bleed, a mandatory pre-tokenization stage was introduced in \cite{radford2019} (GPT-2) and analyzed in \cite{karpathy2024tokenizer} (\texttt{minbpe}). The input document $S \in \Sigma^*$ is first partitioned by a deterministic regular expression $\mathcal{R}$ into an ordered sequence of $M$ disjoint text chunks:
-\begin{equation}
-\label{eq:regex_partition}
-S = c_1 \circ c_2 \circ \dots \circ c_M, \quad c_m \in \mathcal{L}(\mathcal{R}).
-\end{equation}
-
-The fundamental architectural invariant governing regex pre-tokenization is formulated as follows:
-\begin{center}
-\textbf{The Boundary Invariant:} \emph{BPE merges are strictly forbidden from crossing the boundary between adjacent regex chunks.}
-\end{center}
-Formally, let $\mathcal{M}: \mathcal{V} \times \mathcal{V} \to \mathcal{V}$ denote the learned BPE merge dictionary. A candidate pair $(a, b)$ is eligible for replacement if and only if both subwords originate within the same chunk:
-\begin{equation}
-\label{eq:regex_boundary_constraint}
-\text{eligible}(a, b) \iff \exists m \in \{1, \dots, M\} \quad \text{such that } (a \circ b) \sqsubseteq c_m.
-\end{equation}
-Consequently, cross-chunk merges are strictly forbidden:
-\begin{equation}
-\label{eq:regex_cross_category_zero}
-\forall a \in c_m, \; b \in c_{m+1} \quad \mathcal{M}(a, b) = \emptyset.
-\end{equation}
-Every chunk $c_m$ is tokenized into subwords independently, and the final sequence of token IDs is formed by concatenating the chunk-level token arrays:
-\begin{equation}
-\label{eq:regex_tokenization_concat}
-\text{\texttt{encode}}(S) = \text{\texttt{encode}}_{\text{BPE}}(c_1) \mathbin{\Vert} \text{\texttt{encode}}_{\text{BPE}}(c_2) \mathbin{\Vert} \dots \mathbin{\Vert} \text{\texttt{encode}}_{\text{BPE}}(c_M).
-\end{equation}
-Because the punctuation mark in \texttt{"dog."} is partitioned into a separate chunk $c_2 = \texttt{"."}$, the pair $(\texttt{"dog"}, \texttt{"."})$ is never recorded in the pair frequency histogram during tokenizer training, guaranteeing that words and punctuation remain strictly separated.
-
-\paragraph{Dissecting the GPT-2 and GPT-4 regex patterns.}
-The regular expression used in GPT-2 is formulated across its disjunctive categories as:
-\begin{align}
-\label{eq:gpt2_regex_pattern}
-\mathcal{R}_{\text{GPT-2}} &= \texttt{\textquotesingle s|\textquotesingle t|\textquotesingle re|\textquotesingle ve|\textquotesingle m|\textquotesingle ll|\textquotesingle d} \nonumber \\
-&\quad {}\lor \texttt{ ?\textbackslash p\{L\}+} \lor \texttt{ ?\textbackslash p\{N\}+} \lor \texttt{ ?[\textasciicircum\textbackslash s\textbackslash p\{L\}\textbackslash p\{N\}]+} \nonumber \\
-&\quad {}\lor \texttt{\textbackslash s+(?!\textbackslash S)} \lor \texttt{\textbackslash s+}
-\end{align}
-where $\backslash\text{p}\{\text{L}\}$ and $\backslash\text{p}\{\text{N}\}$ denote the Unicode categories for Letters and Numbers, respectively.
-In GPT-4, OpenAI refined the pre-tokenization pattern into:
-\begin{align}
-\label{eq:gpt4_regex_pattern}
-\mathcal{R}_{\text{GPT-4}} &= \texttt{\textquotesingle(?i:[sdmt]|ll|ve|re)} \lor \texttt{[\textasciicircum\textbackslash r\textbackslash n\textbackslash p\{L\}\textbackslash p\{N\}]?+\textbackslash p\{L\}+} \nonumber \\
-&\quad {}\lor \texttt{\textbackslash p\{N\}\{1,3\}} \lor \texttt{ ?[\textasciicircum\textbackslash s\textbackslash p\{L\}\textbackslash p\{N\}]++[\textbackslash r\textbackslash n]*} \nonumber \\
-&\quad {}\lor \texttt{\textbackslash s*[\textbackslash r\textbackslash n]} \lor \texttt{\textbackslash s+(?!\textbackslash S)} \lor \texttt{\textbackslash s+}
-\end{align}
-
-Table~\ref{tab:regex_pretokenization_clauses} details the linguistic and algorithmic function of each regex clause.
-
-\begin{table}[htbp]
-\centering
-\small
-\caption{Anatomy of regex pre-tokenization patterns in GPT-2 and GPT-4 \cite{radford2019,karpathy2024tokenizer}.}
-\label{tab:regex_pretokenization_clauses}
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.8cm} >{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}p{2.2cm} X}
-\toprule
-\textbf{Regex clause} & \textbf{Linguistic category} & \textbf{Example matches} & \textbf{Structural invariant preserved} \\
-\midrule
-\texttt{'s|'t|'re|...} & English contractions & \texttt{'s}, \texttt{'t}, \texttt{'re}, \texttt{'ll} & Isolates clitic suffixes so roots and contractions tokenize independently. \\
-\addlinespace
-\texttt{ ?\textbackslash p\{L\}+} & Unicode letters & \texttt{"hello"}, \texttt{" world"} & Keeps alphabetic words intact while preventing fusion with punctuation. \\
-\addlinespace
-\texttt{ ?\textbackslash p\{N\}+} (GPT-2) & Digits (unbounded) & \texttt{" 1"}, \texttt{" 42"}, \texttt{" 123456"} & Prevents letters and digits from merging; allows multi-digit merges. \\
-\addlinespace
-\texttt{\textbackslash p\{N\}\{1,3\}} (GPT-4) & Digits (capped at 3) & \texttt{"1"}, \texttt{"234"}, \texttt{"567"} & Restricts numbers to $\le 3$ digits, aligning tokens with decimal place values. \\
-\addlinespace
-\texttt{ ?[\textasciicircum\textbackslash s\textbackslash p\{L\}\textbackslash p\{N\}]+} & Punctuation and symbols & \texttt{"."}, \texttt{"!"}, \texttt{"=="}, \texttt{"-->"} & Groups compound operators/symbols without bleeding into words. \\
-\addlinespace
-\texttt{\textbackslash s+(?!\textbackslash S)} & Trailing whitespaces & \texttt{"  "}, \texttt{"\textbackslash t"} & Preserves indentation blocks and prevents trailing space fusion. \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\paragraph{The GPT-4 digit capping refinement and arithmetic reasoning.}
-A profound insight emphasized in \cite{karpathy2024tokenizer} lies in the contrast between GPT-2's number clause \texttt{ ?\textbackslash p\{N\}+} and GPT-4's \texttt{\textbackslash p\{N\}\{1,3\}}:
-In GPT-2, the unconstrained quantifier \texttt{+} allowed numbers of arbitrary lengths to form a single regex chunk. Consequently, the tokenizer merged frequent multi-digit combinations unpredictably based on dataset frequency. For example, \texttt{"123456"} might be tokenized as \texttt{["12", "3456"]}, while \texttt{"923456"} might be tokenized as \texttt{["923", "456"]}.
-Because digit slice boundaries varied unpredictably across numbers, Transformer attention heads could not consistently align corresponding place values (ones, tens, hundreds, thousands) during multi-digit addition or multiplication, inducing frequent arithmetic failures.
-
-In GPT-4, the quantifier \texttt{\{1,3\}} caps every numeric segment to \textbf{at most 3 digits}. A number like $1{,}234{,}567$ is deterministically split into:
-\begin{equation}
-\label{eq:gpt4_digit_partition}
-\text{\texttt{"1234567"}} \xrightarrow{\mathcal{R}_{\text{GPT-4}}} [\text{\texttt{"1"}}, \; \text{\texttt{"234"}}, \; \text{\texttt{"567"}}].
-\end{equation}
-Because merges cannot cross chunk boundaries, no token can ever represent more than 3 decimal digits. Notice that these chunks align precisely with standard thousands separators in human mathematics ($1,234,567$). This ensures that numeric tokens reflect consistent orders of magnitude ($10^0$ to $10^2$, $10^3$ to $10^5$, etc.), providing uniform structural representations that significantly enhance the model's arithmetic and algorithmic computation capabilities.
-
-\begin{lstlisting}[language=Python, caption={Regex pre-tokenization boundary splitting under GPT-2 and GPT-4 patterns \cite{karpathy2024tokenizer}.}, label={lst:regex_pretokenization}]
-import regex as re
-
-# GPT-2 pre-tokenization regex pattern
-GPT2_SPLIT_PATTERN = r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-
-# GPT-4 pre-tokenization regex pattern (enforces 3-digit number capping)
-GPT4_SPLIT_PATTERN = r"""'(?i:[sdmt]|ll|ve|re)|[^\r\n\p{L}\p{N}]?+\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]++[\r\n]*|\s*[\r\n]|\s+(?!\S)|\s+"""
-
-sample_text = "Hello, world! 1234567 don't"
-
-# Extract regex-partitioned text chunks
-gpt2_chunks = re.findall(GPT2_SPLIT_PATTERN, sample_text)
-gpt4_chunks = re.findall(GPT4_SPLIT_PATTERN, sample_text)
-
-print("GPT-2 chunks:", gpt2_chunks)
-# Output: ['Hello', ',', ' world', '!', ' 1234567', ' don', "'t"]
-
-print("GPT-4 chunks:", gpt4_chunks)
-# Output: ['Hello', ',', ' world', '!', ' 123', '456', '7', ' don', "'t"]
-# Notice: ' 1234567' is broken into 3-digit chunks: [' 123', '456', '7']
-# Crucial Invariant: BPE merges are never permitted to cross chunk boundaries!
-\end{lstlisting}
-
-\begin{intuition}[Why LLMs behave weirdly: demystifying tokenization quirks]
-Many counter-intuitive behaviors exhibited by large language models are not deep cognitive failures of neural attention, but direct downstream artifacts of subword tokenization \cite{karpathy2024tokenizer}:
-\begin{enumerate}[leftmargin=*]
-    \item \textbf{Character spelling blindness and letter counting}: In natural conversations, models famously stumble when asked \emph{"How many `r's are in strawberry?"}. The tokenizer maps the string \texttt{"strawberry"} to two atomic subword token IDs: $[\text{\texttt{straw}}, \text{\texttt{berry}}]$ (e.g., tokens 496 and 675 in GPT-4). The Transformer's attention heads process two continuous vectors; the individual letters $s, t, r, a, w, b, e, r, r, y$ are completely opaque to the model unless it has explicitly memorized the character decomposition of each subword token during pretraining.
-    \item \textbf{String reversal}: Requesting a model to reverse a word (e.g., \texttt{"hello"} $\to$ \texttt{"olleh"}) is difficult because the model observes a single token for \texttt{"hello"}. Generating the reversed text requires projecting to a completely different sequence of subword or byte tokens, rather than simply reversing an input array.
-    \item \textbf{The non-English token fertility tax}: While English text achieves an average compression ratio of $\approx 1.2$ tokens per word, non-Latin scripts (e.g., Japanese, Arabic, Cyrillic, Hindi) require 3 to 4 raw bytes per character in UTF-8. Because pretraining corpora are overwhelmingly English ($>80\%$), the tokenizer acquires few subword merges for non-Latin scripts. Consequently, non-English text is fragmented into raw bytes, requiring $3\times$ to $8\times$ more tokens per sentence. This consumes context window capacity $4-8\times$ faster, increases autoregressive generation latency, and scales inference costs proportionately.
-    \item \textbf{Glitch tokens and uninitialized embeddings (\emph{SolidGoldMagikarp})}: In early foundation models, prompt strings like \texttt{"SolidGoldMagikarp"}, \texttt{"StreamerBot"}, or \texttt{"TheNitromeFan"} provoked bizarre hallucinations, hostile replies, or model crashes. This anomaly arose because the BPE tokenizer was trained on an unfiltered web crawl containing frequent Reddit usernames. However, the subsequent pretraining corpus for the neural network was filtered, stripping out Reddit user lists. Consequently, those token IDs remained in the vocabulary $\mathcal{V}$, but their corresponding rows in the embedding matrix $\mW_{\text{in}}$ received \textbf{zero gradient updates} during pretraining, stranding them at their random Gaussian initialization coordinates ($\mathbf{w} \sim \mathcal{N}(0, \sigma^2)$). When queried, these unnormalized outlier vectors produced anomalous internal activation spikes that disrupted layer normalization and softmax distributions.
-    \item \textbf{Special token leakage and delimiter prompt injection}: Control delimiters like \texttt{<|endoftext|>} or \texttt{<|fim\_middle|>} serve as internal signals. If user-submitted prompts are passed to tokenizers without escaping special tokens, an adversary can inject delimiter strings to prematurely close prompt contexts or bypass safety guardrails. Modern tokenizers disallow special tokens in user inputs by default (\texttt{allowed\_special=set()}), requiring explicit developer opt-in.
-\end{enumerate}
-\end{intuition}
-
-\paragraph{Connecting token streams to training objectives.}
-Having established how byte-level BPE and regular expression pre-tokenization transform arbitrary text into a clean, category-isolated stream of subword integer tokens $\mathbf{T} = [t_0, t_1, \dots, t_{N-1}]$, we must now address how this linear token stream is formatted for neural training. We proceed to the autoregressive sliding window formulation that constructs the input-target pairs $(\mX, \mY)$ powering modern foundation models.
-
-\subsection{Autoregressive data preparation: the sliding window input-target formulation}
-\label{subsec:sliding_window_sampling}
-
-After a raw text corpus is converted into a 1D sequence of token IDs $\mathbf{T} = [t_0, t_1, \dots, t_{N-1}] \in \mathbb{Z}^N$, how does an LLM learn to generate language?
-Foundation models are trained on the self-supervised objective of \textbf{next-token prediction} (autoregressive language modeling). Preparing training data requires chunking continuous token streams into input-target pairs $(\mathbf{X}, \mathbf{Y})$ using a \textbf{sliding window}.
-
-\paragraph{The shifted input-target alignment.}
-For a context window length $L$ (often termed `\texttt{max\_length}' or context size, e.g., $L = 1024$ in GPT-2, $L = 8192$ in LLaMA-3) starting at token index $k$:
-\begin{align}
-\text{Input Sequence:} \quad \vx &= [t_k, \; t_{k+1}, \; t_{k+2}, \; \dots, \; t_{k+L-1}] \in \mathbb{Z}^L, \label{eq:sliding_x} \\
-\text{Target Sequence:} \quad \vy &= [t_{k+1}, \; t_{k+2}, \; t_{k+3}, \; \dots, \; t_{k+L}] \in \mathbb{Z}^L. \label{eq:sliding_y}
-\end{align}
-The target sequence $\vy$ is identically the input sequence $\vx$ \textbf{shifted forward by one position}.
-
-\paragraph{Why target shifting maximizes training efficiency.}
-In causal language models, a triangular causal attention mask ensures that when computing the output at position $i$, the model can only attend to tokens $x_0, \dots, x_i$. Consequently, a single input-target tensor pair of length $L$ simultaneously optimizes $L$ distinct autoregressive prediction tasks in parallel during a single forward-backward pass:
-\begin{align*}
-\text{Step 1:} \quad [t_k] &\longrightarrow \text{predicts } t_{k+1}, \\
-\text{Step 2:} \quad [t_k, t_{k+1}] &\longrightarrow \text{predicts } t_{k+2}, \\
-\text{Step 3:} \quad [t_k, t_{k+1}, t_{k+2}] &\longrightarrow \text{predicts } t_{k+3}, \\
-&\;\;\vdots \\
-\text{Step } L\text{:} \quad [t_k, t_{k+1}, \dots, t_{k+L-1}] &\longrightarrow \text{predicts } t_{k+L}.
-\end{align*}
-
-\paragraph{Context size and sliding stride.}
-To extract all available training samples from a corpus of $N$ tokens, the window slides by a configurable \textbf{stride} $s$:
-\begin{equation}
-\label{eq:num_samples_stride}
-N_{\text{samples}} = \left\lfloor \frac{N - L}{s} \right\rfloor + 1.
-\end{equation}
-\begin{itemize}
-    \item \textbf{Non-Overlapping Chunks} ($s = L$): Maximizes computational throughput and avoids duplicate token evaluations.
-    \item \textbf{Overlapping Sliding Window} ($s < L$, e.g., $s = L/2$ or $s = 1$): Maximizes data efficiency on small datasets and prevents contextual boundary blindness (ensuring tokens near window edges are also evaluated with rich preceding context).
-\end{itemize}
-
-\begin{lstlisting}[language=Python, caption={PyTorch custom \texttt{Dataset} and \texttt{DataLoader} implementing sliding window causal data sampling \cite{raschka2024llm}.}, label={lst:sliding_window_dataset}]
-import torch
-from torch.utils.data import Dataset, DataLoader
-
-class GPTDatasetV1(Dataset):
-    def __init__(self, txt, tokenizer, max_length, stride):
-        self.input_ids = []
-        self.target_ids = []
-        
-        # Tokenize entire corpus into a 1D token ID sequence
-        token_ids = tokenizer.encode(txt, allowed_special={"<|endoftext|>"})
-        
-        # Slide window across token_ids with stride s
-        for i in range(0, len(token_ids) - max_length, stride):
-            input_chunk = token_ids[i:i + max_length]
-            target_chunk = token_ids[i + 1:i + max_length + 1]
-            self.input_ids.append(torch.tensor(input_chunk, dtype=torch.long))
-            self.target_ids.append(torch.tensor(target_chunk, dtype=torch.long))
-            
-    def __len__(self):
-        return len(self.input_ids)
-        
-    def __getitem__(self, idx):
-        return self.input_ids[idx], self.target_ids[idx]
-
-def create_dataloader_v1(txt, batch_size=4, max_length=256, stride=128, shuffle=True, drop_last=True):
-    tokenizer = tiktoken.get_encoding("gpt2")
-    dataset = GPTDatasetV1(txt, tokenizer, max_length, stride)
-    dataloader = DataLoader(
-        dataset, batch_size=batch_size, shuffle=shuffle, drop_last=drop_last
-    )
-    return dataloader
-
-# Example batch extraction
-sample_text = ("In software engineering, continuous integration and continuous "
-               "delivery automate the testing and deployment pipeline.") * 20
-dataloader = create_dataloader_v1(sample_text, batch_size=2, max_length=8, stride=4)
-data_iter = iter(dataloader)
-inputs, targets = next(data_iter)
-print("Batch Input Tensor (X)  shape:", inputs.shape)   # [2, 8]
-print("Batch Target Tensor (Y) shape:", targets.shape)  # [2, 8]
-print("Input  row 0:", inputs[0].tolist())
-print("Target row 0:", targets[0].tolist())
-\end{lstlisting}
+\paragraph{Transition to continuous vector representations.}
+Having established how Byte-Level BPE eliminates the out-of-vocabulary barrier and deterministically encodes raw text streams into discrete integer token IDs $\mathbf{T} = [t_0, t_1, \dots, t_{L-1}] \in \mathbb{Z}^L$, we now confront the final representational bridge: how do discrete numerical indices enter the continuous, differentiable computational graph of modern neural networks? In the following section, we examine the projection of token IDs into continuous embedding space and the indispensable synthesis of positional information.
 
 \subsection{From token IDs to composite inputs: token embeddings and positional encoding synthesis}
 \label{subsec:embedding_positional_synthesis}
 
-Having transformed raw text into mini-batch integer tensors $\mathbf{X} \in \mathbb{Z}^{B \times L}$, we arrive at the final computational phase: mapping discrete integer token IDs into continuous, differentiable vector representations equipped with sequential order.
+Having transformed raw text into sequences of discrete token IDs $\mathbf{T} \in \mathbb{Z}^L$ (batched into mini-batch integer tensors $\mathbf{X} \in \mathbb{Z}^{B \times L}$), we arrive at the final computational phase: mapping discrete integer token IDs into continuous, differentiable vector representations equipped with sequential order.
 
 \paragraph{1. The token embedding layer.}
 In PyTorch, continuous token representations are instantiated via:
@@ -1928,7 +1859,7 @@ Throughout this chapter, we have traced the evolution of vector space representa
     \item \textbf{Local Encodings Failed}: One-hot vectors $\ve_i \in \{0, 1\}^V$ suffered from orthogonality ($d_E = \sqrt{2}, \cos = 0$), memory explosion, and zero parameter sharing.
     \item \textbf{Continuous Dense Embeddings}: Word2Vec and FastText learned dense vector manifolds $\R^d$ where geometric proximity encodes semantic clustering and linear relational translations.
     \item \textbf{Byte-Level BPE}: Solved the Out-of-Vocabulary catastrophe by decomposing arbitrary text into subword units down to 256 UTF-8 base bytes, guaranteeing $\Prob(\text{OOV}) = 0$ with lossless roundtrip detokenization.
-    \item \textbf{Autoregressive Sliding Windows \& Positional Injection}: Formulated causal next-token prediction targets and synthesized composite position-aware input tensors $\mathbf{X}_{\text{in}} \in \R^{B \times L \times d}$.
+    \item \textbf{Continuous Embedding Projection \& Positional Injection}: Projected discrete token IDs into dense latent embeddings and synthesized composite position-aware input tensors $\mathbf{X}_{\text{in}} = \mathbf{E}_{\text{tok}} + \mathbf{E}_{\text{pos}} \in \R^{B \times L \times d}$ to overcome the permutation invariance of self-attention.
 \end{enumerate}
 
 \paragraph{The remaining representational impasse: static isolation.}
