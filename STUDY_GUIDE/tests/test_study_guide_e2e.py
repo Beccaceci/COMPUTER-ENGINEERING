@@ -635,6 +635,7 @@ class TestTier2BoundaryAndCornerCases(unittest.TestCase):
             content = re.sub(r"\\begin\{tikzpicture\}.*?\\end\{tikzpicture\}", "", content, flags=re.DOTALL)
             content = re.sub(r"\\lstinline(\|[^\\]*?\||\{[^\\]*?\})", "", content)
             content = re.sub(r"\\(?:texttt|url|href|label|ref|eqref|cite|citep|citet|input|subfile)\{[^}]*\}", "", content)
+            content = re.sub(r"\\includegraphics(?:\[[^\]]*\])?\{[^}]*\}", "", content)
             content = re.sub(r"\\(?:begin|end)\{[^}]+\}(?:\[[^\]]*\])?(?:\{[^}]*\})*", "", content)
 
             # In remaining prose, check for unescaped underscores
