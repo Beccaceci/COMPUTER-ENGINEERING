@@ -4,52 +4,622 @@
 \chapter{The Transformer architecture and attention mechanisms}
 \label{ch:transformer_architecture}
 
-\section{Chapter overview and learning outcomes}
-In 2017, Vaswani et al. \citep{vaswani2017} introduced the Transformer in their seminal work \emph{"Attention Is All You Need"}, entirely discarding recurrence and convolutions in favor of self-attention mechanisms. This chapter presents an exhaustive architectural and mathematical breakdown of the Transformer model.
+\section{The architectural impasse of recurrent sequence models}
+\label{sec:recurrent_impasse}
 
-Upon completing this chapter, you will be able to:
+For nearly a decade, sequence modeling was dominated by Recurrent Neural Networks (RNNs) and their gated variants, Long Short-Term Memory (LSTM) networks and Gated Recurrent Units (GRUs). As established in Chapter~\ref{ch:rnn_sequence_modeling}, recurrent models represent a sequence of tokens by recursively updating an internal hidden state vector:
+\begin{equation}
+\label{eq:recurrent_transition_step}
+\vh_t = f(\vh_{t-1}, \vx_t), \quad t \in \{1, 2, \dots, L\},
+\end{equation}
+where $\vh_t \in \R^{d_h}$ encapsulates the historical context observed up to time step $t$, and $\vx_t \in \R^d$ is the input vector representation at time $t$.
+
+While gating mechanisms and Constant Error Carousels mitigated the vanishing gradient problem over moderate temporal spans, recurrence inherently imposes two severe, insurmountable bottlenecks that halted further scaling in language modeling:
+
+\paragraph{1. The sequential execution wall.}
+The transition equation $\vh_t = f(\vh_{t-1}, \vx_t)$ enforces an unbroken, strictly sequential causal dependency chain: computation of $\vh_t$ cannot commence until the physical memory write of $\vh_{t-1}$ is completed. Consequently, an input sequence of $L$ tokens mandates $\mathcal{O}(L)$ sequential computational operations.
+Modern deep learning accelerators (GPUs and TPUs) derive their performance from massive data parallelism, executing thousands of arithmetic matrix operations concurrently across high-bandwidth tensor cores. Under recurrent processing, hardware parallelism across the temporal dimension is impossible: the accelerator is forced to idle between consecutive time steps, creating a computational wall that restricts training across massive datasets.
+
+\paragraph{2. The information compression bottleneck of Seq2Seq encoders.}
+In classical sequence-to-sequence architectures, an encoder compresses an input sequence of arbitrary length $L$ into a single, fixed-size vector $\vh_L \in \R^{d_h}$ (or a tuple $(\vh_L, \vc_L)$ in LSTMs). This single vector is subsequently handed over to the decoder to initiate target sequence generation.
+As the input length $L$ expands—such as in multi-turn dialogues, technical documentation, or software engineering source code files spanning thousands of tokens—compressing all semantic, syntactic, and structural relationships into a finite dimensional vector becomes physically impossible. Information from early time steps undergoes continuous dissipation, inducing severe contextual amnesia.
+
+\paragraph{The architectural objective.}
+These limitations raised a fundamental question: \emph{Can we design a neural architecture that completely eliminates recurrence, operates across all tokens in parallel with $\mathcal{O}(1)$ sequential operations, and allows every token to directly communicate with every other token in the sequence without a fixed-size information bottleneck?}
+In 2017, this question was answered by the introduction of the \textbf{Transformer} \cite{vaswani2017}, an architecture built entirely upon multi-head attention mechanisms.
+
+\section{The high-level encoder-decoder Transformer architecture}
+\label{sec:high_level_encoder_decoder}
+
+The foundational Transformer proposed in \cite{vaswani2017} adopts an \textbf{Encoder-Decoder} paradigm, structured to eliminate the recurrent compression bottleneck while enabling end-to-end parallel training:
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.92, every node/.style={transform shape},
+    box/.style={draw=politoNavy, fill=white, thick, rounded corners=3pt, minimum width=4.2cm, minimum height=0.75cm, align=center, font=\small\sffamily},
+    sublayer/.style={draw=steelBlue, fill=skyBlue!30, thick, rounded corners=3pt, minimum width=3.8cm, minimum height=0.7cm, align=center, font=\small\sffamily},
+    normbox/.style={draw=thmGreenLine, fill=thmGreenBg, thick, rounded corners=2pt, minimum width=3.8cm, minimum height=0.55cm, align=center, font=\footnotesize\sffamily},
+    arrow/.style={-{Stealth[length=5pt]}, thick, draw=politoNavy},
+    dashedarrow/.style={-{Stealth[length=5pt]}, thick, dashed, draw=crimsonRed}
+]
+    % ENCODER STACK
+    \node[box, fill=politoNavy!10, minimum height=6.2cm, minimum width=4.6cm] (enc_block) at (0, 3.5) {};
+    \node[above=0.1cm of enc_block.north, font=\sffamily\bfseries\color{politoNavy}] {Encoder ($N \times$)};
+
+    \node[sublayer] (enc_mha) at (0, 1.8) {Multi-Head Self-Attention};
+    \node[normbox] (enc_norm1) at (0, 2.7) {Add \& LayerNorm};
+    \node[sublayer] (enc_ffn) at (0, 4.2) {Feed-Forward Network (FFN)};
+    \node[normbox] (enc_norm2) at (0, 5.1) {Add \& LayerNorm};
+
+    \node[below=0.8cm of enc_mha, align=center, font=\small\sffamily] (enc_inputs) {Input Embeddings \\ $+$ Positional Encodings};
+
+    \draw[arrow] (enc_inputs) -- (enc_mha);
+    \draw[arrow] (enc_mha) -- (enc_norm1);
+    \draw[arrow] (enc_norm1) -- (enc_ffn);
+    \draw[arrow] (enc_ffn) -- (enc_norm2);
+
+    % DECODER STACK
+    \node[box, fill=examAmberBg, minimum height=8.0cm, minimum width=4.8cm] (dec_block) at (6.5, 4.4) {};
+    \node[above=0.1cm of dec_block.north, font=\sffamily\bfseries\color{examAmber}] {Decoder ($N \times$)};
+
+    \node[sublayer, draw=examAmberLine, fill=examAmberBg!80] (dec_mmha) at (6.5, 1.6) {Masked Self-Attention};
+    \node[normbox] (dec_norm1) at (6.5, 2.5) {Add \& LayerNorm};
+    \node[sublayer, draw=crimsonRed, fill=crimsonRed!15] (dec_cross) at (6.5, 3.8) {Multi-Head Cross-Attention};
+    \node[normbox] (dec_norm2) at (6.5, 4.7) {Add \& LayerNorm};
+    \node[sublayer, draw=examAmberLine, fill=examAmberBg!80] (dec_ffn) at (6.5, 6.0) {Feed-Forward Network (FFN)};
+    \node[normbox] (dec_norm3) at (6.5, 6.9) {Add \& LayerNorm};
+
+    \node[below=0.8cm of dec_mmha, align=center, font=\small\sffamily] (dec_inputs) {Output Embeddings \\ (Shifted Right) $+$ Pos. Enc.};
+
+    \draw[arrow] (dec_inputs) -- (dec_mmha);
+    \draw[arrow] (dec_mmha) -- (dec_norm1);
+    \draw[arrow] (dec_norm1) -- (dec_cross);
+    \draw[arrow] (dec_cross) -- (dec_norm2);
+    \draw[arrow] (dec_norm2) -- (dec_ffn);
+    \draw[arrow] (dec_ffn) -- (dec_norm3);
+
+    % CROSS-ATTENTION CONNECTOR
+    \draw[dashedarrow] (enc_norm2.east) -- ++(1.0, 0) |- node[pos=0.25, above, font=\footnotesize\bfseries\color{crimsonRed}] {Keys \& Values} (dec_cross.west);
+
+    % FINAL OUTPUT
+    \node[above=0.8cm of dec_norm3, box, minimum width=3.8cm] (dec_linear) {Linear Head \& Softmax};
+    \draw[arrow] (dec_norm3) -- (dec_linear);
+    \node[above=0.5cm of dec_linear, font=\small\sffamily\bfseries] (out_probs) {Next-Token Probabilities};
+    \draw[arrow] (dec_linear) -- (out_probs);
+\end{tikzpicture}
+\caption{The classic Transformer Encoder-Decoder architecture \cite{vaswani2017}. The Encoder maps the input into an uncompressed sequence of contextual representations. The Decoder cross-attends to the encoder representations while generating output tokens autoregressively under causal self-attention masking.}
+\label{fig:transformer_encoder_decoder_block}
+\end{figure}
+
+\paragraph{1. The Encoder stack: uncompressed contextual representations.}
+The Encoder consists of a stack of $N$ identical layers (typically $N=6$ in the base model). Crucially, the Encoder does \emph{not} compress the input into a single summary vector. Instead, it takes the input sequence of position-augmented embeddings $\mX \in \R^{L_{\text{enc}} \times \dmodel}$ and transforms it into an equally sized sequence of contextual representations:
+\begin{equation}
+\label{eq:encoder_uncompressed_output}
+\mH_{\text{enc}} = [\vh_1, \vh_2, \dots, \vh_{L_{\text{enc}}}] \in \R^{L_{\text{enc}} \times \dmodel}.
+\end{equation}
+Every output vector $\vh_i$ possesses a global receptive field that incorporates information from every other token in the sequence through bidirectional self-attention, preserving fine-grained token-level semantics without information loss.
+
+\paragraph{2. The Decoder stack: autoregressive generation and cross-attention.}
+The Decoder also consists of a stack of $N$ identical layers, operating autoregressively at inference time:
+\begin{enumerate}
+    \item \textbf{Autoregressive sequence initialization}: Generation is primed by feeding the special beginning-of-sequence delimiter $\langle\text{BOS}\rangle$ as the initial token.
+    \item \textbf{Causal step-by-step prediction}: The Decoder processes the tokens generated so far, attends to the encoder representations $\mH_{\text{enc}}$, and emits logits over the vocabulary $\vocab$. The highest-scoring token (or sampled token) $y_1$ is generated.
+    \item \textbf{Prefix feedback loop}: The newly emitted token is appended to the decoder input, forming the context $[\langle\text{BOS}\rangle, y_1]$ to predict $y_2$. This loop repeats until the model outputs the end-of-sequence delimiter $\langle\text{EOS}\rangle$, terminating generation.
+\end{enumerate}
+
+\paragraph{3. The training phase: Teacher Forcing and sequence parallelization.}
+At inference, the decoder must generate tokens sequentially. However, during training, the entire target sequence $[y_0, y_1, \dots, y_{L_{\text{dec}}-1}]$ is already known.
+By employing \textbf{Teacher Forcing} combined with causal attention masking (which prevents tokens from attending to subsequent target tokens), all $L_{\text{dec}}$ generation steps are computed simultaneously in a single forward pass! The decoder does not unroll an iterative loop during training: the loss across all output positions is evaluated concurrently on the GPU.
+
+\section{Attention from first principles: differentiable soft dictionary retrieval}
+\label{sec:attention_first_principles}
+
+The computational core of the Transformer is the \textbf{Attention mechanism}. To understand how attention works mathematically, it is useful to draw an analogy to associative retrieval structures in computer science \cite{jurafsky2024, sanderson2024attention}.
+
+\paragraph{1. Classical dictionary lookup (discrete hash table).}
+In computer systems, a dictionary or associative array stores information as a collection of $m$ discrete key-value pairs:
+\begin{equation}
+\mathcal{D} = \{ (\kappa_1, \nu_1), (\kappa_2, \nu_2), \dots, (\kappa_m, \nu_m) \}.
+\end{equation}
+When a discrete search query $q$ is issued, the dictionary performs an exact binary match against the keys:
+\begin{equation}
+\label{eq:discrete_lookup}
+\text{\texttt{Lookup}}(q, \mathcal{D}) = \begin{cases}
+\nu_k & \text{if } \exists\, k \text{ such that } q = \kappa_k, \\
+\text{\texttt{None}} & \text{otherwise}.
+\end{cases}
+\end{equation}
+In this classical paradigm, retrieval is binary ($0$ or $1$) and non-differentiable: if query $q$ is slightly perturbed, the lookup either matches completely or fails catastrophically.
+
+\paragraph{2. Soft, differentiable key-value retrieval.}
+Attention generalizes dictionary lookup to continuous metric vector spaces $\R^d$:
 \begin{itemize}
-    \item Explain the fundamental bottleneck of sequential recurrence and how self-attention achieves $O(1)$ sequential operations during training.
-    \item Derive Scaled Dot-Product Attention and explain the critical role of the $\sqrt{d_k}$ scaling factor.
-    \item Formulate Multi-Head Attention (MHA) and contrast it with Multi-Query (MQA) and Grouped-Query Attention (GQA).
-    \item Analyze Positional Encodings: absolute sinusoidal encodings, learned embeddings, and Rotary Position Embedding (RoPE).
-    \item Dissect the sublayer structures: Residual connections, Post-LN vs Pre-LN, RMSNorm, and Feed-Forward Networks (FFN / SwiGLU).
-    \item Compute the computational and memory complexity of self-attention ($O(T^2)$ vs $O(T)$).
+    \item A \textbf{Query} vector $\vq \in \R^{d_k}$ represents the information need: \emph{``What linguistic, syntactic, or semantic attributes am I searching for?''}
+    \item A set of $m$ \textbf{Key} vectors $\vk_j \in \R^{d_k}$ represent content identifiers or addresses: \emph{``What attributes do I offer?''}
+    \item A set of $m$ \textbf{Value} vectors $\vv_j \in \R^{d_v}$ represent the informative content or payload: \emph{``What information do I communicate if selected?''}
 \end{itemize}
 
-\section{Scaled dot-product attention}
-Let $\mQ \in \R^{T \times d_k}$, $\mK \in \R^{S \times d_k}$, and $\mV \in \R^{S \times d_v}$ denote Query, Key, and Value matrices.
-
-\begin{definition}{Scaled dot-product attention}{scaled_dot_product}
-The attention function maps queries and key-value pairs to an output matrix via:
+Instead of checking exact equality $q = \kappa_k$, we evaluate a continuous compatibility score $s(\vq, \vk_j) \in \R$ using vector inner products:
 \begin{equation}
-\label{eq:scaled_dot_product}
-\Attn{\mQ, \mK, \mV} = \softmax\left( \frac{\mQ \mK\trans}{\sqrt{d_k}} + \mat{M} \right) \mV,
+\label{eq:raw_compatibility_score}
+s_j = \vq^\top \vk_j.
 \end{equation}
-where $\mat{M} \in \{0, -\infty\}^{T \times S}$ is an optional causal mask matrix.
-\end{definition}
+The raw alignment scores $[s_1, s_2, \dots, s_m]$ are mapped onto the probability simplex via the $\softmax$ operator, yielding non-negative attention weights that sum to unity:
+\begin{equation}
+\label{eq:softmax_attention_weight}
+\alpha_j = \frac{\exp(s_j)}{\sum_{l=1}^m \exp(s_l)}, \quad \sum_{j=1}^m \alpha_j = 1, \quad \alpha_j \ge 0.
+\end{equation}
+Finally, the retrieved representation is computed as the \textbf{convex combination} (weighted sum) of all value vectors:
+\begin{equation}
+\label{eq:attention_convex_combination}
+\vo = \sum_{j=1}^m \alpha_j \vv_j \in \R^{d_v}.
+\end{equation}
+Because inner products, exponentials, and summations are smooth operations, the entire lookup pipeline is fully differentiable with well-defined gradients $\frac{\partial \vo}{\partial \vq}$, $\frac{\partial \vo}{\partial \vk_j}$, and $\frac{\partial \vo}{\partial \vv_j}$.
 
-\begin{examinsight}[Exam highlight: why scale by $\sqrt{d_k}$?]
-A quintessential oral exam question asks: \emph{"What is the exact mathematical justification for dividing $\mQ \mK\trans$ by $\sqrt{d_k}$?"}
-Assume components of $\vq$ and $\vk$ are independent random variables with mean $0$ and variance $1$. The dot product $\vq\trans \vk = \sum_{i=1}^{d_k} q_i k_i$ has mean $0$ and variance $\sum_{i=1}^{d_k} 1 = d_k$.
-For large $d_k$ (e.g., $d_k = 64$ or $128$), variance is large, pushing the dot products into regions where the $\softmax$ function has extremely small gradients (saturation). Dividing by $\sqrt{d_k}$ normalizes the variance back to $1$, preserving healthy gradient flow during backpropagation.
-\end{examinsight}
-
-\begin{intuition}[Attention as differentiable soft key-value retrieval]
-In computer systems, a hash table maps a discrete key to a unique value. Self-attention is a soft, differentiable generalisation: a query $\vq$ is compared against all keys $\vk_i$ via inner products. The resulting softmax weights dictate how much of each value vector $\vv_i$ is blended into the output representation.
+\begin{intuition}[The semantic roles of Query, Key, and Value]
+To build physical intuition, consider a software engineering dependency resolution analogy:
+\begin{itemize}
+    \item A method invocation \texttt{sort()} acts as a \textbf{Query}: \emph{``I require an in-place sorting routine accepting a comparator''}.
+    \item Various module exports advertise \textbf{Keys}: \texttt{quickSort} advertises \emph{``sorting, in-place, comparator''}; \texttt{readFile} advertises \emph{``I/O, filesystem, buffers''}.
+    \item The dot product matches \texttt{sort()} strongly with \texttt{quickSort} ($\alpha \approx 0.98$) and weakly with \texttt{readFile} ($\alpha \approx 0.001$).
+    \item The retrieved \textbf{Value} is the implementation payload of \texttt{quickSort} pulled into the calling scope.
+\end{itemize}
+In natural language, a pronoun (such as \emph{``it''}) emits a query looking for singular antecedent nouns, matching strongly with the key of a preceding noun (such as \emph{``compiler''}), thereby pulling the semantic values of \emph{``compiler''} into its own representation.
 \end{intuition}
 
-\section{Multi-head attention and sublayer design}
-\begin{definition}{Multi-head attention (MHA)}{mha}
-Instead of performing a single attention function with $d_{\text{model}}$-dimensional queries, keys, and values, Multi-Head Attention projects them linearly $h$ times with different learned parameter matrices:
+\section{Scaled dot-product attention and variance stabilization}
+\label{sec:scaled_dot_product_attention}
+
+When computing alignment scores between queries and keys, the standard dot product $s = \vq^\top \vk$ suffers from a critical numerical failure mode as vector dimensionality increases. To resolve this, Vaswani et al. \cite{vaswani2017} formulated \textbf{Scaled Dot-Product Attention}.
+
+\begin{definition}{Scaled dot-product attention}{scaled_dot_product_defn}
+Let $\mQ \in \R^{L_Q \times d_k}$, $\mK \in \R^{L_K \times d_k}$, and $\mV \in \R^{L_K \times d_v}$ denote Query, Key, and Value matrices. The Scaled Dot-Product Attention operator evaluates:
 \begin{equation}
-\MHA{\mQ, \mK, \mV} = \left[ \text{head}_1 \parallel \text{head}_2 \parallel \dots \parallel \text{head}_h \right] \mW^O,
+\label{eq:scaled_dot_product_matrix}
+\text{\texttt{Attention}}(\mQ, \mK, \mV) = \softmax\left( \frac{\mQ \mK^\top}{\sqrt{d_k}} + \mM \right) \mV,
 \end{equation}
-where $\text{head}_i = \Attn{\mQ \mW_i^Q, \mK \mW_i^K, \mV \mW_i^V}$, with $\mW_i^Q \in \R^{\dmodel \times \dk}$, $\mW_i^K \in \R^{\dmodel \times \dk}$, $\mW_i^V \in \R^{\dmodel \times \dv}$, and $\mW^O \in \R^{h \dv \times \dmodel}$.
+where $\mM \in \{0, -\infty\}^{L_Q \times L_K}$ is an optional masking matrix, and $\softmax$ is applied row-wise.
 \end{definition}
 
-\begin{deepdive}[Vaswani et al. (2017) and modern Transformer variants]
-The original Transformer architecture \citep{vaswani2017} employed Post-LayerNorm and sinusoidal positional encodings. Modern LLM architectures (such as LLaMA, Mistral, and DeepSeek) have evolved to utilize Pre-LayerNorm with RMSNorm, Rotary Position Embeddings (RoPE), and SwiGLU activations, improving training stability across hundreds of billions of tokens.
-\end{deepdive}
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.9, every node/.style={transform shape},
+    block/.style={draw=politoNavy, fill=skyBlue!30, thick, rounded corners=3pt, minimum width=2.6cm, minimum height=0.7cm, align=center, font=\small\sffamily},
+    matblock/.style={draw=examAmberLine, fill=examAmberBg, thick, rounded corners=3pt, minimum width=2.6cm, minimum height=0.7cm, align=center, font=\small\sffamily\bfseries},
+    arrow/.style={-{Stealth[length=5pt]}, thick, draw=politoNavy}
+]
+    \node[font=\sffamily\bfseries] (q_in) at (-2, 0) {Query $\mQ$};
+    \node[font=\sffamily\bfseries] (k_in) at (0, 0) {Key $\mK$};
+    \node[font=\sffamily\bfseries] (v_in) at (2.5, 0) {Value $\mV$};
+
+    \node[matblock] (matmul1) at (-1, 1.3) {MatMul};
+    \draw[arrow] (q_in) |- (matmul1.west);
+    \draw[arrow] (k_in) |- (matmul1.east);
+
+    \node[block] (scale) at (-1, 2.4) {Scale ($1/\sqrt{d_k}$)};
+    \draw[arrow] (matmul1) -- (scale);
+
+    \node[block, fill=examAmberBg!50] (mask) at (-1, 3.5) {Mask (Optional)};
+    \draw[arrow] (scale) -- (mask);
+
+    \node[block] (smax) at (-1, 4.6) {Softmax};
+    \draw[arrow] (mask) -- (smax);
+
+    \node[matblock] (matmul2) at (0.8, 5.8) {MatMul};
+    \draw[arrow] (smax) |- (matmul2.west);
+    \draw[arrow] (v_in) -- ++(0, 5.8) -- (matmul2.east);
+
+    \node[above=0.8cm of matmul2, font=\sffamily\bfseries\color{politoNavy}] (out) {Output $\mO \in \R^{L_Q \times d_v}$};
+    \draw[arrow] (matmul2) -- (out);
+\end{tikzpicture}
+\caption{Computational dataflow of Scaled Dot-Product Attention \cite{vaswani2017}. The dot-product matrix is scaled by $1/\sqrt{d_k}$ to prevent gradient saturation before row-wise softmax normalization and value multiplication.}
+\label{fig:scaled_dot_product_tikz}
+\end{figure}
+
+\begin{examinsight}[The mathematical proof: why divide by $\sqrt{d_k}$?]
+A frequent oral exam question asks: \emph{``Derive the exact mathematical justification for the $\frac{1}{\sqrt{d_k}}$ scaling factor in dot-product attention.''}
+
+\paragraph{Proof.}
+Assume that the components of query vector $\vq \in \R^{d_k}$ and key vector $\vk \in \R^{d_k}$ are independent, identically distributed (i.i.d.) random variables with zero mean and unit variance:
+\begin{equation}
+\E[q_i] = 0, \quad \Var(q_i) = 1, \quad \E[k_i] = 0, \quad \Var(k_i) = 1, \quad \forall i \in \{1, 2, \dots, d_k\}.
+\end{equation}
+The unscaled dot product is the random variable $z = \vq^\top \vk = \sum_{i=1}^{d_k} q_i k_i$.
+By linearity of expectation and independence:
+\begin{equation}
+\E[z] = \E\left[\sum_{i=1}^{d_k} q_i k_i\right] = \sum_{i=1}^{d_k} \E[q_i]\E[k_i] = \sum_{i=1}^{d_k} (0 \cdot 0) = 0.
+\end{equation}
+To compute the variance of $z$, we expand the definition $\Var(z) = \sum_{i=1}^{d_k} \Var(q_i k_i)$. Using the identity $\Var(X Y) = \E[X^2]\E[Y^2] - (\E[X]\E[Y])^2$:
+\begin{align}
+\Var(q_i k_i) &= \E[q_i^2]\E[k_i^2] - (\E[q_i]\E[k_i])^2 \nonumber \\
+&= \left(\Var(q_i) + (\E[q_i])^2\right)\left(\Var(k_i) + (\E[k_i])^2\right) - 0 \nonumber \\
+&= (1 + 0)(1 + 0) = 1.
+\end{align}
+Summing over all $d_k$ independent dimensions:
+\begin{equation}
+\label{eq:variance_unscaled_dot_product}
+\Var(z) = \sum_{i=1}^{d_k} \Var(q_i k_i) = \sum_{i=1}^{d_k} 1 = d_k.
+\end{equation}
+Thus, the standard deviation of the dot product is $\sigma_z = \sqrt{d_k}$.
+
+\paragraph{The gradient saturation consequence.}
+For large dimensions (e.g., $d_k = 64$ or $128$), the variance $d_k$ is substantial, causing dot products to take values with magnitude $|z| \gg 1$.
+Recall that the derivative of the softmax function with respect to logit $z_i$ is given by:
+\begin{equation}
+\label{eq:softmax_derivative}
+\frac{\partial \softmax(z)_i}{\partial z_j} = \softmax(z)_i \left(\delta_{ij} - \softmax(z)_j\right).
+\end{equation}
+When logits $z$ have large absolute variance, the exponential $\exp(z_m)$ of the maximal logit completely dominates the sum. The softmax output degenerates into a nearly one-hot indicator distribution ($\alpha_m \approx 1$, and $\alpha_{j \ne m} \approx 0$). In this regime:
+\begin{equation}
+\frac{\partial \softmax(z)_i}{\partial z_j} \approx 0, \quad \forall i, j.
+\end{equation}
+The gradients vanish, arresting backpropagation through the attention module!
+By scaling $z$ by the scalar factor $\frac{1}{\sqrt{d_k}}$, we renormalize the variance back to unity:
+\begin{equation}
+\label{eq:variance_scaled_dot_product}
+\Var\left(\frac{z}{\sqrt{d_k}}\right) = \frac{1}{(\sqrt{d_k})^2}\Var(z) = \frac{1}{d_k} \cdot d_k = 1.
+\end{equation}
+Renormalizing the variance preserves healthy gradient dynamics across arbitrarily deep networks.
+\end{examinsight}
+
+\section{Linear projections and the exact numerical matrix walkthrough}
+\label{sec:attention_numerical_walkthrough}
+
+\paragraph{Why linear projections are mandatory.}
+In self-attention, input tokens start as embeddings $\vx_i \in \R^{\dmodel}$. If we computed dot products directly between raw token embeddings $\vx_i^\top \vx_j$, the dot product would be symmetric ($\vx_i^\top \vx_j = \vx_j^\top \vx_i$), and a token could not separately query what it needs versus advertise what it provides.
+To solve this, the model projects each input vector into three distinct latent subspaces using learned weight matrices:
+\begin{equation}
+\label{eq:qkv_linear_projections}
+\mQ = \mX \mW_Q, \quad \mK = \mX \mW_K, \quad \mV = \mX \mW_V,
+\end{equation}
+where $\mW_Q \in \R^{\dmodel \times d_k}$, $\mW_K \in \R^{\dmodel \times d_k}$, and $\mW_V \in \R^{\dmodel \times d_v}$.
+
+\begin{examinsight}[Complete numerical walkthrough: reproducing the lecture calculations]
+To solidify understanding of matrix transformations during oral examinations, we reproduce step-by-step the complete numerical worked example presented in the course lecture (Slide 57--66), tracking intermediate values down to four decimal places.
+
+\paragraph{1. Initial setup.}
+Consider an input sequence of $L = 3$ tokens in a 2-dimensional latent embedding space ($\dmodel = 2$), with projection dimensions $d_k = d_v = 2$:
+\begin{equation}
+\mX = \begin{bmatrix}
+0.1 & 0.5 \\
+0.1 & 0.2 \\
+0.9 & 0.9
+\end{bmatrix} \in \R^{3 \times 2}, \quad
+\mW_Q = \begin{bmatrix}
+0.9 & 0.9 \\
+0.5 & 0.3
+\end{bmatrix}, \quad
+\mW_K = \begin{bmatrix}
+1.0 & 0.9 \\
+1.0 & 0.6
+\end{bmatrix}, \quad
+\mW_V = \begin{bmatrix}
+0.8 & 0.9 \\
+0.9 & 1.0
+\end{bmatrix}.
+\end{equation}
+
+\paragraph{2. Linear projection into Queries, Keys, and Values.}
+Multiplying $\mX$ by each projection matrix yields:
+\begin{equation}
+\mQ = \mX \mW_Q = \begin{bmatrix}
+0.1(0.9) + 0.5(0.5) & 0.1(0.9) + 0.5(0.3) \\
+0.1(0.9) + 0.2(0.5) & 0.1(0.9) + 0.2(0.3) \\
+0.9(0.9) + 0.9(0.5) & 0.9(0.9) + 0.9(0.3)
+\end{bmatrix} = \begin{bmatrix}
+0.34 & 0.24 \\
+0.19 & 0.15 \\
+1.26 & 1.08
+\end{bmatrix},
+\end{equation}
+\begin{equation}
+\mK = \mX \mW_K = \begin{bmatrix}
+0.1(1.0) + 0.5(1.0) & 0.1(0.9) + 0.5(0.6) \\
+0.1(1.0) + 0.2(1.0) & 0.1(0.9) + 0.2(0.6) \\
+0.9(1.0) + 0.9(1.0) & 0.9(0.9) + 0.9(0.6)
+\end{bmatrix} = \begin{bmatrix}
+0.60 & 0.39 \\
+0.30 & 0.21 \\
+1.80 & 1.35
+\end{bmatrix},
+\end{equation}
+\begin{equation}
+\mV = \mX \mW_V = \begin{bmatrix}
+0.1(0.8) + 0.5(0.9) & 0.1(0.9) + 0.5(1.0) \\
+0.1(0.8) + 0.2(0.9) & 0.1(0.9) + 0.2(1.0) \\
+0.9(0.8) + 0.9(0.9) & 0.9(0.9) + 0.9(1.0)
+\end{bmatrix} = \begin{bmatrix}
+0.53 & 0.59 \\
+0.26 & 0.29 \\
+1.53 & 1.71
+\end{bmatrix}.
+\end{equation}
+
+\paragraph{3. Computing raw dot-product scores for the first token ($\vq_1 = [0.34, 0.24]$).}
+We compute compatibility between $\vq_1$ and all three keys $\vk_1, \vk_2, \vk_3$:
+\begin{align}
+s_{1,1} &= \vq_1^\top \vk_1 = 0.34(0.60) + 0.24(0.39) = 0.2040 + 0.0936 = 0.2976, \\
+s_{1,2} &= \vq_1^\top \vk_2 = 0.34(0.30) + 0.24(0.21) = 0.1020 + 0.0504 = 0.1524, \\
+s_{1,3} &= \vq_1^\top \vk_3 = 0.34(1.80) + 0.24(1.35) = 0.6120 + 0.3240 = 0.9360.
+\end{align}
+
+\paragraph{4. Variance rescaling by $\frac{1}{\sqrt{d_k}} = \frac{1}{\sqrt{2}} \approx 0.7071$.}
+Scaling the raw dot products yields:
+\begin{align}
+\tilde{s}_{1,1} &= \frac{0.2976}{\sqrt{2}} \approx 0.2104, \\
+\tilde{s}_{1,2} &= \frac{0.1524}{\sqrt{2}} \approx 0.1078, \\
+\tilde{s}_{1,3} &= \frac{0.9360}{\sqrt{2}} \approx 0.6619.
+\end{align}
+
+\paragraph{5. Softmax normalization onto the probability simplex.}
+Computing exponentials:
+\begin{align}
+\exp(0.2104) &\approx 1.2342, \quad \exp(0.1078) \approx 1.1138, \quad \exp(0.6619) \approx 1.9385, \\
+\sum_{j=1}^3 \exp(\tilde{s}_{1,j}) &= 1.2342 + 1.1138 + 1.9385 = 4.2865.
+\end{align}
+Dividing each exponential by the sum produces the normalized attention weights:
+\begin{align}
+\alpha_{1,1} &= \frac{1.2342}{4.2865} \approx 0.2879, \\
+\alpha_{1,2} &= \frac{1.1138}{4.2865} \approx 0.2598, \\
+\alpha_{1,3} &= \frac{1.9385}{4.2865} \approx 0.4522.
+\end{align}
+Observe that $\sum_j \alpha_{1,j} = 0.2879 + 0.2598 + 0.4522 = 1.0000$, exactly matching Slide 64.
+
+\paragraph{6. Blending values to form the output vector for token 1.}
+The retrieved representation is the weighted combination of all three value vectors:
+\begin{equation}
+\vo_1 = \alpha_{1,1}\vv_1 + \alpha_{1,2}\vv_2 + \alpha_{1,3}\vv_3.
+\end{equation}
+Substituting the computed attention weights and value vectors yields:
+\begin{equation}
+\vo_1 = 0.2879 \begin{bmatrix} 0.53 \\ 0.59 \end{bmatrix} + 0.2598 \begin{bmatrix} 0.26 \\ 0.29 \end{bmatrix} + 0.4522 \begin{bmatrix} 1.53 \\ 1.71 \end{bmatrix} \approx \begin{bmatrix} 0.91 \\ 1.02 \end{bmatrix}.
+\end{equation}
+
+\paragraph{7. Full sequence output matrix.}
+Repeating this procedure concurrently across tokens 2 and 3 evaluates the full output matrix $\mO = \text{\texttt{Attention}}(\mQ, \mK, \mV) \in \R^{3 \times 2}$:
+\begin{equation}
+\label{eq:full_output_matrix_lecture}
+\mO = \begin{bmatrix}
+\vo_1^\top \\
+\vo_2^\top \\
+\vo_3^\top
+\end{bmatrix} = \begin{bmatrix}
+0.91 & 1.02 \\
+0.85 & 0.95 \\
+1.29 & 1.44
+\end{bmatrix},
+\end{equation}
+reproducing identically the exact tensor results displayed in Slide 66.
+\end{examinsight}
+
+\section{The triad of attention mechanisms}
+\label{sec:triad_of_attention}
+
+Within the Transformer architecture, attention is deployed in three distinct operational settings \cite{vaswani2017}:
+
+\paragraph{1. Encoder Self-Attention (unconstrained bidirectional).}
+In the Encoder, queries, keys, and values are all linearly projected from the preceding encoder layer's representations:
+\begin{equation}
+\mQ = \mX \mW_Q, \quad \mK = \mX \mW_K, \quad \mV = \mX \mW_V.
+\end{equation}
+No masking matrix is applied ($\mM = \mat{0}$). Every token $i$ can attend freely to all other tokens $j \in \{1, 2, \dots, L_{\text{enc}}\}$, enabling fully bidirectional contextual representations.
+
+\paragraph{2. Decoder Masked Self-Attention (causal autoregressive constraint).}
+In the Decoder, tokens generated during autoregressive inference cannot depend on future tokens that have not yet been produced.
+To preserve causality during parallel training under Teacher Forcing, a \textbf{causal mask} $\mM \in \R^{L_{\text{dec}} \times L_{\text{dec}}}$ is added to the scaled dot-product matrix prior to the softmax normalization:
+\begin{equation}
+\label{eq:causal_mask_definition}
+M_{i, j} = \begin{cases}
+0 & \text{if } j \le i, \\
+-\infty & \text{if } j > i.
+\end{cases}
+\end{equation}
+In matrix form for a sequence of length 4:
+\begin{equation}
+\mM = \begin{bmatrix}
+0 & -\infty & -\infty & -\infty \\
+0 & 0 & -\infty & -\infty \\
+0 & 0 & 0 & -\infty \\
+0 & 0 & 0 & 0
+\end{bmatrix}.
+\end{equation}
+When the softmax is evaluated on $\frac{\mQ \mK^\top}{\sqrt{d_k}} + \mM$:
+\begin{equation}
+\exp(-\infty) = 0 \implies \alpha_{i, j} = 0, \quad \forall j > i.
+\end{equation}
+This mathematical zeroing ensures that the representation for position $i$ depends exclusively on positions $1, \dots, i$. Crucially, this formulation allows GPUs to process all positions in parallel without executing a sequential loop during training.
+
+\paragraph{3. Encoder-Decoder Cross-Attention (dynamic source grounding).}
+In cross-attention, queries stem from the decoder's preceding sublayer, whereas keys and values originate from the uncompressed output of the encoder stack $\mH_{\text{enc}} \in \R^{L_{\text{enc}} \times \dmodel}$:
+\begin{equation}
+\label{eq:cross_attention_projections}
+\mQ = \mH_{\text{dec}} \mW_Q^{\text{cross}}, \quad \mK = \mH_{\text{enc}} \mW_K^{\text{cross}}, \quad \mV = \mH_{\text{enc}} \mW_V^{\text{cross}},
+\end{equation}
+where $\mH_{\text{dec}} \in \R^{L_{\text{dec}} \times \dmodel}$.
+This asymmetry enables every decoder position to query the entire uncompressed source sequence dynamically, resolving the memory bottleneck of classical RNN encoders.
+
+\section{Multi-head attention (MHA)}
+\label{sec:multi_head_attention}
+
+\paragraph{The limitation of single-head attention.}
+In single-head attention, the model computes a single set of attention weights $\alpha_{i, j}$, averaging all values into a single weighted sum. However, a single token often participates in multiple simultaneous linguistic relationships:
+\begin{itemize}
+    \item A verb must track both its grammatical subject (often located earlier in the sentence) and its direct object (often located downstream).
+    \item In programming languages, an identifier must link to its type declaration, its scope boundary, and its mutating assignments.
+\end{itemize}
+A single attention head cannot focus simultaneously on disparate positions with different semantic intents: the softmax distribution is forced to average across them, diluting specific relational signals.
+
+\paragraph{Mathematical formulation.}
+Multi-Head Attention (MHA) resolves this by linearly projecting queries, keys, and values $h$ times with different, learned parameter matrices:
+\begin{definition}{Multi-head attention}{mha_defn}
+Let $h$ denote the number of attention heads. Multi-Head Attention projects $\mQ, \mK, \mV$ into $h$ distinct representation subspaces of dimension $d_k = \dmodel / h$ and $d_v = \dmodel / h$:
+\begin{equation}
+\label{eq:mha_formula}
+\text{\texttt{MultiHead}}(\mQ, \mK, \mV) = \left[ \text{head}_1 \parallel \text{head}_2 \parallel \dots \parallel \text{head}_h \right] \mW^O,
+\end{equation}
+where each individual head is evaluated via:
+\begin{equation}
+\text{head}_i = \text{\texttt{Attention}}(\mQ \mW_i^Q, \mK \mW_i^K, \mV \mW_i^V), \quad i \in \{1, 2, \dots, h\},
+\end{equation}
+with parameter projection matrices $\mW_i^Q \in \R^{\dmodel \times d_k}$, $\mW_i^K \in \R^{\dmodel \times d_k}$, $\mW_i^V \in \R^{\dmodel \times d_v}$, and output projection matrix $\mW^O \in \R^{h d_v \times \dmodel}$.
+\end{definition}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.88, every node/.style={transform shape},
+    box/.style={draw=politoNavy, fill=skyBlue!20, thick, rounded corners=3pt, minimum width=1.6cm, minimum height=0.65cm, align=center, font=\footnotesize\sffamily},
+    attnhead/.style={draw=examAmberLine, fill=examAmberBg, thick, rounded corners=3pt, minimum width=1.8cm, minimum height=0.7cm, align=center, font=\footnotesize\sffamily\bfseries},
+    arrow/.style={-{Stealth[length=5pt]}, thick, draw=politoNavy}
+]
+    \node[font=\sffamily\bfseries] (q_in) at (-3.2, 0) {$\mQ \in \R^{L \times \dmodel}$};
+    \node[font=\sffamily\bfseries] (k_in) at (0, 0) {$\mK \in \R^{L \times \dmodel}$};
+    \node[font=\sffamily\bfseries] (v_in) at (3.2, 0) {$\mV \in \R^{L \times \dmodel}$};
+
+    % LINEAR PROJECTIONS
+    \node[box] (l_q1) at (-4.2, 1.3) {Linear 1};
+    \node[box] (l_q2) at (-2.2, 1.3) {Linear $h$};
+    \node at (-3.2, 1.3) {$\dots$};
+
+    \node[box] (l_k1) at (-1.0, 1.3) {Linear 1};
+    \node[box] (l_k2) at (1.0, 1.3) {Linear $h$};
+    \node at (0, 1.3) {$\dots$};
+
+    \node[box] (l_v1) at (2.2, 1.3) {Linear 1};
+    \node[box] (l_v2) at (4.2, 1.3) {Linear $h$};
+    \node at (3.2, 1.3) {$\dots$};
+
+    \draw[arrow] (q_in) -- (l_q1); \draw[arrow] (q_in) -- (l_q2);
+    \draw[arrow] (k_in) -- (l_k1); \draw[arrow] (k_in) -- (l_k2);
+    \draw[arrow] (v_in) -- (l_v1); \draw[arrow] (v_in) -- (l_v2);
+
+    % ATTENTION HEADS
+    \node[attnhead] (head1) at (-2.6, 2.7) {Scaled Dot-Prod \\ Head 1};
+    \node[attnhead] (headh) at (2.6, 2.7) {Scaled Dot-Prod \\ Head $h$};
+    \node at (0, 2.7) {$\dots$};
+
+    \draw[arrow] (l_q1) -- (head1); \draw[arrow] (l_k1) -- (head1); \draw[arrow] (l_v1) -- (head1);
+    \draw[arrow] (l_q2) -- (headh); \draw[arrow] (l_k2) -- (headh); \draw[arrow] (l_v2) -- (headh);
+
+    % CONCATENATION & PROJECTION
+    \node[box, fill=politoNavy!15, minimum width=7.5cm, minimum height=0.7cm] (concat) at (0, 4.0) {Concat $[\text{head}_1 \parallel \dots \parallel \text{head}_h] \in \R^{L \times h d_v}$};
+    \draw[arrow] (head1) -- (concat.south -| head1);
+    \draw[arrow] (headh) -- (concat.south -| headh);
+
+    \node[box, fill=thmGreenBg, draw=thmGreenLine, minimum width=5.0cm] (proj) at (0, 5.2) {Linear Projection $\mW^O \in \R^{h d_v \times \dmodel}$};
+    \draw[arrow] (concat) -- (proj);
+
+    \node[above=0.6cm of proj, font=\sffamily\bfseries\color{politoNavy}] (mha_out) {Output $\in \R^{L \times \dmodel}$};
+    \draw[arrow] (proj) -- (mha_out);
+\end{tikzpicture}
+\caption{Architecture of Multi-Head Attention (MHA) \cite{vaswani2017}. Projections map inputs into $h$ parallel representation subspaces of reduced dimension $d_k = d_v = \dmodel / h$, whose outputs are concatenated and linearly projected back to $\dmodel$.}
+\label{fig:multi_head_attention_tikz}
+\end{figure}
+
+\paragraph{Parameter equivalence and computational efficiency.}
+Due to the reduced dimension of each head ($d_k = d_v = \dmodel / h$), the total computational cost of multi-head attention is identical to that of single-head attention with full dimensionality $\dmodel$:
+\begin{equation}
+h \times \left( \dmodel \times \frac{\dmodel}{h} \right) = \dmodel^2 \text{ operations for projections}.
+\end{equation}
+In standard configurations (e.g., $\dmodel = 512, h = 8 \implies d_k = d_v = 64$, or $\dmodel = 768, h = 12 \implies d_k = d_v = 64$), parallel heads learn specialized sub-behaviors: some heads attend to local syntactic structure, others to long-range dependencies, and others to delimiter tokens.
+
+\section{Sublayer mechanics: residual connections and Layer Normalization}
+\label{sec:sublayer_mechanics}
+
+In deep Transformer architectures comprising dozens of layers, stacking attention blocks and non-linear feed-forward networks directly would lead to optimization failure due to exploding or vanishing gradients. To ensure stable gradient propagation, each Transformer sublayer is wrapped in a residual connection followed by Layer Normalization:
+\begin{equation}
+\label{eq:add_and_norm_post}
+\vy = \text{\texttt{LayerNorm}}(\vx + \text{\texttt{Sublayer}}(\vx)).
+\end{equation}
+
+\paragraph{1. Residual skip connections (gradient superhighways).}
+First introduced by He et al. \cite{he2016deep} in residual networks (ResNets), identity shortcut connections pass the unmodified input $\vx$ around the sublayer:
+\begin{equation}
+\label{eq:residual_connection}
+\vy = \vx + \mathcal{F}(\vx),
+\end{equation}
+where $\mathcal{F}(\vx)$ represents the multi-head attention or feed-forward transformation.
+During backpropagation, the gradient of the loss $\mathcal{L}$ with respect to the input $\vx$ expands via the chain rule to:
+\begin{equation}
+\label{eq:residual_gradient_flow}
+\frac{\partial \mathcal{L}}{\partial \vx} = \frac{\partial \mathcal{L}}{\partial \vy} \frac{\partial \vy}{\partial \vx} = \frac{\partial \mathcal{L}}{\partial \vy} \left( \mI + \frac{\partial \mathcal{F}(\vx)}{\partial \vx} \right) = \frac{\partial \mathcal{L}}{\partial \vy} + \frac{\partial \mathcal{L}}{\partial \vy} \frac{\partial \mathcal{F}(\vx)}{\partial \vx}.
+\end{equation}
+The presence of the identity matrix $\mI$ guarantees an unobstructed \textbf{gradient superhighway}: even if the Jacobian $\frac{\partial \mathcal{F}}{\partial \vx}$ vanishes (for instance, when weights are initialized small or activations saturate), the term $\frac{\partial \mathcal{L}}{\partial \vy}$ flows directly back to earlier layers, completely preventing gradient extinction.
+
+\paragraph{2. Layer Normalization.}
+Unlike Batch Normalization (which computes statistics across the mini-batch dimension, making it sensitive to batch size and variable sequence lengths), \textbf{Layer Normalization} \cite{ba2016layer} computes normalization statistics across the feature dimensions for each individual token independently:
+\begin{definition}{Layer Normalization}{layer_norm_defn}
+For a token representation $\vx = [x_1, x_2, \dots, x_d]^\top \in \R^d$, Layer Normalization evaluates:
+\begin{align}
+\mu &= \frac{1}{d} \sum_{j=1}^d x_j, \quad \sigma^2 = \frac{1}{d} \sum_{j=1}^d (x_j - \mu)^2, \\
+\label{eq:layer_norm_formula}
+\text{\texttt{LayerNorm}}(\vx) &= \frac{\vx - \mu}{\sqrt{\sigma^2 + \epsilon}} \odot \boldsymbol{\gamma} + \boldsymbol{\beta},
+\end{align}
+where $\epsilon > 0$ is a small numerical stabilization constant, and $\boldsymbol{\gamma}, \boldsymbol{\beta} \in \R^d$ are learnable affine gain and bias parameters initialized to $\boldsymbol{\gamma} = \mathbf{1}$ and $\boldsymbol{\beta} = \mathbf{0}$.
+\end{definition}
+Because Layer Normalization operates on a per-token basis without batch-level pooling, its behavior is identical during training and evaluation, providing exceptional stability across variable-length sequences.
+
+\paragraph{3. Position-wise Feed-Forward Networks (FFN).}
+In addition to attention sublayers, each layer in the encoder and decoder contains a fully connected \textbf{Feed-Forward Network} applied to each position separately and identically:
+\begin{equation}
+\label{eq:position_wise_ffn}
+\text{\texttt{FFN}}(\vx) = \max\left(0, \vx \mW_1 + \vb_1\right) \mW_2 + \vb_2,
+\end{equation}
+where $\mW_1 \in \R^{\dmodel \times \dff}$, $\vb_1 \in \R^{\dff}$, $\mW_2 \in \R^{\dff \times \dmodel}$, and $\vb_2 \in \R^{\dmodel}$. Typically, the inner hidden dimension is expanded by a factor of 4 ($\dff = 4\dmodel$, e.g., $\dff = 2048$ for $\dmodel = 512$). While attention routes information across different temporal positions, the FFN provides non-linear feature transformation within each individual position.
+
+\section{Computational complexity and parallelization advantages}
+\label{sec:computational_complexity}
+
+To appreciate why the Transformer superseded Recurrent Neural Networks, we analyze three foundational computational metrics: computational complexity per layer, sequential operations, and maximum signal path length \cite{vaswani2017}:
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Computational complexity and operational parallelism across sequence modeling layers \cite{vaswani2017}.}
+\label{tab:layer_complexity_comparison}
+\begin{tabularx}{\textwidth}{lXXX}
+\toprule
+\textbf{Layer type} & \textbf{Complexity per layer} & \textbf{Sequential operations} & \textbf{Maximum path length} \\
+\midrule
+\textbf{Self-Attention} & $\mathcal{O}(L^2 \cdot d)$ & $\mathcal{O}(1)$ & $\mathcal{O}(1)$ \\
+\textbf{Recurrent (RNN/LSTM)} & $\mathcal{O}(L \cdot d^2)$ & $\mathcal{O}(L)$ & $\mathcal{O}(L)$ \\
+\textbf{Convolutional} & $\mathcal{O}(k \cdot L \cdot d^2)$ & $\mathcal{O}(1)$ & $\mathcal{O}(\log_k(L))$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{1. Sequential operations: shattering the recurrence barrier.}
+In an RNN, computing the representation at step $L$ requires traversing an unbroken chain of $L$ sequential state updates ($\mathcal{O}(L)$ sequential operations).
+In Self-Attention, computing all pairwise dot products $\mQ \mK^\top$ and value weighted sums involves matrix multiplications that execute in a single parallel step ($\mathcal{O}(1)$ sequential operations) across GPU tensor cores.
+
+\paragraph{2. Maximum path length: constant-time gradient propagation.}
+In recurrent networks, information and backpropagation gradients traveling between token $1$ and token $L$ must traverse $L$ intermediate state transitions. As proven by the Jacobian product $\prod_{k=t+1}^T \frac{\partial \vh_k}{\partial \vh_{k-1}}$ in Chapter~\ref{ch:rnn_sequence_modeling}, long path lengths cause exponential gradient decay.
+In Self-Attention, the distance between any arbitrary pair of tokens $(i, j)$ is strictly $\mathcal{O}(1)$: the attention weight $\alpha_{i, j}$ directly links token $i$ to token $j$ in a single operation. This constant path length completely eliminates topological distance as an obstacle to learning long-range dependencies.
+
+\paragraph{3. Asymptotic trade-off: sequence length vs. latent dimension.}
+Self-attention incurs a quadratic time and memory complexity $\mathcal{O}(L^2 \cdot d)$ with respect to sequence length $L$.
+When sequence length $L$ is smaller than embedding dimension $d$ (as was typical in early machine translation benchmarks where $L \approx 50$ and $d = 512$), $\mathcal{O}(L^2 \cdot d)$ is strictly faster than the recurrent cost $\mathcal{O}(L \cdot d^2)$. While long context windows ($L > 8192$) eventually encounter the $\mathcal{O}(L^2)$ memory wall, the massive parallel speedup during training outweighs this cost for standard operational contexts.
+
+\section{Modular architectural synthesis and roadmap to specialized Transformer variants}
+\label{sec:transformer_roadmap}
+
+In this chapter, we have developed the complete foundations of the Transformer architecture from first principles:
+\begin{enumerate}
+    \item We resolved the sequential execution wall of RNNs by replacing temporal state recurrence with global, constant-time self-attention.
+    \item We eliminated the Seq2Seq memory bottleneck by preserving uncompressed token representations throughout the encoder stack.
+    \item We derived Scaled Dot-Product Attention, proven why the $\frac{1}{\sqrt{d_k}}$ scaling factor stabilizes gradients, walked through the exact numerical calculations, and formalized Multi-Head Attention as parallel subspace projections.
+    \item We examined how residual skip connections and Layer Normalization stabilize gradient dynamics across deep networks.
+\end{enumerate}
+
+\paragraph{The modular roadmap ahead.}
+Having mastered the unified Encoder-Decoder framework, subsequent chapters explore how this architecture is specialized into distinct model families to meet specific application requirements:
+\begin{itemize}
+    \item \textbf{Encoder-only architectures (e.g., BERT \cite{devlin2019})}: Isolating the bidirectional encoder stack for representation learning, sentence classification, and semantic code search.
+    \item \textbf{Decoder-only architectures (e.g., the GPT family \cite{radford2019, brown2020})}: Isolating the causal autoregressive decoder stack for generative pre-training and text generation.
+    \item \textbf{Unified Text-to-Text models (e.g., T5 \cite{raffel2020t5})}: Retaining the full encoder-decoder framework to reframe all NLP and software engineering tasks as sequence transformation problems.
+    \item \textbf{Decoding and sampling strategies}: Modulating output probability distributions via Greedy decoding, Beam Search, Top-$k$ filtering, Nucleus (Top-$p$) truncation, and temperature scaling.
+\end{itemize}
 
 \end{document}
