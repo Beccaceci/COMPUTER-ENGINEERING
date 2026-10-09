@@ -16,7 +16,7 @@ Comprehensive study guide, past exams with resolutions (2021–2025), and practi
 | :--- | :--- | :---: | :---: |
 | 📘 **Complete Study Guide** | LaTeX study guide covering security fundamentals, threat modeling, risk management, and system defense. | PDF | [⬇️ Download Study Guide (PDF)](STUDY_GUIDE/main.pdf) |
 | 🧪 **Laboratory Suite** | Docker Compose environment, Kali Linux configurations, cryptographic challenges, firewall, TLS, and IPsec. | Code & PDFs | [📂 Browse Labs Directory](LABS/) |
-| 📝 **Past Exams Archive** | Solved exam sessions (2021–2025) with step-by-step solutions and Anki flashcards. | Archive | [📂 Browse Solved Exams](EXAMS/) |
+| 📝 **Past Exams Archive** | Solved exam sessions (2021–2025) with step-by-step solutions and LaTeX sources. | Archive | [📂 Browse Solved Exams (1-Click Downloads)](EXAMS/README.md) |
 
 ---
 
@@ -30,10 +30,9 @@ INFORMATION_SYSTEMS_SECURITY/
 │   ├── main.pdf                        # Compiled PDF
 │   └── chapters/                       # Risk analysis, threat management, cryptographic foundations
 ├── LABS/                               # Hands-on cybersecurity labs
-│   ├── environment/                    # Docker, Docker-compose & Kali Linux targets
-│   ├── lab01/ to lab05/                # Crypto applications, Firewalls, IPsec, and TLS
-│   └── labinf.sh                       # Automation script for lab environment setup
+│   ├── README.md                       # Laboratory guide and 1-click links
+│   └── lab00/ to lab05/                # Crypto applications, Firewalls, IPsec, and TLS
 └── EXAMS/                              # Historical and recent exams
-    ├── 2021-2022/ to 2024-2025/        # Solved session papers (.tex and .pdf)
-    └── PAST_EXAM_QUESTIONS/            # Flashcards (Anki), topic breakdowns, and audio/video walk-throughs
+    ├── README.md                       # 1-Click exam download index
+    └── 2021-2022/ to 2024-2025/        # Solved session papers (.tex and .pdf)
 ```
