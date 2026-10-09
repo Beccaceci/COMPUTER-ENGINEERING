@@ -1,30 +1,62 @@
-# Machine-Learning-Labs-2026
+# Machine Learning (`01URWOV` / `01URWYG`)
 
-Machine Learning laboratory repository for the 2025/2026 academic year.
+[![Politecnico di Torino](https://img.shields.io/badge/University-Politecnico%20di%20Torino-002D62.svg?style=flat&logo=buffer&logoColor=white)](https://www.polito.it/)
+[![Course](https://img.shields.io/badge/Course-Machine%20Learning-blue.svg?style=flat)](https://didattica.polito.it/)
+[![Degree](https://img.shields.io/badge/Master's%20Degree-Computer%20Engineering%20(LM--32)-FF8C00?style=flat)](https://didattica.polito.it/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This repository contains a collection of practical laboratory exercises developed throughout a Machine Learning course.  
-The labs cover the fundamental concepts of statistical pattern recognition, probabilistic modeling, dimensionality reduction, classification, and model evaluation using Python and scientific computing libraries.
+Practical laboratory implementations, algorithms developed from scratch in Python, and comprehensive technical laboratory reports for the Master's degree course in **Machine Learning** at **Politecnico di Torino** (A.Y. 2025/2026).
+
+---
+
+## ⚡ Direct 1-Click PDF Downloads
+
+Download each laboratory report and official problem statement directly with one click:
+
+| Laboratory | Topic / Content | Direct PDF Report | Problem Statement |
+| :--- | :--- | :---: | :---: |
+| **LAB 01** | Python Numerical Libraries (NumPy, SciPy, Matplotlib) | — *(Practical onboarding)* | [📄 lab01_text.pdf](LAB01%20-%20PYTHON%20NUMERICAL%20LIBS/lab01_text-PythonNumericalLibraries.pdf) |
+| **LAB 02** | Iris Dataset (Exploration & Fisher Features) | [📊 lab02_report.pdf](LAB02%20-%20IRIS%20DATASET/report/lab02_report.pdf) | [📄 lab02_text.pdf](LAB02%20-%20IRIS%20DATASET/lab02_text-IrisDataset.pdf) |
+| **LAB 03** | Dimensionality Reduction (PCA & LDA from Scratch) | [📊 lab03_report.pdf](LAB03%20-%20DIMENSIONALITY%20REDUCTION/report/lab03_report-DimensionalityReduction.pdf) | [📄 lab03_text.pdf](LAB03%20-%20DIMENSIONALITY%20REDUCTION/lab03_text-DimensionalityReduction.pdf) |
+| **LAB 04** | Probability & Density Estimation (Multivariate Gaussian) | [📊 lab04_report.pdf](LAB04%20-%20PROBABILITY%20AND%20DENSITY%20ESTIMATION/report/lab04_report-DensityEstimation.pdf) | [📄 lab04_text.pdf](LAB04%20-%20PROBABILITY%20AND%20DENSITY%20ESTIMATION/lab04_text-ProbabilityAndDensityEstimation.pdf) |
+| **LAB 05** | Generative Gaussian Classifiers (MVG, Naive Bayes, Tied) | [📊 lab05_report.pdf](LAB05%20-%20GENERATIVE%20GAUSSIAN%20MODELS/report/lab05_report.pdf) | [📄 lab05_text.pdf](LAB05%20-%20GENERATIVE%20GAUSSIAN%20MODELS/lab05_text-GenerativeGaussianModels.pdf) |
+| **LAB 06** | Bayes Risk, Detection Cost Function (DCF) & Model Evaluation | [📊 lab06_report.pdf](LAB06%20-%20BAYES%20RISK%20AND%20MODEL%20EVALUATION/report/lab_06-report.pdf) | [📄 lab06_text.pdf](LAB06%20-%20BAYES%20RISK%20AND%20MODEL%20EVALUATION/lab06_text-BayesRiskAndModelEvaluation.pdf) |
+| **LAB 07** | Logistic Regression (Binary, Multiclass, Regularization) | [📊 lab07_report.pdf](LAB07%20-%20LOGISTIC%20REGRESSION/report/lab_07-report.pdf) | [📄 lab07_text.pdf](LAB07%20-%20LOGISTIC%20REGRESSION/lab07_text-LogisticRegression.pdf) |
+| **LAB 08** | Support Vector Machines (Linear, Polynomial & RBF Kernels) | [📊 lab08_report.pdf](LAB08%20-%20SUPPORT%20VECTOR%20MACHINES/report/lab08_report-SVM.pdf) | [📄 lab08_text.pdf](LAB08%20-%20SUPPORT%20VECTOR%20MACHINES/lab08_text-SVM.pdf) |
+| **LAB 09** | Gaussian Mixture Models (EM & LBG Algorithms) | [📊 lab09_report.pdf](LAB09%20-%20GMM/report/lab09_report-GMM.pdf) | [📄 lab09_text.pdf](LAB09%20-%20GMM/lab09_text-GMM.pdf) |
+| **LAB 10** | Score Calibration & Multi-System Fusion | [📊 lab10_report.pdf](LAB10%20-%20CALIBRATION%20FUSION/report/lab10_report-Calibration_Fusion.pdf) | [📄 lab10_text.pdf](LAB10%20-%20CALIBRATION%20FUSION/lab10_text-Calibration_fusion.pdf) |
+| **Benchmark** | Full Model Evaluation Benchmark ($\pi = 0.1$) | [📈 model_evaluation_pi_0_1.pdf](model_evaluation_pi_0_1.pdf) | — |
 
 ---
 
 # Repository Structure
 
 ```text
-Machine-Learning-Labs-2026/
+MACHINE_LEARNING/
 │
 ├── LAB01 - PYTHON NUMERICAL LIBS
 ├── LAB02 - IRIS DATASET
+│   └── report/
 ├── LAB03 - DIMENSIONALITY REDUCTION
+│   └── report/
 ├── LAB04 - PROBABILITY AND DENSITY ESTIMATION
+│   └── report/
 ├── LAB05 - GENERATIVE GAUSSIAN MODELS
+│   └── report/
 ├── LAB06 - BAYES RISK AND MODEL EVALUATION
+│   └── report/
 ├── LAB07 - LOGISTIC REGRESSION
+│   └── report/
 ├── LAB08 - SUPPORT VECTOR MACHINES
+│   └── report/
 ├── LAB09 - GMM
+│   └── report/
 ├── LAB10 - CALIBRATION FUSION
+│   └── report/
 │
-├── README.md
-└── .gitignore
+├── model_evaluation_pi_0_1.pdf
+├── publish_labs.sh
+└── README.md
 ```
 
 ---
@@ -32,136 +64,100 @@ Machine-Learning-Labs-2026/
 # Labs Overview
 
 ## LAB01 — Python Numerical Libraries
-Introduction to the Python scientific ecosystem:
-
-- NumPy
-- SciPy
-- Matplotlib
-- Vectorized computations
-- Matrix operations
-- Data visualization
+Introduction to the Python scientific computing ecosystem:
+- NumPy vectorized routines and broadcasting
+- SciPy linear algebra
+- Matplotlib plotting standards
+- Matrix operations and numerical precision
 
 ---
 
 ## LAB02 — Iris Dataset
-Exploration and analysis of the Iris dataset:
-
-- Dataset loading
-- Data preprocessing
-- Statistical analysis
-- Visualization techniques
-- Basic classification concepts
+Exploration, statistical analysis, and visualization of the classic Iris benchmark:
+- Dataset normalization and preprocessing
+- Statistical feature variance and covariance
+- Pairwise feature scatter plots and distributions
+- Basic distance-based classification concepts
 
 ---
 
 ## LAB03 — Dimensionality Reduction
-Implementation and analysis of dimensionality reduction techniques:
-
-- Principal Component Analysis (PCA)
-- Linear Discriminant Analysis (LDA)
-- Feature projection
-- Variance analysis
-- Data visualization in lower-dimensional spaces
+Mathematical derivations and pure Python implementations:
+- **Principal Component Analysis (PCA)**: Spectral decomposition, covariance calculation, and variance preservation
+- **Linear Discriminant Analysis (LDA)**: Between-class ($S_B$) and within-class ($S_W$) scatter optimization
+- Lower-dimensional manifold projection and separation quality
 
 ---
 
 ## LAB04 — Probability and Density Estimation
-Study of probabilistic models and density estimation:
-
-- Gaussian distributions
-- Multivariate probability density functions
-- Maximum Likelihood Estimation (MLE)
-- Log-likelihood computation
-- Numerical stability
+Statistical modeling and maximum likelihood estimation:
+- Multivariate Gaussian probability density function (PDF)
+- Maximum Likelihood Estimation (MLE) of $\mu$ and $\Sigma$
+- Log-likelihood optimization and log-sum-exp numerical stabilization
 
 ---
 
 ## LAB05 — Generative Gaussian Models
-Implementation of generative classifiers based on Gaussian assumptions:
-
-- Multivariate Gaussian Classifier
-- Naive Bayes Gaussian Classifier
-- Tied covariance models
-- Log-domain computations
-- Posterior probability estimation
+Complete implementations of generative classification frameworks:
+- **Full Multivariate Gaussian (MVG)**: Class-specific covariance matrices
+- **Naive Bayes Gaussian**: Diagonal covariance constraints
+- **Tied Covariance Models**: Shared covariance structure across classes
+- Log-domain posterior probabilities calculation
 
 ---
 
 ## LAB06 — Bayes Risk and Model Evaluation
-Evaluation of machine learning systems through decision theory:
-
-- Bayes decision theory
-- Detection Cost Function (DCF)
-- Confusion matrices
-- ROC analysis
-- Minimum Bayes risk
-- Threshold selection
+Decision theory and performance metrics under asymmetric costs:
+- Minimum Bayes Risk decisions and optimal thresholding
+- Empirical and normalized **Detection Cost Function (DCF)**
+- ROC / DET curves and confusion matrices
+- Minimum DCF vs. Actual DCF analysis
 
 ---
 
 ## LAB07 — Logistic Regression
-Implementation of discriminative linear classifiers:
-
-- Binary logistic regression
-- Multiclass logistic regression
-- Optimization techniques
-- Regularization
-- Score calibration
-- Decision boundaries
+Discriminative linear models solved via numerical optimization:
+- Binary Logistic Regression with $L_2$ regularization
+- Multiclass Logistic Regression
+- Numerical optimization with `scipy.optimize.fmin_l_bfgs_b`
+- Score calibration and decision boundary visualization
 
 ---
 
 ## LAB08 — Support Vector Machines
-Implementation and analysis of Support Vector Machines:
-
+Constrained quadratic programming formulation and dual representation:
+- Dual formulation optimization with box constraints
 - Linear SVM
-- Polynomial kernel SVM
-- Radial Basis Function (RBF) kernel SVM
-- Margin optimization
-- Kernel trick
+- Kernel Trick: Polynomial and Radial Basis Function (RBF) kernels
+- Hyperparameter tuning ($C$ and $\gamma$) and support vectors geometry
 
 ---
 
-## LAB09 — GMM
-Study and implementation of Gaussian Mixture Models:
-
-- Expectation-Maximization (EM) algorithm
-- LBG algorithm for initialization
-- Gaussian Mixture Models classification
-- Diagonal and tied covariance matrices
+## LAB09 — Gaussian Mixture Models (GMM)
+Non-parametric probabilistic clustering and density estimation:
+- Expectation-Maximization (EM) algorithm implementation
+- Linde-Buzo-Gray (LBG) hierarchical component-splitting algorithm
+- Diagonal and tied covariance adaptations for Gaussian components
 
 ---
 
 ## LAB10 — Calibration Fusion
-Advanced model evaluation and score fusion:
-
-- System evaluation
-- Score calibration
-- Score fusion techniques
-- Logistic regression for fusion
+Score-level fusion and post-processing:
+- Score calibration via unweighted and weighted logistic regression
+- Multi-system fusion combining scores from generative and discriminative models
+- System validation across operating conditions
 
 ---
 
-# Requirements
+# Requirements & Environment
 
-The project is developed using Python 3.
-
-Suggested environment:
+Developed and tested using Python 3:
 
 ```bash
-Python >= 3.10
+python >= 3.10
 ```
 
-Main libraries:
-
-```bash
-numpy
-scipy
-matplotlib
-sklearn
-```
-
-Install dependencies with:
+Required packages:
 
 ```bash
 pip install numpy scipy matplotlib scikit-learn
@@ -169,60 +165,7 @@ pip install numpy scipy matplotlib scikit-learn
 
 ---
 
-# Running the Labs
-
-Clone the repository:
-
-```bash
-git clone https://github.com/NicolaBeccaceci/Machine-Learning-Labs-2026.git
-```
-
-Move into the repository:
-
-```bash
-cd Machine-Learning-Labs-2026
-```
-
-Run a specific lab script:
-
-```bash
-python path/to/script.py
-```
-
----
-
-# Educational Goals
-
-The purpose of this repository is to:
-
-- Develop a solid understanding of Machine Learning fundamentals
-- Implement algorithms from scratch
-- Understand the mathematical foundations behind ML methods
-- Analyze probabilistic and discriminative models
-- Evaluate classification systems rigorously
-
----
-
-# Topics Covered
-
-- Statistical Pattern Recognition
-- Probability Theory
-- Bayesian Decision Theory
-- Density Estimation
-- Dimensionality Reduction
-- Generative Models
-- Logistic Regression
-- Model Evaluation
-
----
-
-# Notes
-
-This repository is intended for educational purposes and laboratory activities associated with a university Machine Learning course.
-
----
-
 # Author
 
-Nicola Beccaceci  
+**Nicola Beccaceci**  
 MSc Computer Engineering — Politecnico di Torino
