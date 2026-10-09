@@ -1,0 +1,6 @@
+Metric,Value
+Validation Samples,2000
+Default Threshold,-0.018534376786207174
+Default Error Rate (%),9.3
+Best Sweep Threshold,-0.10796723880749415
+Best Error Rate (%),9.1
