@@ -1,0 +1,943 @@
+\documentclass[../../main.tex]{subfiles}
+
+\begin{document}
+
+\chapter{Introduzione alla sicurezza dei sistemi informativi}
+\label{ch:introduzione}
+
+In termini generali, fare sicurezza significa portare i rischi a livelli accettabili, concetto la cui definizione richiede un'attenta contestualizzazione rispetto agli obiettivi organizzativi e alle risorse disponibili. Come formalizzato nella letteratura scientifica fondamentale della disciplina da William \textbf{Stallings} (\textit{Computer Security: Principles and Practice}), dalle linee guida dello standard \textbf{NIST SP 800-33} e dall'impostazione metodologica del corso del Prof. Cataldo \textbf{Basile} presso il Politecnico di Torino, la sicurezza non può essere concepita come uno stato assoluto o binario, bensì come un equilibrio dinamico tra la minimizzazione delle vulnerabilità, la neutralizzazione di ogni potenziale \textbf{minaccia} e la sostenibilità operativa ed economica delle misure di protezione adottate.
+
+% =========================================================================
+% SEZIONE 1.1: LA SICUREZZA INFORMATICA: MOTIVAZIONI E DATI
+% =========================================================================
+\section{La sicurezza informatica: motivazioni e dati}
+\label{sec:motivazioni_e_dati}
+
+\subsection{Alcune definizioni di sicurezza}
+\label{subsec:alcune_definizioni}
+
+È opportuno innanzitutto chiarire cosa si intenda per \textbf{sicurezza informatica}. Nel corso degli anni sono emerse diverse accezioni di questo concetto, ciascuna con specifiche sfumature di significato:
+
+\begin{itemize}
+    \item Una prima definizione, di matrice aziendale, la identifica come:
+    \begin{definition}[Sicurezza dei Sistemi Informatici --- Prospettiva Aziendale]
+    L'insieme dei prodotti, dei servizi, delle regole organizzative e dei comportamenti individuali che proteggono i sistemi informatici di un'azienda.
+    \end{definition}
+    Questa prospettiva adotta un approccio pragmatico, sottolineando l'obiettivo di garantire il corretto funzionamento dei sistemi aziendali e la protezione degli \textbf{asset} anche in presenza di minacce provenienti da attori malevoli. Da questa formulazione emerge con evidenza come la sicurezza non sia un problema puramente tecnologico (risolvibile acquistando apparati o licenze software), bensì un sistema socio-tecnico integrato: la barriera tecnologica più avanzata viene vanificata se le regole organizzative non vengono applicate o se i singoli utenti mantengono comportamenti imprudenti (ad esempio aprendo allegati non verificati o scaricando software non autorizzato).
+
+    \item Una seconda definizione, emersa successivamente, enfatizza invece:
+    \begin{definition}[Sicurezza delle Risorse e Proprietà Fondamentali]
+    Il compito di proteggere le risorse da accessi indesiderati, garantire la riservatezza delle informazioni, assicurare il funzionamento e la disponibilità dei servizi a fronte di eventi imprevedibili.
+    \end{definition}
+    In questo caso l'attenzione si concentra sulla prevenzione di accessi non autorizzati, sia da parte di attori criminali sia di soggetti concorrenti. Successivamente introduce quella che viene chiamata \textbf{Triade CIA} (\textit{Confidentiality, Integrity, Availability}), tre concetti essenziali per poter costruire sistemi sicuri:
+    \begin{itemize}
+        \item \textbf{Riservatezza (Confidentiality):} riguarda la protezione della segretezza dei dati, impedendo che soggetti non autorizzati possano accedere a informazioni confidenziali.
+        \item \textbf{Integrità (Integrity):} indica la necessità di preservare dati e sistemi da modifiche, cancellazioni o inserimenti non autorizzati, garantendo l'accuratezza e la completezza delle informazioni.
+        \item \textbf{Disponibilità (Availability):} aspetto talvolta considerato al confine della sicurezza informatica in senso stretto, ma essenziale nella misura in cui mira a impedire che terzi possano compromettere l'erogazione tempestiva e affidabile dei servizi, causando gravissime perdite economiche e operative.
+    \end{itemize}
+    A queste proprietà canoniche, i modelli formali moderni (ISO/IEC 27000 e NIST) affiancano tre ulteriori proprietà cardine: l'\textbf{Autenticità} (certezza che l'identità dell'entità o l'origine del messaggio corrisponda a quella dichiarata), la \textbf{Tracciabilità} o \textit{Accountability} (capacità di imputare inequivocabilmente ogni azione compiuta a un soggetto identificabile) e il \textbf{Non-Ripudio} (impossibilità per il mittente di negare la paternità di un messaggio o per il destinatario di negarne la ricezione, proprietà che richiede asimmetria probatoria opponibile a terzi e può essere garantita unicamente dalla firma digitale asimmetrica, non dalla crittografia simmetrica condivisa o da codici HMAC dove entrambe le parti possiedono la medesima chiave segreta e possono reciprocamente falsificare i messaggi).
+
+    \item Una terza definizione riprende l'aspetto applicativo della prima e rappresenta la necessità di riportare il mondo informatico e virtuale all'esperienza fisica:
+    \begin{quote}
+    \textit{"L'obiettivo è custodire le informazioni con la stessa professionalità ed attenzione con cui ci si prende cura di gioielli o certificati azionari depositati nel caveau. Il sistema informatico è la cassaforte delle nostre informazioni più preziose; la sicurezza informatica è l'equivalente delle serrature, combinazioni e chiavi che servono a proteggerla."}
+    \end{quote}
+    Questa prospettiva evidenzia la sicurezza informatica come trasposizione digitale dei meccanismi di protezione fisica tradizionalmente impiegati per la tutela di beni di valore. L'analogia chiarifica immediatamente la necessità di un approccio armonico:
+    \begin{itemize}
+        \item Se la serratura a combinazione della cassaforte viene lasciata sulla sequenza di fabbrica predefinita (\textit{default credential}), lo spessore dell'acciaio è del tutto ininfluente.
+        \item Se la chiave del caveau viene appesa a un gancio sulla parete adiacente (memorizzazione in chiaro di credenziali in script o database), chiunque può aprirla.
+        \item Se la guardia armata posta a presidio del caveau apre il portellone a un estraneo travestito da manutentore senza verificarne il tesserino (\textit{ingegneria sociale}), l'intera infrastruttura crolla istantaneamente.
+    \end{itemize}
+\end{itemize}
+
+\subsection{I motivi dell'importanza della sicurezza informatica}
+\label{subsec:motivi_importanza}
+
+La sicurezza informatica è spesso percepita dai vertici aziendali come un investimento privo di ritorno immediato: l'implementazione di misure di protezione non genera profitto diretto e può, al contrario, ridurre la produttività operativa. Tuttavia, un'analisi più approfondita evidenzia tre motivazioni fondamentali che ne giustificano l'essenzialità:
+
+\begin{itemize}
+    \item \textbf{Ragioni economiche:} la progressiva digitalizzazione degli asset aziendali ha reso il patrimonio informativo un bene critico da proteggere. Gli istituti finanziari, ad esempio, operano quasi interamente su piattaforme digitali, rendendo evidente la necessità di tutelare tali risorse per prevenire danni economici. Per le organizzazioni, le conseguenze di una compromissione possono manifestarsi in molteplici forme: sottrazione di segreti industriali da parte di concorrenti, danno reputazionale derivante dalla violazione di dati sensibili dei clienti, interruzione prolungata dei servizi con conseguente perdita di ricavi e pagamento di penali per violazione dei \textit{Service Level Agreement} (SLA).
+    
+    \item \textbf{Ragioni sociali ed etiche:} la sicurezza informatica riveste un ruolo essenziale nella protezione individuale e nella tutela della privacy. La correttezza nella gestione dei dati personali e la prevenzione dello sfruttamento illecito costituiscono diritti fondamentali che le organizzazioni sono tenute a garantire. Una compromissione può comportare gravi violazioni della riservatezza, esponendo informazioni sensibili degli utenti a utilizzi impropri, furti di identità o discriminazioni.
+    
+    \item \textbf{Ragioni di Stato:} la sicurezza informatica rappresenta oggi un elemento strategico per la difesa nazionale. Il contesto attuale è caratterizzato da una \textbf{guerra ibrida}, in cui gli Stati organizzano operazioni offensive e difensive attraverso il cyberspazio. A titolo esemplificativo, la Russia conduce campagne periodiche volte a destabilizzare l'Unione Europea, prassi storicamente adottata anche dagli Stati Uniti in contesti geopolitici differenti. Analogamente, la Cina ha istituito dipartimenti dedicati all'\textit{offensive security} e alla penetrazione di reti estere, con l'obiettivo di acquisire proprietà intellettuale su scala globale, con particolare attenzione al contesto industriale e tecnologico occidentale.
+\end{itemize}
+
+Nel seguito del corso ci si concentrerà prevalentemente sulle \textbf{ragioni economiche}, in quanto più facilmente inquadrabili da una prospettiva ingegneristica.
+
+In passato, le piccole e medie imprese ritenevano di non rappresentare obiettivi di interesse per gli attaccanti (\textit{"perché mai qualcuno dovrebbe attaccare proprio noi?"}), limitando di conseguenza gli investimenti in sicurezza informatica. Tuttavia, è oggi evidente che la probabilità di subire un attacco è estremamente elevata per qualsiasi organizzazione, indipendentemente dalle dimensioni. Gli attori criminali adottano infatti strategie di tipo \textbf{pesca a strascico} (\textit{mass automated attacks}): script e botnet scansionano ininterrottamente lo spazio globale degli indirizzi IP alla ricerca di qualsiasi porta aperta o servizio contenente una vulnerabilità nota. L'attaccante non mira a un marchio specifico, ma cerca un bersaglio facile con difese meno strutturate, massimizzando il proprio ritorno economico (\textit{Return on Investment}, ROI) attraverso la numerosità statistica delle compromissioni. Questo è reso possibile da una grande abilità nell'automazione dello sfruttamento degli attacchi e dall'esistenza di una rete efficiente nel monetizzare gli effetti delle intrusioni (dati confidenziali, risorse computazionali, accessi non autorizzati).
+
+Parallelamente, le grandi organizzazioni risultano vulnerabili ad attacchi più sofisticati mirati alla loro catena di fornitura: i \textbf{supply chain attacks}. Compromettendo fornitori, partner commerciali o componenti software di terze parti utilizzati dall'azienda target, gli attaccanti ottengono un accesso indiretto a sistemi altrimenti ben protetti. Queste tipologie di attacchi, particolarmente insidiosi, sfruttano le relazioni di fiducia tra organizzazioni e la complessità delle moderne catene di approvvigionamento digitali.
+
+Nel complesso, possiamo dedurre che gli investimenti nella cybersecurity sono incrementati notevolmente nell'ultimo periodo perché, nella maggior parte dei casi, il danno economico conseguente a un attacco supera di gran lunga il costo degli investimenti preventivi in sicurezza. Le principali conseguenze economiche non si limitano ai \textbf{danni diretti} (ad esempio, trasferimenti fraudolenti di fondi), ma si articolano prevalentemente in \textbf{impatti indiretti}:
+\begin{itemize}
+    \item \textbf{Deprezzamento del valore azionario} e perdita di capitalizzazione sul mercato;
+    \item \textbf{Sanzioni amministrative}, quali quelle comminate dalle autorità garanti in caso di violazione del Regolamento Generale sulla Protezione dei Dati (\textbf{GDPR}, fino al 4\% del fatturato globale annuo);
+    \item \textbf{Costi di ripristino e bonifica}, comprendenti le spese per riportare i sistemi allo stato originale, ingaggiare team di risposta agli incidenti e implementare misure correttive;
+    \item \textbf{Perdita di produzione}, con mancati guadagni derivanti da blocchi o rallentamenti operativi e penali contrattuali;
+    \item \textbf{Perdita di clienti e commesse}, causata dal discredito e dall'erosione della fiducia conseguenti alla diffusione pubblica della notizia della violazione (\textit{danno reputazionale}).
+\end{itemize}
+
+\subsection{Insicurezza: le cause profonde}
+\label{subsec:cause_profonde}
+
+In seguito ai primi attacchi informatici di rilevanza pubblica negli Stati Uniti all'inizio degli anni 2000 (i clamorosi attacchi DDoS contro giganti del web quali Yahoo!, eBay, Amazon e CNN orchestrati dal malware \textit{Mafiaboy}), l'amministrazione \textbf{Clinton} commissionò un documento analitico volto a identificare le cause profonde dell'insicurezza informatica. Le principali criticità strutturali individuate furono le seguenti:
+
+\begin{enumerate}
+    \item \textbf{Evoluzione open-source e cooperativa delle tecnologie di attacco:} gli strumenti offensivi evolvono rapidamente e secondo un modello aperto, risultando ampiamente accessibili, modulari e facilmente adattabili da parte di chiunque.
+    \item \textbf{Approccio reattivo della difesa:} le metodologie difensive inseguono costantemente gli attaccanti. Una volta scoperta una vulnerabilità, il sistema bersaglio può essere protetto solo dopo lo sviluppo, il collaudo e l'applicazione delle patch di sicurezza, configurando un ritardo strutturale ineliminabile denominato \textbf{Window of Exposure} (\textit{finestra di esposizione}).
+    \item \textbf{Proliferazione di sistemi insicuri connessi alla rete:} milioni di calcolatori legacy privi di adeguati controlli di sicurezza sono direttamente esposti a Internet; a distanza di vent'anni dalla relazione, a questi si sono aggiunti miliardi di dispositivi \textbf{IoT} (\textit{Internet of Things}), spesso dotati di credenziali fisse e privi di meccanismi di aggiornamento.
+    \item \textbf{Carenza di competenze specialistiche:} la rapidissima espansione commerciale di Internet ha costretto le organizzazioni ad assumere personale sistemistico e operativo privo di formazione specialistica sulla sicurezza.
+    \item \textbf{Assenza di pratiche di programmazione sicura:} lo sviluppo del software è stato storicamente affidato a programmatori privi di nozioni di \textit{secure coding}, orientati esclusivamente al rispetto delle scadenze di rilascio e all'aggiunta di funzionalità.
+    \item \textbf{Transnazionalità delle minacce:} gli attacchi oltrepassano istantaneamente i confini geografici e le sovranità nazionali, rendendo le indagini complesse ed inefficaci.
+    \item \textbf{Difficoltà dell'azione giudiziaria internazionale:} le discrepanze tra gli ordinamenti giuridici internazionali e la mancanza di cooperazione giudiziaria con taluni Stati rendono estremamente improbabile l'identificazione e il perseguimento effettivo dei responsabili.
+\end{enumerate}
+
+Questa fragilità endemica dell'ecosistema di rete fu sintetizzata con straordinaria efficacia dall'esperto di sicurezza e giurista britannico \textbf{Nick Lockett} con una celebre massima:
+\begin{quote}
+\textit{"Internet is an inherently insecure network connecting inherently insecure computers."} \\
+(\textit{"Internet è una rete intrinsecamente insicura che interconnette calcolatori intrinsecamente insicuri."})
+\end{quote}
+L'analisi formulata oltre due decenni fa mantiene piena attualità e, per certi aspetti, descrive una situazione nettamente peggiorata a causa dell'incremento esponenziale dei nodi interconnessi, della complessità dei servizi applicativi e della nascita di un'industria altamente organizzata del cybercrime.
+
+\subsection{Verizon Data Breach Investigation Report}
+\label{subsec:verizon_dbir}
+
+Diverse organizzazioni e agenzie governative pubblicano periodicamente report di cybersecurity per scopi analitici e strategici. Tra questi, il punto di riferimento metodologico su scala globale è il celebre \textbf{Data Breach Investigations Report} (\textbf{DBIR}), redatto annualmente dalla divisione aziendale di \textbf{Verizon}. Il report aggrega ed esamina con rigore scientifico i dati empirici provenienti da decine di migliaia di incidenti di sicurezza confermati a livello mondiale, fornendo un quadro oggettivo ed epidemiologico dello stato reale della sicurezza informatica.
+
+All'interno del framework DBIR si adotta una distinzione tassonomica essenziale:
+\begin{itemize}
+    \item \textbf{Security Incident:} qualsiasi evento imprevisto o malevolo che compromette la riservatezza, l'integrità o la disponibilità di un sistema informativo o di un asset aziendale.
+    \item \textbf{Data Breach:} un incidente confermato in cui dati sensibili, riservati o protetti vengono effettivamente esfiltrati, divulgati o sottratti a soggetti non autorizzati.
+\end{itemize}
+
+L'analisi integrata dei dati empirici collezionati nelle edizioni più recenti del report (dal DBIR 2021 al DBIR 2026) rivela parametri quantitativi e andamenti longitudinali cruciali per la gestione della sicurezza aziendale.
+
+\paragraph{Costi Diretti e Costi Indiretti:}
+L'impatto economico di una violazione non si esaurisce mai nella perdita monetaria immediata. Il DBIR classifica i costi generati da un incidente in due macro-categorie:
+\begin{itemize}
+    \item \textbf{Costi Diretti:} conseguenze patrimoniali e finanziarie immediate scaturenti dall'attacco, quali bonifici fraudolenti disposti verso conti dell'attaccante, riscatti versati o danni materiali ai dispositivi.
+    \item \textbf{Costi Indiretti:} oneri prolungati nel tempo che spesso superano di diversi ordini di grandezza il danno diretto, articolati in:
+    \begin{enumerate}
+        \item \textit{Spese tecnologiche aggiuntive di digital forensics:} costi per ingaggiare società terze specializzate nell'acquisizione delle prove informatiche, ricostruzione della \textit{kill chain} e bonifica delle \textit{backdoor} residue.
+        \item \textit{Spese legali e di compliance:} oneri per consulenze legali, contenziosi civili avviati da clienti o partner danneggiati, gestione delle notifiche obbligatorie alle autorità di protezione dei dati (ad esempio entro 72 ore ai sensi del GDPR) e sanzioni amministrative.
+        \item \textit{Perdita di valore azionario in borsa:} il monitoraggio empirico a lungo termine su società quotate (confrontate con l'andamento dell'indice NASDAQ a 6 mesi, $n=39$) dimostra che la maggior parte delle aziende violate subisce un calo azionario mediano di circa il \textbf{-5\% già a una settimana} dall'annuncio dell'incidente; tale trend negativo non si riassorbe nel breve termine, ma \textbf{persiste per almeno due anni}, registrando flessioni che toccano il -31\% o il -50\% nei casi più gravi.
+    \end{enumerate}
+\end{itemize}
+
+Dall'analisi delle distribuzioni empiriche delle perdite monetarie ($n$ incidenti analizzati) emerge un divario strutturale tra la \textbf{perdita mediana} e la \textbf{perdita massima}, causato dalla presenza di una coda lunga ad altissimo impatto economico:
+\begin{table}[htbp]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lccccl}
+\toprule
+\textbf{Tipologia di Evento} & \textbf{Campione} & \textbf{Senza Perdita} & \textbf{Mediana} & \textbf{75° Percentile} & \textbf{Perdita Massima / Note} \\
+\midrule
+\textbf{Business Email Compromise (BEC)} & $n=19.296$ & 42\% & \$30.000 & \$305.000 & Picchi fino a \$984.855 \\
+\textbf{Computer Data Breach (CDB)} & $n=2.781$ & 76\% & \$29.774 & \$438.499 & Massimo storico di \$1.594.648 \\
+\textbf{Ransomware (costo diretto)} & $n=2.475$ & 90\% & \$11.150 & \$296.500 & Oltre \$1.155.775 (esclusi costi indiretti) \\
+\textbf{Analisi Forense (Forensics)} & $n=50$ & 50\% & \$18.124 & \$136.120 & Raggiunge \$336.499 \\
+\textbf{Spese Legali (Legal)} & $n=50$ & 36\% & \$4.027 & \$22.423 & Raggiunge \$53.691 \\
+\bottomrule
+\end{tabular}%
+}
+\caption{Distribuzione statistica dei costi diretti e indiretti per categoria di incidente (Dati DBIR).}
+\label{tab:dbir_costs}
+\end{table}
+
+\paragraph{Principali Attori della Minaccia (Threat Actors):}
+L'indagine empirica evidenzia l'origine e la natura degli agenti malevoli coinvolti nelle violazioni confermate (DBIR 2025 e DBIR 2026, $n=22.345$):
+\begin{itemize}
+    \item \textbf{Attori Esterni (88\%):} costituiscono la stragrande maggioranza delle intrusioni. All'interno di questo gruppo, il \textbf{Crimine Organizzato (Organized Crime)} detiene la prevalenza assoluta (oltre il 65--70\% delle violazioni totali); si tratta di una vera e propria industria strutturata il cui giro d'affari globale stimato ha superato i \textbf{1.000 miliardi di dollari (1 Trillion \$)} già nel biennio 2019/2020.
+    \item \textbf{Attori Interni (12\%):} la componente interna (\textit{Insider Threat}) rappresenta una quota non trascurabile. Dimostra inconfutabilmente che un'organizzazione non può riporre una fiducia incondizionata nel personale o negli amministratori di sistema: accessi privilegiati abusati, dipendenti infedeli o collaboratori distratti possono vanificare le difese perimetrali.
+    \item \textbf{Attori Statali (State-Sponsored / Nation-State, 5--10\%):} agenzie di intelligence governative e gruppi APT ($n=1.892$). Per questi attori, la motivazione primaria è lo \textbf{Spionaggio industriale e geopolitico (74\%)}, seguito da interessi finanziari (28\%) e sabotaggio secondario (26\%).
+    \item \textbf{Coinvolgimento dell'Elemento Umano (Human Element, 62\%):} il DBIR 2026 certifica che nel \textbf{62\% dei breach} complessivi è presente un errore o un'azione umana determinante (caduta in trappole di phishing, uso improprio di credenziali o configurazioni errate).
+\end{itemize}
+
+\paragraph{Motivazione degli Attaccanti Esterni:}
+Se a livello aggregato globale il guadagno economico costituisce la molla prevalente (89\% nel DBIR 2025 e 96\% nel DBIR 2022), un'analisi stratificata in base alla dimensione dell'organizzazione rivela una profonda discrepanza:
+\begin{itemize}
+    \item \textbf{Tutte le Organizzazioni (campione dominato da PMI):} il movente è quasi esclusivamente finanziario (\textbf{96\%}); le azioni dettate da disaccordo/protesta (3\%), divertimento o curiosità (2\%) e rancore personale (1\%) risultano residuali. Le PMI sono considerate bancomat digitali da colpire con scansioni e attacchi automatizzati a basso costo.
+    \item \textbf{Grandi Organizzazioni e Multinazionali (Larger Orgs):} la componente finanziaria scende al \textbf{71\%}, lasciando spazio a motivazioni ideologiche e personali: il disaccordo e la protesta sociale salgono al \textbf{25\%}, mentre il divertimento, la curiosità e la ricerca di prestigio tecnico (\textit{"fun, curiosity, pride"}) raggiungono il \textbf{23\%}. I grandi marchi attirano hacktivisti e attaccanti alla ricerca di visibilità globale.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\linewidth}{!}{%
+\begin{tikzpicture}
+\begin{axis}[
+    xbar,
+    bar width=10pt,
+    width=13cm,
+    height=5.8cm,
+    xmin=0, xmax=110,
+    xlabel={Percentuale di Violazioni (\%)},
+    symbolic y coords={Rancore Personale, Divertimento / Prestigio, Disaccordo / Protesta, Guadagno Economico},
+    ytick=data,
+    y tick label style={font=\footnotesize\bfseries},
+    nodes near coords={\pgfmathprintnumber\pgfplotspointmeta\%},
+    nodes near coords style={font=\scriptsize\bfseries},
+    legend style={at={(0.98,0.30)}, anchor=east, font=\scriptsize},
+    grid=major,
+    grid style={dashed, gray!30},
+    title={\textbf{Motivazioni degli Attaccanti Esterni: Tutte le Aziende vs Grandi Organizzazioni}}
+]
+\addplot[fill=secblue!70, draw=secblue!90!black] coordinates {
+    (96,Guadagno Economico)
+    (3,Disaccordo / Protesta)
+    (2,Divertimento / Prestigio)
+    (1,Rancore Personale)
+};
+\addplot[fill=secorange!70, draw=secorange!90!black] coordinates {
+    (71,Guadagno Economico)
+    (25,Disaccordo / Protesta)
+    (23,Divertimento / Prestigio)
+    (2,Rancore Personale)
+};
+\legend{Tutte le Organizzazioni (PMI), Grandi Organizzazioni}
+\end{axis}
+\end{tikzpicture}%
+}
+\caption{Confronto delle motivazioni degli attaccanti esterni tra la media globale e le grandi organizzazioni (Dati Verizon DBIR).}
+\label{fig:dbir_motives_comparison}
+\end{figure}
+
+\paragraph{Access Vector (Punto di Partenza) e Trend Recenti:}
+L'access vector identifica la vulnerabilità iniziale o la debolezza sfruttata per violare il perimetro aziendale. Formalmente:
+\begin{definition}[Vulnerabilità]
+Una vulnerabilità è una debolezza intrinseca di progettazione, implementazione, configurazione o gestione che può essere sfruttata da una minaccia per compromettere un sistema o un asset.
+\end{definition}
+
+L'analisi longitudinale documenta un'evoluzione storica impressionante:
+\begin{itemize}
+    \item \textbf{Sorpasso dello Sfruttamento di Vulnerabilità (Exploitation of Vulnerabilities):} balzato dal \textbf{14\% nel 2024}, al \textbf{20\% nel 2025}, fino a toccare il \textbf{31\% nel 2026}. È divenuto il \textbf{primo vettore d'ingresso assoluto} nelle violazioni non accidentali, trainato dall'adozione massiccia di dispositivi di bordo (\textit{edge appliances}), VPN e software esposti su Internet affetti da vulnerabilità note non corrette (\textit{unpatched}).
+    \item \textbf{Flessione dell'Abuso di Credenziali Rubate (Credential Abuse):} storicamente dominante (38--40\% nel 2022--2023), è sceso al 22\% nel 2025 e si attesta al \textbf{15--16\% nel 2026}. Tale contrazione testimonia l'efficacia dell'autenticazione a più fattori (MFA) e delle chiavi FIDO2/Passkey.
+    \item \textbf{Phishing e Pretexting:} il phishing mantiene un'incidenza stabile tra il \textbf{14\% e il 17\%}, affiancato dal pretexting (ingegneria sociale mirata) al \textbf{5--6\%}.
+\end{itemize}
+
+I trend di sintesi evidenziati dal DBIR 2026 comprendono inoltre:
+\begin{itemize}
+    \item \textbf{48\% degli attacchi coinvolge ransomware:} la quota rimane elevatissima (dopo il picco aggregato con l'estorsione al 62\% nel 2024 e al 44\% nel 2025).
+    \item \textbf{48\% coinvolge terze parti (Supply Chain):} il coinvolgimento di fornitori, librerie open-source ed ecosistemi partner è più che triplicato (era il 15\% nel 2024 e il 30\% nel 2025), consolidando gli attacchi a monte quale vettore preferenziale.
+    \item \textbf{69\% delle vittime di ransomware rifiuta di pagare:} la stragrande maggioranza delle organizzazioni decide di non pagare il riscatto, confidando in procedure di ripristino da backup offline e nel timore di sanzioni per finanziamento al terrorismo.
+    \item \textbf{Impiego di Malware Potenziato da AI Generativa (GenAI-Augmented):} comparsa di malware polimorfico e campagne di phishing iper-personalizzate generate algoritmicamente.
+\end{itemize}
+
+\paragraph{Principali Asset Bersagliati e Varietà di Dati:}
+Formalmente, un \textbf{asset} è qualsiasi risorsa materiale o immateriale dotata di valore per l'organizzazione che necessita di adeguata protezione. I dati empirici identificano la concentrazione degli attacchi sui seguenti nodi:
+\begin{itemize}
+    \item \textbf{Server (95\% delle violazioni totali):} rimangono il bersaglio principale in assoluto. Nel dettaglio delle varietà di server colpite:
+    \begin{itemize}
+        \item \textit{Web Application Server (54\%):} costituiscono la superficie pubblica esposta e il punto di transito di dati transazionali.
+        \item \textit{Mail Server (30\%):} snodo fondamentale per comunicazioni interne, reset di credenziali e veicolazione di allegati infetti.
+        \item \textit{Server di gestione e accesso remoto (10\%):} gateway VPN e terminal server.
+    \end{itemize}
+    \item \textbf{Persone (24\% nel 2025, 13\% dipendenti/end-user nel 2026):} dipendenti ingannati o indotti a compiere azioni nocive.
+    \item \textbf{Dispositivi Utente (User Devices, 7\%):} workstation desktop, personal computer portatili e smartphone aziendali.
+    \item \textbf{Supporti Fisici di Memorizzazione (Media, 2.4\%):} dischi rigidi, memorie flash o apparati dismessi senza preventiva cifratura o degaussing.
+\end{itemize}
+
+In merito alle \textbf{varietà di dati compromessi} (\textit{Top Data Varieties}, $n=12.063$), la distribuzione quantitativa vede in testa i dati interni aziendali (\textbf{Internal, 50\%}), seguiti da dati personali comuni (\textbf{Personal PII, 32\%}), credenziali di accesso (\textbf{Credentials, 19\%}), file e registri di sistema (\textbf{System, 12\%}), segreti crittografici, certificati e chiavi API (\textbf{Secrets, 12\%}), cartelle cliniche e dati sanitari (\textbf{Medical, 9\%}), dettagli di conti bancari (\textbf{Bank, 6\%}), dati personali altamente sensibili (\textbf{Sensitive Personal, 4\%}), chiavi di sessione (\textbf{Session Key, 3\%}) e dati relativi a carte di pagamento (\textbf{Payment, 1.2\%}).
+
+\paragraph{Tipologie di Attacco e Debolezze Matrici:}
+Un \textbf{attacco} è formalmente definito come un'azione deliberata che tenta di compromettere la confidenzialità, l'integrità o la disponibilità di un asset. I report strutturano le cause scatenanti su quattro debolezze cardine:
+\begin{enumerate}
+    \item \textit{Debolezze tecnologiche intrinseche:} protocolli di rete storicamente progettati privi di cifratura o autenticazione; la sicurezza incrementa la complessità del sistema, favorendo nuove falle.
+    \item \textit{Debolezze degli utenti:} mancata consapevolezza degli effetti delle proprie azioni, unite a stati psicologici di stanchezza, fretta, risentimento o curiosità.
+    \item \textit{Debolezze organizzative:} investimenti insufficienti in sicurezza, carenza di personale tecnico qualificato e mancata applicazione di policy rigorose di backup e segmentazione.
+    \item \textit{Debolezze dei produttori di software:} rilascio continuo sul mercato di codice applicativo difettoso e non revisionato, pieno di bug di corruzione della memoria o logica applicativa.
+\end{enumerate}
+
+Le azioni prevalenti documentate nelle violazioni ($n=10.747$) comprendono l'impiego di Ransomware (44\%), l'uso di credenziali rubate (32\%), l'exploit di vulnerabilità (18\%), il phishing (14\%), l'installazione di backdoor e canali C2 (14\%), l'evasione dei sistemi di difesa (13\%), la scansione di rete (10\%), lo sfruttamento di errate configurazioni (10\%), l'esfiltrazione dati (9\%) e la disattivazione forzata dei controlli di sicurezza (9\%).
+
+\paragraph{Tempo per Rendersi Conto (Time-to-Detection / Dwell Time):}
+Uno dei parametri più allarmanti emersi dall'indagine empirica riguarda la permanenza silente dell'attaccante all'interno della rete vittima prima di essere scoperto (\textbf{dwell time}). Escludendo le violazioni comunicate dall'attaccante stesso (come avviene nel ransomware con la visualizzazione della schermata di riscatto), la distribuzione del dwell time evidenzia:
+\begin{itemize}
+    \item Nel 2022, il tempo mediano di permanenza silente prima della rilevazione era di \textbf{30 giorni}.
+    \item Nel 2024, la mediana è scesa a \textbf{24 giorni}.
+    \item Tuttavia, la distribuzione presenta una lunghissima coda destra: moltissime intrusioni superano i \textbf{100 giorni} e non mancano casi che si protraggono per oltre \textbf{1.000 giorni} (quasi tre anni di spionaggio inosservato all'interno dei sistemi aziendali).
+\end{itemize}
+
+I canali attraverso cui avviene la scoperta dell'intrusione (\textit{Discovery Methods}, $n=204$) si distribuiscono in modo eterogeneo:
+\begin{itemize}
+    \item \textbf{Monitoraggio continuo dell'infrastruttura (18\%):} sistemi SIEM, SOC, sensori EDR e IDS.
+    \item \textbf{Segnalazione interna dei dipendenti (14\%):} anomalie riscontrate dal personale d'ufficio.
+    \item \textbf{Segnalazione da parte dei clienti (10\%):} clienti che informano l'azienda di aver ricevuto comunicazioni fraudolente o trovato i propri dati sul dark web.
+    \item \textbf{Software Antivirus (9\%):} rilevazione automatica di firme o euristiche su endpoint.
+    \item \textbf{Revisione periodica dei log di audit (8\%):} analisi retrospettiva dei file di registro.
+    \item \textbf{Notifica da parte delle Forze dell'Ordine (7\%):} agenzie investigative che rinvengono i dati aziendali sequestrando server criminali.
+    \item \textbf{Segnalazione da Ricercatori di Sicurezza / Ethical Hacker (7\%):} comunicazioni di vulnerabilità o leak.
+    \item \textbf{Altri canali non strutturati (28\%):} scoperte fortuite o casuali durante manutenzioni ordinarie.
+\end{itemize}
+
+\paragraph{Tempo di Recupero e Bonifica (Time-to-Resume / Remediate):}
+Risolvere le vulnerabilità e bonificare l'infrastruttura dopo un incidente richiede tempi considerevolmente lunghi, come dimostrano le statistiche longitudinali:
+\begin{itemize}
+    \item \textbf{Bonifica di vulnerabilità su apparati di bordo (Edge Devices, $n=431$):} mentre i primi interventi avvengono entro 1--6 giorni, la \textbf{mediana di bonifica completa si attesta a 32 giorni}, il 75° percentile sale a \textbf{155 giorni} e i casi complessi richiedono fino a \textbf{222 giorni}.
+    \item \textbf{Bonifica di segreti e chiavi API trapelate su repository Git ($n=141$):} la revoca e rotazione delle credenziali esposte registra un tempo del 25° percentile di 32 giorni, una \textbf{mediana di 94 giorni} e un 75° percentile di \textbf{162 giorni}.
+    \item \textbf{Bonifica di vulnerabilità note sfruttate attivamente (CISA KEV, $n=10.597$):} anche per falle critiche catalogate con exploit pubblico in circolazione, il tempo mediano di patching è di \textbf{43 giorni}, con il 75° percentile a \textbf{107 giorni} e tempi massimi che oltrepassano i \textbf{169 giorni}.
+\end{itemize}
+
+---
+
+% =========================================================================
+% SEZIONE 1.2: MINACCE E PROBLEMI DI BASE
+% =========================================================================
+\section{Minacce e problemi di base}
+\label{sec:minacce_e_problemi}
+
+L'analisi che segue si propone di illustrare i fattori storici, architetturali e metodologici che hanno condotto all'attuale scenario di vulnerabilità sistemica.
+
+\subsection{Problemi tecnologici di base}
+\label{subsec:problemi_tecnologici}
+
+La sicurezza informatica è una problematica relativamente recente. Durante la progettazione delle prime reti di calcolatori (ARPANET negli anni Settanta), l'obiettivo primario era garantirne il funzionamento operativo, la robustezza delle comunicazioni in caso di guasti distribuiti e l'interoperabilità tra centri di ricerca universitari e strutture militari. La sicurezza non era considerata una priorità progettuale, poiché la rete costituiva un ambiente chiuso, composto da un numero limitato di nodi noti e gestiti da operatori reciprocamente fidati; l'infrastruttura non era minimamente accessibile al pubblico. Inoltre, l'impiego massivo di meccanismi crittografici comportava un costo computazionale proibitivo, insostenibile per i microprocessori dell'epoca.
+
+Per accedere a Internet, utenti privati e organizzazioni stipulano contratti con gli \textbf{Internet Service Provider (ISP)}, i quali forniscono la connettività transitando i pacchetti sui propri router e dorsali. In passato si sono verificati casi concreti in cui dipendenti o tecnici di ISP hanno intercettato, sottratto o rivenduto informazioni riservate transitate sulle proprie infrastrutture, oppure hanno applicato politiche di instradamento anomale (ad esempio alterazioni BGP) per dirottare o frodare il traffico di determinati utenti. In generale, dalla prospettiva di un'azienda, \textbf{un ISP non è un ente intrinsecamente fidato}: può essere soggetto a intercettazioni governative, violazioni interne o rivelarsi persino un competitor commerciale. Poiché tutto il traffico non cifrato che attraversa i nodi dell'operatore è tecnicamente accessibile, si rende indispensabile l'uso sistematico della crittografia end-to-end.
+
+Un ulteriore problema strutturale riguarda l'autenticazione degli utenti, storicamente demandata a password statiche che risultano del tutto inadeguate a causa dell'uso di combinazioni banali, del loro riutilizzo su molteplici servizi e della suscettibilità agli attacchi di intercettazione. Infine, la programmazione software continua ad essere affetta da gravi carenze qualitative, rilasciando codice privo di validazione sui confini di memoria e sui parametri di input.
+
+\subsection{Complessità}
+\label{subsec:complessita}
+
+Storicamente, la sicurezza informatica era circoscritta alla protezione del sistema operativo dell'elaboratore centrale. L'architettura tradizionale delle origini prevedeva un grande \textit{mainframe} e $N$ postazioni terminali prive di capacità computazionale autonoma (costituite esclusivamente da monitor e tastiera per l'immissione di comandi). In un simile contesto centralizzato, proteggere il sistema operativo e l'accesso fisico alla sala macchine equivaleva a proteggere l'intera infrastruttura aziendale.
+
+Con l'evoluzione tecnologica, il panorama è mutato radicalmente: si è assistito alla proliferazione incontrollata di calcolatori distribuiti, stazioni di lavoro personali, computer portatili, fino all'avvento ubiquo degli smartphone e dei sensori intelligenti. Parallelamente, le architetture di rete hanno subito una metamorfosi profonda con la transizione verso data center distribuiti, piattaforme cloud (\textit{IaaS, PaaS, SaaS}), paradigmi di \textit{edge computing}, \textit{fog computing} e \textit{liquid computing}. In questo scenario altamente distribuito e virtualizzato, diventa spesso impossibile determinare a priori il luogo fisico e logico di esecuzione delle applicazioni o di memorizzazione dei dati, rendendo oltremodo complessa l'identificazione del \textbf{perimetro di sicurezza} da presidiare.
+
+Nel contesto odierno, ogni tentativo di implementare efficaci misure di sicurezza si scontra con una legge fondamentale dell'informatica:
+\begin{definition}[Primo Assioma dell'Ingegneria della Sicurezza]
+Più un sistema è complesso, più è difficile verificarne la correttezza (progettazione, implementazione, gestione, funzionamento).
+\end{definition}
+
+Un sistema operativo moderno o una piattaforma di virtualizzazione è costituita da decine di milioni di linee di codice sorgente; è matematicamente e praticamente impossibile garantire l'assenza totale di difetti. La superficie d'attacco cresce esponenzialmente con la complessità del sistema.
+
+Il paradigma progettuale cardine da adottare per contrastare questa fragilità è il celebre principio \textbf{KISS} (\textit{Keep It Simple, Stupid}): mantenere il sistema il più semplice e lineare possibile. Maggiore è la complessità architetturale e il numero di componenti interconnessi, maggiore è la probabilità statistica che un attaccante individui una falla sfruttabile per penetrare nell'infrastruttura.
+
+\subsection{Altri problemi tecnologici}
+\label{subsec:altri_problemi_tecnologici}
+
+Ulteriori criticità di natura tecnologica che affliggono i moderni sistemi informativi possono essere ricondotte a quattro classi principali:
+
+\begin{itemize}
+    \item \textbf{Problemi di programmazione (Implementation Flaws):} il software contiene bug implementativi derivanti dalla mancata applicazione dei principi di \textit{secure coding}. Rientrano in questa classe le vulnerabilità di gestione della memoria nei linguaggi non \textit{memory-safe} come C/C++ (\textit{buffer overflow, heap corruption, use-after-free}), la mancata sanificazione dei parametri di input (suscettibile a iniezioni SQL, neutralizzabili strutturalmente solo mediante l'adozione di \textbf{Prepared Statements}, ovvero query parametrizzate precompilate dal database engine, comandi shell o cross-site scripting) e la gestione non corretta delle eccezioni e dei puntatori nulli.
+    
+    \item \textbf{Problemi di progettazione (Design Flaws):} la sicurezza viene ignorata nelle fasi concettuali e architetturali preliminari, per essere aggiunta unicamente come modulo integrativo a posteriori (\textit{patching reattivo}). L'esperienza empirica dell'ingegneria del software dimostra che i difetti architetturali non possono essere corretti mediante semplici patch, ma richiedono la riscrittura e la riprogettazione integrale del sistema.
+    
+    \item \textbf{Configurazione di dispositivi e servizi (Hardening):} una configurazione inadeguata o approssimativa di sistemi operativi, server web e database espone interfacce amministrative e servizi superflui direttamente verso Internet. Il processo di \textbf{hardening} (\textit{irrobustimento}) consiste nella sistematica riduzione della superficie d'attacco attraverso la disabilitazione delle porte non utilizzate, la rimozione degli account di prova, l'attivazione di privilegi minimi e l'applicazione tempestiva delle correzioni di sicurezza.
+    
+    \item \textbf{Complessità gestionale dei controlli di sicurezza:} gli stessi apparati deputati alla protezione dei sistemi informativi (firewall perimetrali, router filtranti, piattaforme IDPS) presentano una complessità di configurazione tale da indurre frequentemente in errore gli operatori. In contesti aziendali eterogenei, la gestione delle regole perimetrali richiede la definizione di insiemi di criteri vastissimi. Studi scientifici sul tema (quali l'indagine condotta da Avishai \textbf{Wool} nel 2010 sull'analisi empirica delle policy di filtraggio aziendali) hanno rivelato la presenza di \textbf{decine di migliaia di regole attive} all'interno dei singoli firewall aziendali. La gestione di tale mole di istruzioni eccede ampiamente le capacità cognitive umane: conflitti tra regole, ridondanze, shadowed rules e aperture indiscriminate finiscono per vanificare completamente la protezione perimetrale, consentendo l'infiltrazione silenziosa del traffico malevolo. Inoltre, per proteggere i sistemi nell'intervallo temporale che precede lo sviluppo e il rilascio delle correzioni software da parte dei vendor, le organizzazioni ricorrono al \textbf{Virtual Patching}: l'attivazione tempestiva di regole di filtraggio perimetrali (a livello di WAF o IPS) capaci di intercettare e scartare i vettori di exploit noti.
+\end{itemize}
+
+---
+
+% =========================================================================
+% SEZIONE 1.3: ATTACCHI E TECNICHE
+% =========================================================================
+\section{Attacchi e tecniche}
+\label{sec:attacchi_e_tecniche}
+
+L'analisi che segue esamina ad alto livello una serie di attacchi fondamentali, comunemente diffusi nell'ambiente di rete, presentando per ciascuno la dinamica operativa, gli scenari visuali e le contromisure note ed efficaci.
+
+\subsection{Packet sniffing}
+\label{subsec:packet_sniffing}
+
+Il \textbf{packet sniffing} è una tecnica di attacco che consiste nell'intercettazione e lettura passiva di pacchetti di dati in transito su un canale di rete, non destinati all'elaboratore dell'attaccante. In assenza di protocolli crittografici, il payload dei pacchetti risulta interamente in chiaro, consentendo all'intruso di estrarre credenziali di autenticazione, session cookie, testi di email o documenti riservati. Tali informazioni possono essere impiegate in modo diretto per accedere ad account protetti, oppure in modo indiretto per mappare la topologia interna dell'organizzazione ed evidenziare bersagli vulnerabili.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\linewidth}{!}{%
+\begin{tikzpicture}[>=Stealth]
+    % Host Alice
+    \node[draw=secblue, fill=secblue!10, thick, rounded corners=4pt, minimum width=2.6cm, minimum height=1.4cm, align=center, font=\footnotesize] (alice) at (0, 0) {
+        {\Large \faLaptop}\\[2pt]
+        \textbf{Alice (Mittente)}\\
+        \scriptsize 192.168.1.10
+    };
+
+    % Hub Broadcast
+    \node[draw=secgray, fill=secgray!15, very thick, rounded corners=4pt, minimum width=2.6cm, minimum height=1.4cm, align=center, font=\footnotesize] (hub) at (5.5, 0) {
+        {\Large \faNetworkWired}\\[2pt]
+        \textbf{Hub di Rete}\\
+        \scriptsize Dominio Broadcast
+    };
+
+    % Host Bob
+    \node[draw=secblue, fill=secblue!10, thick, rounded corners=4pt, minimum width=2.6cm, minimum height=1.4cm, align=center, font=\footnotesize] (bob) at (11.0, 0) {
+        {\Large \faDesktop}\\[2pt]
+        \textbf{Bob (Destinatario)}\\
+        \scriptsize 192.168.1.20
+    };
+
+    % Transmissions
+    \draw[->, very thick, secblue] (alice) -- (hub) node[midway, above=4pt, font=\scriptsize] {Dati in chiaro};
+    \draw[->, very thick, secblue] (hub) -- (bob) node[midway, above=4pt, font=\scriptsize] {Consegna frame};
+
+    % Speech bubble on the left
+    \node[draw=gray!50, fill=yellow!15, rounded corners=3pt, font=\scriptsize\itshape, align=center, text width=2.8cm] (bubble) at (1.2, -2.8) {
+        ``L'hub trasmette a tutti:\\ascolto e rubo i dati!''
+    };
+
+    % Eve as the Robber in the middle
+    \node[draw=secred, fill=secred!15, very thick, rounded corners=4pt, minimum width=3.4cm, minimum height=1.6cm, align=center, font=\footnotesize] (eve) at (5.5, -2.8) {
+        {\Huge \faUserSecret\quad \faMask}\\[2pt]
+        \textbf{Il Ladro di Pacchetti (Eve)}\\
+        \scriptsize Scheda in \textit{Promiscuous Mode}
+    };
+
+    % Interception arrow unobstructed
+    \draw[->, line width=1.8pt, dashed, secred] (hub) -- (eve) node[midway, right=6pt, font=\scriptsize\bfseries, text=secred] {Copia intercettata};
+
+    % Loot bag on the right
+    \node[draw=secorange!90, fill=secorange!10, rounded corners=4pt, font=\scriptsize, align=left, anchor=west] at (8.8, -2.8) {
+        \textbf{\faCoins\ Sacco della Refurtiva:}\\
+        \texttt{User: alice@banca.it}\\
+        \texttt{Pass: Segreto2026!}\\
+        \texttt{Cookie: auth\_token=7a9f...}
+    };
+\end{tikzpicture}%
+}
+\caption{Scenario operativo del Packet Sniffing: il ladro (Eve) sfrutta la natura broadcast dell'hub e la scheda in modalità promiscua per catturare le credenziali in chiaro.}
+\label{fig:packet_sniffing}
+\end{figure}
+
+Le reti locali sono state storicamente progettate per essere \textbf{broadcast} (impiegando ripetitori multiporta denominati \textit{hub}) per minimizzare i costi di cablaggio e semplificare l'instradamento: ogni frame trasmesso da un host viene replicato fisicamente su tutte le porte. Per condurre l'attacco, l'intruso deve semplicemente impostare la propria scheda di interfaccia di rete (NIC) in \textbf{modalità promiscua} (\textit{promiscuous mode}), disabilitando il filtro hardware che scarta i frame recanti indirizzi MAC diversi dal proprio. Nelle reti moderne l'impiego di \textbf{switch} al posto degli hub riduce parzialmente l'impatto di questo problema, inoltrando i pacchetti solo verso la specifica porta fisica del destinatario; tuttavia, l'attaccante può forzare lo switch ad operare come un hub mediante tecniche di \textit{ARP Poisoning / ARP Spoofing} o saturando la memoria della tabella dei MAC (\textit{MAC Flooding}).
+
+\paragraph{Contromisure Efficaci:}
+La difesa strutturale definitiva risiede nella \textbf{cifratura robusta end-to-end del payload} a livello applicativo o di trasporto (mediante protocolli sicuri quali TLS, SSH o tunnel IPsec): se i pacchetti intercettati contengono esclusivamente sequenze pseudocasuali inintelligibili, lo sniffing risulta completamente sterile.
+
+\subsection{IP spoofing}
+\label{subsec:ip_spoofing}
+
+Per \textbf{IP spoofing} si intende la deliberata falsificazione dell'indirizzo IP del mittente inserito nell'intestazione del pacchetto di livello 3 dello stack OSI. La manipolazione dell'indirizzo IP sorgente è un'operazione tecnicamente agevole per chiunque disponga di privilegi amministrativi (\textit{root} o amministratore) sul proprio dispositivo, sfruttando le interfacce per la creazione di \textit{raw socket} o specifici tool da riga di comando. Per questa ragione, nelle reti aziendali i privilegi di amministratore non vengono mai concessi indiscriminatamente alle postazioni di lavoro.
+
+Questa tecnica consente a un malintenzionato di bypassare meccanismi di controllo dell'accesso basati sull'indirizzo IP, oppure di deviare risposte malevole verso una vittima designata. Poiché anche la falsificazione dell'indirizzo di livello 2 (MAC) è banale modificando le impostazioni dei driver o configurando le interfacce delle macchine virtuali, è più corretto parlare in senso generale di \textbf{source address spoofing}. Ne consegue un principio cardine della sicurezza: \textbf{non è assolutamente possibile fare affidamento sugli indirizzi di livello 3 o di livello 2 per garantire l'autenticità di una comunicazione}.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\linewidth}{!}{%
+\begin{tikzpicture}[>=Stealth]
+    % Robber Attacker
+    \node[draw=secred, fill=secred!15, very thick, rounded corners=4pt, minimum width=3.2cm, minimum height=1.6cm, align=center, font=\footnotesize] (eve) at (0, 0) {
+        {\Huge \faUserSecret\quad \faMask}\\[2pt]
+        \textbf{Ladro con Falsa Identità}\\
+        \scriptsize IP reale: \texttt{10.0.0.5}\\
+        \scriptsize \textbf{Maschera:} \texttt{192.168.1.10} (Alice)
+    };
+
+    % Speech bubble robber
+    \node[draw=gray!50, fill=yellow!15, rounded corners=3pt, font=\scriptsize\itshape, align=center] at (0, 2.0) {
+        ``Indosso la maschera di Alice:\\il server crederà che sia lei!''
+    };
+
+    % Border Router as Security Guard
+    \node[draw=secblue!80, fill=secblue!10, very thick, rounded corners=4pt, minimum width=3.2cm, minimum height=1.6cm, align=center, font=\footnotesize] (router) at (7.8, 0) {
+        {\Huge \faUserShield}\\[2pt]
+        \textbf{Border Router (La Guardia)}\\
+        \scriptsize Ingress Filtering (BCP 38 / RFC 2827)
+    };
+
+    % Speech bubble guard
+    \node[draw=secblue!80, fill=white, rounded corners=3pt, font=\scriptsize\itshape, align=center] at (7.8, 2.0) {
+        ``Alt! Da questo link esterno non\\può entrare un IP interno 192.168.1.x!''
+    };
+
+    % Protected Server Bob
+    \node[draw=secgreen, fill=secgreen!10, thick, rounded corners=4pt, minimum width=2.8cm, minimum height=1.6cm, align=center, font=\footnotesize] (server) at (14.2, 0) {
+        {\Huge \faServer}\\[2pt]
+        \textbf{Server Bob Protetto}\\
+        \scriptsize 192.168.1.100
+    };
+
+    \draw[->, line width=2pt, secred] (eve) -- (router);
+    \node[font=\scriptsize\bfseries, text=secred, align=center] at (4.0, 0.45) {Pacchetto con\\IP Falso};
+
+    \draw[->, line width=1.5pt, dashed, gray] (router) -- (server);
+    \node[font=\scriptsize, align=center] at (11.1, 0.45) {Traffico\\Autentico};
+
+    % Trash drop
+    \draw[->, line width=2pt, secred] (router) -- ++(0, -2.2) node[below, draw=secred, fill=secred!10, rounded corners=4pt, font=\scriptsize, align=center] {
+        {\Large \faTrash}\\[2pt]
+        \textbf{Cestinato all'Ingresso (Packet Drop):}\\
+        La guardia riconosce la provenienza illegittima\\
+        e distrugge il pacchetto prima della LAN!
+    };
+\end{tikzpicture}%
+}
+\caption{Scenario operativo di IP Spoofing: il ladro tenta di penetrare spacciandosi per Alice, ma viene intercettato e cestinato dal Border Router mediante Ingress Filtering (BCP 38).}
+\label{fig:ip_spoofing}
+\end{figure}
+
+\paragraph{Contromisure Strutturali:}
+A livello di rete perimetrale, la misura standard di contenimento è l'\textbf{Ingress Filtering} formalizzato nello standard BCP 38 (\textbf{RFC 2827}): i router di confine verificano che i pacchetti in ingresso provengano da una subnet coerente con l'interfaccia fisica di ricezione, distruggendo istantaneamente pacchetti recanti indirizzi interni forgiati provenienti da collegamenti esterni. A livello sistemico, la mitigazione definitiva richiede protocolli di autenticazione crittografica cruda (firme digitali, HMAC, handshake mutuali).
+
+\subsection{Shadow (or fake) server}
+\label{subsec:shadow_server}
+
+Nell'attacco di tipo \textbf{shadow server} (o server ombra/falso), un elaboratore non autorizzato controllato dall'attaccante si spaccia per un server di rete legittimo, inducendo i client a connettersi ad esso. L'inganno può essere condotto tramite packet sniffing per intercettare la richiesta originaria seguito da IP spoofing per simulare la provenienza autentica, oppure mediante avvelenamento delle risposte di risoluzione dei nomi (\textbf{DNS Cache Poisoning}). In altri casi, la tecnica sfrutta l'assenza intrinseca di autenticazione in protocolli di autoconfigurazione locale di rete, quale il protocollo \textbf{DHCP}: un server DHCP malevolo (\textit{Rogue DHCP Server}) risponde alle richieste \texttt{DHCPDISCOVER} dei client assegnando loro parametri di rete arbitrari (proprio IP come default gateway o come resolver DNS).
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\linewidth}{!}{%
+\begin{tikzpicture}[>=Stealth]
+    % Client
+    \node[draw=secblue, fill=secblue!10, thick, rounded corners=4pt, minimum width=2.6cm, minimum height=1.5cm, align=center, font=\footnotesize] (client) at (0, 0) {
+        {\Huge \faLaptop}\\[2pt]
+        \textbf{Client Vittima}\\
+        \scriptsize In cerca di configurazione
+    };
+
+    % Robber Fake Server
+    \node[draw=secred, fill=secred!15, very thick, rounded corners=4pt, minimum width=3.4cm, minimum height=1.6cm, align=center, font=\footnotesize] (fake) at (7.0, 2.5) {
+        {\Large \faServer\quad \Huge \faMask}\\[2pt]
+        \textbf{Server Ladro (Rogue DHCP)}\\
+        \scriptsize Impone Gateway = Attaccante!
+    };
+
+    % Speech bubble fake server
+    \node[draw=secred!70, fill=yellow!15, rounded corners=3pt, font=\scriptsize\itshape, align=center] at (7.0, 4.1) {
+        ``Prendi il mio IP come gateway:\\tutto il tuo traffico passerà da me!''
+    };
+
+    % Real DHCP Server
+    \node[draw=secgreen, fill=secgreen!10, thick, rounded corners=4pt, minimum width=3.4cm, minimum height=1.6cm, align=center, font=\footnotesize] (real) at (7.0, -2.5) {
+        {\Huge \faServer}\\[2pt]
+        \textbf{DHCP Server Legittimo}\\
+        \scriptsize Lontano o rallentato da DoS
+    };
+
+    % Parallel clean paths to/from Rogue Server
+    \draw[->, thick, secblue] (client.north) -- (fake.west) node[midway, above=3pt, sloped, font=\scriptsize] {\texttt{DHCPDISCOVER} (Broadcast)};
+    \draw[->, line width=2pt, secred] (fake.south) -- (client.north east) node[midway, below=3pt, sloped, font=\scriptsize\bfseries, text=secred] {1. \texttt{DHCPOFFER} (Vince la corsa!)};
+
+    % Parallel clean paths to/from Real Server
+    \draw[->, thick, secblue] (client.south) -- (real.west) node[midway, below=3pt, sloped, font=\scriptsize] {\texttt{DHCPDISCOVER} (Broadcast)};
+    \draw[->, line width=1.0pt, dashed, gray] (real.north) -- (client.south east) node[midway, above=3pt, sloped, font=\scriptsize] {2. Risposta in ritardo (Scartata)};
+
+    % Countermeasure box
+    \node[draw=secgreen!80, fill=white, rounded corners=4pt, font=\scriptsize, align=left, anchor=west] at (11.2, 0) {
+        {\Large \faLock\quad \faUserShield}\\[2pt]
+        \textbf{Contromisura: DHCP Snooping}\\
+        Lo switch Layer 2 marca la porta del ladro\\
+        come \textit{Untrusted} e distrugge sul nascere\\
+        ogni falso \texttt{DHCPOFFER}, proteggendo il client!
+    };
+\end{tikzpicture}%
+}
+\caption{Dinamica di race condition nello Shadow DHCP Server: il server ladro tenta di ingannare il client offrendo parametri malevoli, contrastato dal DHCP Snooping su switch.}
+\label{fig:rogue_server}
+\end{figure}
+
+Affinché l'attacco abbia successo, il server falso deve vincere una condizione di concorrenza (\textit{race condition}), rispondendo al client più celermente rispetto al server legittimo; per questa ragione, spesso l'attaccante combina l'attacco saturando preliminarmente il server autentico mediante un attacco DoS. L'obiettivo primario risiede nel fornire servizi contraffatti per carpire credenziali o porsi come intermediario (\textit{Man-in-the-Middle}).
+
+\paragraph{Contromisure:}
+Negli apparati di commutazione locali, la difesa hardware standard è il \textbf{DHCP Snooping}, che classifica le porte fisiche in \textit{Trusted} (autorizzate a propagare messaggi DHCP server) e \textit{Untrusted} (dove i pacchetti \texttt{DHCPOFFER} vengono immediatamente bloccati e distrutti). A livello applicativo, la contromisura universale è il protocollo \textbf{TLS}, che impone l'autenticazione unilaterale del server mediante certificati digitali X.509 emessi da Certification Authority riconosciute, preservando l'anonimato del client.
+
+\subsection{Denial of Service (DoS)}
+\label{subsec:dos}
+
+Con il termine \textbf{Denial of Service (DoS)} si identificano tutte le tipologie di attacco mirate a saturare deliberatamente le risorse fisiche o computazionali di un host, server o apparato di rete (capacità di banda, cicli CPU, memoria RAM, descrittori di socket o connessioni attive), impedendogli di rispondere alle richieste legittime e compromettendone la disponibilità per un periodo di tempo più o meno prolungato.
+
+Un esempio canonico è il \textbf{TCP SYN Flood}: l'attaccante emette un flusso ininterrotto di pacchetti recanti il flag TCP SYN verso una determinata porta aperta del server, forgiando indirizzi IP sorgente casuali o inesistenti. Il server alloca una struttura di memoria (\textit{Transmission Control Block}, TCB) all'interno della coda delle connessioni semi-aperte (\textit{backlog queue}) e risponde con un pacchetto SYN-ACK. Non ricevendo alcun ACK conclusivo (poiché gli IP sono inesistenti), le risorse della tabella rimangono occupate fino allo scadere del timeout, saturando la coda e provocando il blocco totale di qualsiasi nuova richiesta proveniente da utenti legittimi. La contromisura tecnica universalmente adottata a livello di sistema operativo risiede nel meccanismo del \textbf{SYN Cookie} (\textit{SYN Cookies}): il server non memorizza alcun descrittore di connessione al ricevimento del SYN, ma codifica lo stato della sessione all'interno del numero di sequenza iniziale (\textit{Initial Sequence Number}, ISN) del pacchetto SYN-ACK; se il client risponde con un ACK valido, il server ricostruisce crittograficamente la sessione solo in quel momento.
+
+Non esiste tuttavia una soluzione magica o definitiva contro gli attacchi DoS volumetrici: il sovradimensionamento dell'infrastruttura costituisce un rimedio parziale, poiché il volume dell'attacco può sempre eccedere la larghezza di banda contrattualizzata. Lo strumento più efficace di contenimento rimane la collaborazione attiva e tempestiva con i propri fornitori di connettività (ISP), i quali possono applicare regole di instradamento verso buchi neri (\textit{BGP Blackhole Routing}) per deviare il flusso malevolo a monte.
+
+\subsection{Distributed Denial of Service (DDoS)}
+\label{subsec:ddos}
+
+Con l'aumento esponenziale della capacità trasmissiva dei data center e delle corporation, gli attacchi DoS tradizionali generati da un singolo host sono divenuti pressoché inefficaci contro bersagli strutturati. Per superare questa limitazione si è evoluta la variante distribuita: il \textbf{DDoS} (\textit{Distributed Denial of Service}).
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\linewidth}{!}{%
+\begin{tikzpicture}[>=Stealth]
+    % Master Attacker
+    \node[draw=secred, fill=secred!20, very thick, rounded corners=4pt, minimum width=3.2cm, minimum height=1.8cm, align=center, font=\footnotesize] (master) at (0, 0) {
+        {\Huge \faUserSecret}\\[2pt]
+        \textbf{Il Burattinaio Criminale}\\
+        \scriptsize Command \& Control (C\&C)
+    };
+
+    % Speech bubble master
+    \node[draw=gray!50, fill=yellow!15, rounded corners=3pt, font=\scriptsize\itshape, align=center] at (0, 1.8) {
+        ``Elettrodomestici, all'attacco!\\Affondate la banca rivale!''
+    };
+    
+    % Bots
+    \node[draw=secorange, fill=secorange!15, thick, rounded corners=3pt, minimum width=3.2cm, align=center, font=\scriptsize] (bot1) at (5.0, 2.2) {
+        {\large \faWifi\quad \faSkullCrossbones}\quad \textbf{Router Wi-Fi infetto}\\
+        \tiny Credenziali di fabbrica mai cambiate
+    };
+    \node[draw=secorange, fill=secorange!15, thick, rounded corners=3pt, minimum width=3.2cm, align=center, font=\scriptsize] (bot2) at (5.0, 0.7) {
+        {\large \faVideo\quad \faSkullCrossbones}\quad \textbf{Telecamera IP giardino}\\
+        \tiny Firmware obsoleto e vulnerabile
+    };
+    \node[draw=secorange, fill=secorange!15, thick, rounded corners=3pt, minimum width=3.2cm, align=center, font=\scriptsize] (bot3) at (5.0, -0.8) {
+        {\large \faTv\quad \faSkullCrossbones}\quad \textbf{Smart TV del salotto}\\
+        \tiny Dispositivo zombie al soldo del ladro
+    };
+    \node[draw=secorange, fill=secorange!15, thick, rounded corners=3pt, minimum width=3.2cm, align=center, font=\scriptsize] (bot4) at (5.0, -2.3) {
+        {\large \faPrint\quad \faSkullCrossbones}\quad \textbf{Stampante / Apparecchio IoT}\\
+        \tiny Reclutato nella botnet globale
+    };
+
+    % Target Server under siege
+    \node[draw=secred, fill=secred!10, very thick, rounded corners=4pt, minimum width=3.4cm, minimum height=2.4cm, align=center, font=\footnotesize] (target) at (10.8, 0) {
+        {\Huge \faBuilding}\\[1pt]
+        {\Large \faServer}\\[2pt]
+        \textbf{Banca / E-Commerce}\\
+        \textbf{\color{secred} SOTTO ASSEDIO!}\\
+        \scriptsize \textbf{Picco: 7.3 Tbps / 4.8 Bpps}\\
+        \scriptsize Esaurimento banda e socket!
+    };
+
+    \draw[->, thick, secred] (master) -- (bot1);
+    \draw[->, thick, secred] (master) -- (bot2);
+    \draw[->, thick, secred] (master) -- (bot3);
+    \draw[->, thick, secred] (master) -- (bot4);
+
+    \draw[->, line width=2pt, secred] (bot1) -- (target);
+    \draw[->, line width=2pt, secred] (bot2) -- (target);
+    \draw[->, line width=2pt, secred] (bot3) -- (target);
+    \draw[->, line width=2pt, secred] (bot4) -- (target);
+
+    \node[draw=secorange, fill=white, rounded corners=3pt, font=\scriptsize, align=center] at (5.0, -3.5) {
+        \textbf{Esercito di Schiavi Digitali (Botnet):}\\
+        Dispositivi domestici innocui trasformati in armi di saturazione massiva.
+    };
+\end{tikzpicture}%
+}
+\caption{Architettura di un attacco DDoS orchestrato da un burattinaio criminale tramite botnet di elettrodomestici e apparati IoT compromessi.}
+\label{fig:botnet_ddos}
+\end{figure}
+
+In questo scenario vengono coinvolti centinaia di migliaia o milioni di dispositivi compromessi denominati \textbf{daemon} o \textbf{malbot}, che insieme costituiscono una \textbf{botnet}. Questi nodi, spesso elettrodomestici connessi o router domestici infettati all'insaputa dei legittimi proprietari mediante il download di file infetti o lo sfruttamento di credenziali predefinite, vengono coordinati tramite server centralizzati di \textit{Command \& Control} (C\&C) per proiettare simultaneamente volumi massivi di pacchetti verso il target designato.
+
+Il fenomeno ha assunto dimensioni spaventose: secondo i report tecnici pubblicati da \textbf{Cloudflare}, primaria rete CDN globale, la potenza degli attacchi DDoS registra record continui:
+\begin{quote}
+Nel 2025 sono stati documentati attacchi volumetrici che hanno raggiunto picchi inauditi di \textbf{7.3 Terabit al secondo (Tbps)} e flussi di oltre \textbf{4.8 miliardi di pacchetti per secondo (Bpps)}, eclissando i record di 3.5 Tbps registrati nel 2024.
+\end{quote}
+Tra i mandanti più attivi emergono spesso i \textbf{competitor commerciali diretti}: in settori a redditività immediata (quali e-commerce, piattaforme di gaming o scommesse online), condurre un attacco DDoS durante giornate critiche (il Black Friday o lanci di prodotto) comporta l'immediata fuga dei clienti verso piattaforme rivali percepite come più affidabili. La commercializzazione di servizi \textbf{DDoS-as-a-Service} su portali del dark web consente a chiunque, a fronte di poche decine di dollari, di noleggiare campagne di sabotaggio su vasta scala.
+
+\subsection{Man In The Middle (o connection hijacking)}
+\label{subsec:mitm}
+
+Negli attacchi di tipo \textbf{Man-in-the-Middle (MITM)}, l'attaccante si interpone fisicamente o logicamente nel canale di comunicazione tra due host (Alice e Bob), acquisendo la capacità di intercettare, manipolare, eliminare o iniettare pacchetti in tempo reale. Quando l'intruso non si limita alla mera lettura ma assume il controllo attivo di una sessione TCP già autenticata scavalcando il legittimo client, l'attacco prende il nome specialistico di \textbf{Connection Hijacking} o \textbf{Data Spoofing}.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\linewidth}{!}{%
+\begin{tikzpicture}[>=Stealth]
+    % Alice
+    \node[draw=secblue, fill=secblue!10, thick, rounded corners=4pt, minimum width=2.8cm, minimum height=1.4cm, align=center, font=\footnotesize] (client) at (0, 6.0) {
+        {\Huge \faLaptop}\\[2pt]
+        \textbf{Alice (Client Legittimo)}\\
+        \scriptsize Sessione aperta col server
+    };
+
+    % Robber Man in the Middle
+    \node[draw=secred, fill=secred!15, very thick, rounded corners=4pt, minimum width=3.4cm, minimum height=1.4cm, align=center, font=\footnotesize] (mitm) at (5.5, 6.0) {
+        {\Huge \faUserSecret\quad \faMask}\\[2pt]
+        \textbf{Il Ladro in Mezzo (MITM)}\\
+        \scriptsize Taglia la linea ad Alice e inietta comandi
+    };
+
+    % Server Bob Database
+    \node[draw=secgreen, fill=secgreen!10, thick, rounded corners=4pt, minimum width=2.8cm, minimum height=1.4cm, align=center, font=\footnotesize] (server) at (11.0, 6.0) {
+        {\Huge \faDatabase}\\[2pt]
+        \textbf{Server Bob (Banca / DB)}\\
+        \scriptsize Esegue comandi credendoli di Alice
+    };
+
+    \draw[thick, secblue] (client) -- ++(0, -6.6);
+    \draw[thick, secred] (mitm) -- ++(0, -6.6);
+    \draw[thick, secgreen] (server) -- ++(0, -6.6);
+
+    \draw[->, thick, secblue] (0, 4.2) -- (5.5, 4.0) node[midway, above=2pt, font=\scriptsize] {1. Login (User/Pass)};
+    \draw[->, thick, secblue] (5.5, 4.0) -- (11.0, 3.8);
+    \draw[->, thick, secgreen] (11.0, 3.0) -- (5.5, 2.8) node[midway, above=2pt, font=\scriptsize] {2. Sessione Connessa ($Seq=1000, Ack=5000$)};
+    \draw[->, thick, secgreen] (5.5, 2.8) -- (0, 2.6);
+
+    % Robber cuts Alice's line
+    \draw[->, line width=2pt, secred] (5.5, 1.6) -- (0, 1.4) node[midway, above=2pt, font=\scriptsize\bfseries, text=secred] {3. Iniezione TCP RST (Il ladro ammutolisce Alice!)};
+    
+    % Robber injects forged command
+    \draw[->, line width=2.2pt, secred] (5.5, 0.2) -- (11.0, 0.0) node[midway, above=2pt, font=\scriptsize\bfseries, text=secred, align=center] {
+        4. Invio comando forgiato: \texttt{[DROP TABLE users;]}\\[1pt]
+        \tiny $Seq=1001, Ack=5001$ (Impersonando Alice!)
+    };
+
+    \node[draw=secred!80, fill=white, rounded corners=3pt, font=\scriptsize, align=center] at (11.0, -0.9) {
+        \textbf{Bob viene ingannato:}\\[1pt]
+        \scriptsize Riceve parametri validi\\
+        \scriptsize ed elimina la tabella!
+    };
+
+    \node[draw=secgreen!80, fill=secgreen!5, rounded corners=3pt, font=\scriptsize, align=center] at (5.5, -2.1) {
+        \textbf{\faLock\ Principio Cardine di Difesa: Crittografia e Integrità per Singolo Pacchetto}\\
+        Verificare l'identità solo all'atto del login è inutile se il canale non è protetto: ogni singolo pacchetto deve recare\\
+        un tag di autenticazione crittografica (AEAD / HMAC) per rendere vano qualsiasi tentativo di manipolazione o iniezione.
+    };
+\end{tikzpicture}%
+}
+\caption{Dinamica operativa del Connection Hijacking: il ladro intercetta i numeri di sequenza, zittisce Alice con un TCP RST e invia comandi distruttivi a Bob a nome di lei.}
+\label{fig:connection_hijacking}
+\end{figure}
+
+Per contrastare efficacemente qualsiasi forma di Man-in-the-Middle o Connection Hijacking, il canale deve implementare simultaneamente quattro requisiti irrinunciabili:
+\begin{enumerate}
+    \item \textbf{Riservatezza:} solo il destinatario autorizzato in possesso della chiave crittografica segreta può decifrare il payload.
+    \item \textbf{Autenticazione continua della controparte:} certezza costante dell'identità remota mediante credenziali e chiavi non forgiabili.
+    \item \textbf{Integrità dei dati:} calcolo di codici di controllo non manipolabili (\textbf{HMAC} o tag crittografici \textbf{AEAD}) su ogni singolo frammento.
+    \item \textbf{Serializzazione e Anti-Replay:} inclusione di identificativi univoci, \textit{timestamp} o numeri di sequenza protetti crittograficamente per rilevare ed espellere frammenti duplicati, ritrasmessi o riordinati.
+\end{enumerate}
+
+\subsection{Malware}
+\label{subsec:malware}
+
+Il termine \textbf{malware} (\textit{malicious software}) identifica genericamente qualsiasi programma sviluppato con l'intento malevolo di arrecare danni a un sistema, alterarne le funzioni, esfiltrare dati o consentirne il controllo remoto non autorizzato. La tassonomia classica (approfondita ampiamente da Stallings nel Capitolo 6 di \textit{Computer Security}) distingue le seguenti classi fondamentali:
+
+\begin{itemize}
+    \item \textbf{Virus:} porzione di codice malevolo non autonoma, progettata per replicarsi inserendosi all'interno di altri programmi eseguibili o documenti ospitanti. Per propagarsi richiede l'azione attiva e involontaria dell'utente (esecuzione di file infetti, disabilitazione delle protezioni, esecuzione di software piratato).
+    \item \textbf{Worm:} programma malevolo completamente autonomo, il cui scopo primario consiste nell'autoridistribuzione attraverso la rete verso il maggior numero possibile di nodi bersaglio. A differenza del virus, il worm non richiede alcun intervento umano: sfrutta falle di sicurezza nei protocolli o servizi esposti per penetrare la memoria, infettare l'host e avviare nuove scansioni di rete, provocando gravi danni da saturazione della banda e delle risorse (come avvenuto nelle storiche epidemie dei worm Morris, Code Red, SQL Slammer e \textbf{SOBER}).
+    \item \textbf{Backdoor:} canale di accesso segreto e non documentato che consente di oltrepassare i normali meccanismi di autenticazione del sistema. Può essere impiantata deliberatamente dal fornitore per agevolare attività di teleassistenza o aggiornamenti firmware non notificati (prassi ad alto rischio), oppure essere installata come secondo stadio di un'infezione trojan.
+    \item \textbf{Trojan (o Cavallo di Troia):} programma che simula funzionalità utili o innocue (un'utilità di sistema, un visualizzatore di documenti, un gioco) celando al proprio interno un modulo malevolo distruttivo. È la principale tecnica per aprire un varco iniziale (\textit{initial compromise}) negli endpoint individuali degli utenti, rimanendo silente per lunghi periodi prima di attivare backdoor o iniettare bot di rete.
+    \item \textbf{Rootkit:} insieme di strumenti software e driver specializzati progettati per occultare la presenza di processi malevoli, file, porte aperte e chiavi di registro a livello di kernel o di sistema operativo, garantendo all'intruso l'amministrazione remota e persistente con i massimi privilegi.
+\end{itemize}
+
+I malware continuano ad essere incredibilmente letali perché fanno leva sull'anello debole della catena di sicurezza: il \textbf{fattore umano}. Le misure di contrasto esigono una rigorosa configurazione restrittiva dei privilegi di esecuzione, l'isolamento in sandbox dei contenuti e l'applicazione tempestiva degli aggiornamenti di sicurezza.
+
+\subsection{Ransomware}
+\label{subsec:ransomware}
+
+Il \textbf{ransomware} è una delle minacce più devastanti e remunerative dell'era digitale. Si tratta di una variante di malware che penetra all'interno di un sistema e applica una robusta crittografia simmetrica e asimmetrica (come AES-256 e RSA-4096) sull'intero archivio documentale o sui file di database della vittima, cancellando le copie shadow e richiedendo un riscatto in criptovalute non tracciabili (quali Bitcoin o Monero) per la fornitura della chiave di decifratura. Per accrescere la pressione coercitiva, gli attaccanti simulano spesso comunicazioni delle forze dell'ordine o minacciano il rilascio pubblico dei dati sul dark web: il paradigma della \textbf{Doppia Estorsione} (\textit{cifratura più esfiltrazione preventiva}).
+
+\paragraph{Ransomware vs Organizzazione e Gestione dei Backup:}
+Nelle organizzazioni complesse è prassi universale predisporre copie di sicurezza periodiche (\textit{backup}) per tutelare i dati critici. Tuttavia, il ripristino post-incidente presenta gravissime criticità:
+\begin{itemize}
+    \item \textbf{Ransomware Silente (Latente):} gli attaccanti più evoluti programmano il malware per rimanere silente all'interno dei sistemi per diverse settimane o mesi prima di avviare la cifratura. Durante questo intervallo di latenza, i sistemi di backup aziendali salvano regolarmente copie contenenti il codice dormiente. Quando l'azienda viene colpita e ripristina il backup, il malware si riattiva dopo poco tempo, causando una nuova compromissione ciclica.
+    \item \textbf{Cifratura dei Backup di Rete e Cloud:} il ransomware è programmato per percorrere le condivisioni di rete (condivisioni SMB/NFS) e sincronizzarsi con i bucket di storage cloud accessibili dall'host compromesso, cifrando simultaneamente le copie di sicurezza collegate.
+    \item \textbf{Necessità di Backup Offline (Air-Gapped):} l'unica protezione autentica risiede nella \textbf{regola del 3-2-1} e nell'impiego di supporti disconnessi fisicamente dalla rete (\textit{offline backup}), quali nastri magnetici o dischi isolati, immuni alla cifratura remota.
+\end{itemize}
+
+A questo proposito, la storia della gestione dei backup registra due casi emblematici evidenziati a lezione:
+\begin{itemize}
+    \item \textbf{Il caso dell'organizzazione svedese:} un'istituzione conservava le copie di sicurezza su supporti a nastro magnetico, che venivano trasportati manualmente in un archivio sicuro situato in un edificio separato. Durante il trasporto in pieno inverno, l'incaricato appoggiava regolarmente i nastri sui sedili riscaldati dell'autovettura: l'elevato gradiente termico distrusse irreversibilmente la pellicola magnetica. L'azienda scoprì il danno solo quando fu necessario tentare un ripristino d'emergenza, constatando che in dieci anni nessuno aveva mai collaudato le procedure di recupero.
+    \item \textbf{Il caso dell'archivio televisivo:} un'infezione rimasta latente per un tempo talmente prolungato da sovrascrivere l'intero ciclo di rotazione dei backup, compromettendo irrimediabilmente decenni di produzione audiovisiva storica.
+\end{itemize}
+L'assioma fondamentale della difesa è categorico: \textbf{un backup di cui non viene testata periodicamente la procedura di ripristino (restore test) equivale all'assenza totale di backup}.
+
+\subsection{Industria del Cybercrime}
+\label{subsec:industria_cybercrime}
+
+La proliferazione delle minacce ha alimentato una vera e propria industria criminale globale, strutturata come una \textbf{supply chain specializzata} e operante secondo il modello di business del \textbf{Crime-as-a-Service (CaaS)}:
+\begin{itemize}
+    \item Sviluppatori di exploit e broker che individuano vulnerabilità \textbf{Zero-Day} e le vendono all'asta sul dark web;
+    \item Fornitori di piattaforme di \textit{Ransomware-as-a-Service} (RaaS), che concedono in affitto l'infrastruttura di cifratura a gruppi affiliati trattenendo una percentuale (generalmente il 20--30\%) sui riscatti riscossi;
+    \item Gestori di botnet dedicati all'erogazione di servizi DDoS a pagamento;
+    \item Call center fraudolenti impiegati per condurre attacchi di ingegneria sociale o carpire codici OTP a due fattori;
+    \item Reti di \textbf{Money Mules}: individui reclutati per compiere operazioni di riciclaggio. Quando gli aggressori sottraggono fondi tramite bonifici bancari illeciti, li frammentano su conti correnti intestati a intermediari, i quali prelevano immediatamente il contante presso sportelli fisici prima che parta il blocco bancario, rendendo le somme non tracciabili.
+\end{itemize}
+
+Questo modello industriale consente ad attori privi di competenze informatiche di acquistare pacchetti di attacco chiavi in mano, democratizzando l'accesso alla criminalità cibernetica e moltiplicando la frequenza delle aggressioni su scala planetaria.
+
+---
+
+% =========================================================================
+% SEZIONE 1.4: ALTRI PROBLEMI E MINACCE
+% =========================================================================
+\section{Altri problemi e minacce}
+\label{sec:altri_problemi}
+
+Nel contesto della cybersecurity, l'essere umano rappresenta universalmente l'elemento più vulnerabile della catena difensiva. Nonostante la complessità e l'efficacia dei meccanismi tecnologici (crittografia avanzata, firewall, IDPS), la sicurezza complessiva dipende ineludibilmente dalla disciplina comportamentale degli operatori, degli sviluppatori e degli utenti finali. Le principali aree in cui gli errori umani producono impatti devastanti comprendono:
+\begin{itemize}
+    \item \textbf{Abuso e gestione impropria delle credenziali:} adozione di password deboli o banali, riutilizzo delle stesse credenziali su servizi molteplici e vulnerabilità al \textbf{Credential Stuffing} (scansione automatica di liste di coppie username/password sottratte in altri data breach per forzare portali aziendali).
+    \item \textbf{Azioni sociali:} manipolazione psicologica (phishing, vishing, pretexting) finalizzata a estorcere accessi o forzare trasferimenti bancari.
+    \item \textbf{Errori di configurazione:} dimenticanza di permessi restrittivi, pubblicazione di file di configurazione con chiavi crittografiche su repository pubblici (come GitHub) e mancata esecuzione degli aggiornamenti.
+    \item \textbf{Esecuzione involontaria di malware:} apertura distratta di allegati di posta elettronica ingannevoli o collegamento di supporti di memoria rimovibili non verificati.
+\end{itemize}
+
+\subsection{Alcuni esempi di attacchi riconducibili a errori umani}
+\label{subsec:esempi_errori_umani}
+
+L'analisi retrospettiva di incidenti reali documenta come decisioni incaute e prassi sciatte abbiano aperto varchi fatali:
+
+\paragraph{Caso di Studio 1: Wind Infostrada (Ottobre 2017) e Deutsche Telekom (2016)}
+Nei primi giorni di ottobre 2017, decine di migliaia di modem/router domestici forniti dall'operatore telefonico italiano Wind Infostrada ai clienti con connettività in fibra risultarono improvvisamente \textbf{bricked} (ovvero resi completamente inerti e inutilizzabili, con hardware bloccato in modo irreversibile). L'origine del disastro risiedeva in un clamoroso errore di configurazione: per permettere l'assistenza tecnica remota e la gestione degli apparati, i router erano stati consegnati con la porta \textbf{Telnet (porta 8023 o 23)} aperta e direttamente esposta su Internet, protetta dalle credenziali predefinite di fabbrica (\texttt{admin/admin}). Il malware \textit{BrickerBot} scansionò automaticamente la rete, effettuò il login Telnet e sovrascrisse la memoria flash dei router con sequenze casuali, distruggendo permanentemente il firmware. Un episodio del tutto speculare aveva coinvolto nel 2016 centinaia di migliaia di router Deutsche Telekom bersagliati sulla porta di telegestione TR-069. La contromisura strutturale risiede nella totale disabilitazione dei protocolli legacy in chiaro come Telnet a favore di protocolli crittografati sicuri (SSH/VPN), nell'imposizione di password uniche generate casualmente per ciascun apparato e nell'attivazione di sistemi di autenticazione a più fattori.
+
+\paragraph{Caso di Studio 2: I Mercatini di Peshawar (2009)}
+Nel 2009, presso i mercatini rionali di Peshawar, città pakistana al confine con l'Afghanistan, vennero messi in vendita da commercianti locali diversi computer portatili appartenuti ai Marine degli Stati Uniti impegnati in operazioni militari. Gli apparati contenevano mappe operative, schede di intelligence e comunicazioni strategiche classificate. I calcolatori, smarriti o sottratti durante missioni campali, erano completamente privi di qualsiasi forma di crittografia per la protezione dei \textbf{dati a riposo (Data at Rest)}: bastò rimuovere i dischi rigidi e collegarli a un secondo computer per estrarre integralmente l'archivio militare. L'episodio dimostra come l'assenza di cifratura integrale del disco (mediante tecnologie quali BitLocker o LUKS) e di procedure di cancellazione o autodistruzione remota annulli interamente il valore strategico della difesa.
+
+\subsection{Ingegneria sociale}
+\label{subsec:ingegneria_sociale}
+
+L'ingegneria sociale è l'arte della manipolazione psicologica volta a indurre gli individui a compiere azioni imprudenti o a rivelare informazioni riservate sfruttando inclinazioni umane naturali quali la fiducia, il timore dell'autorità, l'urgenza o la curiosità:
+
+\begin{itemize}
+    \item \textbf{Phishing:} invio indiscriminato e massivo di comunicazioni ingannevoli che simulano l'identità visiva di istituti bancari o enti noti per carpire credenziali o recapitare allegati malevoli.
+    \item \textbf{Spear Phishing:} attacco altamente mirato e personalizzato contro uno specifico dipendente, costruito raccogliendo preventivamente dettagli sul suo ruolo, sui fornitori aziendali e sui progetti in corso.
+    \item \textbf{Whaling:} variante dello spear phishing indirizzata esclusivamente a figure dirigenziali di vertice (\textit{CEO, CFO}), simulando emergenze legali, controversie tributarie o accordi societari riservati.
+    \item \textbf{Pretexting:} creazione di uno scenario e di un pretesto narrativo estremamente plausibile per giustificare una richiesta anomala di dati o credenziali (ad esempio spacciandosi telefonicamente per un tecnico del supporto IT della sede centrale o un funzionario dell'istituto di credito).
+    \item \textbf{Baiting:} offerta ingannevole di un bene materiale appetibile (ad esempio chiavette USB abbandonate deliberatamente nel parcheggio dell'azienda con etichette accattivanti quali \textit{"Stipendi Dirigenti 2026"}) per indurre la vittima a collegarle alla propria postazione di lavoro.
+\end{itemize}
+
+\paragraph{Caso di Studio 3: Il Caso Confindustria (2017)}
+Nel 2017, la sede di Confindustria a Bruxelles fu vittima di una devastante frode telematica da 500.000 euro riconducibile al modello del \textbf{Business Email Compromise (BEC)}. I truffatori compromisero o falsificarono la casella email di un fornitore storico dell'associazione e inviarono una richiesta urgente di liquidazione fattura, indicando le coordinate IBAN di un nuovo conto corrente aperto presso un paradiso fiscale. I criminali cronometrarono l'attacco approfittando dell'impegno del direttore in una trasferta: il personale amministrativo, intimorito dall'urgenza e ingannato dalla perfetta imitazione dello stile comunicativo, eseguì il bonifico senza operare una verifica telefonica fuori banda (\textit{out-of-band verification}).
+
+\paragraph{Caso di Studio 4: Phishing Transformers 3 alla Base Aerea di Andersen (Guam, 2010)}
+Nel 2010, il comando della base aerea strategica statunitense di Andersen condusse un test interno di sicurezza inviando ai militari email che annunciavano le riprese sull'isola del colossal cinematografico \textit{Transformers 3}, invitandoli a registrarsi come comparse su un sito clone per carpire credenziali militari. L'esperimento ebbe successo travolgente ma sfuggì al controllo operativo: i destinatari condivisero entusiasticamente l'informazione sui social network e con le testate giornalistiche locali, scatenando un'ondata di clamore mediatico che costrinse i vertici delle forze armate a rilasciare imbarazzate smentite ufficiali.
+
+\subsection{Attacchi famosi}
+\label{subsec:attacchi_famosi}
+
+La storia della cybersecurity registra alcune pietre miliari che hanno ridefinito la natura stessa dei conflitti moderni:
+
+\paragraph{Stuxnet (2009--2010):}
+Considerato la prima vera arma cibernetica di livello militare documentata nella storia. Sviluppato congiuntamente da agenzie governative statunitensi e israeliane nell'ambito dell'operazione \textit{Olympic Games}, Stuxnet fu specificamente progettato per sabotare fisicamente le centrifughe per l'arricchimento dell'uranio della centrale nucleare iraniana di Natanz. Introdotto tramite supporti USB infetti per scavalcare l'isolamento fisico della rete (\textit{air-gapped}), il worm sfruttava ben \textbf{cinque vulnerabilità Zero-Day} distinte e incorporava certificati digitali rubati a legittimi produttori hardware (Realtek e JMicron). Il malware si attivava unicamente qualora rilevasse la presenza di specifici controllori logici programmabili (\textbf{PLC Siemens Step-7}) collegati a convertitori di frequenza; una volta identificato il target, alterava periodicamente la velocità di rotazione delle centrifughe provocandone il cedimento meccanico per risonanza, mentre inviava segnali di normale funzionamento ai monitor degli operatori umani per mascherare l'intrusione.
+
+\paragraph{Brutal Kangaroo (2017):}
+Framework operativo sviluppato dalla CIA (divulgato dai leak \textit{Vault 7} di WikiLeaks) progettato per penetrare reti informatiche isolate fisicamente da Internet (\textbf{sistemi air-gapped}). Il payload infetta una postazione connessa (\textit{Primary Host}); quando l'operatore inserisce una chiavetta USB, il malware vi deposita un modulo secondario denominato \textit{Drifting Deadline}, sfruttando vulnerabilità dell'interprete delle icone o dei link di Windows per eseguirsi all'inserimento del supporto nel PC isolato ed esfiltrare dati tramite canali steganografici.
+
+\paragraph{BlackEnergy (2015):}
+Trojan modulare impiegato dal gruppo criminale \textit{Sandworm} (collegato ai servizi di intelligence russi) per sferrare il primo attacco cibernetico della storia contro una rete elettrica nazionale civile. Nel dicembre 2015, l'infezione veicolata tramite spear phishing compromise i centri di controllo \textbf{SCADA/ICS} di tre distributori di energia in Ucraina, provocando il blackout al buio e al gelo di oltre 230.000 cittadini per svariate ore. BlackEnergy costituisce l'archetipo dell'\textbf{Advanced Persistent Threat (APT)}: attori statali altamente strutturati che conducono operazioni invisibili e protratte nel tempo.
+
+\paragraph{Mirai (2016):}
+Botnet che ha segnato una svolta epocale nell'impiego offensivo dell'Internet of Things. Mirai scansionò ininterrottamente le porte Telnet di milioni di dispositivi embedded (telecamere di videosorveglianza, baby monitor, router domestici basati su processori con architettura ARC eseguenti distribuzioni ridotte di Linux), effettuando l'accesso con una banale lista di 60 combinazioni di credenziali di fabbrica predefinite (\texttt{root/admin}, \texttt{admin/admin}). Una volta assoldati oltre 100.000 nodi zombie, l'attacco generò volumi record di traffico DDoS contro il blog investigativo \textit{Krebs on Security} (620 Gbps) e il provider DNS \textit{Dyn}, provocando l'inaccessibilità simultanea di Twitter, Netflix, Reddit, Spotify e Amazon in tutto il Nord America.
+
+\paragraph{BlueBorne (2017):}
+Insieme di vulnerabilità zero-day relative allo stack del protocollo \textbf{Bluetooth} presente nei sistemi operativi Android, iOS, Windows e Linux. La particolarità devastante di BlueBorne risiede nel fatto che non richiede alcun accoppiamento preventivo (\textit{pairing}) né la visibilità del dispositivo: è sufficiente che l'interfaccia radio Bluetooth sia accesa affinché un aggressore nel raggio di 10 metri possa eseguire codice arbitrario con privilegi di kernel tramite buffer overflow, assumendo il controllo totale del sistema. La vulnerabilità ha colpito pesantemente i sistemi di \textit{infotainment} delle automobili connesse (esponendo al rischio di manipolazione il bus interno \textbf{CAN-bus} dei veicoli, celebre vulnerabilità già dimostrata sperimentalmente nel controllo remoto dei freni di una \textit{Jeep Cherokee}), dimostrando la convergenza critica tra sicurezza informatica (\textit{security}) e incolumità fisica (\textit{safety}).
+
+---
+
+% =========================================================================
+% SEZIONE 1.5: SICUREZZA: DEFINIZIONI
+% =========================================================================
+\section{Sicurezza: definizioni}
+\label{sec:sicurezza_definizioni}
+
+La sicurezza informatica è l'insieme dei processi, delle tecnologie e delle politiche che mirano a proteggere le informazioni e i sistemi informatici da accessi non autorizzati, alterazioni, distruzioni o interruzioni dei servizi. L'obiettivo primario è ridurre i rischi entro limiti accettabili per l'organizzazione, garantendo le proprietà canoniche che caratterizzano i sistemi affidabili.
+
+\subsection{Riservatezza}
+\label{subsec:riservatezza}
+
+La \textbf{riservatezza} (\textit{Confidentiality}) è la proprietà che assicura che le informazioni siano accessibili esclusivamente a soggetti, entità o processi esplicitamente autorizzati, prevenendo la divulgazione o l'esposizione accidentale o malevola dei dati a terze parti. Tale proprietà si applica sia ai dati digitali trasmessi in rete o archiviati sui supporti di memoria, sia alle informazioni personali sensibili (dati sanitari, biometrici, convinzioni religiose o politiche).
+
+La riservatezza viene garantita mediante un insieme integrato di misure tecniche (algoritmi di cifratura simmetrica AES-GCM o asimmetrica RSA/ECC, canali cifrati TLS) e organizzative (controllo degli accessi, segmentazione delle autorizzazioni).
+
+È fondamentale sottolineare la distinzione concettuale tra \textbf{riservatezza} e \textbf{privacy}:
+\begin{itemize}
+    \item La \textit{riservatezza} è una proprietà tecnica e oggettiva del dato: fa sì che occhi indiscreti non possano leggere il testo in chiaro.
+    \item La \textit{privacy} è un diritto giuridico e soggettivo della persona fisica (disciplinato da normative quali il \textbf{GDPR}): definisce la legittimità, le finalità e i limiti entro cui un'organizzazione può raccogliere, conservare, elaborare e profilare i dati personali degli individui.
+\end{itemize}
+
+\subsection{Integrità}
+\label{subsec:integrita}
+
+L'\textbf{integrità} (\textit{Integrity}) assicura che le informazioni e i sistemi rimangano corretti, completi e coerenti nel tempo, al riparo da modifiche arbitrarie, cancellazioni o manomissioni non autorizzate. Nel contesto delle comunicazioni di rete, essa impone che il destinatario riceva esattamente la sequenza di bit emessa dal mittente, senza alcuna alterazione intermedia, omissione o duplicazione fraudolenta (\textit{attacchi di replay}).
+
+L'integrità viene garantita mediante strumenti matematici calcolati sul messaggio:
+\begin{itemize}
+    \item \textbf{Funzioni Crittografiche di Hash (SHA-256, SHA-3):} mappano una stringa di lunghezza arbitraria in un'impronta digitale (\textit{digest}) di dimensione fissa, godendo delle proprietà di resistenza alla pre-immagine e alle collisioni.
+    \item \textbf{Codici MAC (Message Authentication Code) e Firme Digitali:} garantiscono l'integrità coniugandola con l'autenticazione dell'origine del dato mediante chiavi segrete o chiavi private asimmetriche.
+\end{itemize}
+Le omissioni e le duplicazioni dei pacchetti vengono invece neutralizzate mediante una rigorosa \textbf{numerazione progressiva} (serializzazione) integrata nei tag di autenticazione crittografica.
+
+\subsection{Autenticazione della controparte}
+\label{subsec:autenticazione_controparte}
+
+L'\textbf{autenticazione dell'entità} (\textit{Entity Authentication}) è il processo mediante il quale un'entità verifica l'identità dichiarata di un'altra controparte con cui si appresta a comunicare. L'autenticazione può configurarsi come:
+\begin{itemize}
+    \item \textbf{Singola (unilaterale):} in cui una sola delle due parti verifica l'identità dell'altra (come accade ordinariamente in HTTPS, dove il client verifica il certificato X.509 del server web, mentre il client rimane anonimo a livello di connessione);
+    \item \textbf{Mutua (bilaterale):} in cui entrambe le entità accertano reciprocamente la rispettiva identità (come nei canali VPN IPsec o in TLS con autenticazione mediante certificati client).
+\end{itemize}
+
+I meccanismi di autenticazione si fondano sull'impiego combinato di uno o più \textbf{fattori di autenticazione}:
+\begin{enumerate}
+    \item \textit{Qualcosa che l'utente conosce (Knowledge):} password alfanumerica, PIN o passphrase segreta;
+    \item \textit{Qualcosa che l'utente possiede (Possession):} token hardware OTP, smart card crittografica, smartphone abilitato;
+    \item \textit{Qualcosa che l'utente è (Inherence):} caratteristiche biometriche uniche, quali impronte digitali, scansione dell'iride o geometria facciale.
+\end{enumerate}
+L'integrazione di almeno due fattori distinti costituisce l'\textbf{Autenticazione a più fattori} (\textbf{MFA}), baluardo essenziale contro il furto delle credenziali.
+
+\subsection{Autenticazione dei dati}
+\label{subsec:autenticazione_dati}
+
+L'\textbf{autenticazione dei dati} (\textit{Data Origin Authentication}) è la proprietà che certifica che il messaggio provenga effettivamente dall'autore dichiarato e non sia stato forgiato o manipolato da terzi. Tale proprietà è indissolubilmente correlata all'integrità: non avrebbe alcun senso logico attestare l'origine di un documento se il suo contenuto potesse essere alterato durante il transito.
+
+Gli strumenti matematici fondamentali per conseguire l'autenticazione dei dati sono i codici \textbf{HMAC} (in contesti a chiave simmetrica condivisa) e le \textbf{firme digitali} (in contesti asimmetrici con coppia di chiavi pubblica/privata). L'autenticazione dei dati deve essere applicata sistematicamente a ogni singolo pacchetto di una sessione di rete attiva, al fine di impedire l'intromissione di attacchi MITM o iniezioni di comando successive all'handshake iniziale.
+
+\subsection{Non ripudio}
+\label{subsec:non_ripudio}
+
+Il \textbf{non ripudio} (\textit{Non-Repudiation}) è la proprietà che impedisce a un soggetto o ad un'entità di negare a posteriori di aver compiuto una determinata azione, sottoscritto un accordo o emesso uno specifico messaggio. Questa caratteristica conferisce pieno \textbf{valore probatorio e legale} alle transazioni elettroniche, ai bonifici bancari e alla contrattualistica informatica.
+
+A differenza della riservatezza e dell'integrità, il non ripudio non può essere garantito dalla crittografia simmetrica o dagli HMAC: poiché la chiave simmetrica è nota ad entrambe le parti ($A$ e $B$), Bob potrebbe benissimo fabbricare un messaggio spacciandolo per proveniente da Alice. Il non ripudio esige \textbf{esclusivamente l'adozione della firma digitale asimmetrica}, generata mediante la chiave privata detenuta in via esclusiva dal mittente. Inoltre, il non ripudio esige requisiti giuridici e di interfaccia: l'utente deve operare in condizioni di piena consapevolezza dell'atto compiuto, imponendo che le interfacce grafiche (UI) non contengano ambiguità, inganni o pulsanti fuorvianti suscettibili di viziare il consenso legale.
+
+\subsection{Autorizzazione (o controllo degli accessi)}
+\label{subsec:autorizzazione}
+
+L'\textbf{autorizzazione} (\textit{Authorization}) è il processo mediante il quale il sistema informativo stabilisce quali specifiche operazioni (lettura, scrittura, cancellazione, esecuzione) un soggetto identificato o un processo possa eseguire su una determinata risorsa protetta. Il modello concettuale originario prevede un'immensa \textbf{matrice di controllo degli accessi} (\textit{Access Control Matrix}), le cui righe identificano i soggetti (utenti/processi), le colonne gli oggetti (file/servizi) e le celle contengono i diritti concessi.
+
+Poiché la gestione diretta della matrice risulta impraticabile nei sistemi distribuiti, la letteratura scientifica ha formalizzato cinque paradigmi di riferimento:
+\begin{itemize}
+    \item \textbf{Role-Based Access Control (RBAC):} i privilegi vengono associati a ruoli operativi aziendali (es. Amministratore, Analista, Tecnico) e gli utenti vengono semplicemente assegnati a tali ruoli, semplificando la revoca e il controllo centralizzato delle autorizzazioni.
+    \item \textbf{Identity-Based Access Control (IBAC):} i permessi vengono assegnati direttamente ai singoli identificativi utente; è un modello semplice ma del tutto inadatto alla scalabilità d'impresa.
+    \item \textbf{Attribute-Based Access Control (ABAC):} le decisioni di accesso sono valutate dinamicamente analizzando un insieme di attributi del soggetto (reparto, anzianità), della risorsa (livello di riservatezza) e del contesto operativo (orario di connessione, indirizzo IP, localizzazione geografica).
+    \item \textbf{Relationship-Based Access Control (ReBAC):} le autorizzazioni discendono dalle relazioni topologiche intercorrenti tra i soggetti, modello tipicamente adottato dai social network e dalle piattaforme collaborative (es. visibilità limitata a contatti diretti o colleghi di team).
+    \item \textbf{Mandatory Access Control (MAC):} l'accesso è governato in modo rigido e centralizzato dal sistema operativo attraverso regole matematiche cablate (\textit{hardcoded}) basate su etichette di sicurezza e livelli gerarchici di riservatezza (Riservato, Segreto, Top Secret), come nei modelli militari Bell-LaPadula; l'utente proprietario della risorsa non ha la facoltà di alterarne o cederne i diritti.
+\end{itemize}
+
+\subsection{Protezione dei dati}
+\label{subsec:protezione_dati}
+
+La protezione dei dati comprende l'insieme coordinato delle misure tecnologiche, architetturali e organizzative volte a preservare riservatezza, integrità e disponibilità del patrimonio informativo lungo l'intero ciclo di vita del dato, distinguendo chiaramente i tre stati fondamentali del dato:
+\begin{enumerate}
+    \item \textbf{Data in Transit (Dati in Movimento):} informazioni che attraversano canali di rete pubblici o privati, protette mediante suite crittografiche robuste (TLS, IPsec).
+    \item \textbf{Data at Rest (Dati a Riposo):} informazioni memorizzate permanentemente su supporti di memoria di massa (hard disk, nastri magnetici, database, storage cloud), tutelate mediante crittografia di blocco (AES-XTS) e segregazione delle chiavi crittografiche all'interno di moduli hardware protetti (\textbf{HSM} / TPM).
+    \item \textbf{Data in Use / Data in Memory (Dati in Uso):} informazioni allocate all'interno della memoria volatile (RAM, registri CPU) durante l'elaborazione attiva da parte dei processi, protette mediante enclavi di esecuzione sicura (\textit{Confidential Computing}, Intel SGX, AMD SEV) e azzeramento immediato dei buffer dopo l'utilizzo.
+\end{enumerate}
+
+---
+
+% =========================================================================
+% SEZIONE 1.6: PRINCIPI DI SICUREZZA
+% =========================================================================
+\section{Principi di sicurezza}
+\label{sec:principi_sicurezza}
+
+I principi di sicurezza rappresentano le linee guida architetturali fondamentali per orientare correttamente la progettazione e la gestione di sistemi affidabili:
+
+\begin{itemize}
+    \item \textbf{Security by Design:} prescrive di considerare e integrare i requisiti di sicurezza sin dalle fasi concettuali e architetturali embrionali del sistema. Le misure difensive non devono costituire correttivi posticci sovrapposti a posteriori, ma devono essere parte integrante delle strutture dati, delle interfacce applicative e del ciclo di sviluppo (\textit{DevSecOps}).
+    \item \textbf{Security by Default:} stabilisce che qualsiasi apparato, sistema operativo o applicazione debba presentarsi al momento dell'installazione con la configurazione più restrittiva e protetta possibile. I servizi non indispensabili devono essere disabilitati, le credenziali predefinite bandite e le porte chiuse. Qualsiasi allentamento delle restrizioni operative richiede un'azione esplicita e consapevole da parte dell'amministratore, responsabilizzandone la scelta.
+    \item \textbf{Defense-in-Depth} (\textit{Defense in Depth} o Difesa in Profondità): principio di derivazione militare secondo cui la sicurezza non deve mai dipendere da una singola barriera difensiva. L'infrastruttura deve essere organizzata secondo cerchi concentrici di protezione (firewall perimetrali, segmentazione in DMZ, autenticazione a due fattori, crittografia dei dischi, rilevamento delle intrusioni IDPS): se un attaccante scavalca un livello protettivo, troverà immediatamente una barriera successiva a bloccarne la progressione laterale.
+    \item \textbf{Principio di Kerckhoffs:} pilastro della crittografia moderna formulato da Auguste Kerckhoffs nel 1883, secondo cui la sicurezza di un sistema crittografico deve dipendere esclusivamente dalla segretezza della chiave e mai dalla segretezza dell'algoritmo impiegato. La cosiddetta \textit{Security through Obscurity} (sicurezza attraverso l'occultamento dei meccanismi) è un'illusione fatale: gli algoritmi devono essere pubblici e collaudati dalla comunità scientifica internazionale.
+    \item \textbf{Need-to-Know:} principio emanato dal \textbf{NIST} che impone che ciascun operatore possa accedere unicamente ed esclusivamente alle informazioni e ai documenti strettamente necessari per svolgere la propria mansione corrente, riducendo al minimo l'esposizione di dati confidenziali.
+    \item \textbf{Least Privilege (Minimo Privilegio):} prescrive che qualsiasi utente, account di servizio o processo debba operare disponendo unicamente dei privilegi operativi minimi e temporali strettamente indispensabili per completare l'operazione richiesta, confinando tempestivamente l'impatto di un'eventuale compromissione.
+\end{itemize}
+
+---
+
+% =========================================================================
+% SEZIONE 1.7: I TRE PILASTRI DELLA SICUREZZA
+% =========================================================================
+\section{I tre pilastri della sicurezza}
+\label{sec:tre_pilastri}
+
+La gestione della sicurezza informatica non si configura come un progetto statico dotato di una data di conclusione, bensì come un \textbf{ciclo operativo continuo e ricorsivo}, in accordo con la celeberrima massima enunciata da \textbf{Bruce Schneier}:
+\begin{quote}
+\textit{"Security is a process, not a product."} \\
+(\textit{"La sicurezza è un processo, non un prodotto."})
+\end{quote}
+Un'organizzazione che acquisti prodotti tecnologici all'avanguardia ma trascuri il monitoraggio, l'aggiornamento e la revisione delle procedure è destinata a soccombere. 
+
+Per strutturare metodologicamente le attività operative, l'approccio classico suddivide il ciclo di gestione in una fase preliminare di pianificazione e in tre pilastri consecutivi:
+
+\begin{enumerate}
+    \item \textbf{Fase Preliminare di Pianificazione (Planning):} momento in cui l'organizzazione conduce l'analisi e la valutazione dei rischi (\textit{Risk Assessment}), definisce le politiche di sicurezza aziendali, identifica gli asset critici e fissa gli obiettivi di conformità normativa (\textbf{NIST Cybersecurity Framework}, ISO/IEC 27001).
+    \item \textbf{Pilastro 1: Avoidance (Prevenzione):} implementazione di controlli proattivi per minimizzare la probabilità di accadimento delle minacce e restringere la superficie d'attacco (firewall, cifratura end-to-end, segmentazione in VLAN, hardening dei server, formazione continua del personale). La prevenzione riduce il rischio ma non lo azzera: l'errore umano o uno zero-day possono sempre perforare le difese perimetrali.
+    \item \textbf{Pilastro 2: Detection (Rilevamento):} monitoraggio continuo e in tempo reale dell'infrastruttura per identificare tempestivamente le violazioni che hanno eluso la fase di prevenzione. Si avvale di sistemi IDPS, piattaforme SIEM/SOC, analisi dei log e rilevamento delle anomalie comportamentali.
+    \item \textbf{Pilastro 3: Investigation (Analisi e Risposta):} attività di \textit{Incident Response} e analisi forense digitale (\textit{Digital Forensics}) per comprendere la dinamica dell'intrusione, quantificare l'esfiltrazione dei dati, bonificare i sistemi compromessi e raccogliere evidenze con valore probatorio legale per l'avvio delle azioni giudiziarie contro i perpetratori.
+\end{enumerate}
+
+Le risultanze dell'indagine alimentano nuovamente la fase di pianificazione, aggiornando le difese in un ciclo di miglioramento continuo (\textit{Plan-Do-Check-Act}).
+
+\end{document}

@@ -1,0 +1,120 @@
+# Concept Keywords for Chapter 2: Gestione dei rischi informatici
+# Verified against Dispensa Cap II, Slides 02, Lecture 29/09, Stallings Ch 14, and Exam archives
+
+Asset
+Debolezza
+Weakness
+Vulnerabilità
+Vulnerability
+Minaccia
+Threat
+Attacco
+Evento Negativo
+CVE
+MITRE
+CVSS
+Attack Vector
+Attack Complexity
+Privileges Required
+User Interaction
+Scope
+Confidenzialità
+Integrità
+Disponibilità
+Zero-day
+Unpatched
+Patched
+Patch
+CWE
+CWE-20
+Meltdown
+CVE-2017-5754
+Esecuzione speculativa
+Out-of-Order
+FLUSH+RELOAD
+Side-channel
+KPTI
+EPSS
+FIRST
+CISA KEV
+Window of Exposure
+Patch Diffing
+Zero Day Initiative
+ZDI
+120 giorni
+RMF
+NIST SP 800-39
+NIST SP 800-30
+NIST SP 800-37
+NIST SP 800-53
+Risk Framing
+Risk Assessment
+Risk Response
+Risk Mitigation
+Risk Monitoring
+ISCM
+Vulnerability Assessment
+Planning
+Information Gathering
+Scanning
+Port Scanning
+Open
+Closed
+Filtered
+OS Detection
+TCP Sequence Predictability
+Nmap
+GVM
+OpenVAS
+Nessus
+Acunetix
+Greenbone Security Assistant
+GSA
+Greenbone Vulnerability Manager
+NASL
+NVT
+Greenbone Community Feed
+OSP
+GMP
+Valutazione Quantitativa
+Valutazione Qualitativa
+Valutazione Semi-Quantitativa
+Monetization
+SLE
+ALE
+ARO
+Threat-Oriented
+Asset-Oriented
+Vulnerability-Oriented
+ATT\&CK
+MITRE D3FEND
+ENISA
+OWASP Top 10
+Mitigazione
+Trasferimento
+Evitamento
+Accettazione
+Cyber Insurance
+Vulnerability Management
+NIST IR 8011
+Desired State
+Actual State
+Patch Management
+NIST SP 800-40
+Software Flaw Manager
+Patch Manager
+Subsets
+Standard First
+Difficult Ones Later
+Cover All
+CrowdStrike
+Falcon
+BSOD
+iOS 8.0.1
+Aggregated Patch
+Patch Tuesday
+Enterprise Patch Management
+EPM
+Single Point of Failure
+Least Privilege
+MFA

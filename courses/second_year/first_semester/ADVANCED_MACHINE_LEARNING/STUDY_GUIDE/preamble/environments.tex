@@ -1,0 +1,93 @@
+% Custom Callout Environments and Theorem Styling
+
+% Standard Theorems
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{example}{Example}[chapter]
+\newtheorem{remark}{Remark}[chapter]
+
+% Color Definitions
+\definecolor{examred}{RGB}{180, 40, 40}
+\definecolor{examback}{RGB}{253, 245, 245}
+\definecolor{deepblue}{RGB}{30, 70, 140}
+\definecolor{deepback}{RGB}{245, 248, 255}
+\definecolor{intuitiongreen}{RGB}{40, 130, 80}
+\definecolor{intuitionback}{RGB}{245, 252, 247}
+\definecolor{politoNavy}{RGB}{0, 43, 91}
+\definecolor{skyBlue}{RGB}{135, 206, 235}
+\definecolor{deepdiveTeal}{RGB}{0, 128, 128}
+
+% Oral Exam & Pitfalls Insight Box
+\newtcolorbox{examinsight}[1][]{
+  colback=examback,
+  colframe=examred,
+  arc=3mm,
+  boxrule=1.2pt,
+  fonttitle=\bfseries\sffamily,
+  coltitle=white,
+  title={Oral Exam Insight \& Pitfall Alert\ifstrempty{#1}{}{: #1}},
+  attach boxed title to top left={xshift=4mm, yshift=-2mm},
+  boxed title style={colback=examred, arc=1.5mm},
+  breakable,
+  before skip=12pt,
+  after skip=12pt
+}
+
+% Deep Theoretical Dive Box (Bishop, Goodfellow, Seminal Proofs)
+\newtcolorbox{deepdive}[1][]{
+  colback=deepback,
+  colframe=deepblue,
+  arc=3mm,
+  boxrule=1.2pt,
+  fonttitle=\bfseries\sffamily,
+  coltitle=white,
+  title={Theoretical Deep Dive\ifstrempty{#1}{}{: #1}},
+  attach boxed title to top left={xshift=4mm, yshift=-2mm},
+  boxed title style={colback=deepblue, arc=1.5mm},
+  breakable,
+  before skip=12pt,
+  after skip=12pt
+}
+
+% Conceptual & Geometric Intuition Box
+\newtcolorbox{intuition}[1][]{
+  colback=intuitionback,
+  colframe=intuitiongreen,
+  arc=3mm,
+  boxrule=1.2pt,
+  fonttitle=\bfseries\sffamily,
+  coltitle=white,
+  title={Conceptual \& Geometric Intuition\ifstrempty{#1}{}{: #1}},
+  attach boxed title to top left={xshift=4mm, yshift=-2mm},
+  boxed title style={colback=intuitiongreen, arc=1.5mm},
+  breakable,
+  before skip=12pt,
+  after skip=12pt
+}
+
+% Curated Multimedia & Video Reference Box
+\definecolor{ytred}{RGB}{200, 30, 30}
+\definecolor{ytback}{RGB}{255, 250, 250}
+
+\newtcolorbox{curatedvideo}[3]{
+  colback=ytback,
+  colframe=ytred,
+  arc=3mm,
+  boxrule=1.2pt,
+  fonttitle=\bfseries\sffamily,
+  coltitle=white,
+  title={Curated Video Breakdown: #1 --- ``#2''},
+  attach boxed title to top left={xshift=4mm, yshift=-2mm},
+  boxed title style={colback=ytred, arc=1.5mm},
+  breakable,
+  before skip=12pt,
+  after skip=12pt,
+  finish={
+    \node[anchor=north east, font=\footnotesize\sffamily, text=ytred] at ([xshift=-4mm, yshift=-3mm]frame.north east) {\textbf{Link}: \href{#3}{\underline{Watch on YouTube $\to$}}};
+  }
+}
+

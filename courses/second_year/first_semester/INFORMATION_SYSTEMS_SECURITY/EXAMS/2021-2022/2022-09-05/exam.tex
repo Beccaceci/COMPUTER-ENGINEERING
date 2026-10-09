@@ -1,0 +1,246 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm}
+\usepackage{amsmath,amssymb}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    citecolor=blue!70!black,
+    urlcolor=teal!70!black
+}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!10},
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{green!50!black}\itshape,
+    stringstyle=\color{red!70!black}
+}
+
+\newtcolorbox{questionbox}[1][]{
+    colback=gray!5!white,
+    colframe=gray!60!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{solutionbox}[1][]{
+    colback=blue!5!white,
+    colframe=blue!70!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{altbox}[1][]{
+    colback=orange!5!white,
+    colframe=orange!80!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\begin{document}
+
+\title{\textbf{Sicurezza dei Sistemi Informativi} \\ \large Appello d'Esame del 05 Settembre 2022 \\ \small Anno Accademico 2021-2022}
+\author{Politecnico di Torino --- Docente: Prof. Cataldo Basile}
+\date{2022-09-05}
+\maketitle
+
+
+\section{Testo Ufficiale dell'Esame}
+
+\begin{questionbox}[Domanda 1: Scenari di Attacco e Tecniche Avanzate]
+Dati le seguenti tecniche e scenari di attacco:
+\begin{enumerate}[label=\alph*.]
+    \item \textbf{Shadow Server};
+    \item \textbf{Packet Sniffing};
+    \item \textbf{Man-at-the-End (MATE)};
+    \item \textbf{Advanced Persistent Threat (APT)}.
+\end{enumerate}
+Per ciascuno, spiegare come funzionano, indicare gli obiettivi che un avversario intende conseguire e proporre efficaci contromisure e controlli di sicurezza per prevenirli o mitigarli.
+\end{questionbox}
+
+\begin{questionbox}[Domanda 2: Regolamento GDPR]
+Spiegare cosa \`e il GDPR (General Data Protection Regulation), quale \`e il suo obiettivo istituzionale e illustrare nel dettaglio almeno 3 dei principi fondamentali che lo caratterizzano (ad esempio: minimizzazione, integrit\`a e riservatezza, accountability).
+\end{questionbox}
+
+\begin{questionbox}[Domanda 3: Algoritmo ChaCha20-256]
+Cosa \`e ChaCha20-256?
+\begin{enumerate}[label=\alph*.]
+    \item La versione completa di un algoritmo di crittografia simmetrica di tipo stream cipher con chiave a 256 bit e nonce.
+    \item Un algoritmo a blocchi basato sulla rete di Feistel.
+    \item Una funzione di hash a 256 bit.
+    \item Un algoritmo asimmetrico basato sul logaritmo discreto.
+    \item Nessuna delle precedenti.
+\end{enumerate}
+Illustrare il funzionamento della funzione interna a 20 round (quarter round) basata sull'architettura ARX (Addition-Rotation-XOR) e spiegare perch\'e \`e considerata resistente agli attacchi a canale laterale (side-channel attacks).
+\end{questionbox}
+
+\begin{questionbox}[Domanda 4: Esercizio Architetturale DMZ e Ispezione Applicativa]
+Un'organizzazione deve proteggere i propri servizi web esposti al pubblico da minacce appartenenti alla OWASP Top 10 (es. SQL Injection, Cross-Site Scripting - XSS), permettendo al contempo l'amministrazione remota sicura da parte degli operatori di rete.
+\begin{itemize}
+    \item Descrivere quale tipologia di firewall deve essere impiegata (Web Application Firewall - WAF vs Packet Filter tradizionale) e spiegare le differenze operative;
+    \item Spiegare come il WAF gestisce il traffico cifrato HTTPS (terminazione TLS e modalit\`a Reverse Proxy);
+    \item Progettare la topologia di rete con DMZ evidenziando il posizionamento del WAF, del router perimetrale, dei web server e della console di gestione.
+\end{itemize}
+\end{questionbox}
+
+\newpage
+\section{Soluzione Dettagliata e Guida Risolutiva}
+
+\begin{solutionbox}[Soluzione Domanda 1: Scenari di Attacco e Mitigazioni]
+\textbf{a. Shadow Server:}
+\begin{itemize}
+    \item \textit{Funzionamento}: L'attaccante allestisce un'infrastruttura di server non autorizzata, clonata o nascosta (spesso all'interno della rete della vittima o nel cloud) che agisce come centro di comando e controllo (C2), server DNS ombra o repository segreto per esfiltrare dati.
+    \item \textit{Obiettivi}: Mantenimento della persistenza, bypass del monitoraggio di rete convenzionale ed esfiltrazione silente.
+    \item \textit{Contromisure}: Sistemi di Network Detection and Response (NDR), segmentazione di rete rigorosa, monitoraggio del traffico DNS (blocco di query verso domini di recente creazione), inventario centralizzato degli asset IT.
+\end{itemize}
+
+\textbf{b. Packet Sniffing:}
+\begin{itemize}
+    \item \textit{Funzionamento}: Intercettazione passiva di pacchetti di dati in transito su un segmento di rete condiviso impostando l'interfaccia di rete in modalit\`a promiscua (es. mediante tool come Wireshark o tcpdump). Se la rete \`e commutata (switch), viene spesso combinato con tecniche attive come \textit{ARP Spoofing/Poisoning} per convogliare il traffico verso la macchina dell'attaccante.
+    \item \textit{Obiettivi}: Acquisizione di credenziali in chiaro (es. password FTP, HTTP, Telnet), token di sessione, chiavi non protette e informazioni confidenziali.
+    \item \textit{Contromisure}: Cifratura end-to-end obbligatoria di tutto il traffico a livello applicativo (TLS/HTTPS, SSH) o di rete (IPsec), abilitazione di funzionalit\`a di sicurezza sugli switch di accesso come \textit{Dynamic ARP Inspection (DAI)}, \textit{DHCP Snooping} e \textit{Port Security}.
+\end{itemize}
+
+\textbf{c. Man-at-the-End (MATE):}
+\begin{itemize}
+    \item \textit{Funzionamento}: L'avversario ha il pieno possesso della macchina e del software target e agisce come operatore privilegiato per analizzare, decompilare e alterare l'applicazione.
+    \item \textit{Obiettivi}: Bypasso di controlli di licenza/DRM, estrazione di segreti industriali, cracking di algoritmi crittografici embedded.
+    \item \textit{Contromisure}: Tecniche di offuscamento multilivello, controlli di integrit\`a a runtime (anti-tampering), anti-debugging, crittografia white-box e ancoraggio hardware tramite Trusted Platform Module (TPM) e Secure Boot.
+\end{itemize}
+
+\textbf{d. Advanced Persistent Threat (APT):}
+\begin{itemize}
+    \item \textit{Funzionamento}: Campagna di cyber-attacco prolungata, mirata e sponsorizzata da attori statali o gruppi criminali avanzati. Segue le fasi del \textit{Cyber Kill Chain} (Reconnaissance, Weaponization, Delivery via spear-phishing, Exploitation, Installation, Command \& Control, Lateral Movement e Actions on Objectives).
+    \item \textit{Obiettivi}: Spionaggio industriale, furto di segreti militari/governativi, sabotaggio di infrastrutture critiche.
+    \item \textit{Contromisure}: Architettura Zero Trust, Endpoint Detection and Response (EDR) con analisi comportamentale euristica, Security Operations Center (SOC) attivo 24/7 con threat hunting proattivo, patch management rigoroso e segmentazione avanzata (micro-segmentazione).
+\end{itemize}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 2: Obiettivi e Principi Cardine del GDPR]
+\textbf{Obiettivo del GDPR (Regolamento UE 2016/679):}
+Armonizzare le normative sulla protezione dei dati personali all'interno dell'Unione Europea, tutelando il diritto fondamentale delle persone fisiche alla riservatezza e al controllo sui propri dati personali, garantendo al contempo la libera circolazione dei dati all'interno del mercato unico digitale.
+
+\textbf{Analisi Dettagliata di 3 Principi Cardine:}
+\begin{enumerate}
+    \item \textbf{Minimizzazione dei dati (Art. 5.1.c)}: I dati personali devono essere limitati a quanto strettamente necessario rispetto alle finalit\`a per cui sono trattati. L'organizzazione non pu\`o raccogliere dati "a scopo preventivo" o non strettamente correlati al servizio erogato.
+    \item \textbf{Integrit\`a e Riservatezza (Art. 5.1.f)}: Il trattamento deve garantire un'adeguata sicurezza dei dati personali, compresa la protezione, mediante misure tecniche (cifratura, pseudonimizzazione, controllo accessi) e organizzative (procedure aziendali, audit) adeguate, da trattamenti non autorizzati o illeciti e dalla perdita, distruzione o danno accidentale.
+    \item \textbf{Responsabilizzazione / Accountability (Art. 5.2)}: Il titolare del trattamento non solo \`e responsabile del rispetto dei principi, ma deve essere attivamente in grado di comprovare tale rispetto attraverso documentazione formale (Registro dei trattamenti, Valutazione di Impatto sulla Protezione dei Dati - DPIA, policy di sicurezza verificate).
+\end{enumerate}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 3: ChaCha20-256 e Architettura ARX]
+\textbf{Analisi Puntuale delle Opzioni:}
+\begin{itemize}
+    \item \textbf{a. VERA}: ChaCha20 \`e la versione standard a 20 round di un cifrario simmetrico a flusso (\textit{stream cipher}) ad elevate prestazioni ideato da Daniel J. Bernstein. Utilizza una chiave segreta a 256 bit (32 byte), un contatore a 32 bit e un nonce a 96 bit (nella specifica standard IETF RFC 7539 / RFC 8439), producendo un keystream sincrono applicato in XOR al plaintext.
+    \item \textbf{b. FALSA}: ChaCha20 non \`e un cifrario a blocchi e non si basa affatto sulla rete di Feistel (come invece DES o Blowfish). La sua struttura interna \`e basata su trasformazioni ARX a round su una matrice di parole.
+    \item \textbf{c. FALSA}: Non \`e una funzione di hash crittografica (anche se la funzione di compressione di BLAKE/BLAKE2/BLAKE3 \`e strettamente derivata dal core di permutazione di ChaCha).
+    \item \textbf{d. FALSA}: Non \`e un algoritmo asimmetrico a chiave pubblica e non ha legami con il problema del logaritmo discreto (come Diffie-Hellman o ElGamal); \`e strettamente crittografia simmetrica a chiave segreta condivisa.
+    \item \textbf{e. FALSA}: Poich\'e l'affermazione (a) \`e esatta ed esaustiva, l'opzione (e) \`e falsa.
+\end{itemize}
+
+\textbf{Funzionamento Interno e Operazione Quarter Round (ARX):}
+Lo stato interno di ChaCha20 \`e una matrice $4 \times 4$ di parole a 32 bit (totale 512 bit = 64 byte):
+\begin{itemize}
+    \item 4 parole di costanti fisse (\texttt{"expand 32-byte k"});
+    \item 8 parole di chiave crittografica (256 bit);
+    \item 1 parola di contatore di blocco (32 bit);
+    \item 3 parole di nonce (96 bit).
+\end{itemize}
+L'operazione fondamentale \`e il \textbf{Quarter Round (QR)}, che opera su 4 parole $(a, b, c, d)$ impiegando solo tre operazioni elementari estremamente veloci: Addizione modulo $2^{32}$ ($+$), Rotazione circolare di bit a sinistra ($\lll$) e bitwise XOR ($\oplus$):
+\begin{align*}
+a &\leftarrow a + b; \quad d \leftarrow (d \oplus a) \lll 16; \\
+c &\leftarrow c + d; \quad b \leftarrow (b \oplus c) \lll 12; \\
+a &\leftarrow a + b; \quad d \leftarrow (d \oplus a) \lll 8; \\
+c &\leftarrow c + d; \quad b \leftarrow (b \oplus c) \lll 7;
+\end{align*}
+Un round completo applica 4 QR alle colonne seguito da 4 QR alle diagonali. ChaCha20 ripete questo ciclo per 10 volte (totale 20 round). Al termine, lo stato finale viene sommato allo stato iniziale per generare un blocco di keystream da 64 byte.
+
+\textbf{Resistenza agli Attacchi a Canale Laterale (Side-Channel):}
+A differenza di AES, che nelle implementazioni software tradizionali richiede lookup table (\textit{S-Box}) dipendenti dalla chiave (soggette ad attacchi di tipo cache timing attack causati da cache miss/hit), ChaCha20 utilizza esclusivamente istruzioni ARX a tempo costante (\textit{constant-time}). Poich\'e l'esecuzione non effettua accessi in memoria dipendenti dai dati segreti n\'e salti condizionali, ChaCha20 \`e nativamente immune a tali attacchi temporali.
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 4: WAF e Progettazione Architetturale DMZ]
+\textbf{WAF vs Packet Filter Tradizionale:}
+\begin{itemize}
+    \item \textbf{Packet Filter (L3/L4)}: Ispeziona solo indirizzi IP sorgente/destinazione, protocollo di trasporto e porte (TCP/UDP). Non ha alcuna visibilit\`a all'interno del payload dei dati applicativi e non pu\`o rilevare attacchi complessi nascosti all'interno di richieste HTTP lecite (es. \texttt{GET /search?q=' OR 1=1--}).
+    \item \textbf{Web Application Firewall (WAF - L7)}: Lavora a livello applicativo. Esegue il parsing completo del protocollo HTTP/HTTPS, decodifica parametri URL, header, cookie e payload POST (JSON, XML). Applica motori a regole (es. OWASP Core Rule Set) e modelli euristici/comportamentali per bloccare SQLi, XSS, Command Injection, CSRF e attacchi al controllo accessi.
+\end{itemize}
+
+\textbf{Gestione del Traffico Cifrato HTTPS (SSL/TLS Offloading):}
+Poich\'e il traffico web viaggia ormai quasi universalmente su canali cifrati HTTPS, un WAF non pu\`o ispezionare il contenuto se il traffico \`e cifrato end-to-end con le chiavi del server. Il WAF viene quindi configurato in modalit\`a **Reverse Proxy**:
+\begin{enumerate}
+    \item Il certificato digitale X.509 e la relativa chiave privata del sito web vengono installati a bordo del WAF.
+    \item Il client esterno stabilisce la connessione TLS direttamente con il WAF (che termina la sessione TLS).
+    \item Il WAF decifra la richiesta HTTP, esegue l'ispezione approfondita del payload e verifica le policy di sicurezza.
+    \item Se la richiesta \`e lecita, il WAF inoltra la richiesta al Web Server backend nella DMZ (tramite una seconda connessione cifrata interna o su rete isolata dedicata).
+\end{enumerate}
+
+\textbf{Topologia di Rete (Architettura DMZ Two-Tier con WAF Reverse Proxy):}
+\begin{center}
+\begin{verbatim}
+                       +--------------------+
+                       |      INTERNET      |
+                       +---------+----------+
+                                 |
+                     +-----------v-----------+
+                     |  FIREWALL ESTERNO L4  |
+                     +-----------+-----------+
+                                 | (TCP 443 verso WAF)
+       +-------------------------v-------------------------+
+       |                  DMZ (192.168.2.0/24)             |
+       |                                                   |
+       |   +-------------------+     +------------------+  |
+       |   | WAF Reverse Proxy | --> | Web Server Array |  |
+       |   | (Terminazione TLS)|     | (Backend HTTP/S) |  |
+       |   |   192.168.2.10    |     |   192.168.2.20   |  |
+       |   +-------------------+     +--------+---------+  |
+       +--------------------------------------|------------+
+                                              | (TCP 5432 / DB only)
+                     +-----------v------------+
+                     |  FIREWALL INTERNO L4   |
+                     +-----------+------------+
+                                 |
+       +-------------------------v-------------------------+
+       |               LAN INTERNA (10.0.0.0/24)           |
+       |                                                   |
+       |   [Database Server] .0.50                         |
+       |   [Console di Gestione / Admin Station] .0.100     |
+       +---------------------------------------------------+
+\end{verbatim}
+\end{center}
+
+\textbf{Instradamento, Subnetting e Regole Chiave:}
+\begin{itemize}
+    \item \textbf{Firewall Esterno}: Permette dall'esterno solo il traffico TCP 443 verso l'IP pubblico/DMZ del WAF (\texttt{192.168.2.10}). Blocca ogni accesso diretto ai web server e alla LAN interna.
+    \item \textbf{WAF nella DMZ}: Termina la sessione HTTPS, ispeziona il payload HTTP per minacce OWASP, e se lecito effettua reverse proxying verso i Web Server (\texttt{192.168.2.20}).
+    \item \textbf{Firewall Interno}: Autorizza unicamente le query TCP (es. porta 5432 per PostgreSQL) provenienti dai soli Web Server DMZ verso il Database interno (\texttt{10.0.0.50}). Nessun host DMZ pu\`o iniziare connessioni verso la Console di Gestione.
+    \item \textbf{Console di Gestione (\texttt{10.0.0.100})}: Amministra WAF e Web Server attraverso connessioni cifrate SSH/HTTPS in uscita dalla LAN interna verso la DMZ con autenticazione a pi\`u fattori (MFA).
+\end{itemize}
+\end{solutionbox}
+
+\begin{altbox}[Alternative Implementation Note: Strutture Rust per un Web Application Firewall]
+Nella progettazione di un WAF ad alte prestazioni in Rust (es. implementato come middleware per Hyper o Tower):
+\begin{itemize}
+    \item \texttt{std::sync::Arc<RegexSet>}: Le migliaia di firme e pattern per l'individuazione di SQLi/XSS sono compilate in una struttura \texttt{RegexSet} immutabile e condivisa a zero-copy tra tutti i thread asincroni di gestione delle richieste web.
+    \item \texttt{tokio::sync::mpsc}: Canale asincrono a elevate prestazioni con backpressure per trasferire i payload bloccati e gli eventi di sicurezza a un worker thread deputato alla notifica SIEM/SOC senza bloccare il thread di I/O del server.
+\end{itemize}
+\end{altbox}
+
+
+\end{document}

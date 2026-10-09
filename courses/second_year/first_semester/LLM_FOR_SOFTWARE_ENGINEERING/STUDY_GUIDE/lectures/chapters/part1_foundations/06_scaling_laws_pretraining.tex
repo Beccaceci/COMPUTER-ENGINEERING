@@ -40,13 +40,13 @@ N_{\text{opt}} \propto C^{a}, \quad D_{\text{opt}} \propto C^{b}, \quad \text{wi
 \end{equation}
 \end{theorem}
 
-\begin{examinsight}[Exam comparison: Kaplan (2020) vs Hoffmann (2022)]
-Students frequently face exam questions contrasting the OpenAI scaling laws (Kaplan et al., 2020) with DeepMind's Chinchilla findings (Hoffmann et al., 2022).
+\paragraph{Comparison: Kaplan (2020) vs.~Hoffmann (2022).}
+We contrast the empirical scaling laws established by OpenAI (Kaplan et al., 2020) with DeepMind's Chinchilla findings (Hoffmann et al., 2022):
 \begin{itemize}
     \item \textbf{Kaplan et al. (2020)}: Concluded that model size should scale much faster than dataset size ($N \propto C^{0.73}, D \propto C^{0.27}$). This led to over-parameterized models like GPT-3 (175B parameters trained on only 300B tokens).
     \item \textbf{Hoffmann et al. (2022)}: Corrected the learning rate schedule analysis, demonstrating that $N$ and $D$ should scale \textbf{equally} ($N \propto \sqrt{C}, D \propto \sqrt{C}$). A compute-optimal 70B model requires $\approx 1.4$ trillion tokens.
 \end{itemize}
-\end{examinsight}
+
 
 \begin{deepdive}[From GPT-3 to modern foundation models]
 Brown et al. \citep{brown2020} demonstrated that scaling pure autoregressive models yields striking few-shot and in-context learning capabilities without parameter updates. Modern open-weights foundation models adhere to Chinchilla scaling principles, training models for many more tokens beyond the compute-optimal frontier to optimize downstream inference efficiency.

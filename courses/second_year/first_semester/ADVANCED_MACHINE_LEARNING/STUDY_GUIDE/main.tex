@@ -1,0 +1,41 @@
+\documentclass[11pt,a4paper,twoside,openright]{book}
+
+% Modular Preamble Inputs
+\input{preamble/packages.tex}
+\input{preamble/environments.tex}
+\input{preamble/macros.tex}
+
+\title{\Huge\bfseries Advanced Machine Learning\\[1ex]
+\Large\mdseries Comprehensive Study Guide \& Theoretical Companion\\[1.5ex]
+\normalsize Master's Degree in Computer Engineering --- Politecnico di Torino\\[0.5ex]
+Course Codes: 01URWOV / 01URWYG (6 CFU)}
+
+\author{\textbf{Course Instructor}: Prof.ssa Tatiana Tommasi\\
+DAUIN, VANDAL Lab, ELLIS Unit Turin\\[1ex]
+\textbf{Study Guide Engineering}: Antigravity AML Skill Team}
+
+\date{Academic Year 2026/2027}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+% Keep only the first two heading levels in the index (Table of Contents): Chapter (1.) and Section (1.1)
+\setcounter{tocdepth}{1}
+\tableofcontents
+\newpage
+
+\mainmatter
+
+% Chapter inclusions
+\input{chapters/01_foundations_and_learning_paradigms.tex}
+\input{chapters/02_probability_and_bayesian_decision_theory.tex}
+\input{chapters/03_loss_functions_and_gradient_optimization.tex}
+\input{chapters/04_deep_feedforward_and_convolutional_networks.tex}
+
+\backmatter
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}

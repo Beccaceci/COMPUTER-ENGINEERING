@@ -1,0 +1,256 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm}
+\usepackage{amsmath,amssymb}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    citecolor=blue!70!black,
+    urlcolor=teal!70!black
+}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!10},
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{green!50!black}\itshape,
+    stringstyle=\color{red!70!black}
+}
+
+\newtcolorbox{questionbox}[1][]{
+    colback=gray!5!white,
+    colframe=gray!60!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{solutionbox}[1][]{
+    colback=blue!5!white,
+    colframe=blue!70!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{altbox}[1][]{
+    colback=orange!5!white,
+    colframe=orange!80!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\begin{document}
+
+\title{\textbf{Sicurezza dei Sistemi Informativi} \\ \large Appello d'Esame del 18 Febbraio 2022 \\ \small Anno Accademico 2021-2022}
+\author{Politecnico di Torino --- Docente: Prof. Cataldo Basile}
+\date{2022-02-18}
+\maketitle
+
+
+\section{Testo Ufficiale dell'Esame}
+
+\begin{questionbox}[Domanda 1: Trattamento Dati, Propriet\`a e Ruoli secondo il GDPR]
+Spiegare cosa \`e un trattamento dei dati personali e quali propriet\`a e principi devono essere garantiti, secondo il Regolamento Generale sulla Protezione dei Dati (GDPR), per ogni operazione di trattamento.
+Spiegare inoltre che ruolo hanno e quali sono le principali funzioni e responsabilit\`a delle seguenti figure:
+\begin{enumerate}[label=\alph*.]
+    \item Titolare del trattamento (Data Controller);
+    \item Responsabile del trattamento (Data Processor);
+    \item Incaricati / persone autorizzate al trattamento;
+    \item Responsabile della Protezione dei Dati (Data Protection Officer - DPO).
+\end{enumerate}
+\end{questionbox}
+
+\begin{questionbox}[Domanda 2: Standard di Sicurezza ITSEC (Classi A vs B)]
+Spiegare quale \`e il requisito metodologico e tecnico fondamentale che differenzia la classe B dalla classe A nel sistema di certificazione e valutazione europea ITSEC (Information Technology Security Evaluation Criteria). Illustrare la gerarchia dei criteri di correttezza ed efficacia e il ruolo dei modelli formali di sicurezza.
+\end{questionbox}
+
+\begin{questionbox}[Domanda 3: Modello Man-at-the-End (MATE)]
+Indicare cosa \`e e cosa prevede il modello Man-at-the-End (MATE) per gli attacchi contro il software. Descrivere gli obiettivi dell'attaccante, i vettori di attacco pi\`u comuni e spiegare quali misure di protezione software (offuscamento, anti-debugging, watermarking) possono essere impiegate, commentandone i limiti teorici e pratici.
+\end{questionbox}
+
+\begin{questionbox}[Domanda 4: Crittografia Simmetrica e Modalit\`a Operative]
+Dati gli algoritmi di cifratura simmetrica a blocchi, confrontare le modalit\`a operative CBC (Cipher Block Chaining) e CTR (Counter Mode). Discutere in particolare:
+\begin{itemize}
+    \item Gestione del vettore di inizializzazione (IV) e nonce;
+    \item Parallelizzabilit\`a delle operazioni di cifratura e decifratura;
+    \item Propagazione degli errori sul canale (in caso di corruzione di bit o perdita di pacchetti);
+    \item Requisiti di padding del testo in chiaro.
+\end{itemize}
+\end{questionbox}
+
+\begin{questionbox}[Domanda 5: Esercizio di Segmentazione e Firewalling]
+Un'organizzazione universitaria deve proteggere la propria infrastruttura di laboratorio. Sono definite tre zone:
+\begin{itemize}
+    \item \textbf{Zona Studenti}: \texttt{10.0.1.0/24} (connessa via Wi-Fi ed ethernet di laboratorio);
+    \item \textbf{Zona Server}: \texttt{10.0.2.0/24} (ospita server web \texttt{10.0.2.10} e database interno \texttt{10.0.2.20});
+    \item \textbf{Zona Gestione/Docenti}: \texttt{10.0.3.0/24}.
+\end{itemize}
+Requisiti:
+\begin{enumerate}
+    \item Gli studenti possono accedere solo al Web Server su porta 80 e 443;
+    \item Il Web Server pu\`o accedere al Database interno su porta TCP 5432 (PostgreSQL); nessun altro pu\`o accedere al Database direttamente;
+    \item La Zona Gestione pu\`o amministrare via SSH (TCP 22) tutti i server e accedere ad Internet;
+    \item Gli studenti e la Zona Gestione possono accedere liberamente ad Internet (HTTP/HTTPS);
+    \item Nessun traffico proveniente dall'esterno (Internet) pu\`o accedere a nessuna zona interna, tranne che al Web Server se esposto (tramite NAT/port forwarding);
+    \item Compilare la tabella delle regole del firewall con politica di default DROP.
+\end{enumerate}
+\end{questionbox}
+
+\newpage
+\section{Soluzione Dettagliata e Guida Risolutiva}
+
+\begin{solutionbox}[Soluzione Domanda 1: GDPR --- Trattamento, Principi e Figure]
+\textbf{Definizione di Trattamento (Art. 4 GDPR):}
+Qualsiasi operazione o insieme di operazioni, compiute con o senza l'ausilio di processi automatizzati e applicate a dati personali o insiemi di dati personali, come la raccolta, la registrazione, l'organizzazione, la strutturazione, la conservazione, l'adattamento o la modifica, l'estrazione, la consultazione, l'uso, la comunicazione mediante trasmissione, diffusione o qualsiasi altra forma di messa a disposizione, il raffronto o l'interconnessione, la limitazione, la cancellazione o la distruzione.
+
+\textbf{Principi Fondamentali del Trattamento (Art. 5 GDPR):}
+\begin{itemize}
+    \item \textbf{Liceit\`a, correttezza e trasparenza}: I dati devono essere trattati in modo lecito e comprensibile per l'interessato.
+    \item \textbf{Limitazione della finalit\`a}: I dati devono essere raccolti per finalit\`a determinate, esplicite e legittime.
+    \item \textbf{Minimizzazione dei dati}: I dati raccolti devono essere adeguati, pertinenti e limitati a quanto strettamente necessario per le finalit\`a dichiarate.
+    \item \textbf{Esattezza}: I dati devono essere esatti e, se necessario, aggiornati tempestivamente.
+    \item \textbf{Limitazione della conservazione}: Conservati in una forma che consenta l'identificazione degli interessati per un arco di tempo non superiore al conseguimento delle finalit\`a.
+    \item \textbf{Integrit\`a e riservatezza}: Garantire un'adeguata sicurezza mediante misure tecniche e organizzative idonee contro trattamenti non autorizzati, perdita o distruzione.
+    \item \textbf{Responsabilizzazione (Accountability)}: Il titolare del trattamento deve essere in grado di comprovare il rispetto di tutti i principi precedenti.
+\end{itemize}
+
+\textbf{Ruoli e Funzioni nel GDPR:}
+\begin{itemize}
+    \item \textbf{Titolare del trattamento (Data Controller)}: La persona fisica o giuridica che determina le finalit\`a e i mezzi del trattamento dei dati personali. Ha la responsabilit\`a primaria e legale della conformit\`a al GDPR, dell'adozione di misure di \textit{Privacy by Design} e \textit{by Default}, e della notifica dei \textit{Data Breach} all'autorit\`a garante entro 72 ore.
+    \item \textbf{Responsabile del trattamento (Data Processor)}: Soggetto esterno che tratta dati personali per conto del Titolare sulla base di un contratto vincolante (es. fornitore di servizi cloud hosting).
+    \item \textbf{Incaricati / Persone Autorizzate}: I dipendenti o collaboratori interni che, operando sotto la diretta autorit\`a del titolare o del responsabile, hanno accesso ai dati ed eseguono le mansioni strettamente assegnate.
+    \item \textbf{Data Protection Officer (DPO)}: Figura indipendente con competenze specialistiche, nominata obbligatoriamente in enti pubblici o grandi aziende. Il DPO ha compiti di consulenza, monitoraggio della conformit\`a al regolamento e funge da punto di contatto sia per gli interessati che per l'Autorit\`a Garante. Non \`e responsabile in solido dei risarcimenti (che ricadono sul Titolare).
+\end{itemize}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 2: ITSEC --- Differenza tra Classe A e Classe B]
+\textbf{Il Criterio Differenziante fondamentale:}
+Nello standard europeo ITSEC (Information Technology Security Evaluation Criteria), la valutazione della correttezza (\textit{Correctness}) \`e strutturata in livelli da E1 a E6 (ereditati poi dai Common Criteria con gli EAL).
+Nel modello gerarchico delle classi di sicurezza (ereditato dal modello TCSEC statunitense e raffinato in ITSEC):
+\begin{itemize}
+    \item \textbf{Classe B (Mandatory Protection)}: Si basa su una politica di controllo accessi di tipo \textit{Mandatory Access Control (MAC)}. Il sistema impone l'etichettatura degli oggetti con livelli di classificazione (es. Top Secret, Secret, Unclassified) e dei soggetti con nulla osta di sicurezza (Clearance). La correttezza del sistema \`e dimostrata tramite una specifica rigorosa e l'aderenza a modelli di sicurezza riconosciuti (es. modello Bell-LaPadula per la confidenzialit\`a o Biba per l'integrit\`a). Tuttavia, la specifica e la dimostrazione sono condotte con metodi semi-formali e test intensivi.
+    \item \textbf{Classe A (Verified Protection)}: Rappresenta il livello massimo di garanzia. Il requisito tecnico e metodologico che differenzia in modo categorico la classe A dalla classe B \`e l'obbligo di utilizzare \textbf{metodi e modelli matematici formali di verifica}:
+    \begin{enumerate}
+        \item Presenza di un \textbf{Formal Top-Level Specification (FTLS)}: la specifica delle funzionalit\`a del Trusted Computing Base (TCB) deve essere formulata in un linguaggio logico-matematico formale.
+        \item \textbf{Dimostrazione formale di correttezza}: \`e richiesta la prova matematica formale che la specifica FTLS soddisfi rigorosamente il modello formale di politica di sicurezza.
+        \item Tracciabilit\`a rigorosa e verificabile matematicamente tra il codice sorgente/eseguibile implementato e le specifiche formali approvate.
+        \item Analisi formale approfondita dei \textit{Covert Channels} (canali di comunicazione clandestini sia temporali che di memorizzazione).
+    \end{enumerate}
+\end{itemize}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 3: Modello Man-at-the-End (MATE)]
+\textbf{Il Modello MATE:}
+Nel modello MATE, l'avversario ha il controllo completo della macchina fisica e dell'ambiente operativo:
+\begin{itemize}
+    \item \textit{Obiettivi dell'attaccante}: Rimozione dei meccanismi di licenza/DRM, estrazione di algoritmi proprietari (reverse engineering per concorrenza industriale), scoperta di vulnerabilit\`a zero-day non divulgate, estrazione di chiavi crittografiche cablate nel codice, manomissione della logica di esecuzione (es. bypass di controlli di sicurezza in cheat per gaming o moduli bancari).
+    \item \textit{Vettori di attacco}: Analisi statica (disassemblatori Ghidra/IDA Pro), analisi dinamica tramite tracing (GDB, Frida, eBPF), dump di memoria runtime, modifica statica dei binari (patching di istruzioni di salto condizionale, es. da \texttt{JZ} a \texttt{JNZ}).
+\end{itemize}
+
+\textbf{Contromisure Software e Limiti:}
+\begin{enumerate}
+    \item \textbf{Offuscamento}: Trasformazione del codice per distruggere le astrazioni ad alto livello, rendere il grafo del flusso di controllo (CFG) irriconoscibile e confondere gli algoritmi di decompilazione.
+    \item \textbf{Anti-Debugging \& Anti-Tampering}: Utilizzo di routine che rilevano la presenza di debugger (\texttt{ptrace}, verifica del registro \texttt{PEB.BeingDebugged} in Windows, verifica di interrupt software \texttt{INT 3}), auto-verifica con hashing del segmento di codice a runtime.
+    \item \textbf{Watermarking}: Incorporamento di un marchio segreto per certificare la provenienza e dimostrare la violazione del copyright in tribunale.
+\end{enumerate}
+\textit{Valutazione dei limiti}: Qualsiasi istruzione che una CPU deve eseguire deve necessariamente risiedere in chiaro nei registri e nella pipeline del processore a un certo istante temporale. Pertanto, un attaccante sufficientemente determinato, dotato di risorse e tempo, potr\`a sempre neutralizzare protezioni puramente software. La difesa punta sull'innalzamento del \textit{Work Factor}.
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 4: Crittografia Simmetrica --- CBC vs CTR]
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+\textbf{Caratteristica} & \textbf{CBC (Cipher Block Chaining)} & \textbf{CTR (Counter Mode)} \\
+\midrule
+\textbf{Funzionamento} & Ogni blocco di plaintext subisce uno XOR con il blocco di ciphertext precedente: $C_i = E_K(P_i \oplus C_{i-1})$, con $C_0 = IV$. & Si cifra un contatore incrementale $CTR_i = Nonce \parallel i$. Il ciphertext si ottiene come $C_i = P_i \oplus E_K(CTR_i)$. \\
+\textbf{Requisito IV / Nonce} & L'IV deve essere \textbf{casuale e imprevedibile} (unpredictable). Se predicibile, \`e soggetto a chosen-plaintext attack. & Il nonce deve essere \textbf{unico per ogni messaggio} (mai riutilizzato con la stessa chiave), ma non deve necessariamente essere segreto o impredicibile. \\
+\textbf{Parallelizzazione} & \textbf{Sequenziale in cifratura} (richiede $C_{i-1}$ per calcolare $C_i$). \textbf{Parallelizzabile in decifratura} ($P_i = D_K(C_i) \oplus C_{i-1}$). & \textbf{Completamente parallelizzabile sia in cifratura che in decifratura}. Consente inoltre il \textit{random access} a blocchi arbitrari. \\
+\textbf{Propagazione Errori} & Un errore di bit nel blocco $C_i$ corrompe completamente $P_i$ e inverte lo stesso bit in $P_{i+1}$, ma l'errore non si propaga oltre $P_{i+1}$ (auto-sincronizzante a 2 blocchi). & Un errore di bit in $C_i$ corrompe esattamente ed esclusivamente il corrispondente bit in $P_i$. Non vi \`e alcuna propagazione ad altri blocchi. \\
+\textbf{Padding} & \textbf{Obbligatorio}: la lunghezza del messaggio deve essere multiplo della dimensione del blocco (es. PKCS\#7 padding da 1 a 16 byte). & \textbf{Non richiesto}: trasforma il cifrario a blocchi in uno stream cipher. L'ultimo blocco parziale viene semplicemente troncato. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 5: Tabella di Filtraggio Firewall per il Laboratorio]
+\textbf{Architettura e Segmentazione di Rete:}
+La rete universitaria \`e suddivisa in quattro zone distinte controllate da un firewall stateful multiporta:
+\begin{center}
+\begin{verbatim}
+                           +--------------------+
+                           |      INTERNET      |
+                           +---------+----------+
+                                     | eth0 (IP Pubblico)
+                        +------------v------------+
+                        |    FIREWALL STATEFUL    |
+                        +---+--------+--------+---+
+       eth1 (Studenti)      |        |        |      eth3 (Gestione/Docenti)
+        10.0.1.1/24         |        |        |       10.0.3.1/24
+    +-----------------------+        |        +-----------------------+
+    |                                |                                |
++---v------------------+  +----------v---------+  +-------------------v--+
+|    ZONA STUDENTI     |  |    ZONA SERVER     |  |    ZONA GESTIONE     |
+|     10.0.1.0/24      |  |    10.0.2.0/24     |  |     10.0.3.0/24      |
+|                      |  |                    |  |                      |
+| [Lab/Wi-Fi Clients]  |  | [Web Server] .2.10 |  | [Admin Workstations] |
+|                      |  | [DB Server]  .2.20 |  |                      |
++----------------------+  +--------------------+  +----------------------+
+                                eth2 (Server)
+                                 10.0.2.1/24
+\end{verbatim}
+\end{center}
+
+\textbf{Subnetting IP e Instradamento:}
+\begin{itemize}
+    \item \textbf{\texttt{eth0} (Internet)}: Connessione WAN esterna. Applica Source NAT (SNAT) per il traffico originato dalle sottoreti Studenti e Gestione verso Internet, e Destination NAT (DNAT) per l'accesso pubblico al Web Server (\texttt{10.0.2.10}).
+    \item \textbf{\texttt{eth1} (Studenti, \texttt{10.0.1.0/24})}: Gateway \texttt{10.0.1.1}. Pu\`o accedere solo a Web Server (80, 443) e Internet; isolata da DB e Gestione.
+    \item \textbf{\texttt{eth2} (Server, \texttt{10.0.2.0/24})}: Gateway \texttt{10.0.2.1}. Ospita Web Server (\texttt{10.0.2.10}) e PostgreSQL DB (\texttt{10.0.2.20}). Il DB non ha accesso ad Internet n\'e pu\`o avviare connessioni verso le altre zone.
+    \item \textbf{\texttt{eth3} (Gestione, \texttt{10.0.3.0/24})}: Gateway \texttt{10.0.3.1}. Pu\`o gestire tutti i server via SSH (porta 22) e accedere ad Internet.
+\end{itemize}
+
+\textbf{Tabella Regole (Default Policy: DROP):}
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{lllllllX}
+\toprule
+\textbf{ID} & \textbf{Dir} & \textbf{Src IP} & \textbf{Dst IP} & \textbf{Proto} & \textbf{Port} & \textbf{State} & \textbf{Azione \& Spiegazione} \\
+\midrule
+1 & Any & Any & Any & Any & Any & ESTABLISHED, RELATED & \textbf{ACCEPT}: Risposte del traffico bidirezionale \\
+2 & In/Fwd & 10.0.1.0/24 & 10.0.2.10 & TCP & 80, 443 & NEW & \textbf{ACCEPT}: Studenti accedono al Web Server \\
+3 & In/Fwd & 10.0.2.10 & 10.0.2.20 & TCP & 5432 & NEW & \textbf{ACCEPT}: Web Server interroga il Database \\
+4 & In/Fwd & 10.0.3.0/24 & 10.0.2.0/24 & TCP & 22 & NEW & \textbf{ACCEPT}: Docenti/Admin amministrano i server via SSH \\
+5 & In/Fwd & 10.0.1.0/24 & Any (Internet) & TCP & 80, 443 & NEW & \textbf{ACCEPT}: Studenti navigano su Internet \\
+6 & In/Fwd & 10.0.3.0/24 & Any (Internet) & TCP & 80, 443 & NEW & \textbf{ACCEPT}: Gestione naviga su Internet \\
+7 & In/Fwd & Any (Internet) & 10.0.2.10 & TCP & 80, 443 & NEW & \textbf{ACCEPT}: Accesso pubblico al Web Server (con DNAT) \\
+8 & Any & Any & Any & Any & Any & Any & \textbf{DROP (Default)}: Tutto il resto \`e bloccato \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\end{solutionbox}
+
+\begin{altbox}[Alternative Implementation Note: Strutture Rust per la Gestione del Firewall]
+In un'implementazione ad alte prestazioni di un packet filter o firewall stateful scritta in linguaggio Rust:
+\begin{itemize}
+    \item \texttt{std::sync::RwLock<HashMap<ConnectionTuple, ConnectionState>>}: La \textit{state table} delle connessioni (basata sulla tupla a 5 elementi: IP src, IP dst, porta src, porta dst, protocollo) viene condivisa tra i thread di packet processing tramite un \texttt{RwLock}. La maggior parte dei pacchetti fa solo lookup di connessioni gi\`a stabilite (\texttt{read()}), mentre l'aggiunta di una nuova connessione richiede un blocco esclusivo (\texttt{write()}) di brevissima durata.
+    \item Per eliminare la contesa di lock sotto elevati volumi di traffico (multi-gigabit), si preferisce un'architettura lock-free basata su \texttt{crossbeam::epoch} o tabelle partizionate per core CPU (con \texttt{AtomicU64} per i timestamp di timeout).
+    \item \texttt{std::sync::mpsc::sync\_channel}: Per inoltrare i pacchetti sospetti o violazioni di policy a un sottosistema di logging/alerting asincrono senza degradare la latenza del piano di inoltro dati principale.
+\end{itemize}
+\end{altbox}
+
+
+\end{document}

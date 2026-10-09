@@ -1,0 +1,242 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm}
+\usepackage{amsmath,amssymb}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    citecolor=blue!70!black,
+    urlcolor=teal!70!black
+}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!10},
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{green!50!black}\itshape,
+    stringstyle=\color{red!70!black}
+}
+
+\newtcolorbox{questionbox}[1][]{
+    colback=gray!5!white,
+    colframe=gray!60!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{solutionbox}[1][]{
+    colback=blue!5!white,
+    colframe=blue!70!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{altbox}[1][]{
+    colback=orange!5!white,
+    colframe=orange!80!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\begin{document}
+
+\title{\textbf{Sicurezza dei Sistemi Informativi} \\ \large Appello d'Esame del 03 Aprile 2023 \\ \small Anno Accademico 2022-2023}
+\author{Politecnico di Torino --- Docente: Prof. Cataldo Basile}
+\date{2023-04-03}
+\maketitle
+
+
+\section{Testo Ufficiale dell'Esame}
+
+\begin{questionbox}[Domanda 1: Algoritmo 3DES]
+Cosa \`e 3DES?
+\begin{enumerate}[label=\alph*.]
+    \item Un algoritmo di crittografia asimmetrica
+    \item Un algoritmo di crittografia simmetrica a blocchi con chiave da 160 bit e blocco da 64
+    \item Un algoritmo di crittografia simmetrica a blocchi con chiave da 56 bit e blocco da 64
+    \item Un algoritmo di crittografia simmetrica di tipo stream
+    \item Nessuna delle precedenti
+\end{enumerate}
+\end{questionbox}
+
+\begin{questionbox}[Domanda 2: Offuscamento del Software]
+Cosa \`e l'offuscamento del software?
+\begin{enumerate}[label=\alph*.]
+    \item Una tecnica per rendere il codice binario illeggibile per i disassemblatori e quindi pi\`u difficilmente attaccabile
+    \item Nessuna delle precedenti
+    \item Una tecnica che permette di rallentare gli attaccanti perch\'e rende il codice pi\`u lungo e complesso quindi pi\`u difficile sia da comprendere che da modificare
+    \item Una famiglia di tecniche che permettono di rallentare gli attaccanti perch\'e rendono il codice pi\`u complesso quindi pi\`u difficile da modificare
+    \item Una famiglia di tecniche che permettono di rallentare gli attaccanti perch\'e rendono la fruizione e comprensione del software pi\`u difficile
+\end{enumerate}
+\end{questionbox}
+
+\begin{questionbox}[Domanda 3: Ruolo e Funzioni del SOC]
+Cosa \`e un Security Operations Center (SOC)?
+\begin{enumerate}[label=\alph*.]
+    \item \`E un sistema di gestione degli attacchi che usa eventi e metodi attivi.
+    \item \`E un sistema di monitoring che permette l'interazione automatica con sistemi di difesa, es. i firewall mediante la gestione degli eventi e delle operazioni.
+    \item Nessuna delle precedenti.
+    \item \`E una soluzione che serve a garantire la sicurezza delle operazioni aziendali.
+    \item \`E un dipartimento/unit\`a organizzativa che si occupa di identificare, monitorare, gestire e mitigare le minacce oltre a rispondere agli incidenti di sicurezza.
+\end{enumerate}
+\end{questionbox}
+
+\begin{questionbox}[Domanda 4: Selezione di Controlli e Architetture di Sicurezza]
+Indicare e motivare brevemente quale controllo, tecnologia o architettura di sicurezza utilizzereste per implementare le seguenti policy di sicurezza:
+\begin{enumerate}
+    \item Scoprire in tempo reale o nel pi\`u breve tempo possibile se \`e in corso un attacco nella mia rete locale;
+    \item Autenticare gli utenti aziendali prima di permettere loro di accedere ad Internet;
+    \item Evitare che alcuni host, descritti mediante una blacklist di URL, riescano a raggiungere un server aziendale;
+    \item Permettere agli utenti di un'azienda di usare da casa dei servizi aziendali non accessibili all'esterno della rete privata aziendale.
+\end{enumerate}
+\end{questionbox}
+
+\begin{questionbox}[Domanda 5: Ransomware: Funzionamento, Impatto e Mitigazioni]
+Spiegare cosa \`e e come funziona un ransomware. Descrivere l'impatto sulle vittime e i vantaggi economici per gli attaccanti. Illustrare due contromisure efficaci: una preventiva per impedire l'infezione iniziale e una reattiva/di resilienza per mitigare al massimo le conseguenze dell'attacco senza pagare il riscatto.
+\end{questionbox}
+
+\begin{questionbox}[Domanda 6: IPsec v2 Authentication Header (AH)]
+Indicare quali propriet\`a di sicurezza possono essere applicate al traffico usando IPsec (v2) AH in funzione dei modi di utilizzo (Transport Mode vs Tunnel Mode).
+Per ognuna delle propriet\`a indicate, riportare se sono obbligatorie o opzionali e a quale parte del pacchetto IP originale si applicano (ATTENZIONE: con riferimento esplicito alle parti del pacchetto originale).
+\end{questionbox}
+
+\begin{questionbox}[Domanda 7: Confronto tra MAC e Firma Digitale]
+Spiegare cosa sono e quali propriet\`a garantiscono il Message Authentication Code (MAC) e la Firma Digitale.
+Spiegare quali operazioni matematiche devono essere svolte e quali segreti (chiavi simmetriche vs chiavi private) devono essere utilizzati per calcolarli e verificarli.
+Discutere i vantaggi e svantaggi relativi in termini di efficienza computazionale e propriet\`a di non ripudio. Indicare quale tecnica scegliereste per autenticare i dati inviati da un server pubblico verso milioni di client sconosciuti.
+\end{questionbox}
+
+\begin{questionbox}[Domanda 8: Obiettivi e Principi del GDPR]
+Spiegare cosa \`e il GDPR, quale \`e il suo obiettivo istituzionale e illustrare nel dettaglio almeno 4 dei principi fondamentali che disciplinano i trattamenti e i servizi che utilizzano dati personali.
+\end{questionbox}
+
+\newpage
+\section{Soluzione Dettagliata e Guida Risolutiva}
+
+\begin{solutionbox}[Soluzione Domanda 1: Algoritmo 3DES]
+\textbf{Analisi Puntuale delle Opzioni:}
+\begin{itemize}
+    \item \textbf{a. FALSA}: 3DES (Triple Data Encryption Standard) \`e un algoritmo di crittografia simmetrica a blocchi, non un algoritmo asimmetrico a chiave pubblica.
+    \item \textbf{b. FALSA}: La dimensione del blocco in 3DES \`e ereditata dal DES originale ed \`e pari a \textbf{64 bit} (8 byte), ma la lunghezza della chiave non \`e mai di 160 bit. A seconda dell'opzione di keying, la lunghezza complessiva \`e di 168 bit (3 chiavi indipendenti da 56 bit: $3 \times 56 = 168$ bit) o di 112 bit (2 chiavi indipendenti: $2 \times 56 = 112$ bit).
+    \item \textbf{c. FALSA}: Una chiave da 56 bit corrisponde al DES singolo originale, non al Triplo DES (3DES), che applica tre iterazioni consecutive ($C = E_{K3}(D_{K2}(E_{K1}(P)))$).
+    \item \textbf{d. FALSA}: 3DES \`e un cifrario a blocchi (\textit{block cipher}) basato sulla rete di Feistel, non un cifrario di flusso (\textit{stream cipher}).
+    \item \textbf{e. VERA}: Poich\'e nessuna delle opzioni (a), (b), (c), (d) riporta le specifiche tecniche corrette (blocco da 64 bit e chiave da 168 o 112 bit), la risposta corretta \`e rigorosamente ed univocamente la \textbf{(e)}.
+\end{itemize}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 2: Offuscamento del Software]
+\textbf{Analisi Puntuale delle Opzioni:}
+\begin{itemize}
+    \item \textbf{a. FALSA}: I disassemblatori operano decodificando i byte binari in istruzioni assembly in base all'ISA del processore; l'offuscamento non impedisce la decodifica delle istruzioni macchina, ma distrugge le astrazioni di alto livello rendendo incomprensibile la logica del programma.
+    \item \textbf{b. FALSA}: L'opzione (e) definisce correttamente e compiutamente il concetto di offuscamento.
+    \item \textbf{c. FALSA}: L'offuscamento non \`e una singola tecnica isolata, ma un insieme strutturato di metodologie; inoltre l'aumento della lunghezza del codice \`e solo un eventuale effetto collaterale di alcune trasformazioni (es. inlining o inserimento di dead code), non il principio cardine (che comprende invece predicati opachi, trasformazioni di controllo di flusso, ecc.).
+    \item \textbf{d. FALSA}: Definizione incompleta e riduttiva: l'offuscamento non mira unicamente a ostacolare la modifica (\textit{tampering}), ma primariamente a contrastare la comprensione semantica del funzionamento (\textit{reverse engineering}) da parte dell'analista umano.
+    \item \textbf{e. VERA}: L'offuscamento del software \`e formalmente una \textbf{famiglia di tecniche} di trasformazione del codice che, preservando la semantica funzionale del programma originario, massimizza la complessit\`a cognitiva e computazionale dell'analisi nel modello MATE, rallentando considerevolmente gli avversari nella fruizione e comprensione della logica applicativa.
+\end{itemize}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 3: Ruolo e Funzioni del SOC]
+\textbf{Analisi Puntuale delle Opzioni:}
+\begin{itemize}
+    \item \textbf{a. FALSA}: Il SOC non \`e un software o un sistema isolato di gestione, ma una vera e propria struttura organizzativa umana e metodologica.
+    \item \textbf{b. FALSA}: Riduce erroneamente il SOC a un mero strumento di monitoraggio o ad una feature di integrazione automatica con i firewall.
+    \item \textbf{c. FALSA}: L'affermazione (e) fornisce la definizione formale corretta e completa.
+    \item \textbf{d. FALSA}: Definizione eccessivamente vaga, generica e priva dei requisiti tecnici specialistici dell'Information Security.
+    \item \textbf{e. VERA}: Il \textbf{Security Operations Center (SOC)} \`e formalmente un dipartimento / unit\`a organizzativa aziendale centralizzata composta da persone qualificate (analisti L1/L2/L3, incident responder, digital forensics specialist, threat hunter), processi operativi e tecnologie avanzate (SIEM, SOAR, EDR, NDR) incaricata di identificare, monitorare continuativamente, gestire e mitigare gli incidenti informatici garantendo la resilienza aziendale.
+\end{itemize}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 4: Selezione di Controlli di Sicurezza]
+\begin{enumerate}
+    \item \textbf{Scoprire in tempo reale attacchi in LAN}: Si adotta un \textbf{Network Intrusion Detection/Prevention System (NIDS/NIPS)} (es. Snort, Suricata, Zeek) collegato a una porta SPAN/mirror dello switch o con inline tap, integrato con un \textbf{SIEM/EDR} per la correlazione di eventi su endpoint.
+    \item \textbf{Autenticare utenti aziendali prima dell'accesso ad Internet}: Si utilizza un \textbf{Captive Portal} con autenticazione 802.1X/RADIUS o un \textbf{Proxy di Autenticazione (Forward Proxy)} integrato con directory aziendale (Active Directory / LDAP / Kerberos / SAML).
+    \item \textbf{Bloccare host descritti da una blacklist di URL}: Si implementa un \textbf{Web Application Firewall (WAF) / Reverse Proxy} di livello applicativo (L7) posto a protezione del server, in grado di ispezionare l'URI HTTP della richiesta e confrontarla con la blacklist prima dell'inoltro.
+    \item \textbf{Accesso remoto sicuro da casa a servizi interni}: Si implementa una \textbf{Virtual Private Network (VPN) Remote Access} (IPsec o TLS/OpenVPN) con autenticazione a pi\`u fattori (MFA) obbligatoria e posture check del dispositivo client.
+\end{enumerate}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 5: Ransomware]
+\textbf{Funzionamento e Impatto:}
+Il ransomware \`e un malware che cifra i file dell'utente (documenti, database, immagini) impiegando uno schema ibrido: genera chiavi simmetriche casuali (es. AES-256) per cifrare velocemente i file locali, e poi cifra tali chiavi con la chiave pubblica RSA/ECC dell'attaccante. Elimina inoltre i punti di ripristino (\textit{Volume Shadow Copies}). Negli attacchi moderni (\textit{Double Extortion}), gli attaccanti esfiltrano preventivamente i dati sensibili prima di cifrarli, minacciando di pubblicarli se il riscatto (in criptovaluta) non viene pagato.
+
+\textbf{Due Contromisure Chiave:}
+\begin{itemize}
+    \item \textbf{Preventiva}: Formazione anti-phishing, filtri email avanzati con sandboxing degli allegati, patch management celere delle vulnerabilit\`a esposte, e disabilitazione di protocolli rischiosi come RDP su Internet pubblico.
+    \item \textbf{Reattiva/Resilienza}: Strategia di \textbf{Backup 3-2-1 Immutabile e Offline} (3 copie dei dati, su 2 supporti differenti, di cui almeno 1 conservata offsite/offline o su storage WORM --- Write Once Read Many non modificabile dal malware).
+\end{itemize}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 6: IPsec v2 AH --- Propriet\`a e Copertura Pacchetto]
+\textbf{Propriet\`a Garantite da AH:}
+\begin{enumerate}
+    \item \textbf{Integrit\`a senza connessione}: Obbligatoria.
+    \item \textbf{Autenticazione dell'origine dei dati}: Obbligatoria.
+    \item \textbf{Protezione anti-replay}: Opzionale ma standard (gestita mediante Sequence Number a 32/64 bit).
+    \item \textbf{Confidenzialit\`a}: \textbf{Non fornita} in alcun caso da AH.
+\end{enumerate}
+
+\textbf{Copertura rispetto al Pacchetto IP Originale:}
+\begin{itemize}
+    \item \textbf{In Transport Mode}: L'AH viene inserito immediatamente tra l'header IP originale e il payload originale (es. TCP).
+    \textit{Copertura}: Il controllo di integrit\`a (ICV) copre l'intero payload originale e tutti i campi immutabili dell'header IP originale (sono esclusi i campi mutabili durante il routing: TTL, Type of Service, Checksum, Flags di frammentazione).
+    \item \textbf{In Tunnel Mode}: Viene creato un nuovo header IP esterno e l'intero pacchetto IP originale (inclusi tutti i suoi campi header) diventa payload del nuovo pacchetto.
+    \textit{Copertura}: L'ICV copre l'intero pacchetto IP originale nella sua totalit\`a, oltre ai campi immutabili del nuovo header IP esterno.
+\end{itemize}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 7: MAC vs Firma Digitale]
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+\textbf{Caratteristica} & \textbf{Message Authentication Code (MAC)} & \textbf{Firma Digitale} \\
+\midrule
+\textbf{Crittografia} & Simmetrica (chiave condivisa $K$). & Asimmetrica (chiave privata $K_{pr}$ per firmare, pubblica $K_{pub}$ per verificare). \\
+\textbf{Calcolo} & $Tag = \text{HMAC}_K(M)$ o CBC-MAC/GMAC. & $S = \text{Sign}_{K_{pr}}(H(M))$ (es. RSA-PSS, ECDSA, Ed25519). \\
+\textbf{Verifica} & Il destinatario usa la stessa chiave $K$ per ricalcolare il tag e confrontarlo. & Chiunque possieda la chiave pubblica $K_{pub}$ verifica che $\text{Verify}(K_{pub}, M, S) == \text{True}$. \\
+\textbf{Non-Ripudio} & \textbf{Assente}: poich\'e entrambe le parti condividono $K$, il destinatario avrebbe potuto creare il tag autonomamente. & \textbf{Garantito}: solo il titolare della chiave privata $K_{pr}$ pu\`o generare una firma valida. \\
+\textbf{Efficienza} & Estremamente veloce e a basso costo computazionale. & Pi\`u lenta (richiede operazioni su campi algebrici/curve ellittiche). \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\textbf{Scelta per Server Pubblico verso Milioni di Client Sconosciuti:}
+Si deve utilizzare la \textbf{Firma Digitale} (con certificati X.509 emessi da una CA pubblica di fiducia). Con un MAC simmetrico, il server dovrebbe o condividere un'unica chiave simmetrica con tutti (distruggendo qualsiasi forma di autenticazione e sicurezza) o negoziare miliardi di chiavi segrete individuali a priori, cosa impraticabile.
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 8: GDPR --- Obiettivi e 4 Principi Fondamentali]
+\textbf{Obiettivo:} Tutela dei diritti fondamentali delle persone fisiche con particolare riguardo alla protezione dei dati personali e alla libert\`a di circolazione dei dati all'interno dello Spazio Economico Europeo.
+
+\textbf{4 Principi Fondamentali (Art. 5 GDPR):}
+\begin{enumerate}
+    \item \textbf{Liceit\`a, Correttezza e Trasparenza}: Il trattamento deve avere una base giuridica valida (consenso, obbligo contrattuale, obbligo di legge) ed essere trasparente per l'interessato.
+    \item \textbf{Limitazione della Finalit\`a}: I dati devono essere raccolti solo per scopi determinati, espliciti e legittimi, vietando trattamenti secondari incompatibili.
+    \item \textbf{Minimizzazione dei Dati}: Devono essere raccolti solo i dati indispensabili per l'erogazione della prestazione richiesta.
+    \item \textbf{Limitazione della Conservazione}: I dati non devono essere conservati pi\`u a lungo di quanto strettamente necessario per le finalit\`a dichiarate.
+\end{enumerate}
+\end{solutionbox}
+
+\begin{altbox}[Alternative Implementation Note: Strutture Rust per Firme Digitali e Caching di Certificati]
+In applicazioni ad alto carico di rete (come un gateway di verifica firme digitali in Rust):
+\begin{itemize}
+    \item Si utilizza la libreria standard \texttt{ring} o \texttt{ed25519-dalek} integrata con un pool di worker thread tramite \texttt{crossbeam::channel} per il calcolo parallelo delle firme senza bloccare il thread di rete.
+    \item \texttt{std::sync::Arc<rustls::RootCertStore>}: Il repository dei certificati CA fidati viene condiviso in sola lettura tra tutti i thread senza alcuna contesa di memoria.
+\end{itemize}
+\end{altbox}
+
+
+\end{document}

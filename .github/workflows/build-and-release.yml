@@ -27,6 +27,12 @@ jobs:
           - folder: courses/first_year/second_semester/SYSTEM_PROGRAMMING/API PROGRAMMING/STUDY_GUIDE
             root_file: main.tex
             target_name: System_Programming_Study_Guide
+          - folder: courses/second_year/first_semester/ADVANCED_MACHINE_LEARNING/STUDY_GUIDE
+            root_file: main.tex
+            target_name: Advanced_Machine_Learning_Study_Guide
+          - folder: courses/second_year/first_semester/INFORMATION_SYSTEMS_SECURITY/STUDY_GUIDE
+            root_file: main.tex
+            target_name: Information_Systems_Security_Study_Guide
       fail-fast: false
 
     steps:
@@ -96,6 +102,10 @@ jobs:
             - **Large Language Models for Software Engineering**:
               - [Theory Foundations Guide (PDF)](https://github.com/${{ github.repository }}/releases/latest/download/LLM4SE_Theory_Guide.pdf)
               - [Laboratory Practicum Guide (PDF)](https://github.com/${{ github.repository }}/releases/latest/download/LLM4SE_Lab_Practicum.pdf)
+            - **Advanced Machine Learning**:
+              - [Advanced Machine Learning Study Guide (PDF)](https://github.com/${{ github.repository }}/releases/latest/download/Advanced_Machine_Learning_Study_Guide.pdf)
+            - **Information Systems Security**:
+              - [Information Systems Security Study Guide (PDF)](https://github.com/${{ github.repository }}/releases/latest/download/Information_Systems_Security_Study_Guide.pdf)
             - **System Programming (PDS)**:
               - [System Programming Study Guide (PDF)](https://github.com/${{ github.repository }}/releases/latest/download/System_Programming_Study_Guide.pdf)
 

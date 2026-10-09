@@ -1,0 +1,879 @@
+\documentclass[../../main.tex]{subfiles}
+
+\begin{document}
+
+\chapter{Gestione dei rischi informatici}
+\label{ch:gestione_rischi}
+
+La gestione del rischio informatico (\textit{Risk Management}) si configura come un'attività essenziale in ogni azienda, con l'obiettivo primario di quantificare i rischi e ridurli entro limiti tollerabili tramite l'applicazione di un processo ripetibile e oggettivo. Questo approccio metodologico è necessario per minimizzare i costi diretti e indiretti derivanti da incidenti e attacchi. Ma diventa indispensabile nel caso si fosse interessati ad aderire a standard (come la famiglia ISO/IEC 27000) e normative (come il GDPR, il regolamento europeo NIS2 o il Cyber Resilience Act) che richiedono esplicitamente un'analisi del rischio. Il processo deve essere il più possibile scientifico e rigoroso per evitare che la valutazione del rischio sia arbitraria o soggettiva e, in ultima istanza, inutile.
+
+Nel contesto economico contemporaneo, le imprese dipendono in maniera totale e indissolubile dai propri asset digitali: dai database transazionali ai portali e-commerce, dai servizi esposti su Internet (come gateway VPN e interfacce API) fino ai sistemi di controllo industriale (SCADA/ICS). Di conseguenza, un'interruzione di servizio o un'esfiltrazione massiva di dati proprietari non produce esclusivamente un danno tecnologico circoscritto, bensì una compromissione diretta della continuità di business. Tuttavia, le risorse economiche e umane a disposizione di un'organizzazione sono intrinsecamente finite; risulta perciò materialmente impossibile proteggere ogni singolo componente informativo con il massimo livello di blindatura concepibile. La gestione del rischio assolve precisamente a questa funzione di razionalizzazione economica: stabilire scientificamente dove allocare le risorse di difesa affinché ogni euro investito produca la massima riduzione del danno atteso.
+
+Inoltre, la conformità normativa e l'adozione di standard internazionali di sicurezza non costituiscono un mero adempimento burocratico, ma rappresentano veri e propri abilitatori di mercato. Nelle catene di fornitura globali (\textit{supply chain}), le grandi organizzazioni e le pubbliche amministrazioni richiedono tassativamente ai propri partner commerciali e fornitori la certificazione ISO/IEC 27001 o la conformità a quadri di controllo rigorosi; l'assenza di un comprovato processo di risk management prefigura l'esclusione automatica da ampie fette di mercato. Parimenti, normative vincolanti come l'Articolo 32 del Regolamento Generale sulla Protezione dei Dati (GDPR, Regolamento UE 2016/679) impongono al titolare e al responsabile del trattamento di mettere in atto misure tecniche e organizzative adeguate a garantire un livello di sicurezza commisurato al rischio, comminando sanzioni pecuniarie che possono raggiungere il 4\% del fatturato globale annuo in caso di negligenza strutturale.
+
+% =========================================================================
+% SEZIONE 1.1: FONDAMENTI E TERMINOLOGIA DEL RISCHIO
+% =========================================================================
+\section{Fondamenti e terminologia del rischio}
+\label{sec:fondamenti_terminologia}
+
+Il processo di gestione del rischio richiede la precisa definizione e distinzione dei seguenti elementi:
+
+\begin{itemize}
+    \item \textbf{Asset:} qualsiasi risorsa che abbia valore per l'azienda e sia necessaria all'erogazione di un servizio IT, inclusi beni materiali (es. server fisici, dispositivi di rete, apparati storage, workstation, linee di produzione connesse) e beni immateriali (es. reputazione aziendale, brand value, proprietà intellettuale, quotazione in borsa, fiducia dei clienti, segreti industriali e dati personali dei dipendenti e degli utenti).
+    
+    \item \textbf{Debolezza (\textit{Weakness}):} una predisposizione del sistema a manifestare problemi, come codice scritto male, configurazione non attenta, assenza di controlli di convalida sull'input, mancata cifratura dei canali ausiliari, o codice generato tramite modelli di intelligenza artificiale integrato nell'ambiente di produzione senza preventiva revisione tecnica. Una debolezza rappresenta un difetto latente che non si traduce necessariamente in una vulnerabilità direttamente exploitabile, ma che costituisce il presupposto strutturale affinché un'esposizione emerga.
+    
+    \item \textbf{Vulnerabilità (\textit{Vulnerability}):} una debolezza scoperta e sfruttabile direttamente dagli attaccanti per violare le proprietà di sicurezza (Confidenzialità, Integrità, Disponibilità, Autenticazione, Non ripudio) di un sistema o di una rete informatica.
+    
+    \item \textbf{Minaccia (\textit{Threat}):} un evento (intenzionale o accidentale) che, se sfruttato, può causare la perdita di una o più proprietà di sicurezza (es. Confidenzialità, Integrità, Disponibilità). La minaccia è spesso associata a una sorgente di minaccia (\textit{Threat Agent}), caratterizzata da specifiche motivazioni, competenze tecniche, risorse operative e budget economico.
+    
+    \item \textbf{Attacco:} il verificarsi di una minaccia di tipo intenzionale, posta in essere da un attore malevolo (avversario interno o esterno, cybercriminale, gruppo APT sponsorizzato da stati esteri, attivista o dipendente infedele) che persegue un obiettivo malevolo attraverso l'esecuzione di una sequenza di azioni ostili.
+    
+    \item \textbf{Evento Negativo:} il verificarsi di una minaccia di tipo accidentale (es. guasto hardware di un disco rigido, perdita di connettività per tranciamento di un cavo in fibra, incendio in sala server, errore umano di un amministratore di sistema durante una manutenzione o calamità naturale).
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.6cm and 2.0cm,
+    box/.style={rectangle, draw=secblue!80, fill=secblue!8, thick, rounded corners=3pt, align=center, inner sep=7pt, font=\small},
+    threatbox/.style={rectangle, draw=secred!80, fill=secred!8, thick, rounded corners=3pt, align=center, inner sep=7pt, font=\small},
+    ctrlbox/.style={rectangle, draw=secgreen!80, fill=secgreen!8, thick, rounded corners=3pt, align=center, inner sep=7pt, font=\small},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=secgray!90},
+    lbl/.style={font=\footnotesize\itshape, fill=white, inner sep=2pt}
+]
+    % Nodes
+    \node[threatbox] (agent) {\textbf{Agente di Minaccia}\\\footnotesize(\textit{Threat Agent})};
+    \node[threatbox, right=of agent] (threat) {\textbf{Minaccia / Evento}\\\footnotesize(\textit{Threat Event})};
+    \node[box, right=of threat] (vuln) {\textbf{Vulnerabilità}\\\footnotesize(CVE / Debolezza CWE)};
+    \node[box, below=of vuln] (asset) {\textbf{Asset Aziendale}\\\footnotesize(Hardware, Dati, Servizi)};
+    \node[threatbox, left=of asset] (impact) {\textbf{Impatto Tecnico \&}\\\textbf{di Business}\\\footnotesize(Perdita CIA, Danno Finanziario)};
+    \node[ctrlbox, below=1.2cm of impact] (ctrl) {\textbf{Controlli di Sicurezza}\\\footnotesize(Mitigazioni, Policy, Firewall)};
+
+    % Connections
+    \draw[arrow] (agent) -- node[lbl] {innesca} (threat);
+    \draw[arrow] (threat) -- node[lbl] {sfrutta} (vuln);
+    \draw[arrow] (vuln) -- node[lbl] {risiede in} (asset);
+    \draw[arrow] (asset) -- node[lbl] {subisce} (impact);
+    \draw[arrow, dashed, draw=secgreen!90] (ctrl) -- node[lbl] {riduce impatto} (impact);
+    \draw[arrow, dashed, draw=secgreen!90] (ctrl.east) -- ([xshift=0.8cm]ctrl.east -| asset.east) |- node[lbl, near end, right] {mitiga / corregge} (vuln.east);
+    \draw[arrow, dashed, draw=secgreen!90] (ctrl.west) -| node[lbl, near end] {dissuade / blocca} (agent.south);
+
+\end{tikzpicture}%
+}
+\caption{Modello ontologico delle relazioni tra i concetti fondamentali di rischio cibernetico (secondo NIST SP 800-30 e OWASP). L'Agente di Minaccia innesca un Evento che sfrutta una Vulnerabilità latente nell'Asset, provocando un Impatto avverso; i Controlli di Sicurezza agiscono spezzando la catena causale.}
+\label{fig:modello_ontologico_rischio}
+\end{figure}
+
+La corretta comprensione della relazione tra questi concetti è basilare per evitare gravi errori di valutazione metodologica. Non ogni debolezza presente nel codice o nell'architettura costituisce una vulnerabilità: una debolezza (\textit{weakness}) rappresenta un difetto latente (come un buffer non controllato o la mancata sanitizzazione di un campo), ma diventa una vera e propria \textbf{vulnerabilità} soltanto se risulta esposta e direttamente sfruttabile da un vettore di attacco esterno o interno. Una debolezza in un modulo isolato e inaccessibile rimane catalogata come CWE ma non riceve un CVE con punteggio di exploitability finché non esiste una minaccia concreta che ne consenta lo sfruttamento; tuttavia, trascurare l'eliminazione delle debolezze in fase di sviluppo espone l'infrastruttura alla trasformazione di tali difetti in vulnerabilità exploitabili non appena muta il contesto operativo o compaiono nuovi strumenti d'attacco.
+
+% =========================================================================
+% SEZIONE 1.2: VULNERABILITÀ E CVE
+% =========================================================================
+\section{Vulnerabilità e CVE -- Common Vulnerabilities and Exposures}
+\label{sec:cve_cvss}
+
+Le vulnerabilità di sicurezza informatica note e rese pubbliche sono descritte in modo standardizzato nel dizionario \textbf{Common Vulnerabilities and Exposures (CVE)}, mantenuto dalla \textbf{MITRE Corporation} e finanziato dalla Cybersecurity and Infrastructure Security Agency (CISA) del dipartimento della Homeland Security statunitense. Prima dell'introduzione dello standard CVE nel 1999, ogni produttore di software e ogni fornitore di strumenti di scansione antivirus o IDS utilizzava una propria nomenclatura proprietaria per indicare i medesimi difetti di sicurezza; tale frammentazione rendeva impossibile correlare i report di vulnerabilità tra strumenti eterogenei o tracciare in modo univoco lo stato di remediation all'interno di un'infrastruttura complessa.
+
+I \textit{CVE Record} sono pubblicati nella \textit{CVE List} ufficiale dal \textit{CVE Program} (\url{https://www.cve.org/}) tramite una rete decentralizzata di organizzazioni autorizzate denominate \textbf{CNA} (\textit{CVE Numbering Authorities}), che includono i principali vendor di tecnologia (es. Microsoft, Red Hat, Apple, Google, Cisco), team di ricerca e coordinatori di sicurezza informatica. Successivamente, il \textbf{National Vulnerability Database (NVD)}, gestito dal NIST (\url{https://nvd.nist.gov/}), importa i record CVE e li arricchisce con analisi sistematiche di dettaglio, inclusa l'associazione alle debolezze CWE, la stima dei vettori e punteggi CVSS, e l'elenco delle configurazioni software affette (\textit{Common Platform Enumeration} -- CPE).
+
+I record CVE riportano un insieme standard di attributi che servono a caratterizzarli:
+
+\begin{itemize}
+    \item \textbf{CVE-ID:} ogni vulnerabilità ottiene un identificatore univoco globale (es. \texttt{CVE-2017-5754}), accompagnato da una descrizione testuale oggettiva dello stato di difetto e da una serie di collegamenti e riferimenti ipertestuali a bollettini dei vendor, advisory di sicurezza e proof-of-concept. L'identificatore è strutturato secondo una sintassi rigorosa: il prefisso fisso \texttt{CVE-}, seguito dall'anno a quattro cifre in cui la vulnerabilità è stata formalmente registrata o resa pubblica, e da una sequenza numerica arbitraria a lunghezza variabile di almeno quattro cifre (azzerata all'inizio di ciascun anno solare).
+    
+    \item \textbf{CVSS (\textit{Common Vulnerability Scoring System}):} è un framework aperto e standardizzato, mantenuto dall'organizzazione non-profit \textbf{FIRST} (\textit{Forum of Incident Response and Security Teams}), che genera un punteggio numerico continuo compreso nell'intervallo da \textbf{0.0 a 10.0} per quantificare la gravità intrinseca e il potenziale danno derivante dallo sfruttamento della vulnerabilità. La specifica ampiamente adottata negli ambienti aziendali è la versione \textbf{CVSS v3.1} (con la recente introduzione della specifica \textbf{CVSS v4.0}). Il calcolo del punteggio non è arbitrario ma si basa su formule matematiche deterministiche alimentate da tre gruppi distinti di metriche:
+    \begin{enumerate}
+        \item \textbf{Metriche Base (\textit{Base Score}):} rappresentano le caratteristiche intrinseche e costanti nel tempo e nello spazio della vulnerabilità. Si suddividono in due sotto-vettori:
+        \begin{itemize}
+            \item \textit{Metriche di Exploitability:} quantificano la facilità di accesso e attacco:
+            \begin{itemize}
+                \item \textbf{Attack Vector (AV):} riflette il contesto da cui l'attacco può essere sferrato. Assume i valori: \textbf{Network (N)} (vulnerabilità sfruttabile da remoto via Internet senza vincoli di routing, massimo punteggio di gravità); \textbf{Adjacent (A)} (richiede accesso allo stesso dominio di broadcast o sottorete locale, es. attacchi ARP o Bluetooth); \textbf{Local (L)} (richiede accesso autenticato a una shell locale o esecuzione di codice sul target, come nelle privilege escalation); \textbf{Physical (P)} (richiede interazione fisica diretta con il dispositivo o le sue interfacce hardware).
+                \item \textbf{Attack Complexity (AC):} misura la presenza di condizioni operative non controllabili dall'attaccante (es. race condition complesse, dipendenza da specifici layout di memoria randomizzati da ASLR). Assume i valori \textbf{Low (L)} o \textbf{High (H)}.
+                \item \textbf{Privileges Required (PR):} livello di autorizzazione che l'attaccante deve possedere prima di lanciare l'exploit. Assume i valori \textbf{None (N)}, \textbf{Low (L)} (privilegi utente standard), o \textbf{High (H)} (privilegi amministrativi/root).
+                \item \textbf{User Interaction (UI):} misura se lo sfruttamento richiede l'intervento di un utente legittimo (es. apertura di un allegato malevolo in un attacco di phishing o click su un link ingannevole in un attacco CSRF). Assume i valori \textbf{None (N)} o \textbf{Required (R)}.
+                \item \textbf{Scope (S):} definisce se lo sfruttamento della vulnerabilità in un componente compromesso può avere impatto su risorse gestite da un'autorità di sicurezza differente (es. un container escape che consente di prendere il controllo dell'host sottostante, o una violazione di sandbox del browser). Assume i valori \textbf{Unchanged (U)} o \textbf{Changed (C)}. La transizione a \textit{Changed} incrementa drasticamente il punteggio finale.
+            \end{itemize}
+            \item \textit{Metriche di Impatto (Impact):} descrivono le conseguenze dirette del successo dell'attacco sulla triade di sicurezza:
+            \begin{itemize}
+                \item \textbf{Confidentiality (C):} misura il grado di divulgazione non autorizzata di dati riservati (\textbf{None [N]}, \textbf{Low [L]}, \textbf{High [H]}).
+                \item \textbf{Integrity (I):} misura il livello di alterazione malevola o manomissione delle informazioni (\textbf{None [N]}, \textbf{Low [L]}, \textbf{High [H]}).
+                \item \textbf{Availability (A):} misura la perdita di disponibilità o l'interruzione del servizio (\textbf{None [N]}, \textbf{Low [L]}, \textbf{High [H]}).
+            \end{itemize}
+        \end{itemize}
+        \item \textbf{Metriche Temporali (\textit{Temporal Score}):} misurano lo stato dinamico della vulnerabilità nel corso della sua evoluzione temporale, considerando la maturità del codice di exploit (\textit{Exploit Code Maturity}: Not Defined, Unproven, Proof-of-Concept, Functional, High), lo stato della soluzione (\textit{Remediation Level}: Official Fix, Temporary Fix, Workaround, Unavailable), e il grado di confidenza del report (\textit{Report Confidence}).
+        \item \textbf{Metriche Ambientali (\textit{Environmental Score}):} consentono al singolo analista aziendale di personalizzare il punteggio in relazione allo specifico contesto operativo dell'organizzazione, modificando i pesi delle metriche base in funzione della criticità locale degli asset protetti o applicando controlli di sicurezza compensativi esistenti.
+    \end{enumerate}
+\end{itemize}
+
+I punteggi CVSS sono raggruppati in classi qualitative di severità (\textit{Severity Ratings}):
+\begin{itemize}
+    \item \textbf{None:} $0.0$
+    \item \textbf{Low:} $0.1 - 3.9$
+    \item \textbf{Medium:} $4.0 - 6.9$
+    \item \textbf{High:} $7.0 - 8.9$
+    \item \textbf{Critical:} $9.0 - 10.0$
+\end{itemize}
+
+\subsection{Classificazione temporale dello stato delle vulnerabilità}
+\label{subsec:classificazione_temporale_vuln}
+
+Sotto il profilo del ciclo di vita operativo e della gestione del rischio aziendale, le vulnerabilità sono classificate in due macro-stati:
+\begin{enumerate}
+    \item \textbf{Vulnerabilità Non Note:} quando nessuno ne è a conoscenza oppure quando l'esistenza del difetto è nota esclusivamente a singoli ricercatori o attaccanti che la mantengono totalmente segreta senza alcuna traccia pubblica.
+    \item \textbf{Vulnerabilità Note:} vulnerabilità la cui esistenza è stata formalmente accertata. In questa categoria si opera una fondamentale specializzazione temporale:
+    \begin{itemize}
+        \item \textbf{Zero-Day:} l'intervallo temporale che decorre da quando la vulnerabilità viene scoperta (da un hacker malintenzionato, da un'agenzia governativa o da un ricercatore etico) fino al momento esatto in cui il fornitore ufficiale del software non sviluppa e rende pubblicamente accessibile una patch correttiva. In questa finestra non esiste alcuna contromisura diretta fornita dal vendor;
+        \item \textbf{Unpatched:} l'intervallo temporale che decorre da quando la patch correttiva viene rilasciata e pubblicata dal vendor fino a quando essa non viene effettivamente installata e messa in produzione su ciascun dispositivo aziendale affetto;
+        \item \textbf{Patched:} lo stato del sistema successivo alla corretta applicazione, collaudo e attivazione della patch, che ripristina la sicurezza del componente rendendo innocua la vulnerabilità.
+    \end{itemize}
+\end{enumerate}
+
+\begin{definition}[Patch di Sicurezza]
+Una patch è una porzione di codice software o microcodice distribuita dal fornitore di un prodotto che, una volta applicata all'ambiente di esecuzione, modifica la logica o i file binari del sistema per eliminare un difetto o rendere innocua una vulnerabilità senza alterare le funzionalità legittime del programma.
+\end{definition}
+
+% =========================================================================
+% SEZIONE 1.3: CWE E WINDOW OF EXPOSURE
+% =========================================================================
+\section{CWE e window of exposure}
+\label{sec:cwe_epss}
+
+La \textbf{CWE (Common Weakness Enumeration)} è una tassonomia formale e dizionario standard, gestito anch'esso dalla MITRE Corporation, che cataloga gli errori e le debolezze di programmazione, architettura, design, configurazione e implementazione hardware e software che possono manifestarsi nei sistemi digitali.
+
+A differenza delle CVE, che identificano singole istanze specifiche di vulnerabilità riscontrate in versioni determinate di prodotti commerciali o open-source (es. la CVE-2021-44228 in Apache Log4j), la CWE si concentra sulla \textbf{categoria concettuale dell'errore astratto} (es. mancata validazione di input, buffer overflow, assenza di controllo di accesso). Le debolezze devono essere sistematicamente monitorate dai team di sviluppo e sicurezza poiché costituiscono il terreno fertile che può trasformarsi in vulnerabilità sfruttabili (CVE). 
+
+Tra gli esempi più rilevanti e diffusi di debolezza censiti nella tassonomia CWE figurano:
+\begin{itemize}
+    \item \textbf{CWE-20 (Improper Input Validation):} il codice riceve dati dall'esterno senza verificarne esaustivamente la conformità rispetto a formati, lunghezze, intervalli numerici o caratteri ammessi. Costituisce la causa radice della maggioranza degli attacchi web;
+    \item \textbf{CWE-79 (Improper Neutralization of Input During Web Page Generation --- Cross-site Scripting):} mancata neutralizzazione di script malevoli iniettati nelle pagine web visualizzate dagli utenti;
+    \item \textbf{CWE-89 (Improper Neutralization of Special Elements used in an SQL Command --- SQL Injection):} inserimento di comandi SQL manipolati attraverso parametri di input non parametrizzati;
+    \item \textbf{CWE-119 (Improper Restriction of Operations within the Bounds of a Memory Buffer):} manipolazione della memoria oltre i limiti allocati, tipica dei linguaggi non memory-safe come C e C++;
+    \item \textbf{CWE-200 (Exposure of Sensitive Information to an Unauthorized Actor):} rilascio o fuga di dati confidenziali a soggetti privi delle necessarie credenziali di accesso.
+\end{itemize}
+
+Non vi è alcuna certezza che una generica debolezza presente nel codice possa essere con successo trasformata in un exploit funzionante; tuttavia, eliminare le debolezze alla radice applicando principi di \textit{Security by Design} e metodologie di \textit{Secure Software Development Life Cycle} (SSDLC) rappresenta la strategia più economica ed efficace per anticipare l'insorgenza delle vulnerabilità.
+
+% -------------------------------------------------------------------------
+% SUBSECTION 1.3.1: Esempio Meltdown
+% -------------------------------------------------------------------------
+\subsection{Esempio di vulnerabilità critica: Meltdown (CVE-2017-5754)}
+\label{subsec:meltdown}
+
+Un esempio emblematico di vulnerabilità catalogata ad altissimo impatto sistemico è \textbf{Meltdown} (registrata come \textbf{CVE-2017-5754} da ricercatori indipendenti di Google Project Zero, Cyberus Technology e TU Graz alla fine del 2017 e resa pubblica nel gennaio 2018).
+
+Questa vulnerabilità colpisce a livello hardware la quasi totalità dei microprocessori moderni (in particolare le architetture Intel x86 e x86-64 prodotte dal 1995 in poi) che implementano tecniche di ottimizzazione delle prestazioni quali:
+\begin{itemize}
+    \item \textbf{Esecuzione Fuori Ordine (\textit{Out-of-Order Execution} --- OoOE):} capacità del processore di riordinare la sequenza di istruzioni macchina eseguendo immediatamente quelle i cui operandi sono già pronti, senza attendere il completamento di istruzioni precedenti temporaneamente bloccate da accessi lenti alla memoria RAM;
+    \item \textbf{Esecuzione Speculativa (\textit{Speculative Execution}) e Branch Prediction:} meccanismo per cui il processore predice l'esito di un salto condizionato o di un controllo ed esegue in anticipo il blocco di istruzioni associato. Se la predizione si rivela corretta, le prestazioni aumentano notevolmente; se la predizione si rivela errata, il processore esegue un rollback dello stato architetturale dei registri (\textit{retirement pipeline}), scartando i risultati come se le istruzioni non fossero mai state eseguite.
+\end{itemize}
+
+\subsubsection{Il meccanismo dell'attacco speculativo}
+Il difetto strutturale alla base di Meltdown risiede nel fatto che, durante l'esecuzione speculativa fuori ordine, le CPU vulnerabili omettevano di verificare in tempo reale i permessi di privilegio sui registri di protezione della memoria prima di eseguire la lettura di un indirizzo di memoria kernel da parte di un processo in spazio utente (\textit{Ring 3}). L'eccezione hardware di violazione di memoria (\textit{Page Fault}) veniva sollevata soltanto al momento del completamento formale dell'istruzione (\textit{retirement}).
+
+Sebbene il processore azzeri lo stato architetturale dei registri a seguito della violazione, l'esecuzione speculativa ha comunque alterato lo \textbf{stato micro-architetturale del processore}, nello specifico le linee della \textbf{data cache}. Un attaccante privo di privilegi può quindi orchestrare un attacco di canale laterale (\textit{cache side-channel attack}) basato sulla celebre tecnica \textbf{FLUSH+RELOAD}:
+
+\begin{enumerate}
+    \item \textbf{Fase 1 (Flush):} Il processo malevolo alloca in memoria utente un array sonda composto da 256 pagine di memoria da 4096 byte ciascuna:
+    $$\text{Array}[256 \times 4096]$$
+    Tramite l'istruzione assembly dedicata \texttt{clflush}, l'attaccante svuota integralmente tutte le linee della cache CPU associate a ciascuna delle 256 pagine dell'array, garantendo che nessuna di esse sia presente nella cache L1/L2/L3.
+    
+    \item \textbf{Fase 2 (Speculative Access):} L'attaccante innesca l'esecuzione di una sequenza di istruzioni transienti che tentano di leggere un byte segreto protetto $K \in [0, 255]$ situato a un indirizzo arbitrario della memoria kernel:
+    \begin{lstlisting}[language=C]
+    // Istruzione illegale da Ring 3: genera eccezione di Page Fault
+    char secret_byte = *(kernel_virtual_address);
+    // Istruzione transiente eseguita speculativamente prima del trap
+    val = Array[secret_byte * 4096];
+    \end{lstlisting}
+    La CPU esegue speculativamente la seconda riga prima che la violazione di accesso della prima riga venga finalizzata: l'accesso all'indirizzo \texttt{\&Array[$K \times 4096$]} carica la linea di cache corrispondente alla pagina $K$. Quando il processore rileva l'accesso illegale, scarta i registri e lancia il Page Fault, ma la linea di cache rimane caricata.
+    
+    \item \textbf{Fase 3 (Reload \& Measure):} L'attaccante cattura l'eccezione (tramite signal handler o istruzioni transazionali) ed esegue un ciclo di lettura su tutte le 256 pagine dell'array, misurando i cicli di clock necessari all'accesso mediante l'istruzione ad altissima risoluzione \texttt{rdtsc} (\textit{Read Time-Stamp Counter}):
+    \begin{itemize}
+        \item Le 255 pagine non caricate provocano un \textit{cache miss} e richiedono centinaia di cicli di clock per essere recuperate dalla memoria RAM principale;
+        \item L'unica pagina corrispondente all'indice $K$ provoca un \textit{cache hit} immediato, rispondendo in una manciata di cicli di clock ($<50$ cicli).
+    \end{itemize}
+    Dalla misura del tempo di accesso, l'attaccante deduce con certezza assoluta il valore numerico del byte segreto del kernel, infrangendo completamente la confidenzialità della memoria fisica del sistema (chiavi crittografiche, password di root, dati di altri processi o di altre macchine virtuali in ambienti cloud multi-tenant).
+\end{enumerate}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    box/.style={rectangle, draw=secblue!80, fill=secblue!8, thick, rounded corners=3pt, align=center, inner sep=6pt, font=\small},
+    alertbox/.style={rectangle, draw=secred!80, fill=secred!8, thick, rounded corners=3pt, align=center, inner sep=6pt, font=\small},
+    cachebox/.style={rectangle, draw=secorange!90, fill=secorange!10, thick, rounded corners=3pt, align=center, inner sep=6pt, font=\small},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=secgray!90}
+]
+    % Steps layout
+    \node[box] (step1) {\textbf{1. FLUSH}\\Svuotamento linee cache\\dell'array sonda ($256 \times 4$ KB)};
+    \node[alertbox, right=1.2cm of step1] (step2) {\textbf{2. ACCESSO SPECULATIVO}\\Lettura Ring 3 da kernel:\\\texttt{secret = *kernel\_addr}\\\texttt{Array[secret * 4096]}};
+    \node[cachebox, right=1.2cm of step2] (step3) {\textbf{3. SIDE-CHANNEL}\\Caricamento pagina $K$ in cache.\\Rollback stato CPU per Page Fault,\\ma la cache conserva $K$};
+    \node[box, below=1.4cm of step2] (step4) {\textbf{4. RELOAD \& TIMING}\\Misura tempo accesso con \texttt{rdtsc}:\\\textbf{Cache Hit} sulla pagina $K$ rivela\\il byte segreto all'attaccante};
+
+    \draw[arrow] (step1) -- (step2);
+    \draw[arrow] (step2) -- (step3);
+    \draw[arrow] (step3) |- (step4);
+    \draw[arrow] (step4) -| (step1);
+
+\end{tikzpicture}%
+}
+\caption{Dinamica operativa dell'attacco Meltdown (CVE-2017-5754) basato su esecuzione speculativa fuori ordine e tecnica di canale laterale di cache FLUSH+RELOAD.}
+\label{fig:meltdown_speculative}
+\end{figure}
+
+Meltdown è correlata alla debolezza fondamentale del codice e dell'hardware catalogata come \textbf{CWE-200} (\textit{Information Exposure}). 
+
+\subsubsection{Mitigazioni e costi prestazionali (KPTI)}
+Trattandosi di un difetto intrinseco al silicio delle CPU fisiche, Meltdown non ha potuto essere risolta mediante una correzione hardware immediata sui miliardi di processori già immessi sul mercato. La comunità dei sistemi operativi (Linux, Windows, macOS) ha dovuto sviluppare d'urgenza una mitigazione software a livello di kernel denominata \textbf{KPTI (Kernel Page Table Isolation)}, originariamente sviluppata con il nome di \textit{KAISER}. 
+
+In condizioni ordinarie, per massimizzare le prestazioni delle chiamate di sistema (\textit{syscall}), il kernel condivideva le medesime tabelle di paginazione virtuale con lo spazio utente, limitandosi a marcare le pagine del kernel con un flag di protezione che impediva l'accesso esplicito ma non bloccava la lettura speculativa. KPTI ha scisso radicalmente le tabelle delle pagine: quando un processo è in esecuzione in spazio utente, la tabella delle pagine contiene esclusivamente la memoria utente e un nucleo strettamente minimale di routine del kernel per la gestione degli interrupt. Ad ogni transizione tra spazio utente e spazio kernel, il sistema operativo deve forzare il cambio del registro di controllo \texttt{CR3}, innescando lo svuotamento continuo e l'invalidazione della \textbf{TLB (Translation Lookaside Buffer)}.
+
+Questo continuo overhead di cambio contesto ha comportato una \textbf{drastica riduzione delle prestazioni complessive dei sistemi affetti, con penalizzazioni misurate tra il 5\% e punte superiori al 30\%} in carichi di lavoro intensivi di I/O, operazioni su database e virtualizzazione, evidenziando il drammatico trade-off tra sicurezza architetturale ed efficienza operativa.
+
+% -------------------------------------------------------------------------
+% SUBSECTION 1.3.2: EPSS
+% -------------------------------------------------------------------------
+\subsection{EPSS -- Exploit Prediction Scoring System}
+\label{subsec:epss}
+
+Per completare le informazioni su quanto possono essere pericolose le vulnerabilità per un'azienda interessata a svolgere un'analisi dei rischi, e per superare i limiti strutturali del punteggio CVSS, è stato introdotto l'\textbf{EPSS (Exploit Prediction Scoring System)}.
+
+Il punteggio CVSS descrive infatti il \textbf{danno teorico massimo potenziale} nel caso in cui una vulnerabilità venga sfruttata con successo in condizioni ideali; tuttavia, da statistiche storiche di settore, \textbf{meno del 5-7\% di tutte le vulnerabilità censite con CVE viene effettivamente sfruttato nel mondo reale in attacchi informatici su larga scala}. Applicare le patch basandosi esclusivamente sul valore del CVSS (assegnando ad esempio priorità assoluta a qualunque vulnerabilità con punteggio $\ge 7.0$ o $\ge 9.0$) genera una situazione di paralisi operativa per i team di sicurezza aziendali (\textit{vulnerability overload} e affaticamento da alert), costretti a testare e distribuire migliaia di patch per vulnerabilità che non verranno mai aggredite.
+
+L'EPSS, sviluppato e mantenuto aggiornato quotidianamente dall'organizzazione non-profit \textbf{FIRST} (\url{https://www.first.org/epss/}), risolve questo divario. Si tratta di un modello statistico predittivo avanzato (basato su tecniche di machine learning supervisionato) che stima la \textbf{probabilità oggettiva compresa tra 0 e 1 (ossia tra lo 0\% e il 100\%)} che una data vulnerabilità software venga attivamente sfruttata nel mondo reale (\textit{in the wild}) nei \textbf{successivi 30 giorni}.
+
+Il modello di stima dell'EPSS aggrega in tempo reale enormi volumi di dati dinamici raccolti da Internet:
+\begin{itemize}
+    \item Dati di telemetria e rilevamento attacchi provenienti da reti globali di honeypot e sensori IDS/IPS distribuiti;
+    \item Attività nei canali e mercati del dark web e nei forum underground;
+    \item Pubblicazione e diffusione di codice di exploit su repository pubblici (es. Exploit-DB, GitHub, Metasploit);
+    \item Segnalazioni di intelligence e discussioni attive della comunità di analisti su social network e feed tecnici;
+    \item Metadati intrinseci della vulnerabilità (CVSS, vendor affetto, tipologia di debolezza CWE).
+\end{itemize}
+
+Accanto alla probabilità assoluta, l'EPSS associa a ciascuna CVE un valore di \textbf{percentile} ($0 \dots 100\%$), che indica la frazione di tutte le altre vulnerabilità note che presentano un punteggio EPSS uguale o inferiore. Ad esempio, una CVE con percentile del 98\% si colloca nel 2\% delle vulnerabilità a maggior rischio di sfruttamento attivo dell'intero panorama globale.
+
+Un ulteriore strumento fondamentale, complementare all'EPSS, è il catalogo \textbf{KEV (Known Exploited Vulnerabilities)} gestito dall'agenzia federale statunitense \textbf{CISA} (\textit{Cybersecurity and Infrastructure Security Agency}). Il catalogo CISA KEV censisce le vulnerabilità per le quali esiste un'evidenza certa, empirica e documentata di sfruttamento malevolo attivo in incidenti reali. Mentre il KEV fornisce un'evidenza binaria (la vulnerabilità è già attivamente sfruttata nel mondo reale), l'EPSS offre una funzione predittiva continua probabilistica che stima se e con quale probabilità lo sfruttamento accadrà a breve termine.
+
+\subsubsection{Esempio empirico: evoluzione dell'EPSS di Meltdown}
+Considerando la vulnerabilità Meltdown (CVE-2017-5754), è interessante osservare come l'EPSS sia variato nel tempo, evidenziando la natura puramente dinamica del rischio reale rispetto al valore statico del CVSS:
+\begin{itemize}
+    \item \textbf{Gennaio 2018 (Divulgazione pubblica):} Al momento della disclosure pubblica, il punteggio EPSS associato a Meltdown era relativamente contenuto (circa $0.02$, corrispondente a una probabilità di sfruttamento del $2\%$ nei successivi 30 giorni), a fronte di un punteggio base CVSS elevato pari a $5.6$ (valutato all'epoca secondo metriche locali). Tale valore iniziale rifletteva il fatto che, sebbene l'impatto teorico sulla confidenzialità fosse devastante, la realizzazione pratica di un exploit affidabile richiedeva competenze di ingegneria micro-architetturale e di reverse engineering estremamente avanzate, oltre all'accesso locale alla macchina.
+    \item \textbf{Settimane successive (Febbraio 2018):} Con la pubblicazione di molteplici proof-of-concept verificati e funzionanti sui repository pubblici e con l'integrazione di script automatici nei framework di attacco, l'EPSS è cresciuto costantemente, superando il picco del $5-8\%$.
+    \item \textbf{Mesi successivi:} A seguito della distribuzione massiva delle patch software KPTI e dell'aggiornamento dei microcodici da parte dei vendor di hardware e sistemi operativi, il bacino di bersagli vulnerabili si è drasticamente ridotto e l'EPSS è progressivamente sceso stabilizzandosi attorno allo $0.005$ ($0.5\%$).
+\end{itemize}
+
+Questo andamento dimostra come l'EPSS catturi dinamicamente l'evoluzione della minaccia, fornendo una guida indispensabile per prioritizzare gli interventi di remediation.
+
+% =========================================================================
+% SEZIONE 1.4: WINDOW OF EXPOSURE
+% =========================================================================
+\section{Window of exposure}
+\label{sec:window_of_exposure}
+
+Il concetto di \textbf{Window of Exposure (finestra di esposizione)} definisce l'intervallo temporale ad alto rischio che intercorre tra la nascita o la scoperta di una vulnerabilità e la sua definitiva correzione e bonifica all'interno dell'infrastruttura operativa.
+
+L'evoluzione temporale di una vulnerabilità e della relativa curva di rischio attraversa una sequenza formale di istanti critici, come schematizzato in Figura~\ref{fig:window_of_exposure_timeline}:
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    xscale=1.45,
+    yscale=0.75,
+    font=\footnotesize
+]
+    % Time axis
+    \draw[-{Stealth[length=3mm]}, thick, draw=secgray!80] (-0.5, 0) -- (9.8, 0) node[right] {\textbf{Tempo}};
+    \draw[-{Stealth[length=3mm]}, thick, draw=secgray!80] (0, -0.3) -- (0, 7.5) node[above] {\textbf{Rischio / Esposizione}};
+
+    % Time points on axis
+    \draw[thick, draw=secgray!60] (0.5, 0.1) -- (0.5, -0.1);
+    \node[below=2pt, align=center] at (0.5, 0) {$t_0$\\Creazione\\debolezza};
+
+    \draw[thick, draw=secgray!60] (1.8, 0.1) -- (1.8, -0.1);
+    \node[below=2pt, align=center] at (1.8, 0) {$t_1$\\Scoperta\\vulnerabilità};
+
+    \draw[thick, draw=secgray!60] (3.0, 0.1) -- (3.0, -0.1);
+    \node[below=2pt, align=center] at (3.0, 0) {$t_2$\\Creazione\\exploit};
+
+    \draw[thick, draw=secgray!60] (4.2, 0.1) -- (4.2, -0.1);
+    \node[below=2pt, align=center] at (4.2, 0) {$t_3$\\Vendor\\notificato};
+
+    \draw[thick, draw=secgray!60] (5.5, 0.1) -- (5.5, -0.1);
+    \node[below=2pt, align=center] at (5.5, 0) {$t_4$\\Disclosure\\pubblica};
+
+    \draw[thick, draw=secgray!60] (6.7, 0.1) -- (6.7, -0.1);
+    \node[below=2pt, align=center] at (6.7, 0) {$t_5$\\Patch\\rilasciata};
+
+    \draw[thick, draw=secgray!60] (8.0, 0.1) -- (8.0, -0.1);
+    \node[below=2pt, align=center] at (8.0, 0) {$t_6$\\Patch\\diffing};
+
+    \draw[thick, draw=secgray!60] (9.2, 0.1) -- (9.2, -0.1);
+    \node[below=2pt, align=center] at (9.2, 0) {$t_7$\\Patch\\installata};
+
+    % Theoretical Risk Curve (dashed blue)
+    \draw[very thick, secblue!80, dashed] 
+        (0.5, 0.3) -- (1.8, 0.8) -- (3.0, 2.2) -- (4.2, 2.8) -- (5.5, 6.2) -- (6.7, 4.0) -- (8.0, 2.0) -- (9.2, 0.5) -- (9.6, 0.4);
+
+    % Realistic Risk Curve with Reverse Engineering Spike (solid red)
+    \draw[very thick, secred!90] 
+        (0.5, 0.3) -- (1.8, 0.8) -- (3.0, 2.2) -- (4.2, 2.8) -- (5.5, 6.2) -- (6.7, 5.0) -- (7.4, 6.8) -- (8.0, 5.8) -- (9.2, 0.6) -- (9.6, 0.4);
+
+    % Legend
+    \node[draw=secblue!80, fill=white, rounded corners=2pt, right] at (0.2, 7.3) {\textbf{-- --} Modello convenzionale teorico (calo lineare post-patch)};
+    \node[draw=secred!90, fill=white, rounded corners=2pt, right] at (0.2, 6.6) {\textbf{---} Modello reale empirico: \textbf{Spike post-patch} da Reverse Engineering};
+
+    % Phase brackets
+    \draw[thick, decorate, decoration={brace, amplitude=6pt, mirror}] (0.5, -1.8) -- (1.8, -1.8) node[midway, below=8pt] {\textbf{Non nota}};
+    \draw[thick, decorate, decoration={brace, amplitude=6pt, mirror}] (1.8, -1.8) -- (6.7, -1.8) node[midway, below=8pt] {\textbf{Finestra Zero-Day}};
+    \draw[thick, decorate, decoration={brace, amplitude=6pt, mirror}] (6.7, -1.8) -- (9.2, -1.8) node[midway, below=8pt] {\textbf{Unpatched}};
+    \draw[thick, decorate, decoration={brace, amplitude=6pt, mirror}] (9.2, -1.8) -- (9.6, -1.8) node[midway, below=8pt] {\textbf{Patched}};
+
+\end{tikzpicture}%
+}
+\caption{La Finestra di Esposizione (\textit{Window of Exposure}): confronto tra il modello teorico convenzionale e l'andamento reale empirico caratterizzato dal picco di rischio successivo al rilascio pubblico della patch correttiva.}
+\label{fig:window_of_exposure_timeline}
+\end{figure}
+
+Le transizioni fondamentali del ciclo di vita si articolano come segue:
+\begin{itemize}
+    \item \textbf{Dallo stato non nota a nota ($t_1$):} la vulnerabilità passa dallo stato di non nota a nota quando viene individuata per la prima volta. Fintanto che la scoperta rimane confinata a un singolo attore, l'esposizione globale è virtualmente nulla, ma l'organizzazione bersagliata potrebbe subire attacchi mirati avanzati (\textit{stealth}).
+    \item \textbf{Sviluppo dell'exploit ($t_2$):} la vulnerabilità diventa concretamente \textbf{pericolosa} nel momento in cui viene realizzato un \textit{exploit}, ossia un artefatto software che dimostra la fattibilità tecnica dello sfruttamento della debolezza violando i controlli di sicurezza. L'esistenza dell'exploit prova inequivocabilmente che la debolezza teorica è una vulnerabilità reale.
+    \item \textbf{Notifica al vendor ($t_3$):} il ricercatore etico notifica privatamente il produttore per consentirgli di avviare l'analisi del bug e la compilazione della patch (\textit{finestra di grazia} o coordinamento confidenziale).
+    \item \textbf{Divulgazione pubblica (\textit{Disclosure}, $t_4$):} il rischio complessivo subisce un'impennata verticale quando i dettagli della vulnerabilità vengono resi pubblici. L'esposizione aumenta esponenzialmente poiché la platea di attaccanti a livello globale in grado di acquisire informazioni e tentare lo sfruttamento si allarga a dismisura. In questa fase intermedia, prima del rilascio della patch, i team di difesa devono aggiornare immediatamente gli strumenti di monitoraggio perimetrale (firewall, IDS/IPS, regole SIEM) con firme provvisorie per rilevare e bloccare i tentativi di penetrazione.
+    \item \textbf{Rilascio della patch ($t_5$):} il produttore rilascia la correzione ufficiale: la vulnerabilità cessa di essere considerata uno \textit{zero-day} e si trasforma in \textit{unpatched}.
+    \item \textbf{Il paradosso del rilascio della patch e il Patch Diffing ($t_6$):} Secondo il diagramma teorico tradizionale, dopo il rilascio della patch il livello globale di rischio dovrebbe calare monotonicamente fino a spegnersi con l'installazione su tutti i dispositivi affetti. Tuttavia, la comunità scientifica e gli analisti di sicurezza evidenziano una realtà empirica radicalmente diversa: \textbf{il rilascio pubblico di una patch genera un picco temporaneo ad altissimo rischio}.
+    
+    Nel momento esatto in cui un fornitore rilascia un aggiornamento binario, i gruppi criminali scaricano la patch ed eseguono una procedura automatizzata di \textbf{Binary Diffing / Patch Diffing} (confrontando byte per byte il codice binario dell'eseguibile precedente con quello aggiornato). Tramite questo reverse engineering mirato, gli attaccanti individuano in poche ore la funzione modificata, deducono l'errore originario, identificano la vulnerabilità e creano rapidamente un exploit funzionante (denominato \textbf{1-Day Exploit}). Poiché una vasta porzione di aziende e utenti finali impiega settimane o mesi per testare e installare la patch, la finestra immediatamente successiva al rilascio è caratterizzata da una proliferazione massiva di attacchi automatizzati contro i sistemi non ancora aggiornati.
+    
+    \item \textbf{Installazione della patch ($t_7$):} l'amministratore installa e verifica la patch su tutti i nodi: il sistema transita nello stato definitivo di \textit{patched}, chiudendo la finestra di esposizione.
+\end{itemize}
+
+\subsection{Mercati zero-day e politiche di divulgazione (ZDI)}
+Le vulnerabilità \textbf{zero-day} rappresentano la merce più preziosa dell'ecosistema della cybersecurity. L'acquisizione di tali vulnerabilità avviene su tre mercati distinti:
+\begin{itemize}
+    \item \textbf{White Market:} canali ufficiali e programmi di \textit{Bug Bounty} gestiti direttamente dai vendor (es. Google, Apple, Microsoft) o da piattaforme di crowdsourcing autorizzate (es. HackerOne, Bugcrowd), in cui i ricercatori ricevono compensi per notificare privatamente i difetti consentendo lo sviluppo della patch;
+    \item \textbf{Grey Market:} broker e società private (es. Zerodium, Crowdfense) che acquistano exploit zero-day esclusivi per rivenderli a prezzi milionari ad agenzie governative di intelligence e forze di polizia per operazioni di sorveglianza mirata;
+    \item \textbf{Black Market:} forum underground nel dark web dove exploit e vettori d'attacco sono scambiati illegalmente tra organizzazioni criminali per condurre campagne di ransomware e frodi informatiche.
+\end{itemize}
+
+In questo scenario, l'organizzazione \textbf{Zero Day Initiative (ZDI)}, fondata originariamente da TippingPoint e gestita da Trend Micro, opera come intermediario etico tra i ricercatori indipendenti e i fornitori di software. ZDI acquista le vulnerabilità dai ricercatori e notifica privatamente il vendor interessato, imponendo una rigorosa \textbf{deadline vincolante di 120 giorni} per lo sviluppo e il rilascio della patch correttiva. Qualora il fornitore non rispetti tale scadenza o trascuri la gravità del problema, ZDI procede con la divulgazione pubblica non coordinata della vulnerabilità (\textit{Full Disclosure} senza patch). Questa politica serve a evitare che i produttori posticipino indefinitamente la risoluzione delle falle di sicurezza, proteggendo gli utenti finali tramite un meccanismo di responsabilizzazione forzata.
+
+% =========================================================================
+% SEZIONE 1.5: RISK MANAGEMENT FRAMEWORK (RMF)
+% =========================================================================
+\section{Risk Management Framework (RMF)}
+\label{sec:rmf}
+
+Il modello di riferimento architetturale consigliato dagli standard internazionali e formalizzato dal \textbf{NIST (National Institute of Standards and Technology)} per governare la sicurezza informatica in modo strutturato e scientifico è il \textbf{Risk Management Framework (RMF)}.
+
+I documenti normativi cardine pubblicati dal NIST su questa disciplina comprendono:
+\begin{itemize}
+    \item \textbf{NIST SP 800-39:} \textit{Managing Information Security Risk: Organization, Mission, and Information System View} (definisce la visione globale su tre livelli: organizzazione, missione/processi di business, e sistemi informativi);
+    \item \textbf{NIST SP 800-30 Rev. 1:} \textit{Guide for Conducting Risk Assessments} (linee guida dettagliate per l'esecuzione rigorosa dell'assessment);
+    \item \textbf{NIST SP 800-37 Rev. 2:} \textit{Risk Management Framework for Information Systems and Organizations: A System Life Cycle Approach for Security and Privacy} (processo applicativo strutturato);
+    \item \textbf{NIST SP 800-53 Rev. 5:} \textit{Security and Privacy Controls for Information Systems and Organizations} (il catalogo universale dei controlli di sicurezza);
+    \item \textbf{NIST SP 800-53A Rev. 5:} \textit{Assessing Security and Privacy Controls in Information Systems and Organizations}.
+\end{itemize}
+
+Secondo la pubblicazione NIST SP 800-39, il processo globale di gestione del rischio si articola in \textbf{quattro macro-fasi cicliche e ricorsive}:
+
+\begin{enumerate}
+    \item \textbf{Risk Framing (Inquadramento e Preparazione):} Questa fase iniziale stabilisce il contesto strategico e i presupposti operativi per l'intero processo di gestione del rischio. In essa l'organizzazione:
+    \begin{itemize}
+        \item Stabilisce l'ambito e i confini del sistema da proteggere, delimitando con precisione il perimetro tecnologico, organizzativo e giuridico;
+        \item Identifica e censisce tutti gli asset materiali e immateriali (inclusa la reputazione aziendale, il valore del marchio e i dati regolati), determinando il loro valore economico per l'organizzazione;
+        \item Formalizza i vincoli normativi applicabili (es. GDPR, NIS2, DORA, PCI-DSS);
+        \item Definisce la tolleranza al rischio dell'organizzazione (\textit{Risk Appetite} e soglie di accettabilità);
+        \item Produce come output principale la descrizione dettagliata della \textbf{metodologia di valutazione} che verrà impiegata, comprensiva delle metriche, delle formule matematiche di calcolo del rischio e dei criteri di classificazione. La metodologia deve essere rigorosamente \textbf{ripetibile}, garantendo coerenza di giudizio nel tempo e tra analisti differenti, oltre a preservare il know-how aziendale dal turnover del personale tecnico.
+    \end{itemize}
+    
+    \item \textbf{Risk Assessment (Valutazione del Rischio):} In questa fase si procede all'identificazione sistematica e oggettiva dei fattori di pericolo. Si analizzano le minacce (sia intenzionali che accidentali/ambientali), le debolezze architetturali e le vulnerabilità tecniche (interne ed esterne al perimetro). Per ciascun binomio minaccia-vulnerabilità si stimano:
+    \begin{itemize}
+        \item Gli \textbf{impatti potenziali} derivanti dalla compromissione di Confidenzialità, Integrità o Disponibilità, quantificando i danni finanziari diretti (es. perdite economiche immediate, sanzioni amministrative) e indiretti (es. interruzione operativa prolungata, perdita di clienti, danno reputazionale e spese legali);
+        \item La \textbf{probabilità di accadimento (\textit{Likelihood})}, ponderando l'efficacia dei controlli di sicurezza già operativi, le competenze e i mezzi a disposizione degli agenti di minaccia, e l'attrattività dell'asset.
+    \end{itemize}
+    L'output è una mappatura esaustiva e gerarchizzata del profilo di rischio aziendale, coerente con le direttive definite nella fase di framing.
+    
+    \item \textbf{Risk Response / Mitigation (Risposta e Mitigazione):} Sulla base del profilo di rischio quantificato, la dirigenza aziendale individua, valuta e implementa le strategie di trattamento più adeguate. Ciascuna contromisura tecnica o procedurale viene valutata confrontando il costo di implementazione e manutenzione, i tempi di messa in opera e l'impatto effettivo sulla riduzione del rischio. La fase deve considerare quattro alternative strategiche (approfondite in Sezione~\ref{sec:valutazione_rischio}): \textit{Mitigazione}, \textit{Trasferimento}, \textit{Evitamento} e \textit{Accettazione}. Ogni decisione finale deve essere formalmente motivata, oggettiva e documentata nel registro dei rischi.
+    
+    \item \textbf{Risk Monitoring (Monitoraggio Continuo):} Questa fase non rappresenta un adempimento conclusivo ma un'attività \textbf{permanente e continuativa}. La sicurezza non è uno stato statico raggiunto una volta per tutte, bensì un processo continuo di vigilanza. Il monitoraggio si occupa di:
+    \begin{itemize}
+        \item Valutare l'efficacia operativa sul campo delle contromisure implementate, verificando che i controlli operino come previsto;
+        \item Verificare la persistenza delle assunzioni formulate nelle fasi precedenti, poiché le tecnologie, l'architettura aziendale e le tattiche degli avversari evolvono continuamente;
+        \item Monitorare la conformità alle policy interne e raccogliere metriche oggettive sull'efficienza di sicurezza;
+        \item Gestire l'iterazione ciclica del processo: in presenza di scostamenti significativi, nuove minacce emergenti o inefficacia dei controlli, il processo viene retroazionato, riavviando un ciclo completo a partire dal Risk Framing o applicando revisioni mirate alle fasi intermedie.
+    \end{itemize}
+    In questo contesto, è opportuno chiarire una distinzione lessicale e concettuale spesso fonte di confusione: \textbf{il monitoraggio tecnico non coincide con il Risk Monitoring}. Il \textit{monitoraggio tecnico} è un'attività operativa continuativa (sniffing dei pacchetti, analisi dei log tramite IDS/IPS e SIEM) volta a rilevare attacchi e tentativi di penetrazione in tempo reale; il \textbf{Risk Monitoring} è il processo di governance di livello superiore che ingloba le evidenze del monitoraggio tecnico per riesaminare criticamente le assunzioni del modello di rischio, verificare se le formule definite in fase di framing siano ancora valide (ad esempio, aggiornando le stime di probabilità se aumentano gli attacchi provenienti da specifiche aree geografiche) e reimpostare le priorità aziendali.
+\end{enumerate}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.95, every node/.style={scale=0.95},
+    node distance=2.2cm,
+    phase/.style={rectangle, draw=secblue!80, fill=secblue!8, very thick, rounded corners=6pt, align=center, inner sep=10pt, font=\small\bfseries, minimum width=3.8cm, minimum height=1.6cm},
+    arrow/.style={-{Stealth[length=3mm]}, very thick, draw=secblue!90},
+    feedback/.style={-{Stealth[length=3mm]}, thick, dashed, draw=secred!80}
+]
+    % Nodes in circular / diamond arrangement
+    \node[phase] (framing) {1. Risk Framing\\\normalfont\footnotesize(Ambito, Metriche, Vincoli,\\Risk Appetite)};
+    \node[phase, right=3.0cm of framing] (assess) {2. Risk Assessment\\\normalfont\footnotesize(Minacce, Vulnerabilità,\\Impatti e Probabilità)};
+    \node[phase, below=2.4cm of assess] (respond) {3. Risk Response\\\normalfont\footnotesize(Scelta Contromisure,\\Mitigazione/Trasferimento)};
+    \node[phase, below=2.4cm of framing] (monitor) {4. Risk Monitoring\\\normalfont\footnotesize(Verifica Efficacia Controlli,\\ISCM, Audit Continuo)};
+
+    % Forward Cycle
+    \draw[arrow] (framing) -- node[above, font=\footnotesize\itshape] {definisce regole} (assess);
+    \draw[arrow] (assess) -- node[right, font=\footnotesize\itshape] {fornisce profilo} (respond);
+    \draw[arrow] (respond) -- node[below, font=\footnotesize\itshape] {implementa difese} (monitor);
+    \draw[arrow] (monitor) -- node[left, font=\footnotesize\itshape] {aggiorna contesto} (framing);
+
+    % Feedback loops
+    \draw[feedback] (monitor) -- node[above right, font=\footnotesize\itshape, text=secred!90] {nuove vulnerabilità} (assess);
+
+\end{tikzpicture}
+\caption{Il ciclo di vita ricorsivo del Risk Management Framework (NIST SP 800-39). La fase di Monitoring garantisce la reattività continua rialimentando le fasi di Framing e Assessment.}
+\label{fig:rmf_cycle}
+\end{figure}
+
+Nella declinazione operativa specifica per i sistemi informativi delineata dal NIST SP 800-37 Rev. 2, questo ciclo viene ulteriormente declinato in sette passi esecutivi:
+\begin{enumerate}
+    \item \textbf{Prepare:} attività preparatorie a livello sia aziendale che di singolo sistema;
+    \item \textbf{Categorize:} categorizzazione del sistema e delle informazioni elaborate in base all'impatto sulla sicurezza (secondo FIPS 199);
+    \item \textbf{Select:} selezione della baseline iniziale dei controlli di sicurezza (NIST SP 800-53) e personalizzazione (\textit{tailoring});
+    \item \textbf{Implement:} implementazione dei controlli selezionati all'interno dell'architettura;
+    \item \textbf{Assess:} collaudo e accertamento che i controlli siano implementati correttamente e raggiungano i risultati desiderati;
+    \item \textbf{Authorize:} autorizzazione formale all'operatività del sistema rilasciata dall'autorità designata (\textit{Authorizing Official}). Questo passo ha una valenza giuridica e manageriale decisiva: il vertice aziendale convalida la postura di sicurezza e \textbf{accetta formalmente il rischio residuo} per tutte quelle situazioni in cui si è deciso di non implementare mitigazioni ulteriori perché il rischio è stato valutato come tollerabile o non economicamente conveniente da ridurre;
+    \item \textbf{Monitor:} monitoraggio continuo della postura di sicurezza e dell'efficacia dei controlli.
+\end{enumerate}
+
+% =========================================================================
+% SEZIONE 1.6: VULNERABILITY ASSESSMENT
+% =========================================================================
+\section{Vulnerability assessment}
+\label{sec:vulnerability_assessment}
+
+Il \textbf{Vulnerability Assessment (VA)} è un processo tecnico strutturato volto a identificare, quantificare e classificare l'esposizione di un'infrastruttura informatica alle vulnerabilità note di sicurezza, focalizzandosi prevalentemente sui servizi di rete e sui sistemi host.
+
+È fondamentale evidenziare che il Vulnerability Assessment \textbf{non costituisce una fase autonoma o alternativa} dell'RMF; esso rappresenta bensì un'attività tecnica specifica, strumentale e subordinata, che si colloca come una sottofase operativa del \textbf{Risk Assessment}. Mentre il Risk Assessment valuta l'impatto strategico, i rischi legali, gli aspetti economici e la probabilità complessiva legata alle motivazioni degli aggressori, il Vulnerability Assessment produce l'inventario tecnico grezzo delle vulnerabilità (CVE) presenti sui singoli componenti digitali.
+
+Il processo di Vulnerability Assessment si articola in quattro fasi sequenziali:
+
+\begin{enumerate}
+    \item \textbf{Planning (Pianificazione):} Definizione rigorosa dei parametri operativi dell'attività:
+    \begin{itemize}
+        \item \textit{Scope (Perimetro):} identificazione esatta dei target autorizzati (intervalli di indirizzi IP, sottoreti, singoli host, domini o applicazioni web), escludendo esplicitamente sistemi terzi o nodi mission-critical incompatibili con lo scanning;
+        \item \textit{Schedule (Tempistica):} definizione delle finestre temporali di esecuzione (tipicamente durante orari notturni o festivi a basso traffico per prevenire disservizi o saturazione di banda);
+        \item \textit{Regole di ingaggio (\textit{Rules of Engagement}):} autorizzazione formale e scritta rilasciata dai vertici aziendali che legittima l'attività di scansione, specificando se condurre scansioni dall'esterno del perimetro o dall'interno della rete locale.
+    \end{itemize}
+    
+    \item \textbf{Information Gathering (Raccolta Informazioni e Host Discovery):} Acquisizione della topologia di rete e individuazione degli host attivi. Per ciascun target, l'obiettivo primario è determinare il sistema operativo installato e la versione esatta dei servizi in ascolto, elemento indispensabile per correlare le vulnerabilità note. Le tecniche di \textit{Host Discovery} comprendono:
+    \begin{itemize}
+        \item \textbf{ARP Request Scanning:} utilizzato esclusivamente nelle reti locali (Layer 2) per mappare gli indirizzi MAC associati a ciascun IP attivo in modo istantaneo e non bloccabile;
+        \item \textbf{ICMP Echo Request (Ping):} invio di pacchetti ICMP Tipo 8. Spesso inefficace o parziale poiché i moderni firewall e i sistemi operativi (es. Windows Firewall) bloccano di default le risposte ICMP;
+        \item \textbf{TCP SYN Ping:} trasmissione di pacchetti TCP con flag SYN impostato verso porte standard note (es. 80, 443, 445); la ricezione di un SYN/ACK (porta aperta) o di un RST (porta chiusa) attesta che l'host è attivo indipendentemente dai filtri ICMP;
+        \item \textbf{UDP Probe:} invio di pacchetti UDP su porte specifiche (es. 53 DNS, 161 SNMP); l'assenza di risposte o la ricezione di un ICMP Port Unreachable conferma la raggiungibilità del nodo.
+    \end{itemize}
+    
+    \item \textbf{Scanning (Scansione Attiva delle Vulnerabilità):} Esecuzione dei test tecnici sulle macchine rilevate. Si suddivide in sotto-tecniche specializzate:
+    \begin{itemize}
+        \item \textbf{Port Scanning:} scansione delle porte TCP e UDP per determinare lo stato di ciascun endpoint. Secondo la classificazione convenzionale:
+        \begin{itemize}
+            \item \textit{Open (Aperta):} un servizio o un'applicazione è attivamente in ascolto sulla porta e risponde accettando connessioni (ad es. risponde con SYN/ACK a un probe SYN);
+            \item \textit{Closed (Chiusa):} la porta è raggiungibile ma nessun servizio è in ascolto; l'host risponde inviando immediatamente un pacchetto TCP con flag RST (\textit{Reset});
+            \item \textit{Filtered (Filtrata):} lo scanner non è in grado di determinare se la porta sia aperta o chiusa poiché le sonde vengono bloccate e scartate (\textit{dropped}) silenziosamente da un firewall o da un dispositivo di filtraggio intermedio, senza generare alcuna risposta o restituendo errori ICMP di tipo \textit{Destination Unreachable (Communication Administratively Prohibited)}.
+        \end{itemize}
+        
+        \item \textbf{OS Detection (Fingerprinting del Sistema Operativo):} Gli scanner identificano il sistema operativo e spesso il numero esatto di build/kernel analizzando la risposta dello stack TCP/IP alle sonde. Poiché ogni sistema operativo (Linux, Windows, macOS, FreeBSD, Cisco IOS) implementa la suite di protocolli con minime discrepanze euristiche, lo scanner esamina parametri quali il valore iniziale del TTL (\textit{Time-To-Live}), la dimensione della finestra di ricezione (\textit{TCP Window Size}), la presenza del flag \textit{DF (Don't Fragment)}, l'ordine delle opzioni TCP e il comportamento anomalo di risposta a pacchetti malformati o flag incoerenti (es. scansioni FIN, Xmas o Null).
+        
+        \item \textbf{TCP Sequence Predictability Classification:} Lo scanner tenta di analizzare la sequenza di numeri casuali generati dal sistema operativo bersaglio per popolare il campo \textit{Initial Sequence Number (ISN)} nelle connessioni TCP. Se il generatore di numeri pseudocasuali (PRNG) del kernel è difettoso o presenta una predicibilità statistica, un attaccante remoto potrebbe ricostruire la sequenza ed eseguire con successo attacchi di \textbf{IP Spoofing} e \textbf{TCP Connection Hijacking} alla cieca (inviando pacchetti manipolati senza vedere le risposte legittime).
+        
+        \item \textbf{Vulnerability Matching:} Interrogazione dei servizi tramite \textit{banner grabbing} e invio di payload dedicati non distruttivi per verificare l'effettiva presenza di CVE note sul software identificato.
+    \end{itemize}
+    
+    \item \textbf{Report (Stesura del Documento Conclusivo):} Elaborazione di un report esaustivo che non si limita a elencare le vulnerabilità riscontrate, ma le prioritizza in funzione della severità (CVSS) e dell'impatto sul business, formulando proposte strutturate di mitigazione e contromisure secondo tre gradazioni operative:
+    \begin{itemize}
+        \item \textit{La soluzione migliore:} la correzione architetturale ideale e completa (es. riscrittura del modulo o upgrade del sistema operativo);
+        \item \textit{La soluzione più conveniente:} contromisura a basso costo ed esecuzione immediata (es. applicazione di una regola di blocco sul firewall perimetrale o modifica di un parametro di configurazione);
+        \item \textit{La soluzione suggerita (\textit{raccomandata}):} il miglior compromesso pratico tra efficacia protettiva, costi operativi e tempi di fermo macchina.
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Strumenti di vulnerability assessment}
+\label{subsec:va_tools}
+
+L'esecuzione manuale del Vulnerability Assessment su infrastrutture composte da centinaia o migliaia di host risulterebbe impraticabile. Esistono pertanto software dedicati in grado di automatizzare integralmente le fasi di discovery, port scanning, associazione delle vulnerabilità e stesura dei report. I principali strumenti adottati nel settore comprendono:
+
+\begin{itemize}
+    \item \textbf{Nmap (Network Mapper):} Strumento da riga di comando (CLI) universale, open-source e potentissimo, impiegato sia da amministratori di sistema per fini difensivi sia da aggressori informatici per condurre attività di ricognizione preliminare. Nmap supporta decine di modalità di scansione (SYN Stealth Scan, Connect Scan, UDP Scan, idle zombie scan) ed è equipaggiato con il motore \textbf{NSE (Nmap Scripting Engine)}, che consente di eseguire script scritti in Lua per automatizzare verifiche di vulnerabilità specifiche e fingerprinting avanzato. Sebbene la documentazione sia vastissima e lo strumento rimanga imbattibile per analisi mirate e personalizzate, Nmap non è progettato come piattaforma integrata enterprise: genera report grezzi o disorganizzati e richiede la stesura di script personalizzati per orchestrare scansioni complesse e distribuite su molteplici segmenti di rete.
+    
+    \item \textbf{GVM (Greenbone Vulnerability Management / OpenVAS):} Soluzione open-source leader per l'automazione dello scanning in ambienti aziendali complessi. GVM combina le attività di host discovery, vulnerability scanning e reporting avanzato in un'unica piattaforma integrata e centralizzata. La versione community (\textit{Greenbone Community Feed}) è liberamente accessibile, ma per accedere ai bollettini delle vulnerabilità più recenti rilasciate nelle ultime 24-48 ore o per testare specifici applicativi commerciali per sistemi non-Linux è richiesta la sottoscrizione del feed commerciale a pagamento (\textit{Greenbone Enterprise Feed}). L'azienda produttrice commercializza inoltre \textit{appliance} hardware e macchine virtuali preconfigurate per semplificare l'integrazione nelle architetture enterprise.
+    
+    \item \textbf{Nessus (Tenable):} Storicamente lo scanner di vulnerabilità più diffuso al mondo, originariamente sviluppato come progetto open-source e gratuito. In seguito, la società proprietaria (Tenable) ne ha chiuso il codice sorgente, trasformandolo in un software commerciale a pagamento (pur consentendo un'installazione gratuita limitata a 16 indirizzi IP per scopi didattici o domestici). Fu proprio la chiusura del codice di Nessus a determinare la nascita di OpenVAS come fork comunitario della base di codice libera. A differenza delle primissime versioni storiche, che includevano funzionalità per lanciare direttamente exploit con un semplice click, le versioni moderne di Nessus e dei suoi fork hanno disabilitato qualsiasi funzione di attacco automatico per impedire l'utilizzo improprio o incidenti catastrofici innescati da \textit{script kiddies}\footnote{Con il termine dispregiativo \textit{script kiddy} si indicano individui con competenze tecniche superficiali o nulle che utilizzano strumenti e payload automatizzati sviluppati da altri per sferrare attacchi, ignorando completamente i meccanismi interni dell'exploit e le conseguenze collaterali sui sistemi bersaglio.}. Nessus offre una gestione centralizzata e reportistica di conformità (\textit{compliance}) di altissimo livello.
+    
+    \item \textbf{Acunetix:} Soluzione commerciale proprietaria altamente specializzata nell'analisi di vulnerabilità delle applicazioni web (\textit{DAST --- Dynamic Application Security Testing}). Dotata di interfacce grafiche estremamente rifinite, crawler avanzati per ambienti JavaScript single-page application (SPA) e motori di correlazione per la rilevazione di vulnerabilità OWASP (SQLi, XSS, CSRF, SSRF), a fronte di costi di licenza significativi.
+\end{itemize}
+
+\subsubsection{Architettura dettagliata di GVM / OpenVAS}
+Per comprendere il funzionamento di uno scanner di vulnerabilità aziendale, in Figura~\ref{fig:gvm_architecture} viene dettagliata l'architettura modulare di \textbf{Greenbone Vulnerability Management (GVM / OpenVAS)}.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.6cm and 1.8cm,
+    corebox/.style={rectangle, draw=secblue!90, fill=secblue!10, very thick, rounded corners=4pt, align=center, inner sep=8pt, font=\small\bfseries},
+    auxbox/.style={rectangle, draw=secgreen!80, fill=secgreen!8, thick, rounded corners=3pt, align=center, inner sep=6pt, font=\small},
+    scannerbox/.style={rectangle, draw=secorange!90, fill=secorange!10, thick, rounded corners=3pt, align=center, inner sep=6pt, font=\small},
+    targetbox/.style={rectangle, draw=secgray!80, fill=secgray!8, thick, rounded corners=3pt, align=center, inner sep=6pt, font=\small},
+    feedbox/.style={cylinder, shape border rotate=90, draw=secpurple!80, fill=secpurple!8, thick, aspect=0.25, align=center, inner sep=6pt, font=\small\bfseries},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=secgray!90},
+    proto/.style={font=\footnotesize\ttfamily, fill=white, inner sep=2pt}
+]
+    % Central Manager
+    \node[corebox] (gvm) {\textbf{Greenbone Vulnerability Manager}\\\textbf{(GVM Daemon)}\\\footnotesize Coordinatore e Database Scansioni};
+    
+    % Web Assistant (Top)
+    \node[auxbox, above=of gvm] (gsa) {\textbf{Greenbone Security Assistant (GSA)}\\\footnotesize Web Server \& Interfaccia Utente (Browser / REST)};
+    
+    % Feed (Left)
+    \node[feedbox, left=of gvm] (feed) {Greenbone\\Community\\Feed (GCF)};
+    
+    % Scanner (Right)
+    \node[scannerbox, right=of gvm] (osp) {\textbf{OpenVAS Scanner}\\\footnotesize(Esecuzione NVT in NASL)};
+    
+    % Targets (Far Right)
+    \node[targetbox, right=of osp] (targets) {\textbf{Sistemi Bersaglio}\\\footnotesize(Server, Switch, Endpoint)};
+    
+    % Python Client (Bottom)
+    \node[auxbox, below=of gvm] (client) {\textbf{GMP Client / Script Python}\\\footnotesize(\texttt{python-gvm} / API Automazione)};
+
+    % Connections
+    \draw[arrow] (gsa) -- node[proto] {GMP (via HTTPS)} (gvm);
+    \draw[arrow] (feed) -- node[proto, above] {Aggiorna NVT} (gvm);
+    \draw[arrow] (gvm) -- node[proto, above] {OSP} (osp);
+    \draw[arrow] (osp) -- node[proto, above] {Test di Rete} (targets);
+    \draw[arrow] (client) -- node[proto] {GMP / OMP} (gvm);
+
+\end{tikzpicture}%
+}
+\caption{Architettura modulare di Greenbone Vulnerability Management (GVM / OpenVAS). I componenti cooperano tramite protocolli standardizzati (GMP, OSP) separando l'interfaccia utente, la logica di orchestrazione e il motore di scansione sul campo.}
+\label{fig:gvm_architecture}
+\end{figure}
+
+L'architettura di GVM si basa sulla cooperazione tra entità disaccoppiate:
+\begin{enumerate}
+    \item \textbf{OpenVAS Scanner:} È il componente responsabile dell'esecuzione materiale dei test di vulnerabilità sul campo. Esso invia sonde di rete e analizza le risposte degli host. Affinché i risultati non vengano alterati o bloccati dai filtri intermedi dei firewall, gli scanner devono essere opportunamente posizionati all'interno della stessa sottorete degli asset o attestati su porte span/mirror di rete. I singoli test eseguiti dallo scanner sono denominati \textbf{NVT (Network Vulnerability Tests)}, scritti nel linguaggio dedicato \textbf{NASL (Nessus Attack Scripting Language)}.
+    \item \textbf{Greenbone Community Feed (GCF):} È il repository costantemente aggiornato da cui lo scanner attinge l'elenco dei test NVT e le definizioni delle vulnerabilità più recenti.
+    \item \textbf{Open Scanner Protocol (OSP):} Protocollo aperto e standardizzato basato su XML/REST che consente al manager di comunicare e orchestrare non solo gli scanner OpenVAS nativi, ma qualsiasi scanner di terze parti compatibile con la specifica.
+    \item \textbf{Greenbone Vulnerability Manager (GVM):} È il demone centrale e motore logico dell'intera infrastruttura. Gestisce l'inventario degli asset, pianifica e distribuisce i task di scansione verso gli scanner OSP, raccoglie i risultati grezzi, li correla con il database delle vulnerabilità e calcola i punteggi di severità complessivi memorizzandoli nel database relazionale (PostgreSQL).
+    \item \textbf{Greenbone Security Assistant (GSA):} È il server web che espone un'interfaccia grafica interattiva accessibile tramite browser, oltre a rendere disponibili le API REST per gli utenti. Da qui è possibile creare task di scansione, configurare le credenziali per scansioni autenticate e generare report in formato PDF, CSV o XML.
+    \item \textbf{Greenbone Management Protocol (GMP):} Protocollo di gestione (evoluzione del precedente OMP) che regola la comunicazione cifrata e sicura tra l'interfaccia GSA, i client remoti e il manager centrale.
+    \item \textbf{Client Programmatici (Python GVM):} Oltre all'interfaccia web, tutte le funzionalità di GVM sono accessibili programmaticamente tramite librerie software dedicate (es. \texttt{python-gvm}). Questo consente di integrare lo scanning di vulnerabilità direttamente nelle pipeline di Continuous Integration e Continuous Deployment (\textit{CI/CD}), avviando scansioni automatiche e bloccando il deployment di immagini o container se emergono vulnerabilità ad alto rischio.
+\end{enumerate}
+
+% =========================================================================
+% SEZIONE 1.7: VALUTAZIONE DEL RISCHIO
+% =========================================================================
+\section{Valutazione del rischio}
+\label{sec:valutazione_rischio}
+
+La quantificazione del rischio informatico è indispensabile per stabilire un ordine razionale di priorità negli interventi di protezione. L'obiettivo ultimo rimane la riduzione dei rischi entro una soglia di tolleranza concordata mediante l'applicazione mirata di mitigazioni.
+
+La letteratura di sicurezza (in particolare NIST SP 800-30 e ISO/IEC 27005) identifica tre aspetti fondamentali per valutare il rischio associato a un evento avverso:
+\begin{itemize}
+    \item \textbf{Il danno massimo (e medio) derivante dalla manifestazione del rischio:} parametro cardine che stima le conseguenze peggiori e più probabili in caso di compromissione, quantificando le perdite sia finanziarie che operative a carico degli asset coinvolti;
+    \item \textbf{I tempi di recupero (\textit{Recovery Time}) della piena funzionalità:} metrica essenziale per stimare i costi indiretti causati dal blocco della produzione, dai mancati guadagni (\textit{business disruption}) e dall'inoperosità dei dipendenti;
+    \item \textbf{La probabilità di accadimento (\textit{Likelihood}):} la stima della frequenza o della verosimiglianza che l'evento negativo si verifichi, consentendo di distinguere rischi concreti e ricorrenti da fenomeni teorici con probabilità trascurabile che possono essere razionalmente accettati.
+\end{itemize}
+
+\subsection{Tipologie metodologiche di valutazione}
+A seconda dei dati disponibili, degli obiettivi di governance e del livello di dettaglio richiesto, la valutazione può essere condotta secondo tre approcci metodologici:
+
+\begin{enumerate}
+    \item \textbf{Valutazione Quantitativa (Approccio Quantitativo):} Ad ogni rischio viene associato un numero, ad esempio come risultato del calcolo di una formula deterministica. In passato si è fatto largo uso dell'approccio della \textbf{monetization} (o monetizzazione), che proponeva di associare un costo ai rischi invece di un punteggio numerico astratto. Di solito, questo punteggio monetario indicava il valore medio (e spesso anche quello massimo) associato al rischio, considerando sia il danno che la probabilità di accadimento. Tale approccio è stato proposto per rendere la valutazione immediatamente comprensibile a chi, a livello di business e consiglio di amministrazione, doveva decidere se finanziare spese e investimenti per la mitigazione dei rischi informatici.
+    
+    Il modello classico della monetizzazione si basa sulle seguenti equazioni formali:
+    \begin{equation}
+        \mathbf{SLE} = \mathbf{AV} \times \mathbf{EF}
+    \end{equation}
+    dove:
+    \begin{itemize}
+        \item $\mathbf{AV}$ (\textit{Asset Value}): valore economico complessivo dell'asset espresso in valuta (\euro);
+        \item $\mathbf{EF}$ (\textit{Exposure Factor}): fattore percentuale ($0 \le EF \le 1$) che quantifica la quota di valore dell'asset distrutta o persa a seguito del singolo evento dannoso;
+        \item $\mathbf{SLE}$ (\textit{Single Loss Expectancy}): la perdita economica attesa derivante da un singolo incidente.
+    \end{itemize}
+    
+    A partire dallo SLE si calcola l'aspettativa di perdita su base annuale:
+    \begin{equation}
+        \mathbf{ALE} = \mathbf{SLE} \times \mathbf{ARO}
+    \end{equation}
+    dove:
+    \begin{itemize}
+        \item $\mathbf{ARO}$ (\textit{Annualized Rate of Occurrence}): frequenza stimata di accadimento dell'evento negativo nell'arco di un anno solare (es. un evento che si manifesta in media ogni 4 anni ha un $ARO = 0.25$; un evento atteso due volte l'anno ha un $ARO = 2.0$);
+        \item $\mathbf{ALE}$ (\textit{Annualized Loss Expectancy}): la perdita annua complessiva attesa espressa in \euro/anno.
+    \end{itemize}
+    
+    L'ALE consente di effettuare valutazioni economiche rigorose sul \textbf{Return on Security Investment (ROSI)}: l'adozione di un controllo di sicurezza risulta economicamente giustificata se e solo se il costo annuo di implementazione e mantenimento della contromisura ($C_{\text{control}}$) è inferiore alla riduzione netta dell'ALE conseguita:
+    \begin{equation}
+        \Delta \mathbf{ALE} = \mathbf{ALE}_{\text{pre}} - \mathbf{ALE}_{\text{post}} - C_{\text{control}} > 0
+    \end{equation}
+    
+    Anche se i numeri ottenuti vengono rappresentati con molta precisione, va ricordato che tali valori devono essere valutati unicamente in termini di \textbf{ordini di grandezza} (un punteggio o un costo di 5.55 non indica un rischio davvero maggiore di un altro valutato 5.33, mentre è sicuramente più basso di un rischio valutato 112.34). I numeri ottenuti dall'approccio quantitativo sono spesso ingannevoli e creano una falsa illusione di esattezza matematica, data l'enorme varianza insita nella stima dell'ARO e degli impatti intangibili.
+    
+    \item \textbf{Valutazione Qualitativa (Approccio Qualitativo):} I rischi vengono associati a un numero limitato di categorie descrittive ordinate (es. tre valori ordinati del tipo \textit{low}, \textit{moderate}, \textit{high}) sulla base dell'esperienza euristica degli analisti, senza calcoli numerici espliciti. È un metodo rapido e di facile comunicazione verso il management, ma risente di una marcata soggettività.
+    
+    \item \textbf{Valutazione Semi-Quantitativa (Approccio Semi-Quantitativo):} Rappresenta il modello preferito nella pratica aziendale contemporanea: i rischi vengono associati a valori numerici discreti indicativi di categorie qualitative (ad esempio la scala ordinata $1 = \text{low}$, $2 = \text{moderate}$, $3 = \text{high}$, o matrici $5 \times 5$). Questo approccio unisce l'intuitività delle categorie qualitative con il vantaggio pratico di poter lavorare con i numeri, rendendo possibile definire delle formule matematiche combinatorie:
+    \begin{equation}
+        \mathbf{Rischio} = \mathbf{Probabilit\grave{a} \ (Likelihood)} \times \mathbf{Impatto \ (Impact)}
+    \end{equation}
+\end{enumerate}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[scale=0.88]
+    % Axes
+    \draw[-{Stealth[length=2.5mm]}, thick] (0,0) -- (6.5,0) node[right, font=\small\bfseries] {Impatto (Impact)};
+    \draw[-{Stealth[length=2.5mm]}, thick] (0,0) -- (0,6.5) node[above, font=\small\bfseries] {Probabilità (Likelihood)};
+
+    % Matrix cells
+    % Row 1 (Likelihood = 1)
+    \node[fill=green!20, minimum width=1.1cm, minimum height=1.1cm] at (1,1) {1};
+    \node[fill=green!20, minimum width=1.1cm, minimum height=1.1cm] at (2,1) {2};
+    \node[fill=yellow!25, minimum width=1.1cm, minimum height=1.1cm] at (3,1) {3};
+    \node[fill=yellow!25, minimum width=1.1cm, minimum height=1.1cm] at (4,1) {4};
+    \node[fill=orange!35, minimum width=1.1cm, minimum height=1.1cm] at (5,1) {5};
+
+    % Row 2 (Likelihood = 2)
+    \node[fill=green!20, minimum width=1.1cm, minimum height=1.1cm] at (1,2) {2};
+    \node[fill=yellow!25, minimum width=1.1cm, minimum height=1.1cm] at (2,2) {4};
+    \node[fill=yellow!25, minimum width=1.1cm, minimum height=1.1cm] at (3,2) {6};
+    \node[fill=orange!35, minimum width=1.1cm, minimum height=1.1cm] at (4,2) {8};
+    \node[fill=orange!35, minimum width=1.1cm, minimum height=1.1cm] at (5,2) {10};
+
+    % Row 3 (Likelihood = 3)
+    \node[fill=yellow!25, minimum width=1.1cm, minimum height=1.1cm] at (1,3) {3};
+    \node[fill=yellow!25, minimum width=1.1cm, minimum height=1.1cm] at (2,3) {6};
+    \node[fill=orange!35, minimum width=1.1cm, minimum height=1.1cm] at (3,3) {9};
+    \node[fill=orange!35, minimum width=1.1cm, minimum height=1.1cm] at (4,3) {12};
+    \node[fill=red!35, minimum width=1.1cm, minimum height=1.1cm] at (5,3) {15};
+
+    % Row 4 (Likelihood = 4)
+    \node[fill=yellow!25, minimum width=1.1cm, minimum height=1.1cm] at (1,4) {4};
+    \node[fill=orange!35, minimum width=1.1cm, minimum height=1.1cm] at (2,4) {8};
+    \node[fill=orange!35, minimum width=1.1cm, minimum height=1.1cm] at (3,4) {12};
+    \node[fill=red!35, minimum width=1.1cm, minimum height=1.1cm] at (4,4) {16};
+    \node[fill=red!45, minimum width=1.1cm, minimum height=1.1cm] at (5,4) {20};
+
+    % Row 5 (Likelihood = 5)
+    \node[fill=orange!35, minimum width=1.1cm, minimum height=1.1cm] at (1,5) {5};
+    \node[fill=orange!35, minimum width=1.1cm, minimum height=1.1cm] at (2,5) {10};
+    \node[fill=red!35, minimum width=1.1cm, minimum height=1.1cm] at (3,5) {15};
+    \node[fill=red!45, minimum width=1.1cm, minimum height=1.1cm] at (4,5) {20};
+    \node[fill=red!60, minimum width=1.1cm, minimum height=1.1cm] at (5,5) {25};
+
+    % Ticks and Labels on X Axis (Impact)
+    \draw (1, 0.1) -- (1, -0.1);
+    \draw (2, 0.1) -- (2, -0.1);
+    \draw (3, 0.1) -- (3, -0.1);
+    \draw (4, 0.1) -- (4, -0.1);
+    \draw (5, 0.1) -- (5, -0.1);
+
+    \node[below=5pt, font=\scriptsize, align=right, rotate=30, anchor=north east] at (1, 0) {1 -- Insignificante};
+    \node[below=5pt, font=\scriptsize, align=right, rotate=30, anchor=north east] at (2, 0) {2 -- Minore};
+    \node[below=5pt, font=\scriptsize, align=right, rotate=30, anchor=north east] at (3, 0) {3 -- Moderato};
+    \node[below=5pt, font=\scriptsize, align=right, rotate=30, anchor=north east] at (4, 0) {4 -- Grave};
+    \node[below=5pt, font=\scriptsize, align=right, rotate=30, anchor=north east] at (5, 0) {5 -- Critico};
+
+    % Ticks and Labels on Y Axis (Likelihood)
+    \draw (0.1, 1) -- (-0.1, 1);
+    \draw (0.1, 2) -- (-0.1, 2);
+    \draw (0.1, 3) -- (-0.1, 3);
+    \draw (0.1, 4) -- (-0.1, 4);
+    \draw (0.1, 5) -- (-0.1, 5);
+
+    \node[left=4pt, font=\scriptsize] at (0, 1) {1: Raro};
+    \node[left=4pt, font=\scriptsize] at (0, 2) {2: Improbabile};
+    \node[left=4pt, font=\scriptsize] at (0, 3) {3: Possibile};
+    \node[left=4pt, font=\scriptsize] at (0, 4) {4: Probabile};
+    \node[left=4pt, font=\scriptsize] at (0, 5) {5: Frequente};
+
+    % Legend
+    \node[draw, fill=green!20, inner sep=3pt, right, font=\scriptsize] at (7.0, 5.0) {Basso (1--2): Accettabile};
+    \node[draw, fill=yellow!25, inner sep=3pt, right, font=\scriptsize] at (7.0, 4.2) {Medio (3--6): Tollerabile con monitoraggio};
+    \node[draw, fill=orange!35, inner sep=3pt, right, font=\scriptsize] at (7.0, 3.4) {Alto (8--12): Mitigazione prioritaria};
+    \node[draw, fill=red!45, inner sep=3pt, right, font=\scriptsize] at (7.0, 2.6) {Critico (15--25): Intervento immediato};
+
+\end{tikzpicture}
+\caption{Matrice di Rischio Semi-Quantitativa $5 \times 5$ (Likelihood vs. Impact). L'obiettivo non è la precisione decimale assoluta (non si misura la velocità della luce), bensì la categorizzazione per fasce di priorità di intervento rispetto alla soglia di tolleranza aziendale.}
+\label{fig:matrice_rischio_5x5}
+\end{figure}
+
+\subsection{I tre approcci di analisi del NIST SP 800-30}
+Il documento NIST SP 800-30 formalizza tre percorsi di analisi, che si differenziano unicamente per il punto di partenza dell'indagine:
+
+\begin{enumerate}
+    \item \textbf{Threat-Oriented (Orientato alle Minacce):} Si parte dalla profilazione degli avversari e degli agenti di minaccia (\textit{Threat Agents}), analizzandone competenze tecniche, motivazioni psicologiche ed economiche, budget a disposizione e TTP note. A partire da tale caratterizzazione si deducono le operazioni ostili che gli aggressori sarebbero in grado di lanciare (\textit{Threat Events}) e con quale probabilità. Da qui si esamina quali vulnerabilità e debolezze (\textit{Predisposing Conditions}) presenti nell'infrastruttura verrebbero colpite, calcolando l'impatto tecnico sui sistemi e trasformandolo in danno organizzativo. È l'approccio cardine raccomandato dal NIST per valutare sia i controlli già in essere sia quelli da selezionare.
+    
+    \item \textbf{Asset-Oriented / Impact-Oriented (Orientato agli Asset e all'Impatto):} Si parte dalla mappatura degli asset più critici per l'organizzazione (\textit{mission/business-critical}) e si valutano le conseguenze catastrofiche derivanti dalla perdita della loro confidenzialità, integrità o disponibilità. Successivamente, si identificano a ritroso le minacce che potrebbero avere interesse a colpirli e le vulnerabilità che potrebbero facilitare l'attacco, stimando le probabilità complessive. Questo approccio è concettualmente equivalente a quello threat-oriented, pur procedendo in senso inverso nel grafo delle dipendenze, ed è particolarmente adatto a organizzazioni con asset strategici ben identificabili.
+    
+    \item \textbf{Vulnerability-Oriented (Orientato alle Vulnerabilità):} È un approccio semplificato e parziale che prende avvio direttamente dall'elenco delle vulnerabilità rilevate dagli strumenti di Vulnerability Assessment o dalle CVE note. Utilizzando parametri oggettivi come CVSS ed EPSS, valuta l'\textit{exploitability} per stimare probabilità e conseguenze tecniche. Chi adotta unicamente questo approccio omette spesso di analizzare se esistano attori concretamente interessati a colpire quel target o quali siano le motivazioni reali. Per questa ragione, pur risultando un metodo economico, veloce e diffuso, è considerato accademica mente \textbf{più approssimativo, naif e privo di profondità strategica} rispetto ai due precedenti.
+\end{enumerate}
+
+\subsection{Framework di Threat Intelligence e Tassonomie di Sicurezza}
+Per supportare la modellazione delle minacce e l'identificazione delle difese, la comunità internazionale ha sviluppato solide basi di conoscenza aperte:
+\begin{itemize}
+    \item \textbf{MITRE ATT\&CK (\textit{Adversarial Tactics, Techniques, and Common Knowledge}):} È una knowledge base universale basata su evidenze empiriche del mondo reale che descrive il comportamento degli aggressori attraverso una matrice di \textbf{14 tattiche operative} che coprono l'intero ciclo di vita di un attacco avanzato (dall'\textit{Initial Access} all'\textit{Execution}, \textit{Persistence}, \textit{Privilege Escalation}, \textit{Defense Evasion}, \textit{Credential Access}, fino al \textit{Lateral Movement} e all'\textit{Exfiltration}). Ciascuna tattica aggrega centinaia di tecniche e sotto-tecniche documentate con esempi concreti e correlata a \textbf{CAPEC} (\textit{Common Attack Pattern Enumeration and Classification}).
+    \item \textbf{MITRE D3FEND:} Ontologia e knowledge graph complementare ad ATT\&CK che modella formalmente le \textbf{contromisure difensive}. D3FEND definisce centinaia di tecniche di mitigazione (articolate in categorie: \textit{Model, Detect, Isolate, Deceive, Evict}) e le collega formalmente agli specifici artefatti digitali e vettori di attacco neutralizzati.
+    \item \textbf{ENISA Threat Landscape (ETL):} Report annuale pubblicato dall'agenzia europea per la sicurezza delle reti e dell'informazione, che mappa le minacce emergenti nello spazio cibernetico europeo (Ransomware, attacchi alla supply-chain, disinformazione, violazione dei dati) fornendo dati statistici cruciali per guidare la fase di framing aziendale.
+    \item \textbf{OWASP Top 10:} Pubblicata periodicamente dall'Open Web Application Security Project, elenca le 10 classi di vulnerabilità più critiche riscontrate nelle applicazioni web (e recentemente nei Large Language Models). L'edizione \textbf{OWASP Top 10 (2025)} censisce:
+    \begin{enumerate}[label={A\arabic*:{2025} --}]
+        \item \textit{Broken Access Control}
+        \item \textit{Security Misconfiguration}
+        \item \textit{Software Supply Chain Failures}
+        \item \textit{Cryptographic Failures}
+        \item \textit{Injection}
+        \item \textit{Insecure Design}
+        \item \textit{Authentication Failures}
+        \item \textit{Software or Data Integrity Failures}
+        \item \textit{Security Logging and Alerting Failures}
+        \item \textit{Mishandling of Exceptional Conditions}
+    \end{enumerate}
+    OWASP formalizza inoltre una \textbf{Risk Rating Methodology} semi-qualitativa basata sul prodotto $\text{Likelihood} \times \text{Impact}$, in cui la Likelihood è scomposta nei fattori dell'Agente di Minaccia (Skill level, Motive, Opportunity, Size) e della Vulnerabilità (Ease of discovery, Ease of exploit, Awareness, Intrusion detection), mentre l'Impact è declinato in fattori Tecnici (perdita di C/I/A e accountability) e fattori di Business (impatto finanziario, danno reputazionale, violazione normativa e privacy).
+\end{itemize}
+
+\subsection{Le quattro strategie di trattamento del rischio}
+Una volta completata la valutazione e stimato il profilo di rischio per ciascuno scenario, l'organizzazione deve decidere formalmente quale strategia di trattamento (\textit{Risk Treatment}) adottare, scegliendo tra quattro opzioni codificate da NIST e ISO 27005:
+
+\begin{enumerate}
+    \item \textbf{Mitigazione (o Riduzione del Rischio --- \textit{Risk Mitigation}):} È la strategia primaria: consiste nell'introdurre controlli di sicurezza tecnici, architetturali o procedurali volti a ridurre la probabilità che la vulnerabilità venga sfruttata (es. installando firewall, applicando patch, abilitando l'autenticazione a più fattori) oppure a limitare le conseguenze dell'impatto (es. predisponendo copie di backup isolate off-line, ridondanza di rete o piani di continuità operativa).
+    
+    \item \textbf{Trasferimento (o Condivisione del Rischio --- \textit{Risk Transfer}):} Consiste nel condividere o trasferire l'onere finanziario delle conseguenze dell'attacco verso una terza parte. Si realizza tipicamente attraverso la stipula di una \textbf{polizza assicurativa sul rischio cibernetico (\textit{Cyber Insurance})} oppure mediante la sottoscrizione di contratti di esternalizzazione (\textit{outsourcing}) con fornitori cloud certificati corredati da rigorosi accordi di livello di servizio (SLA) che prevedono penali economiche in caso di disservizio. È fondamentale comprendere che il trasferimento non elimina la vulnerabilità tecnica, ma assicura una copertura finanziaria a fronte del danno subito.
+    
+    \item \textbf{Evitamento (o Annullamento del Rischio --- \textit{Risk Avoidance}):} Consiste nell'eliminare alla radice l'attività, la funzionalità o il sistema che genera il rischio inaccettabile. Ad esempio, se un'applicazione web obsoleta presenta vulnerabilità critiche strutturali non correggibili tramite patch e la sua esposizione su Internet comporta un rischio sproporzionato, l'organizzazione sceglie di dismettere completamente l'applicazione o di disattivarne l'accesso pubblico, azzerando l'esposizione.
+    
+    \item \textbf{Accettazione del Rischio (\textit{Risk Acceptance}):} Consiste nella decisione formale e consapevole di non implementare alcuna contromisura aggiuntiva, accettando le conseguenze nel caso in cui l'evento avverso dovesse verificarsi. L'accettazione è una scelta legittima e razionale se e solo se:
+    \begin{itemize}
+        \item Il rischio stimato si colloca al di sotto della soglia aziendale di tolleranza (\textit{rischio trascurabile});
+        \item Il costo economico e operativo della contromisura supera ampiamente il danno finanziario atteso provocato dall'attacco ($C_{\text{control}} \gg \mathbf{ALE}$).
+    \end{itemize}
+    L'accettazione deve essere esplicitamente formalizzata, motivata e firmata dai vertici aziendali (\textit{Risk Owner}), escludendo categoricamente l'ignoranza negligente del problema.
+\end{enumerate}
+
+% =========================================================================
+% SEZIONE 1.8: VULNERABILITY MANAGEMENT E PATCH MANAGEMENT
+% =========================================================================
+\section{Vulnerability management e patch management}
+\label{sec:vulnerability_patch_management}
+
+Il \textbf{Vulnerability Management} è il processo aziendale permanente e continuo volto a governare il ciclo di vita delle vulnerabilità con l'obiettivo ultimo di \textbf{minimizzare la Window of Exposure}.
+
+Il processo muove dalla consapevolezza ingegneristica che il software conterrà inevitabilmente debolezze strutturali e vulnerabilità note; pertanto, la sicurezza di un'organizzazione non si misura dall'illusione dell'assenza di bug, bensì dalla rapidità, efficienza e sistematicità con cui tali difetti vengono rilevati, prioritizzati ed eliminati prima che gli avversari possano sfruttarli.
+
+Nel documento \textbf{NIST IR 8011 Vol. 4} (\textit{Automation Support for Security Control Assessments}), il NIST propone di formalizzare questo processo attraverso il continuo confronto tra due stati:
+\begin{itemize}
+    \item \textbf{Desired State (Stato Desiderato):} Definisce la soglia massima tollerabile di esposizione alle vulnerabilità formalizzata dalle policy aziendali. È caratterizzato da metriche vincolanti, quali il numero massimo ammissibile di vulnerabilità non corrette per ciascuna classe di CVSS (es. zero vulnerabilità critiche con $\text{CVSS} \ge 9.0$; al massimo 5 vulnerabilità con $\text{CVSS} \ge 7.0$) e la durata massima consentita del ciclo di remediation (ad es. obbligo inderogabile di installare le patch per vulnerabilità critiche entro 72 ore dalla pubblicazione);
+    \item \textbf{Actual State (Stato Reale Effettivo):} Rappresenta la reale postura di sicurezza dell'infrastruttura, costantemente censita tramite strumenti di scansione e monitoraggio continuo (\textbf{Information Security Continuous Monitoring --- ISCM}).
+\end{itemize}
+
+Lo scostamento tra lo stato effettivo e quello desiderato costituisce il driver operativo che guida gli interventi di bonifica.
+
+All'interno di questo quadro generale, il \textbf{Patch Management} costituisce il processo operativo specifico di identificazione, acquisizione, collaudo, installazione e verifica dell'avvenuta applicazione delle patch, degli aggiornamenti e degli upgrade di sicurezza in tutta l'infrastruttura. Il documento di riferimento cardine della disciplina è il \textbf{NIST SP 800-40 Rev. 4} (\textit{Guide to Enterprise Patch Management Planning: Preventive Maintenance for Technology}).
+
+\subsection{Ruoli e strategie di patch management}
+\label{subsec:ruoli_strategie_patch}
+
+Il NIST SP 800-40 sottolinea che ogni compito di sicurezza essenziale richiede l'attribuzione di responsabilità precise a personale dedicato, formalizzando una netta differenziazione tra chi sviluppa il software e chi lo gestisce in produzione:
+
+\begin{itemize}
+    \item \textbf{Software Flaw Manager (SFM):} Ruolo operativo istituito presso le organizzazioni che \textbf{sviluppano, commercializzano o mantengono software}. È ricoperto da figure con profonda esperienza nello sviluppo e nella sicurezza del codice. Le sue responsabilità comprendono:
+    \begin{itemize}
+        \item Coordinare i processi di scoperta interna delle debolezze mediante audit del codice, analisi statica (SAST), dinamica (DAST) e programmi di \textit{Bug Bounty};
+        \item Ricevere, verificare e validare le segnalazioni di vulnerabilità provenienti da ricercatori esterni tramite canali di \textit{Responsible Disclosure};
+        \item Supervisionare lo sviluppo tecnico delle patch correttive, assicurando che eliminino la causa radice senza alterare le interfacce legittime né introdurre nuove regressioni;
+        \item Stabilire la priorità di rilascio dei fix in base alla severità del rischio e all'impatto sugli utenti finali;
+        \item Comunicare tempestivamente con clienti, enti di standardizzazione (MITRE) e comunità di sicurezza tramite bollettini e advisory ufficiali.
+    \end{itemize}
+    
+    \item \textbf{Patch Manager (PM):} Ruolo istituito presso le organizzazioni che \textbf{utilizzano software e gestiscono infrastrutture IT}. Ha il compito di coordinare tutte le attività connesse all'integrazione e all'applicazione delle patch nell'ambiente operativo. Le sue responsabilità comprendono:
+    \begin{itemize}
+        \item Monitorare costantemente i feed di sicurezza, i bollettini dei fornitori e le fonti di threat intelligence per intercettare l'emissione di nuove patch;
+        \item Valutare l'applicabilità e la compatibilità effettiva degli aggiornamenti rispetto al parco macchine aziendale e ai relativi sistemi operativi;
+        \item Prioritizzare gli interventi integrando indicatori di gravità intrinseca (CVSS), probabilità di attacco reale (EPSS), presenza nel catalogo CISA KEV e criticità dell'asset per il business;
+        \item Pianificare e coordinare sessioni di collaudo accurato in ambienti di staging e pre-produzione per certificare l'assenza di malfunzionamenti prima del rilascio globale;
+        \item Orchestrare il rollout in produzione minimizzando il fermo dei servizi e mantenendo l'inventario aggiornato dello stato di aggiornamento;
+        \item Gestire formalmente le eccezioni operative, prescrivendo controlli compensativi (es. isolamento di rete o regole WAF) qualora una patch non possa essere immediatamente applicata a sistemi legacy o mission-critical.
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Le quattro strategie di deployment del NIST}
+La necessità di conciliare la tempestività protettiva con la stabilità operativa impone l'adozione di quattro strategie di alto livello raccomandate dal NIST:
+
+\begin{enumerate}
+    \item \textbf{Subsets (Distribuzione Incrementale su Sottoinsiemi Pilota):} Consiste nel suddividere il parco macchine aziendale in categorie omogenee e, all'interno di ciascuna categoria, selezionare un piccolo campione pilota rappresentativo a cui distribuire prioritariamente la patch (\textit{canary deployment}). L'obiettivo è verificare la compatibilità sul campo e intercettare tempestivamente comportamenti anomali o instabilità prima di propagare l'aggiornamento all'intera flotta di macchine, confinando il raggio d'azione di eventuali patch difettose.
+    
+    \item \textbf{Standard First (Priorità ai Sistemi Standard):} Raccomanda di applicare le patch primariamente sui sistemi con configurazioni standardizzate, omogenee e ben documentate (es. workstation aziendali standard, server web replicati). Questi nodi costituiscono la maggior parte dell'infrastruttura, sono facilmente riproducibili in ambienti di test e consentono di abbattere l'esposizione al rischio sul maggior numero di dispositivi nel minor tempo possibile con uno sforzo operativo ridotto.
+    
+    \item \textbf{Difficult Ones Later (Gestione Differita dei Sistemi Complessi e Legacy):} I sistemi legacy, gli apparati industriali (SCADA/ICS), i dispositivi medicali connessi o i server che ospitano software datato con delicate dipendenze architetturali non possono essere aggiornati in modo indiscriminato. Questi ambienti vengono affrontati al termine del rollout, pianificando collaudi manuali specialistici, predisponendo piani di rollback dettagliati e attivando misure di sicurezza compensative a livello perimetrale se l'aggiornamento diretto risulta impraticabile.
+    
+    \item \textbf{Cover All (Copertura Esaustiva di Tutti gli Endpoint):} Questa direttiva strategica impone di non tralasciare alcuna categoria di dispositivo connesso. Gli aggressori penetrano frequentemente attraverso nodi considerati marginali o secondari (macchine virtuali dimenticate, ambienti di test/dev, dispositivi mobili BYOD, apparati IoT, interfacce firmware e switch di rete) per muoversi lateralmente verso gli asset più preziosi. Un programma di patching è efficace solo se esteso all'intero inventario senza eccezioni non presidiate.
+\end{enumerate}
+
+\subsection{Affidabilità delle patch e problematiche operative}
+\label{subsec:affidabilita_patch}
+
+Sebbene l'applicazione tempestiva delle patch sia un imperativo di sicurezza, il processo di patching è esso stesso portatore di significativi rischi operativi. Una patch introduce modifiche a basso livello nel codice o nel kernel, potendo innescare:
+\begin{itemize}
+    \item \textbf{Incompatibilità software:} rottura di dipendenze su specifiche versioni di librerie condivise da applicativi aziendali proprietari;
+    \item \textbf{Regressioni funzionali:} introduzione involontaria di bug che compromettono servizi precedentemente operativi;
+    \item \textbf{Degradazione delle prestazioni:} calo dell'efficienza computazionale (come documentato per le patch KPTI per Meltdown);
+    \item \textbf{Instabilità e crash del sistema operativo:} blocco catastrofico (\textit{kernel panic} o BSOD) di server essenziali.
+\end{itemize}
+
+\subsubsection{Casi studio emblematici di disastri da patching}
+L'esempio più devastante della storia informatica recente è l'\textbf{incidente CrowdStrike del 19 luglio 2024}. Un aggiornamento automatico difettoso del driver del sensore di sicurezza \textit{Falcon} distribuito a livello kernel su milioni di endpoint Windows in tutto il mondo ha provocato una dereferenziazione di puntatore nullo non gestita, innescando una schermata blu (\textit{Blue Screen of Death} --- BSOD) irreversibile e ciclica su oltre 8,5 milioni di sistemi. L'incidente ha paralizzato aeroporti internazionali, banche, servizi ospedalieri di pronto soccorso e catene logistiche globali per giorni, evidenziando la pericolosità estrema dell'assenza di controlli di validazione e di deployment scaglionato a gruppi pilota (\textit{staged rollout}).
+
+Un altro precedente storico significativo è rappresentato da \textbf{Apple iOS 8.0.1 (settembre 2014)}: una patch distribuita per correggere bug minori conteneva un errore che ha disattivato la connettività cellulare e il sensore biometrico TouchID su tutti i dispositivi iPhone 6, costringendo il vendor al ritiro d'urgenza dell'aggiornamento a poche ore dal rilascio.
+
+\subsection{Evoluzione del modello di rilascio: dalle patch singole alle aggregated patch}
+Storicamente, i fornitori di software rilasciavano patch singole ad-hoc non appena una specifica vulnerabilità veniva corretta. Questo approccio determinava gravi criticità:
+\begin{itemize}
+    \item Sovraccarico operativo ingestibile per i sistemisti;
+    \item Continua interruzione di servizio legata ai frequenti riavvii macchina;
+    \item Moltiplicazione esponenziale dei costi e dei tempi di testing in pre-produzione;
+    \item Elevato rischio di conflitti di dipendenza incrociata tra aggiornamenti successivi.
+\end{itemize}
+
+Per razionalizzare il processo, l'industria ha adottato il modello delle \textbf{Aggregated Patch (o Patch Bundle)}, che raggruppa decine di correzioni di sicurezza in un unico rilascio cumulativo a cadenza temporale periodica e prevedibile. Il caso di riferimento è il \textbf{Microsoft Patch Tuesday}, che fissa la distribuzione degli aggiornamenti cumulativi di sicurezza al secondo martedì di ogni mese.
+
+I benefici di questo modello risiedono nella programmabilità delle finestre di manutenzione, nella riduzione dei riavvii e nella garanzia che il vendor abbia testato congiuntamente l'interazione tra tutte le patch incluse nel bundle. Lo svantaggio risiede tuttavia nell'allungamento forzato della Window of Exposure per le vulnerabilità corrette internamente dal vendor che attendono la data prefissata per essere divulgate; per mitigare questo limite, i produttori mantengono canali straordinari per il rilascio immediato \textit{Out-of-Band (OOB)} di aggiornamenti di emergenza destinati a vulnerabilità critiche attivamente sfruttate nel mondo reale.
+
+\subsection{Enterprise Patch Management tools (EPM)}
+Gli \textbf{Enterprise Patch Management (EPM) Tools} sono piattaforme software centralizzate che automatizzano e orchestrano il ciclo di vita del patching su larga scala (tra cui Microsoft WSUS/MECM, Red Hat Satellite, VMware vCenter Update Manager, ManageEngine Patch Manager, e soluzioni moderne cloud-native come NinjaOne e Automox). Essi forniscono discovery automatica, distribuzione remota di pacchetti, pianificazione granulare delle finestre di riavvio, reportistica di conformità e rollback automatizzato.
+
+\subsubsection{I rischi sistemici intrinseci degli strumenti EPM}
+Paradossalmente, l'adozione di una piattaforma EPM centralizzata introduce essa stessa rischi di sicurezza sistemici di massima gravità:
+\begin{itemize}
+    \item \textbf{Single Point of Failure (SPOF) e canale privilegiato di attacco:} Il server EPM comunica con un agente software installato su ciascun computer dell'infrastruttura ed esegue comandi con i massimi privilegi di sistema (SYSTEM su Windows, root su Linux). Se un gruppo di attaccanti riesce a compromettere il server EPM centrale, ottiene un vettore d'attacco devastante per distribuire simultaneamente ransomware o backdoor crittografate su tutti i nodi aziendali, trasformando uno strumento di difesa nel più efficace moltiplicatore di compromissione;
+    \item \textbf{Compromissione delle credenziali privilegiate:} Le chiavi crittografiche o le credenziali di amministrazione dell'EPM consentono il controllo totale della rete;
+    \item \textbf{Avvelenamento della catena di fornitura (\textit{Supply Chain Poisoning}):} L'intercettazione dei canali di update o la compromissione del repository delle patch consente la distribuzione di aggiornamenti contraffatti;
+    \item \textbf{Il paradosso metaricorsivo (\textit{<<Chi controlla il controllore?>>}):} Anche il server EPM e i relativi agenti software sono composti da codice e presentano vulnerabilità che devono essere monitorate e corrette tempestivamente.
+\end{itemize}
+
+\subsubsection{Linee guida di hardening NIST per gli EPM}
+Per contrastare queste minacce, il NIST raccomanda l'applicazione obbligatoria delle seguenti misure di hardening sui sistemi EPM:
+\begin{enumerate}
+    \item \textbf{Isolamento architetturale e micro-segmentazione:} Collocazione del server EPM all'interno di una VLAN di gestione dedicata, protetta da firewall e inaccessibile dalla rete aziendale ordinaria o da Internet;
+    \item \textbf{Autenticazione a più fattori (MFA):} Obbligatoria per qualunque accesso amministrativo alla console di gestione dell'EPM;
+    \item \textbf{Verifica crittografica dell'integrità e dell'autenticità:} Verifica rigorosa delle firme digitali e dei checksum crittografici SHA-256 dei pacchetti di aggiornamento prima della loro immissione nel repository;
+    \item \textbf{Segregazione dei privilegi e Least Privilege:} Limitazione delle autorizzazioni degli agenti al minimo indispensabile per il deployment dei file;
+    \item \textbf{Auditing continuo e logging immutabile:} Tracciamento dettagliato di tutte le attività operative su server di log centralizzati e protetti da manomissione (WORM);
+    \item \textbf{Deployment a blocchi scaglionati (\textit{Staged Deployment}):} Divieto assoluto di rollout simultaneo dell'intera rete, imponendo il passaggio forzato attraverso gruppi pilota e ambienti di test.
+\end{enumerate}
+
+L'analisi costi-benefici condotta dal NIST conclude inequivocabilmente che, se protetti attraverso le suddette misure di hardening, gli strumenti EPM rappresentano una necessità non negoziabile per le moderne organizzazioni, poiché i vantaggi derivanti dalla chiusura rapida e automatizzata della Window of Exposure superano ampiamente i rischi residuali.
+
+\end{document}

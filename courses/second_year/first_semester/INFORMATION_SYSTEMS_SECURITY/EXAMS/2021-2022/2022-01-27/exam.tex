@@ -1,0 +1,291 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm}
+\usepackage{amsmath,amssymb}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    citecolor=blue!70!black,
+    urlcolor=teal!70!black
+}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!10},
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{green!50!black}\itshape,
+    stringstyle=\color{red!70!black}
+}
+
+\newtcolorbox{questionbox}[1][]{
+    colback=gray!5!white,
+    colframe=gray!60!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{solutionbox}[1][]{
+    colback=blue!5!white,
+    colframe=blue!70!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{altbox}[1][]{
+    colback=orange!5!white,
+    colframe=orange!80!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\begin{document}
+
+\title{\textbf{Sicurezza dei Sistemi Informativi} \\ \large Appello d'Esame del 27 Gennaio 2022 \\ \small Anno Accademico 2021-2022}
+\author{Politecnico di Torino --- Docente: Prof. Cataldo Basile}
+\date{2022-01-27}
+\maketitle
+
+
+\section{Testo Ufficiale dell'Esame}
+
+\begin{questionbox}[Domanda 1: Authenticated Encryption]
+Spiegare cosa \`e l'Authenticated Encryption, quali motivazioni hanno portato alla sua introduzione e quali problematiche di sicurezza risolve rispetto all'uso disgiunto di cifratura simmetrica e codici di integrit\`a (MAC). Descrivere brevemente le modalit\`a operative pi\`u diffuse (es. GCM, CCM).
+\end{questionbox}
+
+\begin{questionbox}[Domanda 2: TLS Handshake Protocol]
+Descrivere dettagliatamente le fasi del protocollo di Handshake di TLS (con riferimento a TLS 1.2 e relative evoluzioni in TLS 1.3). Spiegare come avviene lo scambio di chiavi, l'autenticazione del server (ed eventualmente del client) e come viene garantita la Perfect Forward Secrecy (PFS).
+\end{questionbox}
+
+\begin{questionbox}[Domanda 3: Principi di Protezione del Software]
+Spiegare i principi cardine della protezione del software e il modello Man-at-the-End (MATE). Illustrare le principali tecniche difensive, tra cui l'offuscamento del codice, le tecniche di anti-tampering, il watermarking e i limiti intrinseci di tali approcci.
+\end{questionbox}
+
+\begin{questionbox}[Domanda 4: Standard ISO/SAE 21434]
+Descrivere che cos'\`e lo standard ISO/SAE 21434 (Road Vehicles --- Cybersecurity Engineering), quali sono i suoi obiettivi principali, come si inserisce nel ciclo di vita dello sviluppo del veicolo e cosa prevede il framework TARA (Threat Analysis and Risk Assessment).
+\end{questionbox}
+
+\begin{questionbox}[Domanda 5: Autenticazione mediante Crittografia Simmetrica (CRA)]
+Spiegare il funzionamento dei protocolli di autenticazione Challenge-Response basati su crittografia simmetrica. Evidenziare vantaggi e svantaggi di questo approccio, con particolare riguardo alla gestione e distribuzione delle chiavi segrete, alla scalabilit\`a e alla propriet\`a di non ripudio.
+\end{questionbox}
+
+\begin{questionbox}[Domanda 6: Esercizio di Progettazione Firewall]
+Data una rete aziendale composta da una sottorete interna (Client), una DMZ con server pubblici (Web Server e Mail Server) e l'interfaccia verso Internet, definire la politica di sicurezza e compilare la tabella delle regole di filtraggio per un packet filter stateful nei seguenti scenari:
+\begin{enumerate}[label=\alph*.]
+    \item I client interni possono navigare liberamente sul Web (HTTP/HTTPS) verso Internet.
+    \item Gli utenti da Internet possono raggiungere il Web Server aziendale (TCP 80/443) nella DMZ.
+    \item Il Mail Server nella DMZ pu\`o scambiare posta (SMTP TCP 25) con server di posta esterni su Internet.
+    \item I client interni possono accedere alla posta aziendale (IMAP su TLS TCP 993) sul Mail Server della DMZ.
+    \item Nessun host da Internet o dalla DMZ pu\`o avviare connessioni dirette verso la sottorete dei client interni.
+    \item Regola di Default Drop per tutto il traffico non esplicitamente autorizzato.
+\end{enumerate}
+\end{questionbox}
+
+\begin{questionbox}[Domanda 7: Social Engineering: Phishing e Pharming]
+Definire e confrontare Phishing e Pharming, spiegando i meccanismi di attacco utilizzati dagli avversari (spoofing, DNS cache poisoning, manomissione host file). Indicare un esempio concreto di scenario di Social Engineering e proporre contromisure tecnologiche e organizzative.
+\end{questionbox}
+
+\newpage
+\section{Soluzione Dettagliata e Guida Risolutiva}
+
+\begin{solutionbox}[Soluzione Domanda 1: Authenticated Encryption (AEAD)]
+\textbf{Definizione e Motivazioni:}
+Tradizionalmente, confidenzialit\`a e integrit\`a venivano applicate combinando in modo indipendente un algoritmo di cifratura simmetrica (es. AES in modalit\`a CBC) e un Message Authentication Code (es. HMAC). Questa separazione ha introdotto storicamente gravi vulnerabilit\`a note come \textit{padding oracle attacks} (es. attacco di Vaudenay), soprattutto quando implementata con l'approccio \textit{MAC-then-Encrypt} (utilizzato originariamente in SSL/TLS) o \textit{Encrypt-and-MAC} (SSH). Solo l'approccio \textit{Encrypt-then-MAC} risultava formalmente provabile come sicuro contro attacchi ad injection e chosen-ciphertext (IND-CCA2).
+
+Per eliminare questi errori di composizione e migliorare le prestazioni computazionali, \`e stato standardizzato il paradigma \textbf{AEAD (Authenticated Encryption with Associated Data)}:
+\begin{itemize}
+    \item Un singolo algoritmo crittografico gestisce contestualmente sia la cifratura del payload (confidenzialit\`a) sia il calcolo del tag di autenticazione (integrit\`a e autenticit\`a).
+    \item Consente l'inclusione di \textit{Associated Data (AD)}: metadati (come header IP, numeri di sequenza, flag di protocollo) che devono essere autenticati e protetti da manomissione ma trasmessi in chiaro per consentire l'instradamento di rete.
+\end{itemize}
+
+\textbf{Modalit\`a Principali:}
+\begin{enumerate}
+    \item \textbf{AES-GCM (Galois/Counter Mode)}: Combina la modalit\`a Counter (CTR) per la cifratura a flusso parallela con l'autenticazione tramite moltiplicazione nel campo di Galois $\text{GF}(2^{128})$ (GHASH). \`E estremamente efficiente e parallelizzabile sia in software che tramite istruzioni hardware dedicate (AES-NI, CLMUL). Richiede che il nonce non venga mai riutilizzato sotto la stessa chiave.
+    \item \textbf{AES-CCM (Counter with CBC-MAC)}: Combina la modalit\`a CTR per la cifratura con un CBC-MAC per l'autenticazione. \`E sequenziale e richiede due passaggi sul blocco di dati, ma \`e ampiamente adottato in standard wireless a risorse limitate (es. IEEE 802.11i / WPA2).
+    \item \textbf{ChaCha20-Poly1305}: Stream cipher ChaCha20 combinato con l'autenticatore a una via Poly1305. Ottimale per dispositivi privi di accelerazione hardware per AES.
+\end{enumerate}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 2: TLS Handshake Protocol]
+\textbf{Fasi di TLS 1.2:}
+\begin{enumerate}
+    \item \textbf{ClientHello}: Il client invia la versione massima supportata di TLS, una sequenza casuale $R_C$ (32 byte), la lista delle ciphersuite supportate (es. \texttt{TLS\_ECDHE\_RSA\_WITH\_AES\_128\_GCM\_SHA256}) e le estensioni (es. SNI, curve ellittiche supportate).
+    \item \textbf{ServerHello}: Il server risponde selezionando la versione del protocollo, invia il proprio nonce casuale $R_S$ e la ciphersuite prescelta.
+    \item \textbf{Certificate}: Il server invia la propria catena di certificati X.509 per consentire al client di validare la sua identit\`a tramite la catena di fiducia fino a una Root CA trusted.
+    \item \textbf{ServerKeyExchange} (richiesto in DHE/ECDHE): Il server invia i parametri effimeri di Diffie-Hellman ($g, p, g^b \pmod p$ oppure la curva ellittica e il punto pubblico $B = b \cdot G$) firmati con la propria chiave privata (es. RSA o ECDSA). Questa firma garantisce l'autenticit\`a dei parametri effimeri.
+    \item \textbf{ServerHelloDone}: Notifica la fine della fase di negoziazione iniziale da parte del server.
+    \item \textbf{ClientKeyExchange}: Il client verifica la firma del server, valida il certificato, genera il proprio parametro effimero ($g^a$ oppure $A = a \cdot G$) e lo trasmette al server. Entrambe le parti calcolano il segreto condiviso \textit{Pre-Master Secret} ($PMS = g^{ab} \pmod p$).
+    \item \textbf{Derivazione Chiavi}: Tramite una Pseudo-Random Function (PRF) basata su HMAC-SHA256, viene calcolato il \textit{Master Secret}:
+    \[
+    MS = \text{PRF}(PMS, \text{"master secret"}, R_C \parallel R_S)
+    \]
+    Dal Master Secret vengono derivate le chiavi di sessione simmetriche per client e server (chiavi di cifratura, IV e MAC).
+    \item \textbf{ChangeCipherSpec \& Finished}: Entrambe le parti si scambiano il messaggio crittografato \texttt{Finished}, che contiene un hash verificato di tutti i messaggi scambiati nell'handshake, prevenendo attacchi di man-in-the-middle e downgrade attack.
+\end{enumerate}
+
+\textbf{Perfect Forward Secrecy (PFS):}
+L'uso di chiavi effimere (DHE / ECDHE) garantisce che la compromissione futura della chiave privata a lungo termine del server (es. la chiave RSA usata per il certificato) non permetta a un attaccante di decifrare il traffico storicamente registrato, poich\'e i parametri effimeri $a$ e $b$ vengono distrutti dalla memoria volatile al termine della sessione.
+
+\textbf{Differenze con TLS 1.3:}
+In TLS 1.3 il round-trip time viene ridotto da 2-RTT a 1-RTT (o 0-RTT con Early Data). Vengono rimosse le ciphersuite statiche e obsolete (RSA static key exchange, CBC, RC4, 3DES, SHA-1). L'algoritmo di scambio chiavi \`e obbligatoriamente effimero (ECDHE/DHE), integrando la generazione chiavi fin dal primo messaggio (\texttt{ClientHello key\_share}).
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 3: Protezione del Software e Modello MATE]
+\textbf{Il Modello Man-at-the-End (MATE):}
+A differenza del classico modello di rete Man-in-the-Middle (in cui l'attaccante intercetta un canale tra due endpoint fidati), nel modello MATE l'attaccante ha il possesso fisico e il controllo totale della piattaforma su cui il software viene eseguito. L'attaccante pu\`o agire con privilegi di amministratore/root, utilizzare debugger (GDB, x64dbg), disassemblatori/decompiler (IDA Pro, Ghidra), monitorare la memoria, modificare registri e file binari.
+
+\textbf{Tecniche Difensive:}
+\begin{itemize}
+    \item \textbf{Offuscamento del Codice}: Trasforma il codice sorgente o binario in una forma equivalente dal punto di vista semantico ma estremamente complessa da comprendere e analizzare.
+    \begin{itemize}
+        \item \textit{Control Flow Flattening}: Trasforma la struttura a blocchi e cicli in un unico grande switch governato da una variabile di stato cifrata.
+        \item \textit{Predicati Opachi (Opaque Predicates)}: Inserimento di rami condizionali il cui esito logico \`e staticamente noto al compilatore ma indecidibile per un analizzatore statico.
+        \item \textit{String \& Instruction Encryption}: Cifratura di stringhe critiche e frammenti di codice decifrati solo al momento dell'esecuzione (just-in-time).
+    \end{itemize}
+    \item \textbf{Anti-Tampering}: Meccanismi di auto-controllo dell'integrit\`a dell'eseguibile (es. calcolo di checksum a runtime della sezione \texttt{.text}), rilevamento di breakpoint software (\texttt{0xCC}), controlli anti-debugging (es. flag \texttt{IsDebuggerPresent}, \texttt{ptrace(PT\_DENY\_ATTACH)}).
+    \item \textbf{Software Watermarking}: Inserimento di una firma o identificativo univoco nascosto nella struttura logica o nei pattern di istruzioni del software per tracciare la propriet\`a intellettuale o identificare la sorgente di leak illegali.
+    \item \textbf{White-Box Cryptography}: Tecniche matematiche per incorporare chiavi crittografiche direttamente all'interno delle tabelle di lookup e trasformazioni dell'algoritmo (es. White-Box AES), evitando che la chiave possa essere estratta leggendo la memoria.
+\end{itemize}
+\textit{Limite fondamentale}: Nessuna tecnica puramente software pu\`o garantire protezione assoluta nel modello MATE (teorema di Barak et al. sull'impossibilit\`a dell'offuscamento virtual black-box perfetto); l'obiettivo ingegneristico \`e aumentare il costo e il tempo dell'attacco fino a renderlo non economicamente conveniente.
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 4: Standard ISO/SAE 21434]
+\textbf{Inquadramento e Obiettivi:}
+Lo standard \textbf{ISO/SAE 21434} (Road vehicles --- Cybersecurity engineering) \`e lo standard di riferimento internazionale che disciplina l'ingegneria della sicurezza informatica per i veicoli stradali (automotive). Il suo obiettivo primario \`e garantire che la sicurezza informatica sia considerata come un requisito ingegneristico integrato lungo tutto il ciclo di vita del veicolo: dalla concezione, progettazione, produzione, funzionamento e manutenzione (OTA updates), fino al decommissioning.
+
+\textbf{Il Framework TARA (Threat Analysis and Risk Assessment):}
+\`E la metodologia prescritta dallo standard per identificare e quantificare i rischi di sicurezza informatica. Si articola nei seguenti passi:
+\begin{enumerate}
+    \item \textit{Asset Identification}: Identificazione degli asset (ECU, bus CAN, gateway telematici, sensori ADAS) e delle relative propriet\`a di sicurezza (Confidenzialit\`a, Integrit\`a, Disponibilit\`a, Autenticit\`a).
+    \item \textit{Threat Scenario Identification}: Mappatura dei possibili scenari di minaccia (es. iniezione di messaggi spoofati sul bus CAN tramite porta OBD-II o infotainment compromesso).
+    \item \textit{Impact Rating}: Valutazione delle conseguenze dell'attacco secondo i criteri SFOP (Safety, Financial, Operational, Privacy).
+    \item \textit{Vulnerability Analysis \& Attack Path Analysis}: Identificazione delle vulnerabilit\`a e dei percorsi di attacco necessari per sfruttarle.
+    \item \textit{Attack Feasibility Rating}: Valutazione della fattibilit\`a dell'attacco basata su tempo richiesto, competenze specialistiche, conoscenza del target, finestre di opportunit\`a e attrezzature necessarie.
+    \item \textit{Risk Determination \& Treatment}: Calcolo del livello di rischio complessivo e determinazione della strategia di mitigazione (riduzione, accettazione, trasferimento, evitamento).
+\end{enumerate}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 5: Autenticazione Challenge-Response Simmetrica (CRA)]
+\textbf{Funzionamento del Protocollo:}
+\begin{enumerate}
+    \item L'entit\`a verificatrice $V$ (es. server) genera un valore non predicibile $R$ (\textit{nonce} o challenge casuale) e lo invia all'entit\`a richiedente $C$ (client).
+    \item $C$ calcola la risposta crittografica applicando una funzione $F$ con la chiave segreta condivisa $K$:
+    \[
+    \text{Response} = F(K, R) \quad \text{oppure} \quad \text{Response} = \text{HMAC}_K(R) \quad \text{oppure} \quad E_K(R)
+    \]
+    \item $C$ invia la risposta a $V$.
+    \item $V$ calcola autonomamente il valore atteso $F(K, R)$ e lo confronta con la risposta ricevuta. Se coincidono, l'identit\`a di $C$ \`e autenticata.
+\end{enumerate}
+
+\textbf{Vantaggi:}
+\begin{itemize}
+    \item \textit{Efficienza computazionale}: Si avvale di primitive simmetriche (AES, SHA-256, HMAC), molto pi\`u veloci rispetto alle operazioni asimmetriche a chiave pubblica (RSA, ECC).
+    \item \textit{Resistenza al Replay Attack}: Il nonce fresco generato ad ogni sessione impedisce all'attaccante di riutilizzare pacchetti intercettati in precedenza.
+    \item La password o chiave a lungo termine non viaggia mai in chiaro sul canale di comunicazione.
+\end{itemize}
+
+\textbf{Svantaggi e Limiti:}
+\begin{itemize}
+    \item \textit{Distribuzione e Gestione delle Chiavi}: Ciascuna coppia di entit\`a necessita di una chiave segreta distinta. In una rete con $N$ nodi, sono necessarie $\frac{N(N-1)}{2} = O(N^2)$ chiavi condivise, creando problemi di scalabilit\`a a meno di non introdurre un centro di distribuzione di fiducia (KDC come in Kerberos).
+    \item \textit{Compromissione del Verifier}: Il server deve memorizzare la chiave segreta $K$ di tutti gli utenti in chiaro (o in forma reversibile). La compromissione del database del server compromette immediatamente l'intero sistema.
+    \item \textit{Assenza di Non-Ripudio}: Poich\'e entrambe le parti possiedono la stessa chiave $K$, $V$ non pu\`o dimostrare a una terza parte che un messaggio sia stato originato univocamente da $C$, poich\'e $V$ stesso avrebbe potuto forgiarlo.
+\end{itemize}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 6: Regole del Firewall (Packet Filter Stateful)]
+\textbf{Politica di Sicurezza e Architettura DMZ (Screened Subnet):}
+Si adotta una configurazione a tre zone (\textit{Screened Subnet}) mediata da un firewall stateful perimetrale:
+\begin{center}
+\begin{verbatim}
+               +-----------------------+
+               |       INTERNET        |
+               +-----------+-----------+
+                           | eth0 (IP Pubblico)
+              +------------v------------+
+              |    FIREWALL STATEFUL    |
+              |   (Packet Filter L3/L4) |
+              +-----+--------------+----+
+      eth1 (DMZ)    |              | eth2 (LAN Interna)
+   192.168.2.1/24   |              | 192.168.1.1/24
++-------------------v---+      +---v-------------------+
+|      DMZ SUBNET       |      |     LAN INTERNA       |
+|    192.168.2.0/24     |      |    192.168.1.0/24     |
+|                       |      |                       |
+|  [Web Server] .2.10   |      |  [Client 1] .1.101    |
+|  [Mail Server] .2.20  |      |  [Client 2] .1.102    |
++-----------------------+      +-----------------------+
+\end{verbatim}
+\end{center}
+
+\textbf{Subnetting IP e Instradamento:}
+\begin{itemize}
+    \item \textbf{Interfaccia Esterna (\texttt{eth0})}: Collegata al provider Internet (\texttt{0.0.0.0/0}). Applica Source NAT (SNAT/Masquerade) per il traffico originato dai client interni e Destination NAT (DNAT/Port Forwarding) per il Web Server esposto.
+    \item \textbf{DMZ (\texttt{eth1}, \texttt{192.168.2.0/24})}: Gateway \texttt{192.168.2.1}. Ospita i server pubblici isolati: Web Server (\texttt{192.168.2.10}) e Mail Server (\texttt{192.168.2.20}).
+    \item \textbf{LAN Interna (\texttt{eth2}, \texttt{192.168.1.0/24})}: Gateway \texttt{192.168.1.1}. Ospita i client riservati. Non \`e direttamente instradabile n\'e raggiungibile dall'esterno.
+\end{itemize}
+
+\textbf{Tabella delle Regole del Firewall (Default Policy: DROP):}
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{lllllllX}
+\toprule
+\textbf{ID} & \textbf{Dir} & \textbf{Src IP} & \textbf{Dst IP} & \textbf{Proto} & \textbf{Dst Port} & \textbf{Stato} & \textbf{Azione \& Motivazione} \\
+\midrule
+1 & Any & Any & Any & Any & Any & ESTABLISHED, RELATED & \textbf{ACCEPT}: Risposte a connessioni lecite \\
+2 & In/Fwd & 192.168.1.0/24 & Any (Internet) & TCP & 80, 443 & NEW & \textbf{ACCEPT}: Navigazione Web client interni \\
+3 & In/Fwd & Any (Internet) & 192.168.2.10 & TCP & 80, 443 & NEW & \textbf{ACCEPT}: Accesso pubblico al Web Server DMZ \\
+4 & In/Fwd & 192.168.2.20 & Any (Internet) & TCP & 25 & NEW & \textbf{ACCEPT}: Mail server DMZ invia posta esterna \\
+5 & In/Fwd & Any (Internet) & 192.168.2.20 & TCP & 25 & NEW & \textbf{ACCEPT}: Mail server DMZ riceve posta da Internet \\
+6 & In/Fwd & 192.168.1.0/24 & 192.168.2.20 & TCP & 993 & NEW & \textbf{ACCEPT}: Client leggono posta via IMAPS \\
+7 & Any & Any & 192.168.1.0/24 & Any & Any & NEW & \textbf{DROP}: Nessuna nuova connessione verso LAN interna \\
+8 & Any & Any & Any & Any & Any & Any & \textbf{DROP (Default)}: Tutto il resto bloccato \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 7: Phishing, Pharming e Social Engineering]
+\textbf{Definizioni e Meccanismi:}
+\begin{itemize}
+    \item \textbf{Phishing}: Attacco di ingegneria sociale condotto principalmente tramite email, messaggistica istantanea o SMS (Smishing), in cui l'attaccante impersona un'entit\`a fidata (banca, fornitore di servizi, amministrazione aziendale). Il messaggio contiene tipicamente un senso di urgenza e induce la vittima a cliccare su un link fraudolento (che conduce a un sito di spoofing clone) o ad aprire un allegato infetto (malware).
+    \item \textbf{Pharming}: Attacco pi\`u sofisticato e trasparente alla vittima, basato sulla manomissione dei meccanismi di risoluzione dei nomi (DNS). L'attaccante reindirizza il traffico destinato a un dominio legittimo (es. \texttt{banca.it}) verso l'indirizzo IP di un server malevolo controllato dall'attaccante, anche se la vittima digita correttamente l'URL nella barra degli indirizzi del browser. Pu\`o essere perpetrato tramite:
+    \begin{itemize}
+        \item \textit{DNS Cache Poisoning} (es. sfruttando la vulnerabilit\`a di Kaminsky sui server DNS resolver ricorsivi);
+        \item Compromissione del router domestico/aziendale con modifica dei DNS server assegnati via DHCP;
+        \item Modifica locale del file \texttt{hosts} della macchina della vittima mediante malware.
+    \end{itemize}
+\end{itemize}
+
+\textbf{Contromisure Efficaci:}
+\begin{itemize}
+    \item \textit{Tecnologiche}: Autenticazione email forte (SPF, DKIM, DMARC), implementazione di DNSSEC per garantire l'autenticit\`a e integrit\`a delle risposte DNS, certificati digitali e protocollo TLS con controllo HSTS (evita che l'utente accetti certificati falsi), autenticazione a pi\`u fattori (MFA con token FIDO2/WebAuthn resistente al phishing).
+    \item \textit{Organizzative/Umane}: Programmi continui di Security Awareness Training e campagne di simulazione di phishing periodiche.
+\end{itemize}
+\end{solutionbox}
+
+\begin{altbox}[Alternative Implementation Note: Concorrenza e Strutture Dati Rust]
+Nello sviluppo di software di rete sicuro (es. proxy di autenticazione, demone per packet filtering o handler di handshake crittografici), l'approccio idiomatico in Rust prevede l'uso di primitive di concorrenza standard per evitare race condition, data race e garantire la thread-safety garantita a tempo di compilazione:
+\begin{itemize}
+    \item \texttt{std::sync::mpsc::channel}: Canali di comunicazione multi-producer single-consumer per l'invio asincrono di eventi di sicurezza dai worker thread al log collector o al motore di correlazione eventi.
+    \item \texttt{std::sync::RwLock}: Per strutture dati prevalentemente lette (es. tabella delle regole del firewall, whitelist di indirizzi IP, session cache di TLS) che richiedono letture parallele concorrenti senza lock e scrittura esclusiva solo durante gli aggiornamenti.
+    \item \texttt{std::sync::atomic} (\texttt{AtomicUsize}, \texttt{AtomicBool}): Per contatori di performance, metriche di rate-limiting e flag di shutdown senza overhead di bloccaggio del mutex.
+    \item \texttt{std::sync::Arc}: Puntatore a conteggio di riferimenti atomico per condividere contesti di crittografia e trust store X.509 tra thread multipli.
+\end{itemize}
+\end{altbox}
+
+
+\end{document}

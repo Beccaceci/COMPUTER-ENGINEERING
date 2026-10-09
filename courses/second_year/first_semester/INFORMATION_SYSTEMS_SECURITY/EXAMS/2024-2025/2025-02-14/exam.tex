@@ -1,0 +1,280 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm}
+\usepackage{amsmath,amssymb}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    citecolor=blue!70!black,
+    urlcolor=teal!70!black
+}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!10},
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{green!50!black}\itshape,
+    stringstyle=\color{red!70!black}
+}
+
+\newtcolorbox{questionbox}[1][]{
+    colback=gray!5!white,
+    colframe=gray!60!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{solutionbox}[1][]{
+    colback=blue!5!white,
+    colframe=blue!70!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{altbox}[1][]{
+    colback=orange!5!white,
+    colframe=orange!80!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\begin{document}
+
+\title{\textbf{Sicurezza dei Sistemi Informativi} \\ \large Appello d'Esame del 14 Febbraio 2025 \\ \small Anno Accademico 2024-2025}
+\author{Politecnico di Torino --- Docente: Prof. Cataldo Basile}
+\date{2025-02-14}
+\maketitle
+
+
+\section{Testo Ufficiale dell'Esame}
+
+\begin{questionbox}[Parte 1: Quiz Ufficiale su Piattaforma d'Esame]
+Valutare ciascuna delle affermazioni selezionando quelle corrette per ciascun gruppo di quesiti:
+\begin{enumerate}[label=\textbf{1.\arabic*}]
+    \item \textbf{Sicurezza di Rete e Monitoraggio:}
+    \begin{enumerate}[label=\alph*.]
+        \item Un WAF, posto in un gateway in modalit\`a stealth, \`e in grado di filtrare il traffico di applicazioni web anche se queste sono cifrate mediante TLS.
+        \item In un'architettura di tipo \textit{screened host gateway} si pu\`o mascherare la rete interna solo se il router di bordo implementa anche funzioni di NAT.
+        \item Data breach \`e un incidente per cui \`e stato confermato che dei dati sono stati effettivamente rivelati (non solo esposti) a persone non autorizzate.
+        \item Definire quale \`e il traffico autorizzato \`e uno dei problemi principali per la corretta configurazione di un firewall.
+        \item Gli IDS avanzati basati su AI permettono di identificare e reagire alle minacce in maniera efficace.
+        \item Un application-level filter permette di definire regole di autorizzazione pi\`u granulari rispetto ad un packet filter, perch\'e \`e in grado di comprendere la semantica e la sintassi del protocollo che si intende filtrare.
+        \item Un network-based IDS monitora il traffico di una sottorete ma non \`e pensato per identificare attacchi provenienti da Internet.
+        \item In un SOC non dovrebbero esserci esperti di analisi forense, perch\'e lo scopo principale \`e monitorare, identificare ed evitare gli attacchi.
+        \item Un SIEM serve a collezionare e analizzare dati ai fini di monitoring oltre a permettere di generare report utili anche per verifiche di compliance.
+    \end{enumerate}
+
+    \item \textbf{Protocolli di Autenticazione e Controllo Accessi di Rete:}
+    \begin{enumerate}[label=\alph*.]
+        \item PPP serve ad incapsulare pacchetti di livello 3 per trasferimenti punto-punto.
+        \item Per come \`e progettato, EAP richiede frequenti cambiamenti allo standard, in pratica ogni volta che \`e necessario aggiungere un nuovo tipo di autenticazione.
+        \item Le funzioni di sicurezza intrinseche di RADIUS sono insufficienti.
+        \item Il protocollo RADIUS permette di incapsulare messaggi EAP.
+        \item I server RADIUS possono fare da proxy, ma solo verso altri server RADIUS.
+        \item EAP \`e un middleware che permette di usare diversi tipi di autenticazione con diversi tipi di protocolli di comunicazione di livello 2.
+        \item Eduroam richiede una condivisione minima di segreti utenti tra istituzioni federate.
+        \item PAP \`e ancora considerato un metodo di autenticazione valido.
+        \item Se si usa 802.1X, gli AP non devono necessariamente autenticare gli utenti direttamente.
+    \end{enumerate}
+
+    \item \textbf{Identit\`a Digitale e Meccanismi di Autenticazione:}
+    \begin{enumerate}[label=\alph*.]
+        \item Nel Digital Authentication Model del NIST, il Credential Service Provider ha il compito di emettere o registrare le credenziali degli utenti e gli altri attributi ad essi associati.
+        \item Un dictionary attack ha, a parit\`a di tempo a disposizione, una maggiore probabilit\`a di identificare le password degli utenti rispetto ad un approccio a forza bruta, considerando che molti sceglieranno password deboli.
+        \item Un password wallet \`e un esempio semplice ed efficace di Single Sign-On che rispetta tutti i requisiti di un SSO multi-dominio e multi-applicazione.
+        \item In Kerberos, gli Application Server ricevono dal Ticket Granting Server le chiavi degli utenti.
+        \item Il token FIDO2 svolge anche il ruolo di fattore di autenticazione di tipo "possesso".
+        \item L'autenticazione mediante dispositivo personale, nella versione che sfrutta l'inerenza, viene ritenuta molto sicura.
+        \item Un approccio di tipo Zero-Knowledge Proof include anche il caso in cui un Verifier possa fare centinaia di domande ad un Prover prima di garantire l'autenticazione.
+        \item I CRA asimmetrici sono resistenti allo sniffing.
+    \end{enumerate}
+
+    \item \textbf{Infrastruttura a Chiave Pubblica (PKI) e Firme Digitali:}
+    \begin{enumerate}[label=\alph*.]
+        \item L'OCSP mi permette di identificare le firme che non sono valide perch\'e posso capire se il certificato era valido al momento della firma.
+        \item La fiducia nei certificati digitali degli utenti, in realt\`a, dipende dalla fiducia nelle autorit\`a di certificazione che li hanno emessi (se la crittografia \`e forte ed usata correttamente).
+        \item L'algoritmo di Grover render\`a facilmente attaccabili le firme digitali calcolate con gli algoritmi della crittografia classica (es. RSA, DSA).
+        \item Un documento contenente una macro pu\`o essere firmato, ma viene garantita l'integrit\`a e autenticazione del codice della macro stessa, non il risultato di quello che verr\`a calcolato o cambiato sul documento.
+        \item Un certificato X.509 di tipo Diffie-Hellman riporter\`a tre parametri: il numero primo $p$, il generatore $g$ e $g^x \bmod p$, dove $x$ \`e il parametro privato del possessore del certificato.
+        \item Un documento firmato include un Time-Stamp ottenuto da una TSA fidata e riporta come data e ora il 14/02/2025 alle 14:00. Posso quindi escludere che il documento esistesse gi\`a il 13/02/2025.
+        \item Dato un documento che deve essere firmato da $n$ firmatari, se si scegliesse di usare firme sequenziali la verifica richiederebbe pi\`u tempo rispetto al caso in cui si scegliesse l'uso di firme parallele.
+    \end{enumerate}
+
+    \item \textbf{Sicurezza Software, Standard e Crittografia Pratica:}
+    \begin{enumerate}[label=\alph*.]
+        \item Una vulnerabilit\`a del tipo buffer overflow potrebbe permettere agli attaccanti di prendere il controllo di un server remoto.
+        \item La certificazione di sicurezza aumenta la nostra fiducia nel prodotto certificato perch\'e sappiamo che qualcuno ha verificato che determinate propriet\`a di sicurezza siano soddisfatte.
+        \item Il processo di valutazione definito nello standard ITSEC si concentra su efficacia delle soluzioni e correttezza dell'implementazione.
+        \item Bisogna cambiare spesso le chiavi crittografiche simmetriche usate per garantire la confidenzialit\`a del traffico di rete, perch\'e gli attaccanti potrebbero ricavare dal traffico cifrato informazioni utili a decifrarlo.
+        \item Senza l'opzione \texttt{-no-pad} (OpenSSL), cifrare 16 byte con AES128-ECB \`e preferibile rispetto ad usare AES128-CBC, considerando sicurezza e spreco di dati.
+        \item La crittografia a curve ellittiche costruisce algoritmi di crittografia asimmetrica a partire da problemi difficili su campi matematici ottenuti da equazioni del tipo $y^2 = x^3 + ax + b$.
+        \item Gli algoritmi di Hash vengono usati per generare le chiavi che garantiscono confidenzialit\`a e integrit\`a+autenticazione nel TLS.
+        \item Se l'ultimo blocco di dati cifrato con DES termina con \texttt{0x1324354603030303} verr\`a accettato correttamente sia con che senza l'opzione \texttt{-no-pad} (OpenSSL).
+    \end{enumerate}
+\end{enumerate}
+\end{questionbox}
+
+\begin{questionbox}[Parte 2: Domande a Risposta Aperta (Compito Scritto)]
+\textbf{Domanda 1: NIST RMF e Enterprise Patch Management}
+\begin{enumerate}[label=\alph*.]
+    \item Spiegare cosa \`e il Risk Management Framework (RMF) del NIST (SP 800-37) e quali sono gli obiettivi di tale framework. Elencare e descrivere le 7 fasi e alcune delle operazioni che potrebbero essere svolte in ognuna di esse.
+    \item Spiegare cosa \`e l'Enterprise Patch Management (NIST SP 800-40), quali sono i suoi obiettivi operativi e citare almeno due aspetti e sfide rilevanti (es. prioritizzazione basata su CVSS/EPSS, test preventivi di regressione in ambiente di staging).
+\end{enumerate}
+
+\textbf{Domanda 2: Progettazione Architettura di Rete Sicura}
+Progettare un'infrastruttura di rete sicura per un'azienda dotata di sede centrale, DMZ con servizi esposti e lavoratori remoti. Discutere le tecnologie impiegate (Firewall stateful, VPN IPsec/TLS, RADIUS/802.1X, MFA) e dettagliare la matrice di autorizzazione.
+\end{questionbox}
+
+\newpage
+\section{Soluzione Dettagliata e Guida Risolutiva}
+
+\begin{solutionbox}[Soluzione Parte 1: Analisi Dettagliata del Quiz Ufficiale]
+\textbf{1.1 Sicurezza di Rete e Monitoraggio (Analisi Puntuale delle Opzioni):}
+\begin{itemize}
+    \item \textbf{a. FALSA}: Un Web Application Firewall (WAF) collocato in modalit\`a \textit{stealth} trasparente (bridge L2) non pu\`o ispezionare n\'e filtrare il traffico applicativo HTTP cifrato con TLS se non possiede i certificati digitali e la relativa chiave privata per terminare o intercettare la sessione crittografica.
+    \item \textbf{b. VERA}: Nell'architettura \textit{screened host gateway}, il packet filtering router convoglia il traffico pubblico sul bastion host esposto; per mascherare e proteggere la sottorete interna privata (RFC 1918), il router di bordo deve obbligatoriamente implementare funzioni di Network Address Translation (NAT/NAPT).
+    \item \textbf{c. FALSA}: Ai sensi dell'Art. 4.12 del GDPR, per "violazione dei dati personali" (\textit{data breach}) si intende qualsiasi violazione di sicurezza che comporti accidentalmente o in modo illecito la distruzione, la perdita, la modifica, la divulgazione non autorizzata o l'accesso ai dati; l'esposizione indebita di dati non protetti configura gi\`a un breach conclamato anche in assenza di prove di effettiva esfiltrazione attiva.
+    \item \textbf{d. VERA}: Definire con precisione cosa costituisca traffico lecito rispetto alle esigenze aziendali (\textit{Authorized Traffic Baseline}) \`e una delle sfide pi\`u critiche ed esposte a fallacie nella configurazione delle regole di un firewall.
+    \item \textbf{e. FALSA}: Gli IDS basati su modelli di machine learning e intelligenza artificiale soffrono storicamente di elevati tassi di falsi positivi dovuti al mutamento dei pattern di traffico (\textit{concept drift}); una risposta automatica non supervisionata rischia di bloccare servizi operativi legittimi generando Denial of Service auto-indotti.
+    \item \textbf{f. VERA}: Un filtro applicativo (L7) esegue il riassemblaggio dello stack e l'analisi semantica e sintattica del protocollo (es. comandi HTTP, query SQL, intestazioni MIME), consentendo politiche di autorizzazione contestuali inaccessibili a un packet filter L3/L4.
+    \item \textbf{g. FALSA}: I Network-based IDS (NIDS) sono concepiti e posizionati strategicamente proprio ai confini perimetrali (a monte o a valle del firewall) per rilevare intrusioni, scansioni ed exploit provenienti da Internet verso le risorse aziendali.
+    \item \textbf{h. FALSA}: Il Security Operations Center (SOC) moderno integra necessariamente competenze di Digital Forensics \& Incident Response (DFIR) per raccogliere prove conformi a valore legale, determinare la causa radice (\textit{root cause}) dell'incidente e valutare la persistenza delle minacce.
+    \item \textbf{i. VERA}: La piattaforma SIEM (\textit{Security Information and Event Management}) centralizza, normalizza e correla i log di rete, fornendo dashboard di monitoraggio operativo e audit trail conformi a standard di compliance (GDPR, ISO/IEC 27001, PCI-DSS).
+\end{itemize}
+
+\textbf{1.2 Protocolli di Autenticazione e Controllo Accessi di Rete:}
+\begin{itemize}
+    \item \textbf{a. VERA}: Il Point-to-Point Protocol (PPP, RFC 1661) \`e formalmente progettato per incapsulare datagrammi multi-protocollo di livello 3 su collegamenti punto-a-punto diretti.
+    \item \textbf{b. FALSA}: L'Extensible Authentication Protocol (EAP, RFC 3748) \`e un framework estensibile per design; supporta l'integrazione di nuovi algoritmi di autenticazione semplicemente assegnando un nuovo \textit{Type Code} numerico, senza richiedere modifiche allo standard di base.
+    \item \textbf{c. VERA}: Le specifiche originarie di RADIUS (RFC 2865) sono crittograficamente carenti: proteggono solo il campo password tramite un meccanismo debole basato su MD5 e segreto condiviso, trasmettono tutti gli altri attributi utente in chiaro e non garantiscono integrit\`a end-to-end su tutti i pacchetti (motivo per cui si adotta RadSec con TLS, RFC 6614).
+    \item \textbf{d. VERA}: Lo standard RFC 3579 specifica formalmente come i messaggi EAP siano incapsulati all'interno degli attributi \texttt{EAP-Message} e protetti dall'attributo \texttt{Message-Authenticator} di RADIUS.
+    \item \textbf{e. VERA}: I server RADIUS supportano il routing e forwarding gerarchico dei pacchetti di autenticazione tramite il meccanismo di \textit{RADIUS Proxying}, operando nativamente solo verso altri server che condividono il medesimo protocollo.
+    \item \textbf{f. VERA}: EAP opera come un livello \textit{middleware} universale di astrazione, disaccoppiando i meccanismi di autenticazione (EAP-TLS, PEAP, EAP-TTLS) dai protocolli di trasporto di livello 2 sottostanti (IEEE 802.1X, PPP).
+    \item \textbf{g. VERA}: Nell'infrastruttura mondiale Eduroam, le istituzioni federate instradano le richieste tramite proxy RADIUS basati sul realm dell'utente; l'ateneo ospitante non conosce n\'e condivide i segreti crittografici dell'utente, che vengono verificati unicamente dall'ateneo di appartenenza.
+    \item \textbf{h. FALSA}: Il Password Authentication Protocol (PAP) trasmette le credenziali in chiaro sul canale di comunicazione senza alcuna protezione crittografica, risultando completamente obsoleto e vulnerabile a qualsiasi intercettazione.
+    \item \textbf{i. VERA}: Nel modello IEEE 802.1X, l'Access Point (AP) assume il ruolo di mero \textit{Authenticator} passante: inoltra i frame EAPoL al server di autenticazione backend (RADIUS), senza dover convalidare n\'e gestire direttamente le credenziali.
+\end{itemize}
+
+\textbf{1.3 Identit\`a Digitale e Meccanismi di Autenticazione:}
+\begin{itemize}
+    \item \textbf{a. VERA}: Nelle linee guida NIST SP 800-63-3, il Credential Service Provider (CSP) \`e l'entit\`a fidata responsabile della fase di enrollment, verifica dell'identit\`a ed emissione/registrazione delle credenziali degli abbonati.
+    \item \textbf{b. VERA}: Gli attacchi a dizionario (\textit{Dictionary Attacks}) sfruttano la ridotta entropia delle scelte umane; testando termini ad alta frequenza hanno un'efficienza temporale e una probabilit\`a di successo enormemente superiori rispetto alla forza bruta esaustiva dello spazio delle chiavi.
+    \item \textbf{c. FALSA}: Un password wallet \`e un gestore locale di credenziali memorizzate/cifrate (es. KeePass), non un protocollo di autenticazione Single Sign-On (SSO) federato multi-dominio (come SAML 2.0, OpenID Connect o Kerberos).
+    \item \textbf{d. FALSA}: In Kerberos (RFC 4120), l'Application Server non riceve mai le chiavi segrete degli utenti; riceve dal client un Service Ticket cifrato con la propria chiave di servizio $K_S$, all'interno del quale \`e inclusa una chiave di sessione effimera $K_{C,S}$.
+    \item \textbf{e. VERA}: Il token hardware FIDO2 (es. YubiKey) funge primariamente da fattore di possesso fisico (\textit{Something you have}), contenente la chiave privata asimmetrica custodita in un chip Secure Element non clonabile.
+    \item \textbf{f. VERA}: L'autenticazione biometrica su dispositivo personale (\textit{Something you are}) \`e considerata altamente sicura poich\'e il template biometrico viene memorizzato e confrontato esclusivamente nell'enclave hardware sicura locale (Secure Enclave / TPM), senza mai viaggiare sulla rete.
+    \item \textbf{g. VERA}: Nei protocolli Zero-Knowledge Proof (ZKP) interattivi (come Fiat-Shamir o Guillou-Quisquater), il Verifier sottopone il Prover a molteplici iterazioni di challenge casuali; la probabilit\`a di superare la prova barando \`e $(1/2)^k$, richiedendo centinaia di iterazioni per raggiungere una confidenza computazionale elevata.
+    \item \textbf{h. VERA}: Nei protocolli Challenge-Response Authentication (CRA) asimmetrici, il richiedente firma il challenge con la propria chiave privata; l'intercettazione passiva di challenge e firma non consente all'attaccante di estrarre la chiave privata.
+\end{itemize}
+
+\textbf{1.4 Infrastruttura a Chiave Pubblica (PKI) e Firme Digitali:}
+\begin{itemize}
+    \item \textbf{a. FALSA}: Il protocollo OCSP (RFC 6960) certifica lo stato di revoca \textbf{attuale} del certificato al momento della richiesta; non fornisce la prova retroattiva che il certificato fosse valido al momento storico in cui la firma \`e stata apposta (per cui \`e indispensabile la marca temporale TSA conforme a RFC 3161 e formati Long Term Validation come PAdES/CAdES-LTV).
+    \item \textbf{b. VERA}: La validit\`a crittografica di un certificato X.509 poggia interamente sulla fiducia transitiva nella catena di certificazione che risale a una Root CA trusted installata nel Trust Store.
+    \item \textbf{c. FALSA}: L'algoritmo quantistico di Grover accelera la ricerca non strutturata dimezzando la sicurezza effettiva dei cifrari simmetrici e delle funzioni hash (da $N$ a $\sqrt{N}$); \`e l'algoritmo di **Shor** che abbatte in tempo polinomiale i problemi di fattorizzazione (RSA) e logaritmo discreto (DSA, ECDSA).
+    \item \textbf{d. VERA}: La firma digitale su un documento garantisce l'integrit\`a e l'autenticit\`a del codice statico della macro cos\`i com'\`e stato firmato; non pu\`o garantire l'esito n\'e le modifiche dinamiche che il codice della macro produrr\`a a runtime durante l'esecuzione sul computer della vittima.
+    \item \textbf{e. VERA}: Un certificato per scambio Diffie-Hellman statico riporta nel campo SubjectPublicKeyInfo i parametri pubblici di gruppo ($p, g$) e il valore pubblico effettivo $Y = g^x \bmod p$.
+    \item \textbf{f. FALSA}: La marca temporale (Time-Stamp) attesta che il documento esisteva **al pi\`u tardi** alla data e ora certificate dalla TSA (14/02/2025 14:00); ci\`o non esclude affatto che il file fosse gi\`a stato redatto o esistente in date anteriori (es. 13/02/2025).
+    \item \textbf{g. VERA}: Nelle firme sequenziali ogni firma incapsula la precedente creando una struttura a strati (\textit{onion}) che impone una verifica strettamente sequenziale; nelle firme parallele ogni firma \`e indipendente e riferita al medesimo hash di base, permettendo la verifica parallela e concorrente su pi\`u core CPU.
+\end{itemize}
+
+\textbf{1.5 Sicurezza Software, Standard e Crittografia Pratica:}
+\begin{itemize}
+    \item \textbf{a. VERA}: Sovrascrivendo l'indirizzo di ritorno sullo stack (\textit{Saved RIP}) o puntatori a funzione nell'heap, un attacco di buffer overflow pu\`o deviare il flusso di esecuzione verso shellcode o catene ROP conseguendo la Remote Code Execution (RCE) con privilegi di root/amministratore.
+    \item \textbf{b. VERA}: La certificazione di sicurezza di terza parte indipendente (Common Criteria ISO/IEC 15408) fornisce una garanzia formale (\textit{Assurance}) che il prodotto rispetti rigorosamente i requisiti funzionali e di correttezza dichiarati nel Security Target.
+    \item \textbf{c. VERA}: Nello standard ITSEC la valutazione \`e strutturata sui due criteri cardine inscindibili di **Efficacia** (adeguatezza delle funzionalit\`a di sicurezza) e **Correttezza** (qualit\`a ingegneristica e assenza di difetti di sviluppo da E1 a E6).
+    \item \textbf{d. VERA}: Il ricambio periodico delle chiavi simmetriche (\textit{re-keying}) limita il volume di ciphertext generato sotto la stessa chiave, prevenendo attacchi basati su collisioni statistiche (es. Sweet32 dopo $2^{32}$ blocchi) e saturazione del keystream.
+    \item \textbf{e. FALSA}: La modalit\`a ECB \`e intrinsecamente insicura e proibita poich\'e cifra blocchi di testo identici in blocchi cifrati identici senza vettore di inizializzazione; la modalit\`a CBC con IV casuale e impredicibile \`e sempre superiore e sicura (IND-CPA), a prescindere dal byte di padding.
+    \item \textbf{f. VERA}: La crittografia ellittica standardizzata opera su gruppi ciclici di punti che soddisfano l'equazione di Weierstrass $y^2 = x^3 + ax + b$ definita su campi finiti primi $\mathbb{F}_p$ o binari $\mathbb{F}_{2^m}$.
+    \item \textbf{g. VERA}: In TLS, le funzioni di hash pilotano la Pseudo-Random Function (PRF basata su HMAC-SHA256 in TLS 1.2) e il framework HKDF (in TLS 1.3) per espandere il Master Secret nelle chiavi simmetriche di cifratura e nei vettori di inizializzazione.
+    \item \textbf{h. VERA}: Su un blocco DES da 8 byte, la sequenza terminale \texttt{03030303} rappresenta un padding PKCS\#7 formalmente valido di 4 byte (ripetizione del valore numerico 4 non presente, mentre per 4 byte di padding il byte corretto \`e \texttt{0x04}; se la sequenza termina con quattro byte uguali a \texttt{0x03} ci\`o rappresenta 3 byte di padding \texttt{030303} validi). Con \texttt{-no-pad} il testo decifrato viene restituito integralmente; con padding abilitato il parser rimuove i byte di conformit\`a senza generare errori di decifratura.
+\end{itemize}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Parte 2: Risposta Aperta]
+\textbf{1.a NIST Risk Management Framework (RMF SP 800-37 Rev. 2):}
+Il framework RMF fornisce una metodologia olistica a 7 fasi per integrare la sicurezza e la privacy nel ciclo di vita dei sistemi informativi:
+\begin{enumerate}
+    \item \textbf{Prepare}: Allineamento della governance aziendale, definizione della tolleranza al rischio (\textit{Risk Appetite}) e identificazione degli stakeholder.
+    \item \textbf{Categorize}: Classificazione dei dati e del sistema informativo in base all'impatto potenziale (Low, Moderate, High per Confidenzialit\`a, Integrit\`a, Disponibilit\`a) secondo FIPS 199 e NIST SP 800-60.
+    \item \textbf{Select}: Scelta della baseline di controlli di sicurezza da NIST SP 800-53 Rev. 5 e applicazione delle procedure di \textit{tailoring} in base al contesto operativo.
+    \item \textbf{Implement}: Integrazione tecnica e organizzativa dei controlli all'interno dell'architettura aziendale.
+    \item \textbf{Assess}: Valutazione indipendente dell'efficacia dei controlli tramite test di sicurezza, vulnerability assessment e audit per accertare che operino come previsto.
+    \item \textbf{Authorize}: Decisione formale del responsabile autorizzante (\textit{Authorizing Official}) sul rilascio dell'Authority to Operate (ATO) in base al rischio residuo.
+    \item \textbf{Monitor}: Monitoraggio continuo della postura di sicurezza, scansione di nuove vulnerabilit\`a e rivalutazione periodica dei rischi.
+\end{enumerate}
+
+\textbf{1.b Enterprise Patch Management (NIST SP 800-40 Rev. 4):}
+Disciplina il processo di acquisizione, collaudo e installazione tempestiva degli aggiornamenti software per ridurre la superficie di attacco esposta agli exploit.
+\begin{itemize}
+    \item \textbf{Prioritizzazione del Rischio basata su CVSS ed EPSS}: Di fronte a decine di migliaia di nuove CVE annuali, il patching indiscriminato \`e impraticabile. Si integrano le metriche di severit\`a intrinseca (CVSS) con metriche di probabilit\`a di sfruttamento reale sul campo (\textbf{EPSS - Exploit Prediction Scoring System}) e con i cataloghi di minaccia attiva (CISA KEV).
+    \item \textbf{Testing Preventivo in Ambiente di Staging}: Per evitare blocchi dei servizi di produzione (\textit{service outage}) causati da regressioni o conflitti software, le patch devono essere collaudate in un ambiente di pre-produzione speculare prima del rilascio definitivo.
+\end{itemize}
+
+\textbf{2. Progettazione Architettura di Rete Sicura:}
+\begin{center}
+\begin{verbatim}
+                       +--------------------+
+                       |      INTERNET      |
+                       +---+------------+---+
+                           |            |
+         (Lavoratori Remoti via VPN)    | (Traffico Pubblico Web)
+                           |            |
+               +-----------v------------v-----------+
+               |      FIREWALL PERIMETRALE L4/L7    |
+               |      (Terminazione VPN + NAT)      |
+               +---+--------------------+-------+---+
+                   |                    |       |
+       eth1 (DMZ)  |                    |       | eth2 (LAN Interna)
+    192.168.10.1/24|                    |       | 10.0.1.1/24
++------------------v---+                |   +---v------------------+
+|     RETE DMZ         |                |   |     LAN INTERNA      |
+|  192.168.10.0/24     |                |   |    10.0.1.0/24       |
+|                      |                |   |                      |
+| [WAF Reverse Proxy]  |                |   | [Switch IEEE 802.1X] |
+|   192.168.10.10      |                |   | [Client Aziendali]   |
+| [Web Server Backend] |                |   +----------+-----------+
+|   192.168.10.20      |                |              |
++----------------------+                |   +----------v-----------+
+                                        |   | RETE SERVIZI CENTRALI|
+                                        +-->|    10.0.2.0/24       |
+                                            |                      |
+                                            | [RADIUS / AD Server] |
+                                            | [Database Riservato] |
+                                            +----------------------+
+\end{verbatim}
+\end{center}
+
+\textbf{Tecnologie e Regole di Autorizzazione Applicate:}
+\begin{itemize}
+    \item \textbf{Accesso Remoto Sicuro}: Connessione VPN IPsec IKEv2 o TLS (OpenVPN/WireGuard) con autenticazione a pi\`u fattori obbligatoria (MFA con token hardware FIDO2) e verifica di conformit\`a del dispositivo client (\textit{Posture Checking}).
+    \item \textbf{Controllo Accessi LAN}: Porte di accesso Ethernet e Wi-Fi governate da switch con IEEE 802.1X: il traffico dell'utente viene bloccato finch\'e il server centrale RADIUS/Active Directory non autentica l'identit\`a tramite certificato client (EAP-TLS).
+    \item \textbf{Ispezione Perimetrale DMZ}: Il traffico Web esterno \`e indirizzato unicamente al WAF Reverse Proxy (\texttt{192.168.10.10}); nessun host Internet o DMZ pu\`o avviare connessioni arbitrarie verso la LAN o i server interni.
+\end{itemize}
+\end{solutionbox}
+
+\begin{altbox}[Alternative Implementation Note: Concorrenza Rust in Sistemi di Logging e Patching]
+Nei sistemi di auditing e inventory aziendale conformi alle linee guida NIST:
+\begin{itemize}
+    \item Si utilizza \texttt{tokio::sync::broadcast} per distribuire le notifiche di emergenza sulle nuove CVE a tutti i microservizi attivi.
+    \item \texttt{std::sync::RwLock}: Per gestire la cache locale delle policy di compliance, garantendo throughput massimale in lettura da parte dei thread di monitoraggio.
+\end{itemize}
+\end{altbox}
+
+
+\end{document}

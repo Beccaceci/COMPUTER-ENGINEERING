@@ -1,0 +1,61 @@
+# Concept Keywords for Chapter 1: Introduzione e Modelli di Minaccia
+# Verified against Lecture 01 Transcriptions, Slides 00 & 01, Stallings, Schneier, and Exam archives
+
+Basile
+Triade CIA
+Riservatezza
+Integrità
+Disponibilità
+Autenticità
+Tracciabilità
+Non-Ripudio
+Asset
+Vulnerabilità
+Minaccia
+Controllo
+KISS
+Sniffing
+IP Spoofing
+ARP
+Denial of Service
+SYN Flood
+SYN Cookie
+Mirai
+Ransomware
+Doppia Estorsione
+Crime-as-a-Service
+Ingegneria Sociale
+Phishing
+Spear Phishing
+Whaling
+Baiting
+Stuxnet
+BlueBorne
+CAN
+Bruce Schneier
+process, not a product
+Defense-in-Depth
+Security by Design
+Security by Default
+Kerckhoffs
+Window of Exposure
+Zero-Day
+Virtual Patching
+NIST SP 800-33
+Stallings
+HMAC
+Firma Digitale
+Prepared Statements
+DBIR
+Peshawar
+Confindustria
+SOBER
+Clinton
+Lockett
+Data in Transit
+Data at Rest
+Data in Use
+Data in Memory
+Need-to-Know
+Least Privilege
+NIST Cybersecurity Framework

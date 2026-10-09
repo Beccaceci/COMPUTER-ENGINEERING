@@ -49,12 +49,18 @@ This directory houses all required primary and external reference materials for 
     $$\text{LN}(\mathbf{x}) = \frac{\mathbf{x} - \mu}{\sqrt{\sigma^2 + \epsilon}} \odot \boldsymbol{\gamma} + \boldsymbol{\beta}, \quad \mu = \frac{1}{d}\sum_{j=1}^d x_j, \quad \sigma^2 = \frac{1}{d}\sum_{j=1}^d (x_j - \mu)^2$$
 - **Unified Text-to-Text Transfer Framework**:
   - Raffel, C., et al. (2020): [Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer](https://arxiv.org/abs/1910.10683) (JMLR 2020) — Formulates T5, casting all NLP tasks into an encoder-decoder text generation framing with task-conditioning string prefixes.
-- **Bidirectional Representation Learning (Encoder-Only)**:
+- **Bidirectional Representation Learning & Attention Map Analysis (Encoder-Only)**:
   - Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019): [BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding](https://arxiv.org/abs/1810.04805) (NAACL-HLT 2019):
     - Input representation: Token + Segment + Positional embeddings. Special tokens: `[CLS]` (sentence representation) and `[SEP]` (sentence separator).
     - Pre-training tasks:
       1. Masked Language Model (MLM): 15% tokens corrupted (80% `[MASK]`, 10% random token, 10% unchanged).
       2. Next Sentence Prediction (NSP): 50% contiguous pair (IsNext), 50% randomly sampled pair (NotNext).
+  - Clark, K., Khandelwal, U., Levy, O., & Manning, C. D. (2019): [What Does BERT Look At? An Analysis of BERT's Attention](https://arxiv.org/abs/1906.04341) (ACL BlackboxNLP 2019):
+    - Empirically analyzes the $12 \times 12 = 144$ attention maps in BERT.
+    - Proves that specific attention heads correspond to classical linguistic relations: coreference resolution (pronouns attending to antecedents, e.g. *"it"* $\to$ *"dog"*), syntactic dependencies (verbs attending to objects, determiners to nouns).
+    - Discovers the delimiter / no-op phenomenon: heads attend disproportionately to `[SEP]` (often $>50\%$ of attention mass) as a neutral state when no relevant relation is present.
+  - Michel, P., Levy, O., & Neubig, G. (2019): [Are Sixteen Heads Really Better than One?](https://arxiv.org/abs/1905.10650) (NeurIPS 2019):
+    - Demonstrates that a significant percentage of attention heads can be pruned at test time without performance degradation, confirming that heads exhibit redundant or specialized no-op behaviors (such as delimiter aggregation).
 - **Autoregressive Generative Pre-training (Decoder-Only)**:
   - Radford, A., Narasimhan, K., Salimans, T., & Sutskever, I. (2018): [Improving Language Understanding by Generative Pre-Training](https://openai.com/research/language-unsupervised) (GPT-1).
   - Radford, A., Wu, J., Child, R., Luan, D., Amodei, D., & Sutskever, I. (2019): [Language Models are Unsupervised Multitask Learners](https://openai.com/index/better-language-models/) (GPT-2).
@@ -94,6 +100,7 @@ This directory houses all required primary and external reference materials for 
 - Lecture Transcriptions:
   - [`transcriptions/05-Transformers-I.md`](transcriptions/05-Transformers-I.md) (symlinked to `TRANSCRIPTIONS/LECTURES/05-Transformers-I.md`).
   - [`transcriptions/05-Transformers-II.md`](transcriptions/05-Transformers-II.md) (symlinked to `TRANSCRIPTIONS/LECTURES/05-Transformers-II.md`).
+  - [`transcriptions/05-Transformers-III.md`](transcriptions/05-Transformers-III.md) (symlinked to `TRANSCRIPTIONS/LECTURES/05-Transformers-III.md`).
 - Figures:
   - Original Architecture: `STUDY_GUIDE/lectures/figures/part1/transformer_architecture_vaswani2017.png`
   - 3Blue1Brown Attention Masterclass: `STUDY_GUIDE/lectures/figures/part1/3b1b_query_key.jpg`, `3b1b_attention_score_grid.jpg`, `3b1b_value_update.jpg`, `3b1b_richer_context.jpg`

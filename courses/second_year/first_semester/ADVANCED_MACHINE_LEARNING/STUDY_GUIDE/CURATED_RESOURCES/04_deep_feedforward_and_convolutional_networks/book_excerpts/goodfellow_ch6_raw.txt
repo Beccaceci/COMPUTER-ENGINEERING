@@ -1,0 +1,2136 @@
+--- PAGE 165 ---
+CHAPTER 5.
+MACHINE LEARNING BASICS
+from Chapter 17. That chapter explores the relationships between representation
+learning and manifold learning: if the data distribution concentrates on a smaller
+number of dimensions, then we can think of these dimensions as natural coordi-
+nates for the data, and we can think of representation learning algorithms as ways
+to map the input space to a new and often lower-dimensional space which captures
+the leading dimensions of variation present in the data as axes or dimensions of
+the representation.
+An initial hope of early work on manifold learning (Roweis and Saul, 2000;
+Tenenbaum et al., 2000) was to reduce the eﬀect of the curse of dimensionality,
+by ﬁrst reducing the data to a lower dimensional representation (e.g. mapping
+(x1, x 2) to z1 in Figure 5.8 (right)), and then applying ordinary machine learning
+in that transformed space. This dimensionality reduction can be achieved by
+learning a transformation (generally non-linear, unlike with PCA introduced in
+Section 5.9.1) of the data that is invertible for most training examples, i.e., that
+keeps the information in the input example. It is only possible to reconstruct input
+examples from their low-dimensional representation because they lie on a lower-
+dimensional manifold, of course. This is basically how auto-encoders (Chapter 15)
+are trained.
+The hope was that by non-linearly projecting the data in a new space of lower
+dimension, we would reduce the curse of dimensionality by only looking at rel-
+evant dimensions, i.e., a smaller set of regions of interest (cells, in Figure 5.9).
+This can indeed be the case, however, as discussed in Chapter 17, the manifolds
+can be highly curved and have a very large number of twists, requiring still a very
+large number of regions to be distinguished (every up and down of each corner of
+the manifold). And even if we were to reduce the dimensionality of an input from
+10000 (e.g. 100×100 binary pixels) to 100, 2100 is still too large to hope cover-
+ing with a training set. This still rules out the use of purely local generalization
+(i.e., the smoothness prior only) to model such manifolds, as discussed in Chap-
+ter 17 around Figure 17.4 and 17.5. It may also be that although the eﬀective
+dimensionality of the data could be small, some examples could fall outside of the
+main manifold and that we do not want to systematically lose that information.
+A sparse representation then becomes a possible way to represent data that is
+mostly low-dimensional, although occasionally occupying more dimensions. This
+can be achieved with a high-dimensional representation whose elements are 0 most
+of the time. We can see that the eﬀective dimension (the number of non-zeros)
+then can change depending on where we are in input space, which can be useful.
+Sparse representations are discussed in Section 15.8.
+The next part of the book introduces speciﬁc deep learning algorithms that
+aim at discovering representations that are useful for some task, i.e., trying to
+extract the directions of variations that matter for the task of interest, often in a
+153
+
+--- PAGE 166 ---
+CHAPTER 5.
+MACHINE LEARNING BASICS
+supervised setting. The last part of the book concentrates more on unsupervised
+representation learning algorithms, which attempt to capture all of the directions
+of variation that are salient in the data distribution.
+154
+
+--- PAGE 167 ---
+Part II
+Modern Practical Deep
+Networks
+155
+
+--- PAGE 168 ---
+This part of the book summarizes the state of modern deep learning as it is
+used to solve practical applications.
+Deep learning has a long history and many aspirations. Several approaches
+have been proposed that have yet to entirely bear fruit. Several ambitious goals
+have yet to be realized. These less-developed branches of deep learning appear in
+the ﬁnal part of the book.
+This part focuses only on those approaches that are essentially working tech-
+nologies that are already used heavily in industry.
+Modern deep learning provides a very powerful framework for supervised learn-
+ing. By adding more layers and more units within a layer, a deep network can
+represent functions of increasing complexity. Most tasks that consist of mapping
+an input vector to an output vector, and that are easy for a person to do rapidly,
+can be accomplished via deep learning, given suﬃciently large model and dataset
+of labeled training examples. Other tasks, that can not be described as associat-
+ing one vector to another, or that are diﬃcult enough that to do them a person
+would require time to think and reﬂect, remain beyond the scope of deep learning
+for now.
+This part of the book describes the core parametric function approximation
+technology that is behind nearly all modern practical applications of deep learn-
+ing. Our description includes details such as, how to eﬃciently model speciﬁc
+kinds of inputs, how to process image inputs with convolutional networks as well
+as how to process sequence inputs with recurrent and recursive networks. More-
+over, we provide guidance for how to preprocess the data for various tasks and
+how to choose the values of the various settings that govern the behavior of these
+algorithms.
+These chapters are the most important for a practitioner – someone who wants
+to begin implementing and using deep learning algorithms to solve real-world
+problems today.
+156
+
+--- PAGE 169 ---
+Chapter 6
+Feedforward Deep Networks
+Feedforward deep networks, also known as multilayer perceptrons (MLPs), are the
+quintessential deep networks. They are parametric functions deﬁned by compos-
+ing together many parametric functions. Each of these component functions has
+multiple inputs and multiple outputs. In neural network terminology, we refer to
+each sub-function as a layer of the network, and each scalar output of one of these
+functions as a unit or sometimes as a feature. Even though each unit implements a
+relatively simple mapping or transformation of its input, the function represented
+by the entire network can become arbitrarily complex.
+Not every deep learning algorithm can be understood in terms of deﬁning a
+single, deterministic function like feedforward deep networks, but all of them share
+the property of containing many layers of many units. We can think of the number
+of units in each layer as being the width of a machine learning model, and the
+number of layers as its depth. Feedforward deep networks provide a conceptually
+simple example of an algorithm that captures the many advantages that come
+from having signiﬁcant width and depth. Feedforward deep networks are also the
+key technology underlying most of the contemporary commercial applications of
+deep learning to large datasets.
+In Chapter 5, we encountered several diﬀerent traditional machine learning
+algorithms, including linear regression, linear classiﬁers, logistic regression and
+kernel machines. All of these algorithms work by applying a linear transformation
+to a ﬁxed set of features. These algorithms can learn non-linear functions, but
+the non-linear part is ﬁxed. In other words, the functions are non-linear in the
+space of inputs x, but they are linear in some other pre-deﬁned space.
+Neural networks allow us to learn new kinds of non-linearity. Another way to
+view this idea is that neural networks allow us to learn the features provided to
+a linear model. From this point of view, neural networks allow us to automate
+the design of features—a task that until recently was performed gradually and
+157
+
+--- PAGE 170 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+collectively, by the combined eﬀorts of an entire community of researchers.
+6.1
+Vanilla MLPs
+Feedforward supervised neural networks were among the ﬁrst and most successful
+non-linear learning algorithms (Rumelhart et al., 1986e,c). These networks learn
+at least one function deﬁning the features, as well as a (typically linear) function
+mapping from features to output. The layers of the network that correspond to
+features rather than outputs are called hidden layers. This is because the correct
+values of the features are unknown. The features must be created by the training
+algorithm. The input and output of the network is by contrast observed or visible
+in the training data. Figure 6.1 shows a vanilla MLP architecture with a single
+hidden layer. A deeper version is obtained by simply having more hidden layers.
+V
+W
+Figure 6.1: Vanilla (shallow) MLP, with one sigmoid hidden layer, computing vector-
+valued hidden unit vector h = sigmoid(c + W x) with weight matrix W and oﬀset vector
+c. The output vector is obtained via another learned aﬃne transformation ˆy = b + V h,
+with weight matrix V and output oﬀset vector b. The vector of hidden unit values h
+provides a new set of features, i.e., a new representation, derived from the raw input x.
+Example 6.1.1 introduces the equations for a vanilla MLP for regression similar
+to the one illustrated in Figure 6.1, which we will generalize below in the next
+few sections.
+158
+
+--- PAGE 171 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+Example 6.1.1. Vanilla (Shallow) Multi-Layer Neural Network
+for Regression
+Based on the above deﬁnitions, we could pick the family of input-output
+functions to be
+fθ(x) = b + V sigmoid(c + W x),
+illustrated in Figure 6.1, where sigmoid(a) = 1/(1 + e−a) is applied
+element-wise, the input is the vector x ∈Rni, the hidden layer outputs
+are the elements of the vector h = sigmoid(c + W x) with nh entries, the
+parameters are θ = (b, c, V , W ) (with θ also viewed as the ﬂattened vec-
+torized version of the tuple) with b ∈Rno a vector the same dimension as
+the output (no), c ∈Rnh of the same dimension as h (number of hidden
+units), V ∈Rno×nh and W ∈Rnh ×ni being weight matrices.
+The loss function for this classical example could be the squared error
+L( ˆy, y) = ||ˆy −y||2 (see Section 6.2 discussing how it makes ˆy an estima-
+tor of E[Y | x]). The regularizer could be the ordinary L2 weight decay
+||ω||2 = (P
+ij W2
+ij + P
+kiV 2
+ki), where we deﬁne the set of weights ω as the
+concatenation of the elements of matrices W and V . The L2 weight de-
+cay thus penalizes the squared norm of the weights, with λ a scalar that is
+larger to penalize stronger weights, thus yielding smaller weights. During
+training, we minimize a cost function obtained by adding together the
+squared loss and the regularization term:
+J(θ) = λ||ω||2 + 1
+n
+n
+X
+t=1
+||y(t) −(b + V sigmoid(c + W x(t)))||2.
+where (x (t), y(t)) is the t-th training example, an (input,target) pair.
+TODO: so we introduce SGD for the ﬁrst time in the book practically
+hidden in an example in a chapter that appears to mostly be about one
+speciﬁc model family.... we should do this more gracefully, maybe put
+it in numerical.tex or ml.tex Finally, the classical training procedure in
+this example is stochastic gradient descent, which iteratively updates θ
+according to
+ω
+←
+ω −
+
+2λω + ∇ωL(fθ(x(t)), y(t))
+
+β
+←
+β −∇βL(fθ (x(t)), y(t)),
+where β = (b, c) contains the oﬀset1 parameters, ω = (W , V ) the weight
+matrices, is a learning rate and t is incremented after each training
+example, modulo n. Section 6.4 shows how gradients can be computed
+159
+
+--- PAGE 172 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+MLPs can learn powerful non-linear transformations: in fact, with enough
+hidden units they can represent arbitrarily complex but smooth functions, they
+can be universal approximators, as described below in Section 6.5. This is achieved
+by composing simple but non-linear learned transformations. By transforming the
+data non-linearly into a new space, a classiﬁcation problem that was not linearly
+separable (not solvable by a linear classiﬁer) can become separable, as illustrated
+in Figures 6.2 and 6.3.
+Figure 6.2: Each layer of a trained neural network non-linearly transforms its input,
+distorting the space so that the task becomes easier to perform, e.g., linear classiﬁcation
+in the new feature space, in the above ﬁgures. The ﬁgure shows how a vanilla neural
+network with 2 inputs, 2 hidden units and one output can transform the 2-D input space
+so that the examples from the two classes become linearly separable. The red and blue
+solid curves are where the training examples come from (with color indicating class).
+The paler red (resp.
+blue) region indicates the region that should be labeled as red
+(resp.
+blue), with the blue-to-red interface corresponding to a good decision surface.
+On the left, we see in a black square the good decision surface in the original input
+space, and see that it is non-linear (i.e., a linear classiﬁer could not do a good job if
+applied directly on the raw inputs). The raw input space is also mapped by a regular
+grid in the left square, and the grid gets transformed non-linearly, i.e., warped diﬀerently
+in diﬀerent parts of the space (consider how the grid was transformed), to obtain the
+middle square, i.e., in the space of hidden units: every (x1 , x2) point in the left block is
+mapped to a point (h1, h2) in the middle block using the parameters of the hidden units.
+We see that when the data are properly transformed non-linearly by the ﬁrst hidden
+layer, the good decision surface becomes a linear one, which can be implemented by the
+output layer (which is basically a linear classiﬁer). Reproduced with permission by Chris
+Olah from http://colah.github.io/, where many more insightful visualizations can be
+found.
+160
+
+--- PAGE 173 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+Figure 6.3: Like Figure 6.2, this ﬁgure shows how the hidden layer of an MLP can non-
+linearly warp the input space so as to make the classiﬁcation task easier for a linear
+classiﬁer (the output layer of a vanilla MLP). The MLP now has 784 inputs (pixels of
+a 28 × 28 image of a digit), 100 hidden units and 10 outputs corresponding to the 10
+digit classes. We cannot directly visualize with a 2-D grid the input and hidden layer
+spaces, but we can visualize a 2-D approximation obtained by dimensionality reduction.
+The squares below the input and hidden layer show where the training examples are
+in this reduced space, with one point per example, colored according to the digit class.
+Again, we see that the digits of diﬀerent classes can be more easily separated in the
+feature space of the hidden layer than in the raw pixel space, with digits of the same
+class tending to form better separated clusters. Reproduced with permission by Chris
+Olah from http://colah.github.io/, where more detail about this experiment can be
+found.
+161
+
+--- PAGE 174 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+6.2
+Estimating Conditional Statistics
+To gently move from linear predictors to non-linear ones, let us consider the
+squared error loss function studied in the previous chapter, where the learning
+task is the estimation of the expected value of y given x. In the context of linear
+regression, the conditional expectation of y is used as the mean of a Gaussian
+distribution that we ﬁt with maximum likelihood. We can generalize linear re-
+gression to regression via any function f by deﬁning the mean squared error of
+f:
+E[||y −f (x)||2]
+where the expectation is over the training set during training, and over the data
+generating distribution to obtain generalization error.
+We can generalize its interpretation beyond the case where f is linear or
+aﬃne, uncovering an interesting property: minimizing it yields an estimator of
+the conditional expectation of the output variable y given the input variable x,
+i.e.,
+arg min
+f∈H
+Ep(x,y)[||y −f (x)||2] = E p(x,y)[y|x].
+(6.1)
+provided that our set of function H contains Ep(x,y)[y | x]. (If you would like to
+work out the proof yourself, it is easy to do using calculus of variations, which we
+describe in Chapter 19.4.2).
+Similarly, we can generalize conditional maximum likelihood (introduced in
+Section 5.6.1) to other distributions than the Gaussian, as discussed below when
+deﬁning the objective function for MLPs.
+6.3
+Parametrizing a Learned Predictor
+There are many ways to deﬁne the family of input-output functions, cost function
+(including optional regularizers) and optimization procedure. The most common
+ones are described below, while more advanced ones are left to later chapters.
+6.3.1
+Family of Functions
+A motivation for the family of functions deﬁned by multi-layer neural networks
+is to compose simple transformations in order to obtain highly non-linear ones. In
+particular, MLPs compose aﬃne transformations and element-wise non-linearities.
+As discussed in Section 6.5 below, with the appropriate choice of parameters,
+multi-layer neural networks can in principle approximate any smooth function,
+with more hidden units allowing one to achieve better approximations.
+162
+
+--- PAGE 175 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+A multi-layer neural network with more than one hidden layer can be de-
+ﬁned by generalizing the above structure, e.g., as follows, where we chose to use
+hyperbolic tangent2 activation functions instead of sigmoid activation functions:
+hk = tanh(bk + W k h k−1)
+where h 0 = x is the input of the neural net, hk (for k > 0) is the output of the
+k-th hidden layer, which has weight matrix W k and oﬀset (or bias) vector bk. If
+we want the output fθ(x) to lie in some desired range, then we typically deﬁne
+an output non-linearity (which we did not have in the above Example 6.1.1). The
+non-linearity for the output layer is generally diﬀerent from the tanh, depending
+on the type of output to be predicted and the associated loss function (see below).
+There are several other non-linearities besides the sigmoid and the hyperbolic
+tangent which have been successfully used with neural networks. In particular,
+we introduce some piece-wise linear units below such as the the rectiﬁed linear
+unit (max(0, b +w · x)) and the maxout unit (maxi(bi +W:,i·x)) which have been
+particularly successful in the case of deep feedforward or convolutional networks.
+A longer discussion of these can be found in Section 6.7.
+These and other non-linear neural network activation functions commonly
+found in the literature are summarized below. Most of them are typically com-
+bined with an aﬃne transformation a = b + W x and applied element-wise:
+h = φ(a) ⇔hi = φ(ai) = φ(bi + W i,:x).
+(6.2)
+• Rectiﬁer or rectiﬁed linear unit (ReLU) or positive part: transfor-
+mation of the output of the previous layer: φ(a) = max(0, a), also written
+φ(a) = (a)+ .
+• Hyperbolic tangent: φ(a) = tanh(a).
+• Sigmoid: φ(a) = 1/(1 + e−a).
+• Softmax: This is a vector-to-vector transformation φ(a) = softmax(a) =
+eai/ P
+j ea j such that P
+i φ i(a) = 1 and φi (a) > 0, i.e., the softmax output
+can be considered as a probability distribution over a ﬁnite set of outcomes.
+Note that it is not applied element-wise but on a whole vector of “scores”.
+It is mostly used as output non-linearity for predicting discrete probabilities
+over output categories. See deﬁnition and discussion below, around Eq. 6.4.
+• Radial basis function or RBF unit: this one is not applied after a general
+aﬃne transformation but acts on x using a diﬀerent form that corresponds
+2which is linearly related to the sigmoid via tanh(x) = 2 × sigmoid(2x) −1 and typically
+yields easier optimization with stochastic gradient descent (Glorot and Bengio, 2010a).
+163
+
+--- PAGE 176 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+to a template matching, i.e., hi = exp
+
+−||wi −x||2/σ 2
+i
+
+(or typically with
+all the σi set to the same value). This is heavily used in kernel SVMs (Boser
+et al., 1992; Sch¨olkopf et al., 1999) and has the advantage that such units
+can be easily initialized (Powell, 1987; Niranjan and Fallside, 1990) as a
+random (or selected) subset of the input examples, i.e., wi = x(t) for some
+assignment of examples t to hidden unit templates i.
+• Softplus: φ(a) = log(1 + ea). This is a smooth version of the rectiﬁer,
+introduced in Dugas et al. (2001) for function approximation and in Nair
+and Hinton (2010a) in RBMs. Glorot et al. (2011a) compared the softplus
+and rectiﬁer and found better results with the latter, in spite of the very
+similar shape and the diﬀerentiability and non-zero derivative of the softplus
+everywhere, contrary to the rectiﬁer.
+• Hard tanh: this is shaped similarly to the tanh and the rectiﬁer but unlike
+the latter, it is bounded, φ(a) = max(−1, min(1, a)).
+It was introduced
+by Collobert (2004).
+• Absolute value rectiﬁcation: φ(a) = |a| (may be applied on the aﬃne
+dot product or on the output of a tanh unit). It is also a rectiﬁer and has
+been used for object recognition from images (Jarrett et al., 2009a), where
+it makes sense to seek features that are invariant under a polarity reversal
+of the input illumination.
+• Maxout: this is discussed in more detail in Section 6.7. It generalizes the
+rectiﬁer but introduces multiple weight vectors wi (called ﬁlters) for each
+hidden unit. hi = maxi(bi + wi · x).
+This is not an exhaustive list but covers most of the non-linearities and unit
+computations seen in the deep learning and neural nets literature. Many variants
+are possible.
+As discussed in Section 6.4, the structure (also called architecture) of the
+family of input-output functions can be varied in many ways, which calls for a
+generic principle for eﬃciently computing gradients, described in that section.
+For example, a common variation is to connect layers that are not adjacent, with
+so-called skip connections, which are found in the visual cortex (where the word
+“layer” should be replaced by the word “area”). Other common variations depart
+from a full connectivity between adjacent layers. For example, each unit at layer
+k may be connected to only a subset of units at layer k −1. A particular case
+of such form of sparse connectivity is discussed in chapter 9 with convolutional
+networks. The set of connections between units of the whole network needs to
+form a directed acyclic graph in order to deﬁne a meaningful computation (see
+the ﬂow graph formalism below, Section 6.4). Recurrent networks, treated in 10,
+164
+
+--- PAGE 177 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+are typically depicted using graphs containing cycles. Such graphs are using a
+diﬀerent kind of graphical language. The cycles indicate that the value of a unit
+at time step t + 1 is a function of the value of the unit at time step t. These
+cyclical graphs in the recurrent network language can be unrolled into directed
+acyclic graphs containing multiple time steps in order to obtain a traditional
+computational graph.
+6.3.2
+Loss Function and Conditional Log-Likelihood
+In the 80’s and 90’s the most commonly used loss function was the squared error
+L(fθ(x), y) = ||fθ(x)−y||2. As discussed in Section 6.2, if f is unrestricted (non-
+parametric), minimizing the expected value of the loss function over some data-
+generating distribution P (x, y) yields f (x) = E[y | x = x], the true conditional
+expectation of y given x. This tells us what the neural network is trying to learn.
+Replacing the squared error by an absolute value makes the neural network try
+to estimate not the conditional expectation but the conditional median3.
+However, when y is a discrete label, i.e., for classiﬁcation problems, other loss
+functions such as the Bernoulli negative log-likelihood4 have been found to be
+more appropriate than the squared error. In the case where y ∈{0, 1} is binary
+this gives
+L(fθ(x), y) = −y log f θ(x) −(1 −y) log(1 −fθ(x))
+(6.3)
+also known as cross entropy objective function. It can be shown that the optimal
+(non-parametric) f minimizing this loss function is f(x) = P (y = 1 | x). In
+other words, when maximizing the conditional log-likelihood objective function,
+we are training the neural net output to estimate conditional probabilities as
+well as possible in the sense of the KL divergence (see Section 3.9, Eq. 3.3).
+Note that in order for the above expression of the criterion to make sense, fθ(x)
+must be strictly between 0 and 1 (an undeﬁned or inﬁnite value would otherwise
+arise).
+To achieve this, it is common to use the sigmoid as non-linearity for
+the output layer, which matches well with the binomial negative log-likelihood
+cost function 5. As explained below (Softmax subsection), the log-likelihood of
+a Bernoulli variable whose mean is parameterized by a sigmoidal unit allows
+gradients to pass through the output non-linearity even when the neural network
+3Showing this is another interesting exercise.
+4 Many authors use the term “cross entropy” to identify speciﬁcally the negative log-likelihood
+of a Bernoulli or softmax distribution, but that is a misnomer. Any loss consisting of a negative
+log-likelihood is a cross entropy between the empirical distribution deﬁned by the training set
+and the model. For example, mean squared error is the cross entropy between the empirical
+distribution and a Gaussian model.
+5In reference to statistical models, this “match” between the loss function and the output
+non-linearity is similar to the choice of a link function in generalized linear models (McCullagh
+and Nelder, 1989).
+165
+
+--- PAGE 178 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+produces a conﬁdently wrong answer, unlike the squared error criterion coupled
+with a sigmoid or softmax non-linearity.
+Learning a Conditional Probability Model
+More generally, one can deﬁne a loss function as corresponding to a conditional
+log-likelihood, i.e., the negative log-likelihood (NLL) cost function
+LNLL(fθ (x), y) = −log P (y = y | x = x; θ).
+See Section 5.6.1 (and the one before) which shows that this criterion corresponds
+to minimizing the KL divergence between the model P of the conditional prob-
+ability of y given x and the data generating distribution Q, approximated here
+by the ﬁnite training set, i.e., the empirical distribution of pairs (x, y). Hence,
+minimizing this objective, as the amount of data increases, yields an estimator of
+the true conditional probability of y given x.
+For example, if y is a continuous random variable and we assume that, given
+x, it has a Gaussian distribution with mean fθ(x) and variance σ2, then
+−log P (y | x; θ) = 1
+2(f θ(x) −y)2/σ2 + log(2πσ 2).
+Up to an additive and multiplicative constant (which would give the same choice
+of θ), minimizing this negative log-likelihood is therefore equivalent to minimizing
+the squared error loss. Once we understand this principle, we can readily general-
+ize it to other distributions, as appropriate. For example, it is straightforward to
+generalize the univariate Gaussian to the multivariate case, and under appropriate
+parametrization consider the variance to be a parameter or even a parametrized
+function of x (for example with output units that are guaranteed to be positive,
+or forming a positive deﬁnite matrix, as outlined below, Section 6.3.2).
+Similarly, for discrete variables, the binomial negative log-likelihood cost func-
+tion corresponds to the conditional log-likelihood associated with the Bernoulli
+distribution (also known as cross entropy) with probability p = fθ(x) of generat-
+ing y = 1 given x = x (and probability 1 −p of generating y = 0):
+LNLL= −log P (y | x; θ) = −1y=1 log p −1y=0 log(1 −p)
+= −y log fθ(x) −(1 −y) log(1 −f θ(x)).
+where 1y=1 is the usual binary indicator.
+Softmax
+When y is discrete and has a ﬁnite domain (say {1, . . . , n}) but is not binary,
+the Bernoulli distribution is extended to the multinoulli distribution (deﬁned in
+166
+
+--- PAGE 179 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+Section 3.10.2). This distribution is speciﬁed by a vector of n −1 probabilities
+whose sum is less than or equal to 1, each element of which provides the probability
+pi = P (y = i | x). We can then recover P (y = N | x) as 1 −
+Pn−1
+i=1 P (y = i | x).
+Alternatively, one can specify a vector of n probabilities whose sum is exactly
+1. The two options have the same representational power but diﬀerent learning
+dynamics.
+The softmax non-linearity (Bridle, 1990): was designed for the purpose of
+specifying multinoulli distributions:
+p = softmax(a) ⇐⇒pi =
+eai
+P
+j eaj .
+(6.4)
+where typically a is a set of activations coming from the lower layers of the net-
+work. We often use the overparameterized a = b + W h, but we may hardcode
+an to 0 in order to specify only n −1 of the output probabilities. We can think
+of a as a vector of scores whose elements ai are associated with each category i,
+with larger relative scores yielding exponentially larger probabilities. The corre-
+sponding loss function is therefore LNLL(p, y) = −log py. Note how minimizing
+this loss will push ay up (increase the score ay associated with the correct label
+y) while pushing down ai for i 6
+= y (decreasing the score of the other labels, in
+the context x). The ﬁrst eﬀect comes from the numerator of the softmax while
+the second eﬀect comes from the normalizing denominator. These forces cancel
+on a speciﬁc example only if py = 1 and they cancel in average over examples (say
+sharing the same x) if pi equals the fraction of times that y = i for this value x.
+To see this, consider the gradient with respect to the scores a:
+∂
+∂a k
+LNLL(p, y) =
+∂
+∂ak
+(−log py) =
+∂
+∂ak
+(−ay + log
+X
+j
+eaj)
+= −1 y=k +
+e ak
+P
+jeaj
+= pk −1y=k
+or
+∂
+∂a LNLL(p, y) = (p −e y)
+(6.5)
+where e y = [0, . . . , 0, 1, 0, . . . , 0] is the one-hot vector with a 1 at position y.
+Examples that share the same x share the same a, so the average gradient on a
+over these examples is 0 when the average of the above expression cancels out,
+i.e., p = E y[ey | x] where the expectation is over these examples.
+Thus the
+optimal pi for these examples is the average number of times that y = i among
+those examples. Over an inﬁnite number of examples, we would obtain that the
+gradient is 0 when pi perfectly estimates the true P (y = i | x). What the above
+167
+
+--- PAGE 180 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+gradient decomposition teaches us as well is the division of the total gradient into
+(1) a term due to the numerator (the ey) and dependent on the actually observed
+target y and (2) a term independent of y but which corresponds to the gradient of
+the softmax denominator. The same principles and the role of the normalization
+constant (or “partition function”) can be seen at play in the training of Markov
+Random Fields, Boltzmann machines and RBMs, in Chapter 13.
+The softmax has other interesting properties.
+First of all, the gradient of
+logp(y = i | x) with respect to a only saturates in the case when p(y = i | x) is
+already nearly maximal, i.e., approaching 1. Speciﬁcally, let us consider the case
+where the correct label is i, i.e. y = i. The element of the gradient associated
+with an erroneous label, say j 6
+= i, is
+∂
+∂aj LNLL(p, y) = pj .
+(6.6)
+So if the model correctly predicts a low probability that the y = j, i.e. that
+pj ≈0, then the gradient is also close to zero.
+But if the model incorrectly
+and conﬁdently predicts that j is the correct class, i.e., pj ≈1, there will be a
+strong push to reduce aj . Conversely, if the model incorrectly and conﬁdently
+predicts that the correct class y should have a low probability, i.e., p y ≈0, there
+will be a strong push (a gradient of about -1) to push ay up. One way to see
+these is to imagine doing gradient descent on the aj ’s themselves (that is what
+backprop is really based on): the update on aj would be proportional to minus one
+times the gradient on aj, so a positive gradient on a j (e.g., incorrectly conﬁdent
+that pj ≈1) pushes aj down, while a negative gradient on aj (e.g., incorrectly
+conﬁdent that py ≈0) pushes ay up. In fact note how ay is always pushed up
+because py −1y=y = py −1 < 0, and the other scores a j (for j 6
+= y) are always
+pushed down, because their gradient is pj > 0.
+There are other loss functions such as the squared error applied to softmax (or
+sigmoid) outputs (which was popular in the 80’s and 90’s) which have vanishing
+gradient when an output unit saturates (when the derivative of the non-linearity
+is near 0), even if the output is completely wrong (Solla et al., 1988). This may be
+a problem because it means that the parameters will basically not change, even
+though the output is wrong.
+To see how the squared error interacts with the softmax output, we need to
+introduce a one-hot encoding of the label, y = ei = [0, . . . , 0, 1, 0, . . . , 0], i.e for
+the label y = i, we have yi = 1 and yj = 0, ∀j 6
+= i. We will again consider that
+we have the output of the network to be p = softmax(a), where, as before, a is
+the input to the softmax function ( e.g. a = b + W h with h the output of the
+last hidden layer).
+For the squared error loss L2(p(a), y) = ||p(a) −y||2 , the gradient of the loss
+168
+
+--- PAGE 181 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+with respect to the input vector to the softmax, a, is given by:
+∂
+∂ai
+L2(p(a), y) = ∂L2(p(a), y)
+∂p(a)
+∂p(a)
+∂a i
+=
+X
+j
+2(pj(a) −yj)p j(1i=j −pi).
+(6.7)
+So if the model incorrectly predicts a low probability for the correct class y = i,
+i.e., if py = pi ≈0, then the score for the correct class, ay, does not get pushed
+up in spite of a large error, i.e.,
+∂
+∂ay L2(p(a), y) ≈0. For this reason, practitioners
+prefer to use the negative log-likelihood (cross entropy) cost function, with the
+softmax non-linearity (as well as with the sigmoid non-linearity), rather than
+applying the squared error criterion to these probabilities.
+Another uesful property of the softmax is that its output is invariant to adding
+a scalar to all of its inputs:
+softmax(a) = softmax(a + b).
+This property is used to implement the numerically stable variant of the softmax,
+which exploits the fact that softmax(a) = softmax(a −maxi ai). This allows us to
+evaluate softmax with only small numerical errors even when a contains extremely
+large or extremely negative numbers.
+Finally, it is interesting to think of the softmax as a way to create a form of
+competition between the units (typically output units, but not necessarily) that
+participate in it: the softmax outputs always sum to 1 so an increase in the value
+of one unit necessarily corresponds to a decrease in the value of others. This is
+analogous to the lateral inhibition that is believed to exist between nearby neurons
+in cortex. Aat the extreme (when the diﬀerence between the maximal ai and the
+others is large in magnitude) it becomes a form of winner-take-all (one of the out-
+puts is nearly 1 and the others are nearly 0). A more computationally expensive
+form of competition is found with sparse coding, described in Section 19.3.
+Neural Net Outputs as Parameters of a Conditional Distribution
+In general, for any parametric probability distribution p(y | ω) with param-
+eters ω, we can construct a conditional distribution p(y | x) by making ω a
+parametrized function of x and learning that function:
+p(y | ω = fθ(x))
+where fθ(x) is the output of a predictor, x is its input, and y can be thought
+of as a “target”. The use of the word “target” comes from the common cases of
+169
+
+--- PAGE 182 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+classiﬁcation and regression, where fθ(x) is really a prediction associated with
+random variable y, or with its expected value. However, in general ω = fθ(x)
+may contain parameters of the distribution of y other than its expected value.
+For example, it could contain its variance or covariance, in the case where y is
+conditionally Gaussian. In the above examples, with the squared error loss, ω is
+the mean of the Gaussian which captures the conditional distribution of y (which
+means that the variance is considered ﬁxed, not a function of x). In the common
+classiﬁcation case, ω contains the probabilities associated with the various events
+of interest.
+Once we view things in this way, if we apply the principle of maximum likeli-
+hood in the conditional case (Section 5.6.1), we automatically get as the natural
+cost function the negative log-likelihood L(x, y) = −log p(y | ω = fθ (x)). Be-
+sides the expected value of y, there could be other parameters of the conditional
+distribution of y that control the distribution of y, given x. For example, we
+may wish to learn the variance of a conditional Gaussian for y, given x, and that
+variance could be a function that varies with x or that is a constant with respect
+to x. If the variance σ 2of y given x is not a function of x, its maximum likelihood
+value can be computed analytically because the maximum likelihood estimator of
+variance is simply the empirical mean of the squared diﬀerence between observa-
+tions y and their expected value (here estimated by fθ(x)). In the scalar case,
+we could estimate σ as follows:
+σ2 ←1
+n
+n
+X
+i=1
+(y (t) −fθ(x(t) ))2
+(6.8)
+where (t) indicates the t-th training example (x(t) , y (t)).
+In other words, the
+conditional variance can simply be estimated from the mean squared error. If
+y is a d-vector and the conditional covariance is σ2 times the identity, then the
+above formula should be modiﬁed as follows, again by setting the gradient of the
+log-likelihood with respect to σ to zero:
+σ 2 ←
+1
+nd
+nX
+i=1
+||y(t) −fθ(x(t))||2.
+(6.9)
+In the multivariate case with a diagonal covariance matrix with entries σ2
+i , we
+obtain
+σ2
+i ←1
+n
+n
+X
+i=1
+(y(t)
+i
+−fθ,i(x(t))) 2.
+(6.10)
+In the multivariate case with a full covariancae matrix, we have
+Σ ←1
+n
+n
+X
+i=1
+(y (t)
+i
+−fθ,i(x(t)))(y(t)
+i
+−fθ,i (x(t)))>
+(6.11)
+170
+
+--- PAGE 183 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+If the variance Σ(x) is a function of x, there is no known method for maximizing
+the likelihood in closed form, but we can compute the gradient necessary for
+use with an iterative optimization procedure. If Σ(x) is diagonal or scalar, only
+positivity must be enforced, e.g., using the softplus non-linearity:
+σi (x) = softplus(gθ(x)).
+where gθ(x) may be a neural network that takes x as input. A positive non-
+linearity may also be useful in the case where σ is a function of x, if we do not
+seek the maximum likelihood solution (for example we do not have immediate
+observed targets associated with that Gaussian distribution, because the sam-
+ples from the Gaussian are used as input for further computation). Then we can
+make the free parameter ω deﬁning the variance the argument of the positive non-
+linearity, e.g., σi(x) = softplus(ωi ). If the covariance is full and conditional, then
+a parametrization must be chosen that guarantees positive-deﬁniteness of the pre-
+dicted covariance matrix. This can be achieved by writing Σ(x) = B(x)B >(x),
+where B is an unconstrained square matrix. One practical issue if the the matrix
+is full is that computing the likelihood is expensive, requiring O(d 3) computation
+for the determinant and inverse of Σ(x) (or equivalently, and more commonly
+done, its eigendecomposition or that of B(x)).
+Besides the Gaussian, a simple and common example is the case where y is
+binary (i.e. Bernoulli distributed), where it is enough to specify ω = p(y = 1 | x).
+In the multinoulli case (multiple discrete values), ω is generally speciﬁed by a
+vector of probabilities (one per possible discrete value) summing to 1, e.g., via
+the softmax non-linearity discussed above.
+Another interesting and powerful example of output distribution for neural
+networks is the mixture model, and in particular the Gaussian mixture model,
+introduced in Section 3.10.6. Neural networks that compute the parameters of
+a mixture model were introduced in Jacobs et al. (1991); Bishop (1994). In the
+case of the Gaussian mixture model with n components,
+p(y | x) =
+n
+X
+i=1
+p(c = i | x)N (y | µi (x), Σi (x)).
+The neural network must have three outputs: p(c = i | x), µ i(x) and Σi(x).
+These outputs must satisfy diﬀerent constraints:
+1. Mixture components p(c = i | x): these form a multinoulli distribution over
+the n diﬀerent components associated with latent6 variable c, and can typ-
+6c is called latent because we do not observe it in the data: given input x and target y, it
+is not 100% clear which Gaussian component was responsible for y, but we can imagine that y
+was generated by picking one of them, and make that unobserved choice a random variable.
+171
+
+--- PAGE 184 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+ically be obtained by a softmax over an n-dimensional vector, to guarantee
+that these outputs are positive and sum to 1.
+2. Means µ i(x): these indicate the center or mean associated with the i-th
+Gaussian component, and are unconstrained (typically with no non-linearity
+at all for these output units). If y is a d-vector, then the network must
+output an n × d matrix containing all n of these d-dimensional vectors.
+3. Covariances Σi(x): these specify the covariance matrix for each component
+i. For the general case of an unconditional (does not depend on x) but full
+covariance matrix, see Eq. 6.11 to set it by maximum likelihood. In many
+models the variance is both unconditional and diagonal (like assumed with
+Eq. 6.10) or even scalar (like assumed with Eq. 6.8 or 6.9).
+It has been reported that gradient-based optimization of conditional Gaussian
+mixtures (on the output of neural networks) can be ﬁnicky, in part because one
+gets divisions (by the variance) which can be numerically unstable (when some
+variance gets to be small for a particular example, yielding very large gradients).
+One solution is to clip gradients (see Section 10.8.7 and Mikolov (2012); Pascanu
+and Bengio (2012); Graves (2013); Pascanu et al. (2013a)), while another is to
+scale the gradients heuristically (Murray and Larochelle, 2014).
+Multiple Output Variables
+When y is actually a tuple formed by multiple random variables y = (y1 , y2, . . . , yk),
+then one has to choose an appropriate form for their joint distribution, conditional
+on x = x. The simplest and most common choice is to assume that the yi are
+conditionally independent, i.e.,
+p(y1, y2, . . . , yk | x) =
+kY
+i=1
+p(yi | x).
+This brings us back to the single variable case, especially since the log-likelihood
+now decomposes into a sum of terms log p(yi | x). If each p(yi | x) is separately
+parametrized (e.g. a diﬀerent neural network), then we can train these neural
+networks independently. However, a more common and powerful choice assumes
+that the diﬀerent variables yi share some common factors, given x, that can be
+represented in some hidden layer of the network (such as the top hidden layer).
+See Sections 6.6 and 7.12 for a deeper treatment of the notion of underlying factors
+of variation and multi-task training: each (x, yi) pair of random variables can be
+associated with a diﬀerent learning task, but it might be possible to exploit what
+these tasks have in common. See also Figure 7.6 illustrating these concepts.
+172
+
+--- PAGE 185 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+If the conditional independence assumption is considered too strong, what can
+we do? At this point it is useful to step back and consider everything we know
+about learning a joint probability distribution. Since any probability distribution
+p(y; ω) parametrized by parameters ω can be turned into a conditional distri-
+bution p(y | x; θ) (by making ω a function ω = f θ(x) parametrized by θ), we
+can go beyond the simple parametric distributions we have seen above (Gaussian,
+Bernoulli, multinoulli), and use more complex joint distributions. If the set of
+values that y can take is small enough (e.g., we have 8 binary variables yi, i.e., a
+joint distribution involving 28 = 256 possible values), then we can simply model
+all these joint occurences as separate values, e.g., with a softmax and multinoulli
+over all these conﬁgurations. However, when the set of values that yi can take
+cannot be easily enumerated and the joint distribution is not unimodal or fac-
+torized, we need other tools. The third part of this book is about the frontier of
+research in deep learning, and much of it is devoted to modeling such complex
+joint distributions, also called graphical models: see Chapters 13, 18, 19, 20. In
+particular, Section 12.5 discusses how sophisticated joint probability models with
+parameters ω can be coupled with neural networks that compute ω as a function
+of inputs x, yielding structured output models conditioned with deep learning.
+6.3.3
+Cost Functions For Neural Networks
+Typically, the training criteria for neural networks are primarily based on max-
+imum likelihood. In the case of supervised learning, this will be the conditional
+version of maximum likelihood when we perform supervised learning.
+In addition to the negative log-likelihood cost, we also often add some sort
+of a regularization term. Many of the regularization terms that apply to linear
+models also apply to neural networks. For example, weight decay applies to neural
+networks as well as to linear models.
+These ideas have all been described for machine learning models in general
+in Chapter 5. When designing cost functions for neural networks speciﬁcally, we
+can often specialize the regularization terms for neural networks in various ways,
+such as controlling the properties of the individual hidden units. These strategies
+are covered in Chapter 7.
+In practice, a good choice for the criterion is maximum likelihood regularized
+with dropout, possibly also with weight decay.
+6.3.4
+Optimization Procedure
+Previously, we have seen simple machine learning models which could sometimes
+be ﬁt in closed form. Neural networks must essentially always be optimized with
+iterative procedures. Optimization of neural networks is so diﬃcult that the choice
+173
+
+--- PAGE 186 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+of optimization procedure is often tightly intertwined with the choice of model.
+In other words, we often design the model to make optimization easier. Chapter 8
+is devoted to the iterative optimization procedures used to train neural networks
+and other deep models, including optimization strategies that involve designing
+the model to be easier to optimize.
+In practice, a good choice for the optimization algorithm for a feedforward
+network is usually stochastic gradient descent with momentum.
+Typically, to
+make the model easier to optimize, it is best to use piecewise linear hidden units.
+6.4
+Flow Graphs and Back-Propagation
+The term back-propagation is often misunderstood as meaning the whole learning
+algorithm for multi-layer neural networks. Actually it just means the method for
+computing gradients in such networks. Furthermore, it is generally understood as
+something very speciﬁc to multi-layer neural networks, but once its derivation is
+understood, it can easily be generalized to arbitrary functions (for which comput-
+ing a gradient is meaningful), and we describe this generalization here, focusing
+on the case of interest in machine learning where the output of the function to
+diﬀerentiate (e.g., the training criterion J) is a scalar and we are interested in
+its derivative with respect to a set of parameters (considered to be the elements
+of a vector θ), or equivalently, a set of inputs 7. The partial derivative of J with
+respect to θ (called the gradient) tells us whether θ should be increased or de-
+creased in order to decrease J, and is a crucial tool in optimizing the training
+objective. It can be readily proven that the back-propagation algorithm for com-
+puting gradients has optimal computational complexity in the sense that there is
+no algorithm that can compute the gradient faster (in the O(·) sense, i.e., up to
+an additive and multiplicative constant).
+The basic idea of the back-propagation algorithm is that the partial derivative
+of the cost J with respect to parameters θ can be decomposed recursively by taking
+into consideration the composition of functions that relate θ to J, via intermediate
+quantities that mediate that inﬂuence, e.g., the activations of hidden units in a
+deep neural network.
+6.4.1
+Chain Rule
+The basic mathematical tool for considering derivatives through compositions of
+functions is the chain rule, illustrated in Figure 6.4. The partial derivative ∂y
+∂x
+measures the locally linear inﬂuence of a variable x on another one y, while we
+7It is useful to know which inputs contributed most to the output or error made, and the sign
+of the derivative is also interesting in that context.
+174
+
+--- PAGE 187 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+denote ∇θJ for the gradient vector of a scalar J with respect to some vector of
+variables θ. If x inﬂuences y which inﬂuences z, we are interested in how a tiny
+change in x propagates into a tiny change in z via a tiny change in y. In our case
+of interest, the “output” is the cost, or objective function z = J(g(θ)), we want
+the gradient with respect to some parameters x = θ, and there are intermediate
+quantities y = g(θ) such as neural net activations. The gradient of interest can
+then be decomposed, according to the chain rule, into
+∇θJ(g(θ)) = ∇g(θ) J(g(θ))∂g(θ)
+∂θ
+(6.12)
+which works also when J, g or θ are vectors rather than scalars (in which case
+the corresponding partial derivatives are understood as Jacobian matrices of the
+appropriate dimensions). In the purely scalar case we can understand the chain
+rule as follows: a small change in θ will propagate into a small change in g(θ) by
+getting multiplied by ∂g(θ)
+∂θ . Similarly, a small change in g(θ) will propagate into
+a small change in J(g(θ)) by getting multiplied by ∇g(θ)J(g(θ)). Hence a small
+change in θ ﬁrst gets multiplied by ∂g(θ)
+∂θ
+to obtain the change in g(θ) and this
+then gets multiplied by ∇g(θ)J(g(θ)) to obtain the change in J(g(θ)). Hence the
+ratio of the change in J(g(θ)) to the change in θ is the product of these partial
+derivatives.
+Figure 6.4: The chain rule, illustrated in the simplest possible case, with z a scalar
+function of y, which is itself a scalar function of x. A small change ∆x in x gets turned
+into a small change ∆y in y through the partial derivative ∂y
+∂x, from the ﬁrst-order Taylor
+approximation of y(x), and similarly for z(y). Plugging the equation for ∆y into the
+equation for ∆z yields the chain rule.
+Now, if g is a vector, we can rewrite the above as follows:
+∇θJ(g(θ)) =
+X
+i
+∂J(g(θ))
+∂gi(θ)
+∂gi(θ)
+∂θ
+which sums over the inﬂuences of θ on J(g(θ)) through all the intermediate
+variables g i(θ). This is illustrated in Figure 6.5 with x = θ, yi = gi(θ), and
+z = J(g(θ)).
+175
+
+--- PAGE 188 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+Figure 6.5: Top: The chain rule, when there are two intermediate variables y 1 and y2
+between x and z, creating two paths for changes in x to propagate and yield changes in
+z. Bottom: more general case, with n intermediate variables y1 to yn.
+6.4.2
+Back-Propagation in an MLP
+Whereas example 6.1.1 illustrated the case of of an MLP with a single hidden
+layer let us consider in this section back-propagation for an ordinary but deep
+MLP, i.e., like the above vanilla MLP but with several hidden layers. For this
+purpose, we will recursively apply the chain rule illustrated in Figure 6.5. The
+algorithm proceeds by ﬁrst computing the gradient of the cost J with respect to
+output units, and these are used to compute the gradient of J with respect to the
+top hidden layer activations, which directly inﬂuence the outputs. We can then
+continue computing the gradients of lower level hidden units one at a time in the
+same way The gradients on hidden and output units can be used to compute the
+gradient of J with respect to the parameters (e.g. weights and biases) of each
+layer (i.e., that directly contribute to the output of that layer).
+176
+
+--- PAGE 189 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+Algorithm 6.1 Forward computation associated with input x for a deep neural
+network with ordinary aﬃne layers composed with an arbitrary elementwise dif-
+ferentiable (almost everywhere) non-linearity f . There are M such layers, each
+mapping their vector-valued input hk to a pre-activation vector ak via a weight
+matrix W (k) which is then transformed via f into hk+1. The input vector x corre-
+sponds to h0 and the predicted outputs ˆy corresponds to hM . TODO: careful with
+wording about loss functions here. Is it really important to say which things are
+per-example and which are regularizer, etc? TODO: more broadly, is it necessary
+to cover traditional nn-specialized backprop anymore or can we just do generic
+symbolic diﬀ? nn-specialized backprop seems like a historical footnote now The
+cost function L( ˆy, y) depends on the output ˆy and on a target y (see Section 6.3.2
+for examples of loss functions). The loss may be added to a regularizer Ω(see
+Section 6.3.3 and Chapter 7) to obtain the example-wise cost J. Algorithm 6.2
+shows how to compute gradients of J with respect to parameters W and b. For
+computational eﬃciency on modern computers (especially GPUs), it is important
+TODO: the following line is the ﬁrst use of the word minibatch in the book. need
+to introduce ahead of time. to implement these equations minibatch-wise, i.e.,
+h(k) (and similary a(k)) should really be a matrix whose second dimension is the
+example index in the minibatch. Accordingly, y and ˆy should have an additional
+dimension for the example index in the minibatch, while J remains a scalar, i.e.,
+the average of the costs over all the minibatch examples.
+h0 = x
+for k = 1 . . . , M do
+a(k) = b(k) + W (k)h(k−1)
+h(k) = f(a(k) )
+end for
+ˆy = h(M)
+J = L(ˆy, y) + λΩ
+Algorithm 6.1 describes in matrix-vector form the forward propagation com-
+putation for a classical multi-layer network with M layers, where each layer com-
+putes an aﬃne transformation (deﬁned by a bias vector b(k) and a weight matrix
+W (k) ) followed by a non-linearity f. In general, the non-linearity may be diﬀerent
+on diﬀerent layers. Typically at least the output layer has a diﬀerent type than
+the other layers (see Section 6.3.1). Each unit at layer k computes an output h(k)
+i
+177
+
+--- PAGE 190 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+Algorithm 6.2 Backward computation for the deep neural network of Algo-
+rithm 6.1, which uses in addition to the input x a target y. This computation
+yields the gradients on the activations a(k) for each layer k, starting from the
+output layer and going backwards to the ﬁrst hidden layer. From these gradi-
+ents, which can be interpreted as an indication of how each layer’s output should
+change to reduce error, one can obtain the gradient on the parameters of each
+layer. The gradients on weights and biases can be immediately used as part of a
+stochastic gradient update (performing the update right after the gradients have
+been computed) or used with other gradient-based optimization methods.
+After the forward computation, compute the gradient on the output layer:
+g ←∇ˆ
+yJ = ∇ˆyL( ˆy, y) + λ∇ˆyΩ
+(typically Ωis only a function of parameters not activations, so the last term
+would be zero)
+for k = M down to 1 do
+Convert the gradient on the layer’s output into a gradient into the pre-
+nonlinearity activation (element-wise multiplication if f is element-wise):
+g ←∇a(k)J = g f0 (a(k) )
+Compute gradients on weights and biases (including the regularization term,
+where needed):
+∇b (k)J = g + λ∇b(k)Ω
+∇W(k) J = g h(k−1)> + λ∇W (k)Ω
+Propagate the gradients w.r.t. the next lower-level hidden layer’s activations:
+g ←∇h(k−1) J = W (k)> g
+end for
+as follows:
+a
+(k)
+i
+= b
+(k)
+i
++
+X
+j
+W
+(k)
+ij h
+(k−1)
+j
+h(k)
+i
+= f(a(k))v
+(6.13)
+where we separate the aﬃne transformation from the non-linear activation oper-
+ations for ease of exposition of the back-propagation computations.
+These are described in matrix-vector form by Algorithm 6.2 and proceed from
+the output layer towards the ﬁrst hidden layer, as outlined above.
+6.4.3
+Back-Propagation in a General Flow Graph
+In this section we call the intermediate quantities between inputs (parameters
+θ) and output (cost J) of the graph nodes uj (indexed by j) and consider the
+178
+
+--- PAGE 191 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+general case in which they form a directed acyclic graph that has J as its ﬁnal
+node u N, that depends of all the other nodes uj. The back-propagation algorithm
+exploits the chain rule for derivatives to compute
+∂J
+∂uj when ∂J
+∂ui has already been
+computed for successors ui of uj in the graph, e.g., the hidden units in the next
+layer downstream. This recursion can be initialized by noting that
+∂J
+∂uN = ∂J
+∂J = 1
+and at each step only requires to use the partial derivatives associated with each
+arc of the graph, ∂ui
+∂uj, when ui is a successor of uj.
+uj
+ai
+u1
+…
+…
+fi
+ui = fi(ai)
+uN
+u2
+Figure 6.6: Illustration of recursive forward computation, where at each node ui we
+compute a value ui = fi(ai), with a i being the list of values from parents u j of node
+ui. Following Algorithm 6.3, the overall inputs to the graph are u1 . . . , uM (e.g., the
+parameters we may want to tune during training), and there is a single scalar output uN
+(e.g., the loss which we want to minimize).
+More generally than multi-layered networks, we can think about decomposing
+a function J(θ) into a more complicated graph of computations. This graph is
+called a ﬂow graph. Each node u i of the graph denotes a numerical quantity
+that is obtained by performing a computation requiring the values uj of other
+nodes, with j < i. The nodes satisfy a partial order which dictates in what order
+the computation can proceed.
+In practical implementations of such functions
+(e.g. with the criterion J(θ) or its value estimated on a minibatch), the ﬁnal
+computation is obtained as the composition of simple functions taken from a
+given set (such as the set of numerical operations that the numpy library can
+perform on arrays of numbers).
+We will deﬁne the back-propagation in a general ﬂow-graph, using the follow-
+ing generic notation: ui = fi(ai ), where aiis a list of arguments for the application
+179
+
+--- PAGE 192 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+Algorithm 6.3 Flow graph forward computation. Each node computes numerical
+value ui by applying a function fi to its argument list ai that comprises the values
+of previous nodes uj, j < i, with j ∈parents(i). The input to the ﬂow graph is
+the vector x, and is set into the ﬁrst M nodes u1 to uM. The output of the ﬂow
+graph is read oﬀthe last (output) node uN.
+for i = 1 . . . , M do
+ui ←xi
+end for
+for i = M + 1 . . . , N do
+ai ←(u j)j∈parents(i)
+ui ←fi(ai)
+end for
+return uN
+u1
+u2
+u3
+Figure 6.7: Illustration of indirect eﬀect and direct eﬀect of variable u1 on variable u3 in a
+ﬂow graph, which means that the derivative of u3 with respect to u1 must include the sum
+of two terms, one for the direct eﬀect (derivative of u3 with respect to its ﬁrst argument)
+and one for the indirect eﬀect through u2 (involving the product of the derivative of u3
+with respect to u2 times the derivative of u2 with respect to u1 ). Forward computation of
+ui’s (as in Figure 6.6) is indicated with upward full arrows, while backward computation
+(of derivatives with respect to ui’s, as in Figure 6.8) is indicated with downward dashed
+arrows.
+180
+
+--- PAGE 193 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+of fi to the values uj for the parents of i in the graph: ai = (u j)j∈parents(i). This
+is illustrated in Figure 6.6.
+The overall computation of the function represented by the ﬂow graph can
+thus be summarized by the forward computation algorithm, Algorithm 6.3.
+TODO: notation is screwed up here. Is ai a vector? Should be a(i) or some-
+thing like that. If ai is an element of a vector should be ai. In addition to having
+some code that tells us how to compute fi(ai) for some values in the vector ai, we
+also need some code that tells us how to compute its partial derivatives, ∂fi(ai)
+∂aik
+with respect to any immediate argument aik. Let k = π(i, j) denote the index of
+uj in the list ai. Note that uj could inﬂuence ui through multiple paths. Whereas
+∂u i
+∂u j would denote the total gradient adding up all of these inﬂuences, ∂fi (ai)
+∂aik
+only
+denotes the derivative of fi with respect to its speciﬁc k-th argument, keeping the
+other arguments ﬁxed, i.e., only considering the inﬂuence through the arc from uj
+to ui. TODO: this next sentence is ambiguous and extremely hard to read In gen-
+eral, when manipulating partial derivatives, one should keep clear in one’s mind
+(and implementation) the notational and semantic distinction between a partial
+derivative that includes all paths and one that includes only the immediate eﬀect
+of a function’s argument on the function output, with the other arguments con-
+sidered ﬁxed. For example consider f3(a3,1, a3,2) = ea 3,1+a3,2 and f 2(a2,1) = a2
+2,1 ,
+while u3 = f 3(u2, u1) and u2 = f2(u1), illustrated in Figure 6.7. The direct deriva-
+tive of f3 with respect to its argument a3,2 is
+∂f3
+∂a3,2 = ea3,1+a3,2 while if we consider
+the variables u3 and u1 to which these correspond, there are two paths from u1
+to u3, and we obtain as derivative the sum of partial derivatives over these two
+paths, ∂u3
+∂u1 = eu1 +u2(1 + 2u1). The results are diﬀerent because ∂u 3
+∂u 1 involves not
+just the direct dependency of u3 on u1 but also the indirect dependency through
+u2 .
+Armed with this understanding, we can deﬁne the back-propagation algorithm
+as follows, in Algorithm 6.4, which would be computed after the forward prop-
+agation (Algorithm 6.3) has been performed. Note the recursive nature of the
+application of the chain rule, in Algorithm 6.4: we compute the gradient on node
+j by re-using the already computed gradient for children nodes i, starting the
+recurrence from the trivial ∂uN
+∂uN = 1 that sets the gradient for the output node.
+This is illustrated in Figure 6.8.
+This recursion is a form of eﬃcient factorization of the total gradient, i.e., it is
+an application of the principles of dynamic programming 8. Indeed, the derivative
+of the output node with respect to any node can also be written down in this
+8 Here we refer to “dynamic programming” in the sense of table-ﬁlling algorithms that avoid
+re-computing frequently used subexpressions.
+In the context of machine learning, “dynamic
+programming” can also refer to iterating Bellman’s equations. That is not the kind of dynamic
+programming we refer to here.
+181
+
+--- PAGE 194 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+…
+…
+∂uN
+∂uN = 1
+∂uN
+∂uj
+∂u N
+∂ui
+Figure 6.8: Illustration of recursive backward computation, where we associate to each
+node j not just the values uj computed in the forward pass (Figure 6.6, bold upward
+arrows) but also the gradient
+∂uN
+∂u j with respect to the output scalar node uN. These
+gradients are recursively computed in exactly the opposite order, as described in Algo-
+rithm 6.4 by using the already computed
+∂uN
+∂u i
+of the children i of j (dashed downward
+arrows).
+intractable form:
+∂u N
+∂u i
+=
+X
+paths uk 1...,uk n: k1 =i,kn=N
+n
+Y
+j=2
+∂ukj
+∂ukj−1
+where the paths uk 1 . . . , ukn go from the node k1 = i to the ﬁnal node kn = N
+in the ﬂow graph and
+∂ukj
+∂ukj−1 refers only to the immediate derivative considering
+uk j−1 as the argument number π(k j, kj−1) of akj into ukj, i.e.,
+∂u kj
+∂ukj−1
+=
+∂fkj(akj)
+∂akj ,π(kj,kj−1)
+.
+Computing the sum as above would be intractable because the number of possible
+paths can be exponential in the depth of the graph. The back-propagation algo-
+rithm is eﬃcient because it employs a dynamic programming strategy to reuse
+rather than re-compute partial sums associated with the gradients on intermediate
+nodes.
+Although the above was stated as if the ui’s were scalars, exactly the same
+procedure can be run with ui’s being tuples of numbers (more easily represented
+182
+
+--- PAGE 195 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+Algorithm 6.4 Back-propagation computation of a ﬂow graph (full, upward ar-
+rows, Figs.6.8 and 6.6), which itself produces an additional ﬂow graph (dashed,
+backward arrows). See the forward propagation in a ﬂow-graph (Algorithm 6.3,
+to be performed ﬁrst) and the required data structure. In addition, a quantity
+∂u N
+∂ui needs to be stored (and computed) at each node, for the purpose of gradient
+back-propagation. Below, the notation π(i,j) is the index of uj as an argument to
+fi. The back-propagation algorithm eﬃciently computes ∂u N
+∂u i for all i’s (travers-
+ing the graph backwards this time), and in particular we are interested in the
+derivatives of the output node uN with respect to the “inputs” u 1. . . , uM (which
+could be the parameters, in a learning setup). The cost of the overall computa-
+tion is proportional to the number of arcs in the graph, assuming that the partial
+derivative associated with each arc requires a constant time. This is of the same
+order as the number of computations for the forward propagation.
+∂uN
+∂uN ←1
+for j = N −1 down to 1 do
+∂u N
+∂uj ←P
+i:j∈parents(i)
+∂uN
+∂u i
+∂fi(ai )
+∂a i,π(i,j)
+end for
+return
+
+∂uN
+∂u i
+M
+i=1
+by vectors). The same equations remain valid.
+Earlier, we wrote these equa-
+tions using scalar multiplication of scalar partial derivatives. Using vectors, these
+multiplications turn into matrix-vector products.
+We multiply the row vector
+of gradients ∂uN
+∂ui by a Jacobian matrix of partial derivatives associated with the
+j →i arc of the graph,
+∂fi (ai)
+∂ai,π(i,j) .
+The quintessential neural network training scenario is the case where each
+U(i) is a matrix containing m examples in a minibatch and n hidden unit activa-
+tion values. In this case, both forward propagation and back-propagation can be
+expressed as a product between a matrix of activations or gradients and a ma-
+trix of weights. From a computational point of view, this is much more eﬃcient
+than training on a single example at a time. When we do not use the minibatch
+version of the algorithm, U(i) is only a vector. The main operation used in for-
+ward and back-propagation is then a matrix-vector product, between the weight
+matrix and the vector of activations or gradients. Matrix-matrix products are
+typically implemented with a high degree of parallel computation (e.g. in BLAS
+library implementations) which is essential for obtaining good performance on
+modern multicore CPUs and GPUs. Matrix-matrix products for minibatch for-
+ward and back-propagation allow parallelization across both examples and units,
+while matrix-vector products for the processing of a single example allow only
+183
+
+--- PAGE 196 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+parallelization across units.
+6.4.4
+Symbolic Back-propagation and Automatic Diﬀerentiation
+The algorithm for generalized back-propagation (Alg. 6.4) was presented with the
+interpretation that actual computations take place at each step of the algorithm.
+This generalized form of back-propagation is just a particular way to perform
+automatic diﬀerentiation (Rall, 1981) in computational ﬂow graphs deﬁned by
+Algorithm 6.3. Automatic diﬀerentiation automatically obtains derivatives of a
+given expression and has numerous uses in machine learning (Baydin et al., 2015).
+As an alternative (and often as a debugging tool) derivatives could be obtained
+by numerical methods based on measuring the eﬀects of small changes, called
+numerical diﬀerentiation (Lyness and Moler, 1967). For example, a ﬁnite diﬀer-
+ence approximation of the gradient follows from the deﬁnition of derivative as a
+ratio of the change in output that results in a change in input, divided by the
+change in input. Methods based on random perturbations also exist which ran-
+domly jiggle all the input variables (e.g. parameters) and associate these random
+input changes with the resulting overall change in the output variable in order to
+estimate the gradient (Spall, 1992). However, for obtaining a gradient (i.e., with
+respect to many variables, e.g., parameters of a neural network), back-propagation
+has two advantages over numerical diﬀerentiation: (1) it performs exact computa-
+tion (up to machine precision), and (2) it is computationally much more eﬃcient,
+obtaining all the required derivatives in one go. Instead, numerical diﬀerentiation
+methods either require to redo the forward propagation separately for each pa-
+rameter (keeping the other ones ﬁxed) or they yield stochastic estimators (from
+a random perturbation of all parameters) whose variances grows linearly with
+the number of parameters. Automatic diﬀerentiation of a function with d inputs
+and m outputs can be done either by carrying derivatives forward, or carrying
+them backwards. The former is more eﬃcient when d < m and the latter is more
+eﬃcient when d > m. In our use case, the output is a scalar (the cost), and the
+backwards approach, called reverse accumulation, i.e., back-propagation, is much
+more eﬃcient than the approach of propagating derivatives forward in the graph.
+Although Algorithm 6.4 can be seen as a form of automatic diﬀerentiation, it
+has another interpretation: each step symbolically speciﬁes how gradient compu-
+tation could be done, given a symbolic speciﬁcation of the function to diﬀerenti-
+ate, i.e., it can be used to perform symbolic diﬀerentiation. Whereas automatic
+diﬀerentiation manipulates and outputs numbers, given a symbolic expression
+(the program specifying the function to be computed and diﬀerentiated), sym-
+bolic diﬀerentiation manipulates and outputs symbolic expressions, i.e., pieces of
+program, producing a symbolic expression for computing the derivatives. The
+184
+
+--- PAGE 197 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+popular Torch library9 for deep learning, as well as most other open source deep
+learning libraries are a limited form of doing automatic diﬀerentiation restricted
+to the “programs” obtained by composing a predeﬁned set of operations, each cor-
+responding to a “module”. The set of these modules is designed such that many
+neural network architectures and computations can be performed by composing
+the building blocks represented by each of these modules. Each module is deﬁned
+by two main functions, (1) one that computes the outputs y of the module given
+its inputs x, e.g., with an “fprop” function
+y = module.fprop(x),
+and (2), one that computes the gradient ∂J
+∂x of a scalar (typically the minibatch
+cost J) with respect to the inputs x, given the gradient ∂J
+∂y with respect to the
+outputs, e.g., with a “bprop” function
+∇xJ = module.bprop (∇y J) .
+The bprop function thus implicitly knows the Jacobian of the x to y mapping,
+∂y
+∂x, at x. Speciﬁcally, the bprop function speciﬁes how to multiply this Jacobian
+by a vector passed to the function as an argument.
+During execution of the
+back-propagation algorithm, bprop will be called with this argument set to the
+gradient on the output, ∇yJ. When called in this manner, bprop computes
+∇xJ =
+∂y
+∂x
+>
+∇yJ.
+In practice, implementations work in parallel over a whole minibatch (transform-
+ing matrix-vector operations into matrix-matrix operations) and may operate on
+objects which are not vectors (maybe higher-order tensors like those involved with
+images or sequences of vectors). Furthermore, the bprop function does not have
+to explicitly compute the Jacobian matrix ∂y
+∂x and perform an actual matrix mul-
+tiplication: it can do that matrix multiplication implicitly, which is often more
+eﬃcient. For example, if the true Jacobian is diagonal, then the actual number
+of computations required is much less than the size of the Jacobian matrix.
+To keep computations eﬃcient and avoid the overhead of the glue required to
+compose modules together, neural net packages such as Torch deﬁne modules that
+perform coarse-grained operations such as the cross-entropy loss, a convolution,
+the aﬃne operation associated with a fully-connected neural network layer, or a
+softmax. It means that if one wants to write diﬀerentiable code for some compu-
+tation that is not covered by the existing set of modules, one has to write their
+own code for a new module, providing both the code for fprop and the code for
+9See torch.ch.
+185
+
+--- PAGE 198 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+bprop. This is in contrast with standard automatic diﬀerentiation systems, which
+know how to compute derivatives through all the operations in a general-purpose
+programming language such as C.
+Instead interpreting of Algorithm 6.4 as a recipe for backwards automatic dif-
+ferentation, it can be interpreted as a recipe for backwards symbolic diﬀerentation.
+This is how the Theano (Bergstra et al., 2010b; Bastien et al., 2012) library10 han-
+dles derivatives. Like Torch, it only covers a predeﬁned set of operations (i.e., a
+language that is a subset of usual programming languages), but it is a much larger
+and ﬁne-grained set of operations, covering most of the operations on tensors and
+linear algebra deﬁned in Python’s numpy library of numerical computation. It
+is thus very rare that a user would need to write a new module for Theano, ex-
+cept if they want to provide an alternative implementation (say, more eﬃcient or
+numerically stable in some cases). An immediate advantage of symbolic diﬀerenti-
+ation is that because it maps symbolic expressions to symbolic expressions, it can
+be applied multiple times and yield high-order derivatives. Another immediate
+advantage is that it can take advantage of the other tools of symbolic computa-
+tion (Buchberger et al., 1983), such as simpliﬁcation (to make computation faster
+and more memory-eﬃcient) and transformations that make the computation more
+numerically stable (Bergstra et al., 2010b). These simpliﬁcation operations make
+it still very eﬃcient in terms of computation and memory usage even with a set
+of ﬁne-grained operations such as individual tensor additions and multiplications.
+Theano also provides a compiler of the resulting expressions into C for CPUs and
+GPUs, i.e., the same high-level expression can be implemented in diﬀerent ways
+depending of the underlying hardware.
+6.4.5
+Back-propagation Through Random Operations and Graph-
+ical Models
+Whereas traditional neural networks perform deterministic computation, they
+can be extended to perform stochastic computation. In this case, we can think of
+the network as deﬁning a sampling process that deterministically transforms some
+random values. We can then apply backpropagation as usual, with the underlying
+random values as inputs to the network.
+As an example, let us consider the operation consisting of drawing samples z
+from a Gaussian distribution with mean µ and variance σ 2:
+z ∼N (µ, σ2).
+Because an individual sample of z is not produced by a function, but rather by
+a sampling process whose output changes every time we query it, it may seem
+10See http://deeplearning.net/software/theano/.
+186
+
+--- PAGE 199 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+counterintuitive to take the derivatives of z with respect to the parameters of
+its distribution, µ and σ2 .
+However, we can rewrite the sampling process as
+transforming an underlying random value eta ∼N (0, 1) to obtain a sample from
+the desired distribution:
+z = µ + ση
+(6.14)
+We are now able to backpropagate through the sampling operation, by regard-
+ing it as a deterministic operation with an extra input. Crucially, the extra input
+is a random variable whose distribution is not a function of any of the variables
+whose derivatives we want to calculate.
+The result tells us how an inﬁnitesi-
+mal change in µ or σ would change the output if we could repeat the sampling
+operation again with the same value of η.
+Being able to backpropagate through this sampling operation allows us to
+incorporate it into a larger graph; e.g. we can compute the derivatives of some loss
+function J(z). Moreover, we can introduce functions that shape the distribution,
+e.g. µ = f (x; θ) and σ = g(x; θ) and use back-propagation through this functions
+to derive ∇θJ(z).
+The principal used in this Gaussian sampling example is true in general, i.e.,
+given a value z sampled from distribution p(z | ω) whose parameters ω may
+depend on other quantities of interest, we can rewrite
+z ∼p(z | ω)
+as
+z = f(ω, η)
+where η is a source of randomness that is independent of any of the variables that
+inﬂuence ω. TODO– add discussion of discrete random variables, REINFORCE.
+it is true that you can express the generation process this way for any variable,
+but for discrete variables it can be pointless since the gradient of the thresholding
+operation is zero or undeﬁned everywhere.
+in that case you can fall back to
+REINFORCE and the expected loss
+In neural network applications, we typically choose η to be drawn from some
+simple distribution, such as a unit uniform or unit Gaussian distribution, and
+achieve more complex distributions by allowing the deterministic portion of the
+network to reshape its input. This is actually how the random generators for
+parametric distributions are implemented in software, i.e., by performing opera-
+tions on approximately independent sources of noise (such as random bits). So
+long as the function f in the above equation is diﬀerentiable with respect to ω,
+we can back-propagate through the sampling operation.
+The idea of propagating gradients or optimizing through stochastic operations
+is old (Price, 1958; Bonnet, 1964), ﬁrst used for machine learning in the context
+187
+
+--- PAGE 200 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+of reinforcement learning (Williams, 1992), variational approximations (Opper
+and Archambeau, 2009), and more recently, stochastic or generative neural net-
+works (Bengio et al., 2013a; Kingma, 2013; Kingma and Welling, 2014b,a; Rezende
+et al., 2014; Goodfellow et al., 2014c). Many networks, such as denoising autoen-
+coders or networks regularized with dropout, are also naturally designed to take
+noise as an input without requiring any special reparameterization to make the
+noise independent from the model.
+6.5
+Universal Approximation Properties and Depth
+A linear model, mapping from features to outputs via matrix multiplication, can
+by deﬁnition represent only linear functions. It has the advantage of being easy
+to train because many loss functions result in a convex optimization problem
+when applied to linear models. Unfortunately, we often want to learn non-linear
+functions.
+At ﬁrst glance, we might presume that learning a non-linear function requires
+designing a specialized model family for the kind of non-linearity we want to
+learn. However, it turns out that feedforward networks with hidden layers provide
+a universal approximation framework. Speciﬁcally, the universal approximation
+theorem (Hornik et al., 1989; Cybenko, 1989) states that a feedforward network
+with a linear output layer and at least one hidden layer with any “squashing”
+activation function (such as the logistic sigmoid activation function) can approxi-
+mate any Borel measurable function from one ﬁnite-dimensional space to another
+with any desired non-zero amount of error, provided that the network is given
+enough hidden units. The derivatives of the feedforward network can also approx-
+imate the derivatives of the function arbitrarily well (Hornik et al., 1990). The
+concept of Borel measurability is beyond the scope of this book; for our purposes
+it suﬃces to say that any continuous function on a closed and bounded subset of
+Rn is Borel measurable and therefore may be approximated by a neural network.
+A neural network may also approximate any function mapping from any ﬁnite
+dimensional discrete space to another.
+The universal approximation theorem means that regardless of what function
+we are trying to learn, we know that a large MLP will be able to represent this
+function. However, we are not guaranteed that the training algorithm will be
+able to learn that function. Even if the MLP is able to represent the function,
+learning can fail for two diﬀerent reasons. First, the optimization algorithm used
+for training may not be able to ﬁnd the value of the parameters that corresponds
+to the desired function. Second, the training algorithm might choose the wrong
+function due to overﬁtting. Recall from Chapter 5.3.1 that the “no free lunch”
+theorem shows that there is no universal machine learning algorithm. Even though
+188
+
+--- PAGE 201 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+feedforward networks provide a universal system for representing functions, there
+is no universal procedure for examining a training set and choosing the right set
+of functions among the family of functions our approximator can represent: there
+could be many functions within our family that ﬁt well the data and we need to
+choose one (this is basically the overﬁtting scenario).
+Another but related problem facing our universal approximation scheme is
+the size of the model needed to represent a given function. The universal ap-
+proximation theorem says that there exists a network large enough to achieve any
+degree of accuracy we desire, but it does not say how large this network will be.
+Barron (1993) provides some bounds on the size of a single-layer network needed
+to approximate a broad class of functions. Unfortunately, in the worse case, an
+exponential number of hidden units (to basically record every input conﬁguration
+that needs to be distinguished) may be required. This is easiest to see in the
+binary case: the number of possible binary functions on vectors v ∈{0, 1}n is
+22n and selecting one such function requires 2n bits, which will in general require
+O(2n) degrees of freedom.
+In summary, a feedforward network with a single layer is suﬃcient to represent
+any function, but it may be infeasibly large and may fail to learn and generalize
+correctly. Both of these failure modes suggest that we may want to use deeper
+models.
+First, we may want to choose a model with more than one hidden layer in
+order to avoid needing to make the model infeasibly large. There exist families
+of functions which can be approximated eﬃciently by an architecture with depth
+greater than some value d, but require a much larger model if depth is restricted
+to be less than or equal to d. In many cases, the number of hidden units required
+by the shallow model is exponential in n. Such results have been proven for logic
+gates (H˚astad, 1986), linear threshold units with non-negative weights (H˚astad
+and Goldmann, 1991), polynomials (Delalleau and Bengio, 2011) organized as
+deep sum-product networks (Poon and Domingos, 2011), and more recently, for
+deep networks of rectiﬁer units (Pascanu et al., 2013b). Of course, there is no
+guarantee that the kinds of functions we want to learn in applications of machine
+learning (and in particular for AI) share such a property.
+We may also want to choose a deep model for statistical reasons.
+Any time we choose a speciﬁc machine learning algorithm, we are implicitly
+stating some set of prior beliefs we have about what kind of function the algorithm
+should learn.
+Choosing a deep model encodes a very general belief that the
+function we want to learn should involve composition of several simpler functions.
+This can be interpreted from a representation learning point of view as saying that
+we believe the learning problem consists of discovering a set of underlying factors
+of variation that can in turn be described in terms of other, simpler underlying
+189
+
+--- PAGE 202 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+factors of variation. Alternately, we can interpret the use of a deep architecture
+as expressing a belief that the function we want to learn is a computer program
+consisting of multiple steps, where each step makes use of the previous step’s
+output. These intermediate outputs are not necessarily factors of variation, but
+can instead be analogous to counters or pointers that the network uses to organize
+its internal processing. Empirically, greater depth does seem to result in better
+generalization for a wide variety of tasks (Bengio et al., 2007b; Erhan et al., 2009;
+Bengio, 2009; Mesnil et al., 2011; Goodfellow et al., 2011; Ciresan et al., 2012;
+Krizhevsky et al., 2012b; Sermanet et al., 2013; Farabet et al., 2013a; Couprie
+et al., 2013; Kahou et al., 2013; Goodfellow et al., 2014d; Szegedy et al., 2014a).
+See Fig. 6.9 for an example of some of these empirical results.
+This suggests
+that using deep architectures does indeed express a useful prior over the space of
+functions the model learn.
+Figure 6.9: Empirical results showing that deeper networks generalize better when used
+to transcribe multi-digit numbers from photographs of addresses. Reproduced with per-
+mission from Goodfellow et al. (2014d). Left) The test set accuracy consistently increases
+with increasing depth. Right) This eﬀect cannot be explained simply by the model being
+larger; one can also increase the model size by increasing the width of each layer. The test
+accuracy cannot be increased nearly as well by increasing the width, only by increasing
+the depth. This suggests that using a deep model expresses a useful preference over the
+space of functions the model can learn. Speciﬁcally, it expresses a belief that the function
+should consist of many simpler functions composed together. This could result either
+in learning a representation that is composed in turn of simpler representations (e.g.,
+corners deﬁned in terms of edges) or in learning a program with sequentially dependent
+steps (e.g., ﬁrst locate a set of objects, then segment them from each other, then recognize
+them).
+190
+
+--- PAGE 203 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+6.6
+Feature / Representation Learning
+Let us consider again the single layer networks such as the perceptron, linear
+regression and logistic regression: such linear models are appealing because train-
+ing them involves a convex optimization problem11, i.e., an optimization problem
+with some convergence guarantees towards a global optimum, irrespective of ini-
+tial conditions. Simple and well-understood optimization algorithms are available
+in this case. However, this limits the representational capacity too much: many
+tasks, for a given choice of input representation x (the raw input features), cannot
+be solved by using only a linear predictor. What are our options to avoid that
+limitation?
+1. One option is to use a kernel machine (Williams and Rasmussen, 1996;
+Sch¨olkopf et al., 1999), i.e., to consider a ﬁxed mapping from x to φ(x),
+where φ(x) is of much higher dimension. In this case, fθ(x) = b + w · φ(x)
+can be linear in the parameters (and in φ(x)) and optimization remains
+convex (or even analytic). By exploiting the kernel trick, we can compu-
+tationally handle a high-dimensional φ(x) (or even an inﬁnite-dimensional
+one) so long as the kernel k(u, v) = φ(u) · φ(v) (where · is the appropriate
+dot product for the space of φ(·)) can be computed eﬃciently. If φ(x) is
+of high enough dimension, we can always have enough capacity to ﬁt the
+training set, but generalization is not at all guaranteed: it will depend on
+the appropriateness of the choice of φ as a feature space for our task. Kernel
+machines theory clearly identiﬁes the choice of φ to the choice of a prior.
+This leads to kernel engineering, which is equivalent to feature engineer-
+ing, discussed next. The other type of kernel (that is very commonly used)
+embodies a very broad prior, such as smoothness, e.g., the Gaussian (or
+RBF) kernel k(u, v) = exp
+
+−||u −v||/σ2
+. Unfortunately, this prior may
+be insuﬃcient, i.e., too broad and sensitive to the curse of dimensionality,
+as introduced in Section 5.12.1 and developed in more detail in Chapter 16.
+2. Another option is to manually engineer the representation or features φ(x).
+Most industrial applications of machine learning rely on hand-crafted fea-
+tures and most of the research and development eﬀort (as well as a very
+large fraction of the scientiﬁc literature in machine learning and its applica-
+tions) goes into designing new features that are most appropriate to the task
+at hand. Clearly, faced with a problem to solve and some prior knowledge
+in the form of representations that are believed to be relevant, the prior
+knowledge can be very useful. This approach is therefore common in prac-
+tice, but is not completely satisfying because it involves a very task-speciﬁc
+11or even one for which an analytic solution can be computed, with linear regression or the
+case of some Gaussian process regression models
+191
+
+--- PAGE 204 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+engineering work and a laborious never-ending eﬀort to improve systems by
+designing better features. If there were some more general feature learning
+approaches that could be applied to a large set of related tasks (such as
+those involved in AI), we would certainly like to take advantage of them.
+Since humans seem to be able to learn a lot of new tasks (for which they
+were not programmed by evolution), it seems that such broad priors do ex-
+ist. This whole question is discussed in more detail in Bengio and LeCun
+(2007a), and motivates the third option.
+3. The third option is to learn the features, or learn the representation. In a
+sense, it allows one to interpolate between the almost agnostic approach
+of a kernel machine with a general-purpose smoothness kernel (such as
+RBF SVMs and other non-parametric statistical models) and full designer-
+provided knowledge in the form of a ﬁxed representation that is perfectly
+tailored to the task. This is equivalent to the idea of learning the kernel, ex-
+cept that whereas most kernel learning methods only allow very few degrees
+of freedom in the learned kernel, representation learning methods such as
+those discussed in this book (including multi-layer neural networks) allow
+the feature function φ(·) to be very rich (with a number of parameters that
+can be in the millions or more, depending on the amount of data available).
+This is equivalent to learning the hidden layers, in the case of a multi-layer
+neural network. Besides smoothness (which comes for example from reg-
+ularizers such as weight decay), other priors can be incorporated in this
+feature learning. The most celebrated of these priors is depth, discussed
+above (Section 6.5). Other priors are discussed in Chapter 16.
+This whole discussion is clearly not speciﬁc to neural networks and supervised
+learning, and is one of the central motivations for this book.
+6.7
+Piecewise Linear Hidden Units
+Most of the recent improvement in the performance of deep neural networks can be
+attributed to increases in computational power and the size of datasets. The ma-
+chine learning algorithms involved in recent state-of-the-art systems have mostly
+existed since the 1980s, with a few recent conceptual advances contributing sig-
+niﬁcantly to increased performance.
+One of the main algorithmic improvements that has had a signiﬁcant impact
+is the use of piecewise linear units, such as absolute value rectiﬁers and rectiﬁed
+linear units. Such units consist of two linear pieces and their behavior is driven
+by a single weight vector. Jarrett et al. (2009b) observed that “using a rectifying
+non-linearity is the single most important factor in improving the performance of a
+192
+
+--- PAGE 205 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+recognition system” among several diﬀerent factors of neural network architecture
+design.
+For small datasets, Jarrett et al. (2009b) observed that using rectifying non-
+linearities is even more important than learning the weights of the hidden layers.
+Random weights are suﬃcient to propagate useful information through a rectiﬁed
+linear network, allowing the classiﬁer layer at the top to learn how to map diﬀerent
+feature vectors to class identities.
+When more data is available, learning begins to extract enough useful knowl-
+edge to exceed the performance of randomly chosen parameters.
+Glorot et al.
+(2011b) showed that learning is far easier in deep rectiﬁed linear networks than
+in deep networks that have curvature or two-sided saturation in their activation
+functions. Because the behavior of the unit is linear over half of its domain, it
+is easy for an optimization algorithm to tell how to improve the behavior of a
+unit, even when the unit’s activations are far from optimal. Just as piecewise
+linear networks are good at propagating information forward, back-propagation
+in such a network is also piecewise linear and propagates information about the
+error derivatives to all of the gradients in the network.
+Each piecewise linear
+function can be decomposed into diﬀerent regions corresponding to diﬀerent lin-
+ear pieces. When we change a parameter of the network, the resulting change
+in the network’s activity is linear until the point that it causes some unit to go
+from one linear piece to another. Traditional units such as sigmoids are more
+prone to discarding information due to saturation both in forward propagation
+and in back-propagation. The response of such a network to a change in a single
+parameter may be highly nonlinear even in a small neighborhood.
+Glorot et al. (2011b) motivate rectiﬁed linear units from biological considera-
+tions. The half-rectifying non-linearity was intended to capture these properties
+of biological neurons: 1) For some inputs, biological neurons are completely in-
+active. 2) For some inputs, a biological neuron’s output is proportional to its
+input. 3) Most of the time, biological neurons operate in the regime where they
+are inactive (e.g., they should have sparse activations).
+One drawback to rectiﬁed linear units is that they cannot learn via gradient-
+based methods on examples for which their activation is zero.
+This problem
+can be mitigated by initializing the biases to a small positive number, but it is
+still possible for a rectiﬁed linear unit to learn to de-activate and then never be
+activated again. Goodfellow et al. (2013a) introduced maxout units and showed
+that maxout units can successfully learn in conditions where rectiﬁed linear units
+become stuck. Maxout units are also piecewise linear, but unlike rectiﬁed linear
+units, each piece of the linear function has its own weight vector, so whichever
+piece is active can always learn. Due to the greater number of weight vectors,
+maxout units typically need extra regularization such as dropout, though they can
+193
+
+--- PAGE 206 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+work satisfactorily if the training set is large and the number of pieces per unit
+is kept low (Cai et al., 2013). Maxout units have a few other beneﬁts. In some
+cases, one can gain some statistical and computational advantages by requiring
+fewer parameters. Speciﬁcally, if the features captured by n diﬀerent linear ﬁlters
+can be summarized without losing information by taking the max over each group
+of k features, then the next layer can get by with k times fewer weights. Because
+each unit is driven by multiple ﬁlters, maxout units have some redundancy that
+helps them to resist forgetting how to perform tasks that they were trained on in
+the past. Neural networks trained with stochastic gradient descent are generally
+believed to suﬀer from a phenomenon called catastrophic forgetting but maxout
+units tend to exhibit only mild forgetting (Goodfellow et al., 2014a). Maxout
+units can also be seen as learning the activation function itself rather than just
+the relationship between units. With large enough k, a maxout unit can learn to
+approximate any convex function with arbitrary ﬁdelity. In particular, maxout
+with two pieces can learn to implement the rectiﬁed linear activation function or
+the absolute value rectiﬁcation function.
+This same general principle of using linear behavior to obtain easier opti-
+mization also applies in other contexts besides deep linear networks. Recurrent
+networks can learn from sequences and produce a sequence of states and outputs.
+When training them, one needs to propagate information through several time
+steps, which is much easier when some linear computations (with some directional
+derivatives being of magnitude near 1) are involved. One of the best-performing
+recurrent network architectures, the LSTM, propagates information through time
+via summation–a particular straightforward kind of such linear activation. This
+is discussed further in Section 10.8.4.
+In addition to helping to propagate information and making optimization
+easier, piecewise linear units also have some nice properties that can make them
+easier to regularize. This is discussed further in Section 7.11.
+Sigmoidal non-linearities still perform well in some contexts and are required
+when a hidden unit must compute a number guaranteed to be in a bounded
+interval (like in the (0,1) interval), but piecewise linear units are now by far the
+most popular kind of hidden units.
+6.8
+Historical Notes
+Section 1.2 already gave an overview of the history of neural networks and deep
+learning. Here we focus on historical notes regarding back-propagation and the
+connectionist ideas that are still at the heart of today’s research in deep learning.
+The chain rule was invented in the 17th century (Leibniz, 1676; L’Hˆopital,
+1696) and gradient descent in the 19th centry (Cauchy, 1847b). Eﬃcient applica-
+194
+
+--- PAGE 207 ---
+CHAPTER 6. FEEDFORWARD DEEP NETWORKS
+tions of the chain rule which exploit the dynamic programming structure described
+in this chapter are found already in the 1960’s and 1970’s, mostly for control ap-
+plications (Kelley, 1960; Bryson and Denham, 1961; Dreyfus, 1962; Bryson and
+Ho, 1969; Dreyfus, 1973) but also for sensitivity analysis (Linnainmaa, 1976).
+Bringing these ideas to the optimization of weights of artiﬁcial neural networks
+with continuous-valued outputs was introduced by Werbos (1981) and rediscov-
+ered independently in diﬀerent ways as well as actually simulated successfully
+by LeCun (1985); Parker (1985); Rumelhart et al. (1986a). The book Parallel
+Distributed Processing (Rumelhart et al., 1986d) presented these ﬁndings in a
+chapter (Rumelhart et al., 1986b) that contributed greatly to the popularization
+of back-propagation and initiated a very active period of research in multi-layer
+neural networks. However, the ideas put forward by the authors of that book and
+in particular by Rumelhart and Hinton go much beyond back-propagation. They
+include crucial ideas about the possible computational implementation of several
+central aspects of cognition and learning, which came under the name of “con-
+nectionism” because of the importance given the connections between neurons as
+the locus of learning and memory. In particular, these ideas include the notion of
+distributed representation, introduced in Chapter 1 and developed a lot more in
+part III of this book, with Chapter 16, which is at the heart of the generalization
+ability of neural networks. As discussed with the historical survey in Section 1.2,
+the boom of AI and machine learning research which followed on the connec-
+tionist ideas reached a peak in the early 1990’s, as far as neural networks are
+concerned, while other machine learning techniques become more popular in the
+late 1990’s and remained so for the ﬁrst decade of this century. Neural networks
+research in the AI and machine learning community almost vanished then, only
+to be reborn ten years later (starting in 2006) with a novel focus on the depth of
+representation and the current wave of research on deep learning. In addition to
+back-propagation and distributed representations, the connectionists brought the
+idea of iterative inference (they used diﬀerent words), viewing neural computation
+in the brain as a way to look for a conﬁguration of neurons that best satisfy all
+the relevant pieces of knowledge implicitly captured in the weights of the neural
+network. This view turns out to be central in the topics covered in part III of
+this book regarding probabilistic models and inference.
+195
+
+--- PAGE 208 ---
+Chapter 7
+Regularization of Deep or
+Distributed Models
+A central problem in machine learning is how to make an algorithm that will
+perform well not just on the training data, but also on new inputs. Many strategies
+used in machine learning are explicitly designed to reduce the test error, possibly
+at the expense of increased training error. These strategies are known collectively
+as regularization.
+Chapter 5 introduced the basic concepts of generalization, underﬁtting, over-
+ﬁtting, bias, variance and regularization. If you are not already familiar with
+these notions, please refer to that chapter before continuing with this one.
+In this chapter, we describe regularization in more detail, focusing on general
+strategies for regularizing deep or distributed models. Most deep learning algo-
+rithms can be seen as diﬀerent ways of developing the speciﬁcs of these general
+strategies.
+Regularization is any component of the model, training process or prediction
+procedure which is included to account for limitations of the training data, in-
+cluding its ﬁniteness. There are many regularization strategies. Some put extra
+constraints on a machine learning model, such as adding restrictions on the pa-
+rameter values. Some add extra terms in the objective function that one might
+consider a soft constraint on the parameter values. If chosen carefully, these extra
+constraints and penalties can lead to improved performance on the test set. Some-
+times these constraints and penalties are designed to encode speciﬁc kinds of prior
+knowledge. Other times, these constraints and penalties are designed to express
+a generic preference for a simpler model class in order to promote generalization.
+Sometimes penalties and constraints are necessary to make an underdetermined
+problem determined. Other forms of regularization, known as ensemble methods,
+combine multiple hypotheses that explain the training data.
+196
+
+--- PAGE 209 ---
+CHAPTER 7. REGULARIZATION OF DEEP OR DISTRIBUTED MODELS
+In the context of deep learning, most regularization strategies are based on
+regularizing estimators. Regularization of an estimator works by trading increased
+bias for reduced variance. An eﬀective regularizer is one that makes a proﬁtable
+trade, that is it reduces variance signiﬁcantly while not overly increasing the
+bias. When we discussed generalization and overﬁtting in Chapter 5, we focused
+on three situations, where the model family being trained either (1) excluded the
+true data generating process—corresponding to underﬁtting and inducing bias, or
+(2) matched to the true data generating process—the “just right” model space,
+or (3) includes the generating process but also many other possible generating
+processes—the regime where variance dominates the estimation error (e.g.
+as
+measured by the MSE—see Section. 5.5).
+Note that, in practice, an overly complex model family does not necessarily
+include (or even come close to) the target function or the true data generating
+process.
+We almost never have access to the true data generating process so
+we can never know if the model family being estimated includes the generating
+process or not. But since, in deep learning, we are often trying to work with
+data such as images, audio sequences and text, we can probably safely assume
+that our model family does not include the data generating process.
+We can
+assume that—to some extent – we are always trying to ﬁt a square peg (the data
+generating process) into a round hole (our model family) and using the data to
+do that as best we can.
+What this means is that controlling the complexity of the model is not going
+to be a simple question of ﬁnding the model of the right size, i.e.
+the right
+number of parameters.
+Instead, we might ﬁnd—and indeed in practical deep
+learning scenarios, we almost always do ﬁnd – that the best ﬁtting model (in the
+sense of minimizing generalization error) is one that possesses a large number of
+parameters that are not entirely free to span their domain.
+As we will see there are a great many forms of regularization available to the
+deep learning practitioner. In fact, developing more eﬀective regularizers has been
+one of the major research eﬀorts in the ﬁeld.
+Most machine learning tasks can be viewed in terms of learning to represent
+a function ˆf(x) parametrized by a vector of parameters θ. The data consists of
+inputs x(t) and (for some tasks) targets y(t) for t ∈{1, . . ., m}. In the case of
+classiﬁcation, each y(t) is an integer class label in {1, . . ., k}. For regression tasks,
+each y(t) is a real number or a real-valued vector (and we then denote the target
+in bold, as y(t)), while in the case of a density estimation task, there are simply
+no targets (or we consider both x(t) and y(t) as the values of observed variables
+(x, x) whose joint distribution is to be captured, and we may simply lump both
+of them into the name x). We may group these examples into a design matrix X
+and a vector of targets y (when y (t) is a scalar), or a matrix of targets Y (when
+197
+
+--- PAGE 210 ---
+CHAPTER 7. REGULARIZATION OF DEEP OR DISTRIBUTED MODELS
+y(t) is a vector).
+In deep learning, we are mainly interested in the case where the function
+ˆf(x) has a large number of parameters and as a result possesses a high capacity
+to ﬁt relatively complicated functions. This means that deep learning algorithms
+usually require either a large training set or careful regularization (intended either
+to reduce the eﬀective capacity of the model or to guide the model toward a speciﬁc
+solution using prior information) or both.
+7.1
+Regularization from a Bayesian Perspective
+The Bayesian perspective on statistical inference oﬀers a useful framework in
+which to consider many common methods of regularization. As we discussed in
+Sec. 5.7, Bayesian estimation theory takes a fundamentally diﬀerent approach
+to model estimation than the frequentist view by considering that the model
+parameters themselves are uncertain and therefore should be considered random
+variables.
+There are a number of immediate consequences of assuming a Bayesian world
+view. The ﬁrst is that if we are using probability distributions to assess uncer-
+tainty in the model parameters then we should be able to express our uncertainty
+about the model parameters before we see any data1. This is the role of the prior
+distribution.
+The second consequence comes out of the marginalization equa-
+tion over probability functions: when using the model to make predictions about
+outcomes, one should ideally average over over the probable parameter values,
+or more precisely sum over all the possible values, weighted by their posterior
+distribution.
+There is a deep connection between the Bayesian perspective on estimation
+and the process of regularization. This is not surprising since at the root both
+are concerned with making predictions relative to the true data generating dis-
+tribution while taking into account the ﬁniteness of the data. What this means
+is that both are open to combining information sources. that is, both are in-
+terested in combining the information that can be extracted from the training
+data with other, or “prior” sources of information. As we will see, many forms of
+regularization can be given a Bayesian interpretation.
+If we consider a dataset {x(1), .. . , x(m)}, we recover the posterior distribution
+on the model parameter θ by combining p(θ | x(1), .. . , x(m)) the data likelihood
+p(x(1), .. . , x(m) | θ) with the prior p(θ):
+log p(θ | x(1), .. . , x(m)) = log p(θ) +
+X
+i
+log p(x(i) | θ) + constant
+(7.1)
+1We should have a lot of uncertainty about the parameters before we see the data, but some
+conﬁgurations may a priori be impossible, while others could seem more plausible, a priori.
+198
+
+--- PAGE 211 ---
+CHAPTER 7. REGULARIZATION OF DEEP OR DISTRIBUTED MODELS
+where the constant is −log Z, with Z the normalization constant which does
+not depend on θ but does depend on the data. When maximizing over θ, this
+constant does not matter. In the context of maximum likelihood learning, the
+introduction of the prior distribution plays the same role as a regularizer in that
+it can be seen as a term (the ﬁrst one above) added to the objective function
+that is added (to the second term, the log-likelihood) in hopes of achieving better
+generalization, despite of its detrimental eﬀect on the likelihood of the training
+data (the optimum of which would be achieved by considering only the second
+term above).
+In the following section, we will detail how the addition of a prior is equiv-
+alent to certain regularization strategies. However we must be a bit careful in
+establishing the relationship between the prior and a regularizer. Regularizers
+are more general than priors. Priors are distributions and as such are subject to
+constraints such as they must always be positive and must sum to one over their
+domain. Regularizers have no such explicit constraints and can depend on the
+data, not just on the parameters. Another problem in interpreting all regulariz-
+ers as priors is that the equivalence implies the overly restrictive constraint that
+all unregularized objective functions be interpretable as log-likelihood functions.
+Nevertheless, it remains true that many of the most popular forms of regulariza-
+tion can be equated to a Bayesian prior.
+7.2
+Classical Regularization: Parameter Norm Penalty
+Regularization has been used for decades prior to the advent of deep learning.
+Statistical and machine learning models traditionally represented simpler func-
+tions. Because the functions themselves had less capacity, the regularization did
+not need to be as sophisticated. We use the term classical regularization to refer
+to the techniques used in the general machine learning and statistics literature.
+Most classical regularization approaches are based on limiting the capacity
+of models, such as neural networks, linear regression, or logistic regression, by
+adding a parameter norm penalty Ω(θ) to the objective function J. We denote
+the regularized objective function by ˜J:
+˜
+J(θ; X, y) = J(θ; X, y) + αΩ(θ)
+(7.2)
+where α is a hyperparameter that weights the relative contribution of the norm
+penalty term, Ω, relative to the standard objective function J(x; θ). The hyper-
+parameter α should be a non-negative real number, with α = 0 corresponding to
+no regularization, and larger values of α corresponding to more regularization.
+When our training algorithm minimizes the regularized objective function ˜J it
+will decrease both the original objective J on the training data and some measure
+199
+
+--- PAGE 212 ---
+CHAPTER 7. REGULARIZATION OF DEEP OR DISTRIBUTED MODELS
+of the size of the parameters θ (or some subset of the parameters). Diﬀerent
+choices for the parameter norm Ω can result in diﬀerent solutions being preferred.
+In this section, we discuss the eﬀects of the various norms when used as penalties
+on the model parameters.
+Before delving into the regularization behavior of diﬀerent norms, we note
+that for neural networks, we typically choose to use a parameter norm penalty Ω
+that only penalizes the interaction weights, i.e we leave the oﬀsets unregularized.
+The oﬀsets typically require less data to ﬁt accurately than the weights. Each
+weight speciﬁes how two variables interact, and requires observing both variables
+in a variety of conditions to ﬁt well. Each oﬀset controls only a single variable.
+This means that we do not induce too much variance by leaving the oﬀsets un-
+regularized. Also, regularizing the oﬀsets can introduce a signiﬁcant amount of
+underﬁtting.
+7.2.1
+L2 Parameter Regularization
+We have already seen one the simplest and most common kinds of classical reg-
+ularization: the L2 parameter norm penalty commonly known as weight decay.
+This regularization strategy drives the parameters closer to the origin 2 by adding
+a regularization term Ω(θ) = 1
+2 kwk2
+2 to the objective function, where w is the
+subset of parameters considered to be weights (i.e., parameters of a linear trans-
+formation, rather than, e.g, biases parameterizing the oﬀset of an aﬃne trans-
+formation), and α is a coeﬃcient determining the strength of the regularization
+penalty relative to the other terms in the objective function, such as the negative
+log-likelihood.
+In various contexts, L2 regularization is also known as ridge regression or
+Tikhonov regularization.
+In the context of neural networks, it is sometimes desirable to use a separate
+weight decay penalty with a diﬀerent α coeﬃcient for each layer of the network.
+Because α is a hyperparameter and it can be expensive to search for the correct
+value of multiple hyperparameters, it is still reasonable to use the same weight
+decay at all layers just to reduce the search space.
+We can gain some insight into the behavior of weight decay regularization by
+considering the gradient of the regularized objective function. To simplify the
+presentation, we assume no oﬀset term, so θ is just w. Such a model has the
+2More generally, we could regularize the parameters to be near any speciﬁc point in space
+and, surprisingly, still get a regularization eﬀect, but better results will be obtained for a value
+closer to the true one, with zero being a default value that makes sense when we do not know
+if the correct value should be positive or negative. Since it is far more common to consider
+regularizing the model parameters to zero, we will focus on this special case in our exposition.
+200
+
+--- PAGE 213 ---
+CHAPTER 7. REGULARIZATION OF DEEP OR DISTRIBUTED MODELS
+following gradient of the total objective function:
+∇w ˜J(w; X, y) = αw + ∇wJ(w; X, y).
+(7.3)
+To take a single gradient step to update the weights, we perform this update:
+w := w −(αw + ∇wJ(w; X, y)) .
+Written another way, the update is:
+w := (1 −α)w −∇wJ(w; X, y).
+We can see that the addition of the weight decay term has modiﬁed the learn-
+ing rule to multiplicatively shrink the weight vector by a constant factor on each
+step, towards zero, just before performing the usual gradient update. This de-
+scribes what happens in a single step. But what happens over the entire course
+of training?
+We will further simplify the analysis by considering a quadratic approximation
+to the objective function in the neighborhood of the empirically optimal value of
+the weights w∗. (If the objective function is truly quadratic, as in the case of
+ﬁtting a linear regression model with mean squared error, then the approximation
+is perfect).
+ˆJ(θ) = J(w∗) + 1
+2 (w −w∗)>H(w −w∗)
+(7.4)
+where H is the Hessian matrix of J with respect to w evaluated at w∗. There is
+no ﬁrst order term in this quadratic approximation, because w∗is deﬁned to be a
+minimum, where the gradient vanishes. Likewise, because w∗is a minimum, we
+can conclude that H is positive semi-deﬁnite.
+∇w ˆ
+J(w) = H(w −w∗).
+(7.5)
+If we replace the exact gradient in equation 7.3 with the approximate gradient
+in equation 7.5, we can write an equation for the location of the minimum of the
+regularized objective function:
+αw + H(w −w∗) = 0
+(7.6)
+(H + αI)w = Hw ∗
+(7.7)
+˜
+w = (H + αI)−1Hw ∗.
+(7.8)
+From this, we see that the presence of the regularization term moves the
+optimum from w∗to ˜
+w. As α approaches 0, ˜
+w approaches w∗. But what happens
+as α grows? Because H is real and symmetric, we can decompose it into a diagonal
+201
+
+--- PAGE 214 ---
+CHAPTER 7. REGULARIZATION OF DEEP OR DISTRIBUTED MODELS
+w1
+w2
+w∗
+˜w
+Figure 7.1: An illustration of the eﬀect of L2 (or weight decay) regularization on the value
+of the optimal w. The solid ellipses represent contours of equal value of the unregularized
+objective. The dotted circles represent contours of equal value of the L2 regularizer. At
+the point ˜
+w, these competing objectives reach an equilibrium. Note how in the ﬁrst
+dimension, where the eigenvalue of the Hessian of J is small (i.e., the objective function
+does not increase much when moving horizontally away from w∗), the regularizer has a
+strong eﬀect, pulling the parameter values close to zero, whereas in the second dimension,
+the objective function is very sensitive to movements away from w∗, the eigenvalue is large
+(high curvature), and weight decay does not aﬀect the solution much.
+matrix Λ and an orthonormal basis of eigenvectors, Q, such that H = QΛQ>.
+Applying the decomposition to equation 7.8, we obtain:
+˜
+w = (QΛQ > + αI)−1QΛQ>w∗
+=
+h
+Q(Λ + αI)Q>i−1
+QΛQ>w∗
+= Q(Λ + αI)−1ΛQ>w ∗,
+Q> ˜
+w = (Λ + αI)−1ΛQ> w∗.
+(7.9)
+If we interpret the Q> ˜w as rotating our solution parameters ˜w into the basis
+deﬁned by the eigenvectors Q of H, then we see that the eﬀect of weight decay
+is to rescale the coeﬃcients of eigenvectors. Speciﬁcally the ith component is
+rescaled by a factor of
+λi
+λi+α . (You may wish to review how this kind of scaling
+works, ﬁrst explained in Fig. 2.3).
+Along the directions where the eigenvalues of H are relatively large, for ex-
+ample, where λi α, the eﬀect of regularization is relatively small. However,
+components with λi α will be shrunk to have nearly zero magnitude. This
+eﬀect is illustrated in Fig. 7.1.
+Only directions along which the parameters contribute signiﬁcantly to reduc-
+ing the objective function are preserved relatively intact. In directions that do not
+contribute to reducing the objective function, a small eigenvalue of the Hessian
+tell us that movement in this direction will not signiﬁcantly increase the gradient.
+202
+
+--- PAGE 215 ---
+CHAPTER 7. REGULARIZATION OF DEEP OR DISTRIBUTED MODELS
+Components of the weight vector corresponding to such unimportant directions
+are decayed away through the use of the regularization throughout training. This
+eﬀect of suppressing contributions to the parameter vector along these principle
+directions of the Hessian H is captured in the concept of the eﬀective number of
+parameters, deﬁned to be
+γ =
+X
+i
+λ i
+λi + α .
+(7.10)
+As α is increased, the eﬀective number of parameters decreases.
+Another way to gain some intuition for the eﬀect of L2 regularization is to
+consider its eﬀect on linear regression. The unregularized objective function for
+linear regression is the sum of squared errors:
+(Xw −y)>(Xw −y).
+When we add L2 regularization, the objective function changes to
+(Xw −y)>(Xw −y) + 1
+2 αw> w.
+This changes the normal equations for the solution from
+w = (X>X)−1X>y
+to
+w = (X>X + αI)−1 X>y.
+We can see L 2 regularization causes the learning algorithm to “perceive” the
+input X as having higher variance, which makes it shrink the weights on features
+whose covariance with the output target is low compared to this added variance.
+TODO–make sure the chapter includes maybe a table showing relationships
+between early stopping, priors, constraints, penalties, and adding noise? e.g. look
+up L1 penalty and it tells you what prior it corresponds to scratch-work thinking
+about how to do it:
+L2 penalty L2 constraint add noise early stopping Gaussian prior L1 penalty
+L1 constraint Laplace prior Max-norm penalty
+7.2.2
+L1 Regularization
+While L2 weight decay is the most common form of weight decay, there are other
+ways to penalize the size of the model parameters. Another option is to use L 1
+regularization.
+Formally, L1 regularization on the model parameter w is deﬁned as:
+Ω(θ) = ||w||1 =
+X
+i
+|wi |,
+(7.11)
+203

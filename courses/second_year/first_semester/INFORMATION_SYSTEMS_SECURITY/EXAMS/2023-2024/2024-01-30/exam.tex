@@ -1,0 +1,189 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm}
+\usepackage{amsmath,amssymb}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    citecolor=blue!70!black,
+    urlcolor=teal!70!black
+}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!10},
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{green!50!black}\itshape,
+    stringstyle=\color{red!70!black}
+}
+
+\newtcolorbox{questionbox}[1][]{
+    colback=gray!5!white,
+    colframe=gray!60!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{solutionbox}[1][]{
+    colback=blue!5!white,
+    colframe=blue!70!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{altbox}[1][]{
+    colback=orange!5!white,
+    colframe=orange!80!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\begin{document}
+
+\title{\textbf{Sicurezza dei Sistemi Informativi} \\ \large Appello d'Esame del 30 Gennaio 2024 \\ \small Anno Accademico 2023-2024}
+\author{Politecnico di Torino --- Docente: Prof. Cataldo Basile}
+\date{2024-01-30}
+\maketitle
+
+
+\section{Testo Ufficiale dell'Esame}
+
+\begin{questionbox}[Domanda 1: Domande a Selezione Multipla]
+Scegli le affermazioni corrette dalla lista (risposte corrette danno punteggio positivo, risposte errate danno punteggio negativo):
+\begin{enumerate}[label=\alph*.]
+    \item Un NIDS \`e uno scanner di rete che identifica vulnerabilit\`a note.
+    \item Un IPS pu\`o permettere di velocizzare ed automatizzare la risposta alle intrusioni rilevate.
+    \item Gli honeypot sono strumenti che servono ad attirare gli attaccanti simulando il fatto che le risorse siano pi\`u facili da attaccare per aumentare il loro interesse e studiarne le tecniche.
+    \item Un HIDS pu\`o verificare che alcuni file critici non vengano modificati e analizzare quello che riportano i log dei sistemi informativi.
+    \item Un SOC dovrebbe includere anche personale che si occupa dell'analisi del cybercrime e threat intelligence per mantenere aggiornata l'analisi dei rischi.
+    \item Le persone che lavorano in un SOC non dovrebbero occuparsi di vulnerability management e patch management.
+    \item I dati relativi allo stato di salute e alla razza/origine etnica sono considerati dal GDPR dati di categoria particolare (sensibili) e richiedono misure di protezione rafforzate.
+    \item A parit\`a di livello di sicurezza equivalente, la crittografia a curve ellittiche richiede chiavi di dimensione nettamente inferiore rispetto a RSA.
+\end{enumerate}
+\end{questionbox}
+
+\begin{questionbox}[Domanda 2: Esercizio di Progettazione Rete e Filtraggio Firewall]
+Un'azienda possiede una rete complessa suddivisa nelle seguenti sottoreti:
+\begin{itemize}
+    \item Sottorete Amministrazione: \texttt{192.168.1.0/24};
+    \item Sottorete Sviluppo: \texttt{192.168.2.0/24};
+    \item Sottorete Ospiti: \texttt{192.168.3.0/24};
+    \item Sottorete DMZ: \texttt{192.168.129.0/24} (ospita server web e proxy di autenticazione).
+\end{itemize}
+Requisiti di sicurezza:
+\begin{enumerate}
+    \item Nessuna rete interna (\texttt{.1}, \texttt{.2}, \texttt{.3}, \texttt{.129}) deve poter essere raggiunta direttamente dall'esterno (Internet).
+    \item Gli host della sottorete \texttt{.1} devono essere raggiungibili dalle sottoreti \texttt{.2} e \texttt{.3} solo per servizi approvati.
+    \item Gli utenti della sottorete Ospiti (\texttt{.3}) possono accedere a Internet solo previa autenticazione su Captive Portal/Proxy situato in DMZ (\texttt{.129}).
+    \item Gli host della sottorete Sviluppo (\texttt{.2}) possono accedere direttamente ad Internet via NAT ma non alla sottorete Amministrazione (\texttt{.1}) se non esplicitamente autorizzati.
+    \item Configurare la tabella delle regole per il firewall perimetrale e descrivere l'architettura applicata.
+\end{enumerate}
+\end{questionbox}
+
+\newpage
+\section{Soluzione Dettagliata e Guida Risolutiva}
+
+\begin{solutionbox}[Soluzione Domanda 1: Valutazione Crocette]
+\begin{itemize}
+    \item \textbf{a. FALSA}: Un Network Intrusion Detection System (NIDS, come Snort o Suricata) analizza passivamente il traffico di rete in tempo reale alla ricerca di firme di attacco, anomalie o payload exploit; \textbf{non \`e uno scanner di vulnerabilit\`a} (strumenti come Nessus, OpenVAS o Qualys che eseguono probing attivo per censire porte aperte e falle software non patchate).
+    \item \textbf{b. VERA}: Un Intrusion Prevention System (IPS, conforme a NIST SP 800-94) \`e posizionato \textit{in-line} sul flusso dati; al rilevamento di una minaccia esegue azioni automatiche e immediate di mitigazione (drop di pacchetti, invio di TCP RST, o istruzioni di blocco dinamico al firewall perimetrale), accelerando la risposta agli incidenti.
+    \item \textbf{c. VERA}: Gli honeypot (sia \textit{low-interaction} che \textit{high-interaction}) emulano sistemi o servizi vulnerabili con il duplice obiettivo di distogliere l'attaccante dai sistemi di produzione critici e studiarne tattiche, tecniche e procedure (TTP secondo il framework MITRE ATT\&CK).
+    \item \textbf{d. VERA}: Un Host-based IDS (HIDS, es. Wazuh, OSSEC, Tripwire) installato a bordo dell'endpoint monitora l'integrit\`a dei file di sistema (\textit{File Integrity Monitoring - FIM}), ispeziona i log locali (syslog, Event Viewer) e controlla le chiamate a sistema per rilevare privilege escalation o rootkit.
+    \item \textbf{e. VERA}: Un Security Operations Center (SOC) evoluto include specialisti di Cyber Threat Intelligence (CTI) per acquisire indicatori di compromissione (IoC) e feed di minaccia esterni, integrando l'analisi predittiva dei rischi e aggiornando le regole di correlazione del SIEM.
+    \item \textbf{f. VERA}: Il principio organizzativo di separazione delle mansioni (\textit{Separation of Duties}) prevede che il SOC si focalizzi sul monitoraggio, detection e incident handling, mentre l'attivit\`a operativa di patch deployment e vulnerability remediation competa ai team di IT Operations / System Administration (in accordo con NIST SP 800-40).
+    \item \textbf{g. VERA}: L'Art. 9 del GDPR ("Trattamento di categorie particolari di dati personali") include esplicitamente i dati relativi alla salute, all'origine razziale o etnica, dati genetici e biometrici, imponendone il divieto generale di trattamento salvo consenso esplicito o stringenti eccezioni di legge.
+    \item \textbf{h. VERA}: Secondo le raccomandazioni NIST SP 800-57 sui livelli di sicurezza computazionale equivalente, la crittografia a curve ellittiche (ECC) richiede chiavi drasticamente pi\`u corte: una chiave ECC da 256 bit garantisce una sicurezza equivalente a una chiave RSA da 3072 bit (128 bit di sicurezza simmetrica equivalente), con notevole risparmio di banda e computazione.
+\end{itemize}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 2: Architettura di Rete e Tabella Regole Firewall]
+\textbf{Architettura Selezionata e Topologia Screened Subnet:}
+La rete aziendale \`e suddivisa in quattro sottoreti fisicamente o logicamente separate (VLAN) collegate a un firewall stateful perimetrale multiporta:
+\begin{center}
+\begin{verbatim}
+                             +--------------------+
+                             |      INTERNET      |
+                             +---------+----------+
+                                       | eth0 (IP Pubblico)
+                          +------------v------------+
+                          |    FIREWALL STATEFUL    |
+                          +---+-----+--------+--+---+
+         eth1 (.1)            |     |        |  |          eth3 (.3)
+      192.168.1.1/24          |     |        |  |       192.168.3.1/24
+    +-------------------------+     |        |  +-------------------------+
+    |                               |        |                            |
++---v--------------------+          |        |          +-----------------v---+
+|  RETE AMMINISTRAZIONE  |          |        |          |     RETE OSPITI     |
+|     192.168.1.0/24     |          |        |          |    192.168.3.0/24   |
+|                        |          |        |          |                     |
+| [Server Admin] .1.10   |          |        |          | [Client Ospiti/Wi-Fi|
+| [Workstation Finanza]  |          |        |          +---------------------+
++------------------------+          |        |
+                                    |        |
+         eth2 (.2)                  |        |             eth4 (.129)
+      192.168.2.1/24                |        |           192.168.129.1/24
++-----------------------------------+        +----------------------------+
+|                                                                         |
++---v--------------------+                      +-------------------------v---+
+|     RETE SVILUPPO      |                      |           RETE DMZ          |
+|     192.168.2.0/24     |                      |       192.168.129.0/24      |
+|                        |                      |                             |
+| [Dev Workstations]     |                      | [Captive Portal/Proxy] .10  |
+| (Accesso Diretto SNAT) |                      | [Web Server Aziendale] .20  |
++------------------------+                      +-----------------------------+
+\end{verbatim}
+\end{center}
+
+\textbf{Subnetting IP, Instradamento e Requisiti di Sicurezza:}
+\begin{itemize}
+    \item \textbf{Interfaccia \texttt{eth0} (Internet)}: Applica Source NAT (SNAT) per gli sviluppatori e per il Proxy degli ospiti. Nessuna connessione in ingresso da Internet pu\`o raggiungere direttamente le reti interne (\texttt{192.168.0.0/16}).
+    \item \textbf{Amministrazione (\texttt{eth1}, \texttt{192.168.1.0/24})}: Gateway \texttt{192.168.1.1}. Raggiungibile da Sviluppo e Ospiti solo per servizi esplicitamente autorizzati.
+    \item \textbf{Sviluppo (\texttt{eth2}, \texttt{192.168.2.0/24})}: Gateway \texttt{192.168.2.1}. Pu\`o accedere direttamente ad Internet con SNAT. Traffico verso Amministrazione bloccato di default.
+    \item \textbf{Ospiti (\texttt{eth3}, \texttt{192.168.3.0/24})}: Gateway \texttt{192.168.3.1}. Gli ospiti non hanno accesso diretto a Internet: possono contattare unicamente il Captive Portal / Proxy (\texttt{192.168.129.10}) sulle porte 80/443/8080. Il Proxy inoltra il traffico verso Internet solo previa autenticazione.
+    \item \textbf{DMZ (\texttt{eth4}, \texttt{192.168.129.0/24})}: Gateway \texttt{192.168.129.1}. Ospita i servizi perimetrali di mediazione e controllo.
+\end{itemize}
+
+\textbf{Tabella Regole del Firewall (Default Policy: DROP):}
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{lllllllX}
+\toprule
+\textbf{ID} & \textbf{Dir} & \textbf{Src IP} & \textbf{Dst IP} & \textbf{Proto} & \textbf{Port} & \textbf{State} & \textbf{Azione \& Spiegazione} \\
+\midrule
+1 & Any & Any & Any & Any & Any & ESTABLISHED, RELATED & \textbf{ACCEPT}: Traffico di risposta valido \\
+2 & In/Fwd & 192.168.3.0/24 & 192.168.129.10 & TCP & 80, 443, 8080 & NEW & \textbf{ACCEPT}: Ospiti accedono al Captive Portal in DMZ \\
+3 & In/Fwd & 192.168.129.10 & Any (Internet) & TCP & 80, 443 & NEW & \textbf{ACCEPT}: Proxy DMZ inoltra traffico ospiti autenticati \\
+4 & In/Fwd & 192.168.2.0/24 & Any (Internet) & TCP & 80, 443 & NEW & \textbf{ACCEPT}: Sviluppatori navigano via Internet (SNAT) \\
+5 & In/Fwd & 192.168.2.0/24, 192.168.3.0/24 & 192.168.1.0/24 & Any & Any & NEW & \textbf{DROP}: Blocco accessi non autorizzati verso Amministrazione \\
+6 & Any & Any (Internet) & 192.168.0.0/16 & Any & Any & NEW & \textbf{DROP}: Nessun accesso diretto dall'esterno alle reti private \\
+7 & Any & Any & Any & Any & Any & Any & \textbf{DROP (Default)}: Regola finale restrittiva \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\end{solutionbox}
+
+\begin{altbox}[Alternative Implementation Note: Strutture Rust per State Table del Firewall]
+In Rust, una tabella di connessioni per packet filter ad altissimo throughput pu\`o essere implementata con:
+\begin{itemize}
+    \item \texttt{dashmap::DashMap<FiveTuple, ConnectionRecord>}: Mappa concorrente partizionata a granularit\`a fine che elimina il collo di bottiglia del singolo mutex globale per letture e scritture ad alta frequenza.
+    \item \texttt{std::sync::atomic::AtomicU32}: Per contatori di pacchetti e byte per-flusso senza sincronizzazione bloccante.
+\end{itemize}
+\end{altbox}
+
+
+\end{document}

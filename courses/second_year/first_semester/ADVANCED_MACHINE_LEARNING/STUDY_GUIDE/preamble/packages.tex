@@ -1,0 +1,51 @@
+% Packages and Typography Configuration
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in,headheight=26pt]{geometry}
+\usepackage{microtype}
+
+% Mathematical Typesetting
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{mathtools}
+\usepackage{bm}
+
+% Tables & Formatting
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{enumitem}
+
+% Code Listings & Pseudo-code
+\usepackage{listings}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% Graphics & TikZ
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows.meta,positioning,calc,fit,backgrounds,decorations.pathreplacing}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% Custom Colored Boxes
+\usepackage[most]{tcolorbox}
+
+% Citations & Hyperlinks
+\usepackage{cite}
+\usepackage[colorlinks=true,linkcolor=blue!70!black,citecolor=teal!70!black,urlcolor=cyan!70!black]{hyperref}
+\usepackage[capitalize,noabbrev]{cleveref}
+
+% Header and Footer
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\thepage}
+\fancyhead[RE]{\leftmark}
+\fancyhead[LO]{\rightmark}
+\renewcommand{\headrulewidth}{0.4pt}

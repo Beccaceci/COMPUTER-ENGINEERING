@@ -1,0 +1,214 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm}
+\usepackage{amsmath,amssymb}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    citecolor=blue!70!black,
+    urlcolor=teal!70!black
+}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!10},
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{green!50!black}\itshape,
+    stringstyle=\color{red!70!black}
+}
+
+\newtcolorbox{questionbox}[1][]{
+    colback=gray!5!white,
+    colframe=gray!60!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{solutionbox}[1][]{
+    colback=blue!5!white,
+    colframe=blue!70!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{altbox}[1][]{
+    colback=orange!5!white,
+    colframe=orange!80!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\begin{document}
+
+\title{\textbf{Sicurezza dei Sistemi Informativi} \\ \large Appello d'Esame del 16 Giugno 2022 \\ \small Anno Accademico 2021-2022}
+\author{Politecnico di Torino --- Docente: Prof. Cataldo Basile}
+\date{2022-06-16}
+\maketitle
+
+
+\section{Testo Ufficiale dell'Esame}
+
+\begin{questionbox}[Domanda 1: Domande a Risposta Multipla]
+Rispondere ai seguenti quesiti a risposta multipla specificando l'opzione corretta e giustificando analiticamente la risposta:
+\begin{enumerate}[label=\textbf{1.\arabic*}]
+    \item \textbf{Cosa \`e AES-192?}
+    \begin{enumerate}[label=\alph*.]
+        \item Un algoritmo di crittografia asimmetrica
+        \item Un algoritmo di hash con digest a 192 bit
+        \item Un algoritmo di crittografia simmetrica a blocchi con chiave e blocco da 192 bit
+        \item Un algoritmo di crittografia simmetrica di tipo stream con chiave e nonce da 192 bit
+        \item Nessuna delle precedenti
+    \end{enumerate}
+    
+    \item \textbf{Cosa \`e un Trusted Platform Module (TPM)?}
+    \begin{enumerate}[label=\alph*.]
+        \item Un modulo software per il controllo delle licenze
+        \item Un chip crittografico hardware sicuro saldato sulla scheda madre per la memorizzazione protetta di chiavi e misurazione dell'integrit\`a di boot
+        \item Un protocollo di rete per l'autenticazione Wi-Fi
+        \item Un firewall applicativo integrato nel sistema operativo
+    \end{enumerate}
+\end{enumerate}
+\end{questionbox}
+
+\begin{questionbox}[Domanda 2: Metodologie per la Stima dei Rischi]
+Spiegare quali sono i principali approcci metodologici per la stima dei rischi di sicurezza informatica. In particolare:
+\begin{itemize}
+    \item Spiegare come dai dati di \textit{Risk Assessment} e di \textit{Risk Framing} si ottengono le stime qualitative e quantitative del rischio;
+    \item Descrivere le formule di calcolo del rischio quantitativo: Annualized Rate of Occurrence (ARO), Single Loss Expectancy (SLE) e Annualized Loss Expectancy (ALE);
+    \item Discutere i punti di forza e i limiti di ciascun approccio (qualitativo vs quantitativo).
+\end{itemize}
+\end{questionbox}
+
+\begin{questionbox}[Domanda 3: Controllo degli Accessi (DAC vs MAC vs RBAC)]
+Confrontare dettagliatamente i tre principali modelli di controllo dell'accesso logico:
+\begin{enumerate}[label=\alph*.]
+    \item \textbf{Discretionary Access Control (DAC)};
+    \item \textbf{Mandatory Access Control (MAC)};
+    \item \textbf{Role-Based Access Control (RBAC)}.
+\end{enumerate}
+Per ciascuno, descrivere su quali entit\`a si basano le decisioni di autorizzazione, chi ha l'autorit\`a di modificare i permessi e riportare esempi concreti di applicazione (es. permessi UNIX, etichette SELinux, ruoli aziendali).
+\end{questionbox}
+
+\begin{questionbox}[Domanda 4: Autenticazione e Integrit\`a in IPsec (AH vs ESP)]
+Descrivere i protocolli di sicurezza dello standard IPsec (Authentication Header - AH e Encapsulating Security Payload - ESP). Spiegare per ciascuno quali propriet\`a di sicurezza garantiscono (confidenzialit\`a, integrit\`a, autenticazione dell'origine, anti-replay) e come operano nelle due modalit\`a \textit{Transport Mode} e \textit{Tunnel Mode}. Spiegare perch\'e AH \`e incompatibile con il NAT (Network Address Translation).
+\end{questionbox}
+
+\newpage
+\section{Soluzione Dettagliata e Guida Risolutiva}
+
+\begin{solutionbox}[Soluzione Domanda 1: Risposta Multipla]
+\textbf{1.1 AES-192 (Analisi Puntuale delle Opzioni):}
+\begin{itemize}
+    \item \textbf{a. FALSA}: AES (Advanced Encryption Standard / Rijndael, FIPS PUB 197) \`e un algoritmo a chiave simmetrica (crittografia a chiave segreta condivisa), non un cifrario asimmetrico a chiave pubblica.
+    \item \textbf{b. FALSA}: AES \`e un algoritmo di cifratura reversibile a blocchi, non una funzione crittografica di hash a senso unico (come SHA-192, che peraltro non \`e uno standard; la famiglia SHA-2 include SHA-224, SHA-256, SHA-384, SHA-512).
+    \item \textbf{c. FALSA}: Sebbene la chiave sia da 192 bit, in AES la dimensione del blocco di cifratura \`e \textbf{fissa e invariabile a 128 bit} (16 byte) per tutte le varianti (AES-128, AES-192, AES-256). Solo il cifrario originario Rijndael supportava blocchi da 192 e 256 bit, ma nello standard federale AES il blocco \`e unicamente da 128 bit.
+    \item \textbf{d. FALSA}: AES \`e nativamente un cifrario a blocchi (\textit{block cipher}) operante tramite una rete SPN (Substitution-Permutation Network), non uno stream cipher (sebbene possa essere impiegato in modalit\`a a flusso come CTR od OFB).
+    \item \textbf{e. VERA}: Poich\'e tutte le affermazioni precedenti contengono errori tecnici su natura, dimensione del blocco o classificazione dell'algoritmo, l'opzione corretta \`e univocamente la \textbf{(e)}.
+\end{itemize}
+
+\textbf{1.2 Trusted Platform Module - TPM (Analisi Puntuale delle Opzioni):}
+\begin{itemize}
+    \item \textbf{a. FALSA}: Il TPM non \`e una libreria software per licenze DRM, bens\`i un coprocessore crittografico fisico e dedicato (standardizzato ISO/IEC 11889 e TCG).
+    \item \textbf{b. VERA}: Il TPM \`e un chip crittografico sicuro saldato sulla motherboard (o integrato in firmware fTPM) deputato a fungere da \textit{Hardware Root of Trust}. Genera e custodisce chiavi crittografiche non estraibili (Endorsement Key EK, Storage Root Key SRK) e contiene registri Platform Configuration Registers (PCR) che registrano la catena di hash delle componenti software durante il \textit{Measured Boot} (dall'UEFI fino al kernel OS).
+    \item \textbf{c. FALSA}: L'autenticazione Wi-Fi \`e governata da protocolli di livello 2 come IEEE 802.11i, IEEE 802.1X, ed EAP (EAP-TLS, EAP-PEAP), che possono eventualmente usare certificati protetti da TPM ma non si identificano con esso.
+    \item \textbf{d. FALSA}: Il TPM \`e un componente di sicurezza hardware e computazione crittografica sicura, non ha alcuna funzione di ispezione dei pacchetti di rete o firewall applicativo (L7).
+\end{itemize}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 2: Metodologie di Stima del Rischio]
+\textbf{Inquadramento Generale:}
+Il rischio informatico \`e funzione della probabilit\`a che una minaccia (\textit{Threat}) sfrutti con successo una vulnerabilit\`a (\textit{Vulnerability}) di un asset aziendale, causando un impatto negativo (\textit{Impact}):
+\[
+\text{Rischio} = f(\text{Minaccia}, \text{Vulnerabilit\`a}, \text{Impatto})
+\]
+Il \textbf{Risk Framing} stabilisce il contesto strategico: definisce la propensione al rischio dell'organizzazione (\textit{Risk Appetite}), le priorit\`a aziendali, i vincoli legali/normativi e le ipotesi operative. Il \textbf{Risk Assessment} raccoglie i dati sul campo identificando asset, minacce e vulnerabilit\`a.
+
+\textbf{Approccio Quantitativo:}
+Fornisce stime numeriche ed economiche basate su parametri finanziari:
+\begin{itemize}
+    \item \textbf{Asset Value (AV)}: Valore economico complessivo dell'asset protetto (es. valore dell'hardware, dei dati e dei costi di fermo servizio).
+    \item \textbf{Exposure Factor (EF)}: Percentuale di perdita del valore dell'asset causata dal verificarsi della minaccia ($0 \le EF \le 1$).
+    \item \textbf{Single Loss Expectancy (SLE)}: Danno economico atteso per il verificarsi di un singolo incidente:
+    \[
+    SLE = AV \times EF
+    \]
+    \item \textbf{Annualized Rate of Occurrence (ARO)}: Frequenza stimata con cui la minaccia si manifesta nell'arco di un anno solare (es. una volta ogni due anni $\rightarrow ARO = 0.5$; tre volte all'anno $\rightarrow ARO = 3$).
+    \item \textbf{Annualized Loss Expectancy (ALE)}: Perdita finanziaria annua stimata:
+    \[
+    ALE = SLE \times ARO = AV \times EF \times ARO
+    \]
+\end{itemize}
+\textit{Analisi Costi-Benefici delle Contromisure}: Se l'introduzione di un controllo di sicurezza riduce l'ALE da $ALE_1$ a $ALE_2$ e il costo annuo del controllo \`e $ACS$ (Annualized Cost of Safeguard), il controllo \`e economicamente conveniente se:
+\[
+\Delta ALE - ACS = (ALE_1 - ALE_2) - ACS > 0
+\]
+
+\textbf{Approccio Qualitativo:}
+Utilizza matrici di rischio semiquantitative (es. Matrice $5 \times 5$) assegnando a Probabilit\`a e Impatto classi discrete (Molto Basso, Basso, Medio, Alto, Critico). \`E ampiamente utilizzato quando i dati storici statistici per calcolare l'ARO non sono disponibili o per rischi intangibili (danno d'immagine, perdita di reputazione, impatto legale).
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 3: Confronto DAC vs MAC vs RBAC]
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{lXXX}
+\toprule
+\textbf{Propriet\`a} & \textbf{DAC (Discretionary)} & \textbf{MAC (Mandatory)} & \textbf{RBAC (Role-Based)} \\
+\midrule
+\textbf{Principio Base} & Basato sull'identit\`a del soggetto e sul possesso/propriet\`a dell'oggetto (\textit{Owner}). & Basato su etichette di sicurezza (\textit{Labels}) e regole imposte a livello di sistema operativo. & Basato sulle funzioni o compiti lavorativi assegnati ai soggetti (\textit{Roles}). \\
+\textbf{Autorit\`a sui Permessi} & Il proprietario dell'oggetto ha la discrezione assoluta di concedere o revocare permessi ad altri soggetti. & Imposta esclusivamente dall'amministratore di sicurezza globale. L'owner non pu\`o alterare le policy. & L'amministratore assegna permessi ai ruoli e assegna utenti ai ruoli (\textit{Role Assignment}). \\
+\textbf{Regole di Accesso} & Matrice di Accesso, Access Control List (ACL) e permessi POSIX (rwx). & Modelli di sicurezza formali: Bell-LaPadula (No Read Up, No Write Down), Biba. & Regole basate su ruoli e gerarchie di ruoli, con supporto al principio del minimo privilegio. \\
+\textbf{Esempi Reali} & File system standard Linux/Windows (chmod, chown, NTFS ACL). & SELinux, AppArmor, sistemi militari/governativi multi-level (MLS). & Sistemi Enterprise ERP (SAP), database relazionali (GRANT role TO user). \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 4: IPsec --- AH vs ESP e Incompatibilit\`a con il NAT]
+\textbf{Authentication Header (AH):}
+\begin{itemize}
+    \item Fornisce: Autenticazione dell'origine dei dati, integrit\`a senza connessione, protezione anti-replay (tramite Sequence Number).
+    \item \textbf{Non fornisce alcuna confidenzialit\`a} (il payload viaggia in chiaro).
+    \item Il calcolo dell'ICV (Integrity Check Value) include l'intero payload e tutti i campi immutabili dell'header IP esterno (escludendo solo i campi mutabili come TTL, Type of Service, Header Checksum).
+\end{itemize}
+
+\textbf{Encapsulating Security Payload (ESP):}
+\begin{itemize}
+    \item Fornisce: Confidenzialit\`a (cifratura simmetrica), autenticazione dell'origine dei dati, integrit\`a e servizio anti-replay.
+    \item L'autenticazione copre solo l'header ESP, il payload cifrato e l'ESP trailer. Non copre l'header IP esterno.
+\end{itemize}
+
+\textbf{Transport Mode vs Tunnel Mode:}
+\begin{itemize}
+    \item \textit{Transport Mode}: Protegge solo il payload di livello superiore (es. segmento TCP/UDP); l'header IP originale rimane intatto. Utilizzato per comunicazioni end-to-end tra due host.
+    \item \textit{Tunnel Mode}: L'intero pacchetto IP originale viene incapsulato e protetto all'interno di un nuovo pacchetto IP completo con un nuovo header esterno. Utilizzato per comunicazioni Gateway-to-Gateway (VPN site-to-site) o Host-to-Gateway (remote access VPN).
+\end{itemize}
+
+\textbf{Incompatibilit\`a di AH con il NAT:}
+Il dispositivo NAT altera per definizione l'indirizzo IP di sorgente (SNAT) o destinazione (DNAT) nell'header IP del pacchetto durante l'attraversamento del gateway. Poich\'e il protocollo AH calcola l'ICV includendo gli indirizzi IP dell'header, quando il destinatario ricalcola l'ICV sull'header modificato dal NAT, la verifica crittografica fallisce inesorabilmente e il pacchetto viene scartato. ESP risolve questo problema (specialmente incapsulato in UDP port 4500 con NAT-Traversal).
+\end{solutionbox}
+
+\begin{altbox}[Alternative Implementation Note: Concorrenza Rust per l'Elaborazione IPsec]
+Nei moderni router e gateway crittografici IPsec (come quelli realizzati con Rust su framework DPDK o Tokio/io\_uring):
+\begin{itemize}
+    \item \texttt{std::sync::Arc<SecurityAssociation>}: Le Security Association (SA), che contengono le chiavi di sessione e i parametri di crittografia, sono allocate all'interno di \texttt{Arc} e indicizzate in tabelle hash concorrenti senza blocco per garantire lookup parallelo su milioni di pacchetti/sec.
+    \item \texttt{std::sync::atomic::AtomicU64}: Il numero di sequenza anti-replay a 64 bit viene incrementato in modo atomico (\texttt{fetch\_add(1, Ordering::SeqCst)}) garantendo l'assenza di sovrapposizioni o race condition tra worker thread paralleli senza dover acquisire un pesante mutex.
+\end{itemize}
+\end{altbox}
+
+
+\end{document}

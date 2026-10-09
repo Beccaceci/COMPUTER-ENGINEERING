@@ -1,0 +1,170 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm}
+\usepackage{amsmath,amssymb}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    citecolor=blue!70!black,
+    urlcolor=teal!70!black
+}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!10},
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{green!50!black}\itshape,
+    stringstyle=\color{red!70!black}
+}
+
+\newtcolorbox{questionbox}[1][]{
+    colback=gray!5!white,
+    colframe=gray!60!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{solutionbox}[1][]{
+    colback=blue!5!white,
+    colframe=blue!70!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{altbox}[1][]{
+    colback=orange!5!white,
+    colframe=orange!80!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\begin{document}
+
+\title{\textbf{Sicurezza dei Sistemi Informativi} \\ \large Appello d'Esame del 17 Settembre 2024 \\ \small Anno Accademico 2023-2024}
+\author{Politecnico di Torino --- Docente: Prof. Cataldo Basile}
+\date{2024-09-17}
+\maketitle
+
+
+\section{Testo Ufficiale dell'Esame}
+
+\begin{questionbox}[Domanda 1: Domande a Scelta Multipla]
+Valutare la correttezza delle seguenti affermazioni:
+\begin{enumerate}[label=\alph*.]
+    \item Se viene effettuato un port scanning TCP SYN contro un server posso identificare le porte aperte, chiuse e filtrate.
+    \item L'attacco di Kaminsky permette di forgiare risposte DNS false ma pu\`o essere evitato con DNSSEC.
+    \item Dato un keyed-digest $kd = H(k \parallel M)$, \`e possibile estrarre la chiave segreta $k$ tramite un length extension attack.
+    \item Lo Smurf attack pu\`o essere evitato disabilitando l'inoltro di pacchetti ICMP diretti a indirizzi IP di broadcast sulla rete.
+    \item Il FIN scanning permette di distinguere i packet filter stateful da quelli stateless.
+    \item Un SYN interceptor evita che le tabelle delle connessioni dei server protetti si saturino con attacchi di flooding.
+    \item Il framework eIDAS stabilisce che una Qualified Electronic Signature ha lo stesso valore legale di una firma autografa.
+    \item Un SIEM \`e un particolare tipo di IPS che si integra con i firewall per bloccare automaticamente gli attacchi.
+\end{enumerate}
+\end{questionbox}
+
+\begin{questionbox}[Domanda 2: Protezione di Canale e Protocollo TLS]
+Spiegare cosa si intende per protezione di canale e in quali contesti applicativi viene utilizzata.
+Indicare e descrivere in dettaglio il funzionamento del protocollo TLS, specificando:
+\begin{itemize}
+    \item Quali propriet\`a di sicurezza garantisce (riservatezza, integrit\`a, autenticazione, anti-replay, PFS);
+    \item Quali tecniche e algoritmi crittografici vengono utilizzati per garantire ciascuna propriet\`a;
+    \item Come il protocollo Record Layer gestisce la frammentazione, compressione (e i suoi rischi), autenticazione e cifratura dei messaggi.
+\end{itemize}
+\end{questionbox}
+
+\begin{questionbox}[Domanda 3: NIST Risk Management Framework (RMF SP 800-37)]
+Spiegare cosa \`e il Risk Management Framework (RMF) del NIST e quali sono i suoi obiettivi.
+Elencare e descrivere dettagliatamente le 7 fasi del ciclo di vita del framework RMF (Prepare, Categorize, Select, Implement, Assess, Authorize, Monitor), indicando le principali operazioni svolte in ciascuna fase.
+\end{questionbox}
+
+\begin{questionbox}[Domanda 4: Common Criteria e CEM]
+Spiegare cosa sono i Common Criteria (ISO/IEC 15408) e a cosa servono.
+All'interno di questo contesto, spiegare cosa sono i Protection Profile (PP) e perch\'e sono utili alle organizzazioni che acquistano software e apparati hardware.
+Infine, discutere cosa \`e la Common Evaluation Methodology (CEM) e come si integra con i Common Criteria per standardizzare le valutazioni condotte dai laboratori accreditati.
+\end{questionbox}
+
+\newpage
+\section{Soluzione Dettagliata e Guida Risolutiva}
+
+\begin{solutionbox}[Soluzione Domanda 1: Valutazione Crocette]
+\begin{itemize}
+    \item \textbf{a. VERA}: Con il SYN scan (half-open), se riceviamo SYN/ACK la porta \`e aperta; se riceviamo RST la porta \`e chiusa; se non riceviamo risposta o riceviamo ICMP unreachable la porta \`e filtrata.
+    \item \textbf{b. VERA}: L'attacco di Kaminsky inietta record falsi nella cache del resolver DNS; DNSSEC impedisce ci\`o firmando digitalmente i record (RRSIG).
+    \item \textbf{c. FALSA}: Il \textit{length extension attack} (tipico di funzioni di hash Merkle-D\r{a}mgard come MD5, SHA-1, SHA-256) consente di calcolare un nuovo digest valido per $M \parallel \text{padding} \parallel M'$, ma **non rivela la chiave segreta $k$** all'attaccante.
+    \item \textbf{d. VERA}: Lo Smurf attack inviava ping ICMP con IP spoofato della vittima a indirizzi broadcast di terze parti; disabilitare il broadcast ICMP elimina il fattore di amplificazione.
+    \item \textbf{e. VERA}: I pacchetti FIN inviati senza connessione aperta vengono gestiti diversamente da un firewall stateful (che li scarta perch\'e non associati a sessione attiva) rispetto a uno stateless.
+    \item \textbf{f. VERA}: Il SYN Interceptor risponde alle richieste SYN al posto del server ed apre la connessione reale solo a handshake client completato.
+    \item \textbf{g. VERA}: Ai sensi del Regolamento UE n. 910/2014 (eIDAS), la firma elettronica qualificata (QES) equivale pienamente a una firma autografa.
+    \item \textbf{h. FALSA}: Il SIEM \`e una piattaforma di correlazione e analisi dei log (\textit{Security Information and Event Management}), non \`e un IPS inline.
+\end{itemize}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 2: Protezione di Canale e Protocollo TLS]
+\textbf{Concetto di Protezione di Canale:}
+La protezione di canale (\textit{Channel Security}) garantisce un canale logico punto-a-punto sicuro tra due endpoint comunicanti attraverso un'infrastruttura di rete insicura o ostile (Internet). Protegge da intercettazione passiva (eavesdropping), alterazione dei dati (tampering) e impersonificazione, garantendo che le propriet\`a di sicurezza siano preservate a prescindere dal numero e dalla natura dei router o nodi intermedi attraversati.
+
+\textbf{Propriet\`a di Sicurezza e Meccanismi Crittografici in TLS (1.2/1.3):}
+\begin{itemize}
+    \item \textbf{Riservatezza (Confidenzialit\`a)}: Garantita mediante algoritmi di cifratura simmetrica autenticata (AEAD) moderni come AES-GCM (128 o 256 bit), AES-CCM o ChaCha20-Poly1305. I vecchi cifrari a blocchi in modalit\`a CBC e cifrari stream RC4 sono deprecati/vietati.
+    \item \textbf{Integrit\`a e Autenticit\`a dei Messaggi}: Garantite contestualmente dal tag crittografico di autenticazione calcolato dalla modalit\`a AEAD (es. GHASH in GCM o Poly1305), oppure storicamente tramite HMAC (costruito su SHA-256/SHA-384).
+    \item \textbf{Autenticazione dell'Origine (Peer Authentication)}: Garantita tramite certificati digitali X.509 firmati da Certification Authority (CA) fidate e algoritmi di firma digitale asimmetrica (RSA-PSS, ECDSA o Ed25519) scambiati durante l'handshake.
+    \item \textbf{Perfect Forward Secrecy (PFS)}: Garantita dall'uso obbligatorio di parametri effimeri di Diffie-Hellman su curve ellittiche (ECDHE) o gruppi finiti (DHE). La distruzione delle chiavi effimere private al termine della sessione impedisce la decifratura retroattiva del traffico registrato.
+    \item \textbf{Protezione Anti-Replay}: Garantita tramite un contatore di sequenza a 64 bit (\textit{Sequence Number}) mantenuto implicitamente per ciascun record trasmesso da entrambe le parti ed incrementato per ogni blocco.
+\end{itemize}
+
+\textbf{Il Protocollo TLS Record Layer (Funzionamento ed Elaborazione):}
+Il Record Layer si colloca tra il livello di trasporto (TCP) e i protocolli superiori di TLS (Handshake, Alert, Application Data). Elabora i messaggi attraverso le seguenti fasi sequenziali:
+\begin{enumerate}
+    \item \textbf{Frammentazione}: I blocchi di dati provenienti dai livelli applicativi superiori vengono suddivisi in frammenti gestibili di lunghezza non superiore a $2^{14}$ byte (16384 byte = 16 KB).
+    \item \textbf{Compressione e Rischi di Sicurezza (CRIME / BREACH)}:
+    Lo standard TLS originario prevedeva una fase opzionale di compressione (es. DEFLATE) prima della cifratura. Tuttavia, ci\`o ha introdotto la gravissima classe di vulnerabilit\`a note come \textbf{CRIME (CVE-2012-4929)} e \textbf{BREACH}: quando un attaccante man-in-the-middle pu\`o indurre la vittima a iniettare dati noti all'interno della richiesta HTTP e osservare la dimensione del pacchetto compresso e cifrato, le propriet\`a dell'algoritmo LZ77 (che comprime maggiormente sequenze ripetute) permettono di estrarre segreti byte-a-byte (es. cookie di sessione o token CSRF). Pertanto, la compressione a livello Record Layer \`e stata **formalmente disabilitata e vietata** da RFC 7540 e RFC 8446 (TLS 1.3).
+    \item \textbf{Autenticazione e Cifratura}: In TLS 1.3 si adotta esclusivamente il paradigma AEAD: il frammento plaintext viene cifrato e contestualmente viene generato il tag di autenticazione includendo come dati associati (AD) l'header del record (tipo contenuto, versione, lunghezza).
+    \item \textbf{Aggiunta Header TLS Record}: Viene prepeso un header di 5 byte contenente il Content Type (1 byte), la versione di protocollo Legacy (2 byte) e la lunghezza del payload (2 byte), prima della trasmissione su socket TCP.
+\end{enumerate}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 3: NIST RMF (SP 800-37) --- Le 7 Fasi]
+\begin{enumerate}
+    \item \textbf{Prepare}: Preparazione dell'organizzazione e dei sistemi, identificazione del contesto e del risk appetite.
+    \item \textbf{Categorize}: Categorizzazione del sistema informativo e dei dati gestiti in base all'impatto potenziale secondo FIPS 199 (Low, Moderate, High per Confidenzialit\`a, Integrit\`a, Disponibilit\`a).
+    \item \textbf{Select}: Selezione dei controlli di sicurezza minimi (baseline) da NIST SP 800-53 e relativo tailoring.
+    \item \textbf{Implement}: Implementazione pratica dei controlli selezionati nell'architettura aziendale.
+    \item \textbf{Assess}: Valutazione formale dell'efficacia dei controlli da parte di assessor indipendenti per verificare che operino come previsto.
+    \item \textbf{Authorize}: Decisione formale dell'Official autorizzante sull'accettabilit\`a del rischio residuo (\textit{Authority to Operate - ATO}).
+    \item \textbf{Monitor}: Monitoraggio continuo della postura di sicurezza, scansione di nuove vulnerabilit\`a e gestione dei cambiamenti.
+\end{enumerate}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 4: Common Criteria (ISO 15408) e CEM]
+\textbf{Ruolo dei Protection Profile (PP):}
+Un Protection Profile consente ai clienti/acquirenti di definire a priori un insieme standardizzato e formalizzato di requisiti funzionali e di garanzia per un'intera categoria di prodotti (es. "Protection Profile for Stateful Traffic Filtering Firewalls"). I produttori certificano il loro TOE a fronte di tale PP, consentendo ai clienti di confrontare oggettivamente le soluzioni di mercato.
+
+\textbf{Common Evaluation Methodology (CEM):}
+La CEM \`e il manuale metodologico standardizzato (ISO/IEC 18045) utilizzato dai valutatori dei laboratori accreditati (ITSEF). Definisce le procedure passo-passo minime, le tecniche di prova e le metriche di verifica per ciascun requisito di garanzia (SAR), garantendo che valutazioni condotte da laboratori differenti in nazioni diverse producano risultati uniformi, ripetibili e reciprocamente riconosciuti.
+\end{solutionbox}
+
+\begin{altbox}[Alternative Implementation Note: Concorrenza Rust per Applicazioni Web Sicure]
+Nello sviluppo di web server resilienti e sicuri secondo le linee guida NIST:
+\begin{itemize}
+    \item Si adotta il runtime asincrono \texttt{tokio} con primitive di sincronizzazione non bloccanti (\texttt{tokio::sync::mpsc}, \texttt{tokio::sync::watch}).
+    \item Per la gestione dello stato globale condiviso in sola lettura tra le richieste, si utilizza \texttt{std::sync::Arc<AppState>} combinato con tipi atomici (\texttt{AtomicUsize}) per il rate limiting e la protezione da attacchi DoS/flooding.
+\end{itemize}
+\end{altbox}
+
+
+\end{document}

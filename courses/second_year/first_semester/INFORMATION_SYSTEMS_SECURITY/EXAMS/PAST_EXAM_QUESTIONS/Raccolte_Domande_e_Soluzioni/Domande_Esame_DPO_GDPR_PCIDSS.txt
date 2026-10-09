@@ -1,0 +1,16 @@
+1) Spiegare i compiti del Data Protection Officer (DPO) ed i suoi doveri in caso di data breach (3-5 punti).
+
+2) Spiegare cosa sono i principi di "accountability" e "reporting" previsti dal GDPR (3-5 punti).
+
+3) Descrivere cosa intende proteggere lo standard PCI DSS, indicando quali sono le categorie di controlli tecnici che vengono necessari ad ottenere una certificazione (5-6 punti).
+
+4) Riguardo allo standard TCSEC, indicare chi lo ha definito e cosa intende proteggere. Spiegare inoltre cosa è la "classificazione basata sui requisiti" e indicare la principale differenza tra la classe C e la classe B (5-6 punti).
+
+5) Definire i tre principali approcci alla stima dei rischi (es. risk assessment) (3-4 punti).
+
+6) Definire cosa sono le CVE e le CWE e da chi sono state definite e chi le gestisce. Infine, spiegarne i principali aspetti comuni e le differenze (5-6 punti).
+
+7) Un'azienda ha effettuato un Vulnerability Assessment e identificato molti sistemi (es. server, PC utenti, dispositivi di sicurezza, sistemi legacy) che presentano vulnerabilità che richiedono di essere corrette. Seguendo le direttive del NIST, proponete una strategia per scegliere un ordine di applicazione delle patch che minimizzi l'esposizione ai rischi di sicurezza e riduca i disservizi (5-6 punti).
+
+8) Spiegare cosa è un SIEM e quale importante funzionalità di sicurezza aiuta a svolgere. Indicare infine un esempio di azienda che potrebbe aver bisogno di un SIEM (3-5 punti).
+

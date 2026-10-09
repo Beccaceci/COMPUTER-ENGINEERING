@@ -1,0 +1,194 @@
+\ProvidesPackage{macros}[2026/09/23 v1.0 Style macros for Sicurezza dei Sistemi Informativi Study Guide]
+
+% Typography and encoding
+\RequirePackage[T1]{fontenc}
+\RequirePackage[utf8]{inputenc}
+\RequirePackage[italian]{babel}
+\RequirePackage{microtype}
+
+% Math
+\RequirePackage{amsmath,amssymb,amsfonts}
+
+% Colors
+\RequirePackage{xcolor}
+\definecolor{secblue}{RGB}{20, 75, 145}
+\definecolor{secgreen}{RGB}{25, 125, 60}
+\definecolor{secred}{RGB}{185, 30, 30}
+\definecolor{secorange}{RGB}{215, 105, 15}
+\definecolor{secgray}{RGB}{95, 105, 115}
+\definecolor{secpurple}{RGB}{115, 35, 140}
+
+% Page layout
+\RequirePackage{geometry}
+\geometry{
+    top=2.8cm,
+    bottom=2.8cm,
+    left=2.5cm,
+    right=2.5cm,
+    headheight=14pt,
+    footskip=1.2cm
+}
+
+% Tables and lists
+\RequirePackage{booktabs}
+\RequirePackage{tabularx}
+\RequirePackage{array}
+\RequirePackage{enumitem}
+\setlist{nosep, leftmargin=1.8em}
+
+% Icons and currency
+\RequirePackage{fontawesome5}
+\RequirePackage{eurosym}
+
+% TikZ and graphics
+\RequirePackage{graphicx}
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric, shapes.symbols, backgrounds, decorations.pathreplacing, matrix, fit}
+\RequirePackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% Listings / Code blocks
+\RequirePackage{listings}
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!8},
+    rulecolor=\color{gray!30},
+    keywordstyle=\color{secblue}\bfseries,
+    commentstyle=\color{secgreen}\itshape,
+    stringstyle=\color{secorange},
+    showstringspaces=false,
+    tabsize=4
+}
+
+% Hyperref
+\RequirePackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=secblue,
+    citecolor=secgreen,
+    urlcolor=secpurple,
+    filecolor=secblue,
+    pdfstartview={FitH}
+}
+
+% Tcolorbox environments
+\RequirePackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+
+% 1. Book Dive (Textbook deepening)
+\newtcolorbox{bookdive}[1][]{
+    enhanced,
+    breakable,
+    colback=secgreen!5!white,
+    colframe=secgreen!85!black,
+    coltitle=white,
+    fonttitle=\bfseries\small,
+    title={\faBookOpen\ \ Approfondimento da Testo: #1},
+    attach boxed title to top left={yshift*=-\tcboxedtitleheight/2, xshift=4mm},
+    boxed title style={colback=secgreen!85!black, boxrule=0pt, arc=3pt},
+    top=3.5mm, bottom=3mm, left=3.5mm, right=3.5mm, boxrule=1pt, arc=4pt,
+    before skip=4mm, after skip=4mm
+}
+
+% 2. Exam Insight (Moodle quizzes & Open questions)
+\newtcolorbox{examinsight}[1][]{
+    enhanced,
+    breakable,
+    colback=secred!4!white,
+    colframe=secred!85!black,
+    coltitle=white,
+    fonttitle=\bfseries\small,
+    title={\faGraduationCap\ \ Insight d'Esame: #1},
+    attach boxed title to top left={yshift*=-\tcboxedtitleheight/2, xshift=4mm},
+    boxed title style={colback=secred!85!black, boxrule=0pt, arc=3pt},
+    top=3.5mm, bottom=3mm, left=3.5mm, right=3.5mm, boxrule=1pt, arc=4pt,
+    before skip=4mm, after skip=4mm
+}
+
+% 3. Intuition / Analogy
+\newtcolorbox{intuition}[1][]{
+    enhanced,
+    breakable,
+    colback=secorange!6!white,
+    colframe=secorange!90!black,
+    coltitle=white,
+    fonttitle=\bfseries\small,
+    title={\faLightbulb\ \ Intuizione \& Pensiero Laterale: #1},
+    attach boxed title to top left={yshift*=-\tcboxedtitleheight/2, xshift=4mm},
+    boxed title style={colback=secorange!90!black, boxrule=0pt, arc=3pt},
+    top=3.5mm, bottom=3mm, left=3.5mm, right=3.5mm, boxrule=1pt, arc=4pt,
+    before skip=4mm, after skip=4mm
+}
+
+% 4. Formal Security Protocol
+\newtcolorbox{securityprotocol}[1][]{
+    enhanced,
+    breakable,
+    colback=secblue!4!white,
+    colframe=secblue!85!black,
+    coltitle=white,
+    fonttitle=\bfseries\small,
+    title={\faShieldAlt\ \ Specifica Formale del Protocollo: #1},
+    attach boxed title to top left={yshift*=-\tcboxedtitleheight/2, xshift=4mm},
+    boxed title style={colback=secblue!85!black, boxrule=0pt, arc=3pt},
+    top=3.5mm, bottom=3mm, left=3.5mm, right=3.5mm, boxrule=1pt, arc=4pt,
+    before skip=4mm, after skip=4mm
+}
+
+% 5. Practical Lab
+\newtcolorbox{practicallab}[1][]{
+    enhanced,
+    breakable,
+    colback=secgray!8!white,
+    colframe=secgray!90!black,
+    coltitle=white,
+    fonttitle=\bfseries\small,
+    title={\faTerminal\ \ Laboratorio Pratico: #1},
+    attach boxed title to top left={yshift*=-\tcboxedtitleheight/2, xshift=4mm},
+    boxed title style={colback=secgray!90!black, boxrule=0pt, arc=3pt},
+    top=3.5mm, bottom=3mm, left=3.5mm, right=3.5mm, boxrule=1pt, arc=4pt,
+    before skip=4mm, after skip=4mm
+}
+
+% 6. Chapter Pedagogical Overview Box
+\newtcolorbox{chapteroverview}[1][]{
+    enhanced,
+    breakable,
+    colback=blue!4!white,
+    colframe=secblue!90!black,
+    coltitle=white,
+    fonttitle=\bfseries,
+    title={\faCompass\ \ Inquadramento \& Obiettivi Didattici: #1},
+    attach boxed title to top left={yshift*=-\tcboxedtitleheight/2, xshift=4mm},
+    boxed title style={colback=secblue!90!black, boxrule=0pt, arc=3pt},
+    top=3.5mm, bottom=3mm, left=3.5mm, right=3.5mm, boxrule=1.2pt, arc=4pt,
+    before skip=4mm, after skip=4mm
+}
+
+% 7. Formal Definition Box
+\newtcolorbox{definition}[1][]{
+    enhanced,
+    breakable,
+    colback=secblue!4!white,
+    colframe=secblue!80!black,
+    coltitle=white,
+    fonttitle=\bfseries\small,
+    title={\faBook\ \ Definizione Formale: #1},
+    attach boxed title to top left={yshift*=-\tcboxedtitleheight/2, xshift=4mm},
+    boxed title style={colback=secblue!80!black, boxrule=0pt, arc=3pt},
+    top=3.5mm, bottom=3mm, left=3.5mm, right=3.5mm, boxrule=1pt, arc=4pt,
+    before skip=4mm, after skip=4mm
+}
+
+% Protocol and Crypto notation macros
+\newcommand{\concat}{\parallel}
+\newcommand{\xor}{\oplus}
+\newcommand{\symenc}[2]{\mathbf{E}_{#1}\left[#2\right]}
+\newcommand{\symdec}[2]{\mathbf{D}_{#1}\left[#2\right]}
+\newcommand{\asymenc}[2]{\mathbf{Enc}_{#1}\left(#2\right)}
+\newcommand{\asymdec}[2]{\mathbf{Dec}_{#1}\left(#2\right)}
+\newcommand{\digitalsign}[2]{\mathbf{S}_{#1}\left(#2\right)}
+\newcommand{\chash}[1]{\mathbf{H}\left(#1\right)}
+\newcommand{\chmac}[2]{\mathbf{HMAC}_{#1}\left(#2\right)}

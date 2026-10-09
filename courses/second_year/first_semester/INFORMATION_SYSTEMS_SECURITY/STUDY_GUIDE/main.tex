@@ -1,0 +1,38 @@
+\documentclass[11pt,a4paper,oneside]{report}
+\usepackage{subfiles}
+\usepackage{style/macros}
+
+% Profondità dell'indice: mostra solo i primi due livelli di intestazione (es. 1. e 1.1)
+\setcounter{tocdepth}{1}
+\setcounter{secnumdepth}{2}
+
+\title{
+    \vspace{-1.5cm}
+    \textbf{\Huge Sicurezza dei sistemi informativi} \\[0.4cm]
+    \Large Guida di studio avanzata, fondamenti teorici e risoluzione prove d'esame \\[0.8cm]
+    \large Corso di laurea magistrale in Ingegneria informatica \\
+    \large Politecnico di Torino
+}
+\author{
+    \textbf{Docente titolare:} Prof. Cataldo Basile \\[0.2cm]
+    \small Trattazione integrata con i testi di riferimento (Stallings, Schneier),\\
+    \small dati empirici ufficiali (Verizon DBIR, Cloudflare) e archivio storico delle prove d'esame.
+}
+\date{Anno accademico 2026/2027}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\noindent Il presente volume costituisce la guida integrata e approfondita per il corso di \textbf{Sicurezza dei sistemi informativi} erogato presso il \textbf{Politecnico di Torino}. L'opera sviluppa in modo esaustivo e rigoroso tutti i pilastri della disciplina: le motivazioni socio-economiche del rischio cibernetico, l'evoluzione empirica delle minacce, i modelli formali della sicurezza e la gestione operativa dei sistemi complessi, integrando la letteratura scientifica fondamentale (\textit{William Stallings}, \textit{Bruce Schneier}) e la risoluzione analitica delle prove d'esame scritte e dei quiz Moodle degli ultimi quattordici anni accademici.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% Inclusione capitoli modulari
+\subfile{chapters/ch01_introduzione/ch01_introduzione.tex}
+\subfile{chapters/ch02_gestione_rischi/ch02_gestione_rischi.tex}
+
+\end{document}

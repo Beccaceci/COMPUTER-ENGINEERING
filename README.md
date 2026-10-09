@@ -6,7 +6,7 @@
 [![Build and Release](https://github.com/Beccaceci/COMPUTER-ENGINEERING/actions/workflows/build-and-release.yml/badge.svg)](https://github.com/Beccaceci/COMPUTER-ENGINEERING/actions/workflows/build-and-release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Personal study notes, LaTeX lecture guides, exam resolutions with step-by-step mathematical derivations, laboratory implementations, and embedded firmware for the **Master of Science in Computer Engineering (LM-32)** at **Politecnico di Torino**.
+Personal study notes, publication-grade LaTeX lecture guides, past exam resolutions with step-by-step mathematical derivations, laboratory implementations, and cybersecurity targets for the **Master of Science in Computer Engineering (LM-32)** at **Politecnico di Torino**.
 
 ---
 
@@ -28,7 +28,7 @@ This repository embodies this commitment: providing university-level Computer En
 
 This repository organizes courses following the official **Computer Engineering (Ingegneria Informatica)** curriculum at **Politecnico di Torino**:
 
-> **The Vision:** To establish a unified, open-source, centralized archive covering the fundamental and advanced pillars of the Master of Science curriculum: from low-level architectures and operating system internals to machine learning foundations and modern generative AI.
+> **The Vision:** To establish a unified, open-source, centralized archive covering the fundamental and advanced pillars of the Master of Science curriculum: from low-level architectures, operating system internals, and cybersecurity to statistical pattern recognition, deep learning foundations, and modern generative AI.
 
 Community contributions are warmly welcomed:
 - **Share your notes & solutions:** If you have complete notes, summaries, cheatsheets, or solved exams for additional courses, feel free to contribute!
@@ -67,6 +67,9 @@ Continuous refinement ensures these materials remain accurate and useful:
 | Period | Course | Course Guide | Direct Download / Core Artifacts |
 | :--- | :--- | :--- | ---: |
 | **Semester 1 (Fall)** | **Large Language Models for Software Engineering (LLM4SE)** | [Open Guide](courses/second_year/first_semester/LLM_FOR_SOFTWARE_ENGINEERING/README.md) | [![Download Theory Guide](https://img.shields.io/badge/Download-LLM4SE_Theory.pdf-7b1fa2?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](courses/second_year/first_semester/LLM_FOR_SOFTWARE_ENGINEERING/STUDY_GUIDE/lectures/main.pdf) [![Download Lab Guide](https://img.shields.io/badge/Download-LLM4SE_Labs.pdf-e65100?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](courses/second_year/first_semester/LLM_FOR_SOFTWARE_ENGINEERING/STUDY_GUIDE/laboratories/labs.pdf) |
+| **Semester 1 (Fall)** | **Advanced Machine Learning** (`01URWOV` / `01URWYG`) | [Open Guide](courses/second_year/first_semester/ADVANCED_MACHINE_LEARNING/README.md) | [![Download AML Guide](https://img.shields.io/badge/Download-AML_Study_Guide.pdf-008080?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](courses/second_year/first_semester/ADVANCED_MACHINE_LEARNING/STUDY_GUIDE/main.pdf) |
+| **Semester 1 (Fall)** | **Information Systems Security** (`01TYMOV`) | [Open Guide](courses/second_year/first_semester/INFORMATION_SYSTEMS_SECURITY/README.md) | [![Download Security Guide](https://img.shields.io/badge/Download-Security_Study_Guide.pdf-b71c1c?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](courses/second_year/first_semester/INFORMATION_SYSTEMS_SECURITY/STUDY_GUIDE/main.pdf) [![Download Security Labs](https://img.shields.io/badge/Download-Cybersecurity_Labs-455a64?style=for-the-badge&logo=docker&logoColor=white)](courses/second_year/first_semester/INFORMATION_SYSTEMS_SECURITY/LABS/) |
+| **Semester 2 (Spring)** | **Explainable and Trustworthy AI (XAI)** (`01HFOOV` / `01HFOYG`) | [Open Guide](courses/second_year/second_semester/EXPLAINABLE_AND_TRUSTWORTHY_AI/README.md) | [![Download XAI Theory](https://img.shields.io/badge/Download-XAI_Theory.pdf-3949ab?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](courses/second_year/second_semester/EXPLAINABLE_AND_TRUSTWORTHY_AI/NOTES/XAI_Theory.pdf) [![Download XAI Questions](https://img.shields.io/badge/Download-XAI_Questions.pdf-5e35b1?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](courses/second_year/second_semester/EXPLAINABLE_AND_TRUSTWORTHY_AI/NOTES/XAI_EXAM_Questions.pdf) |
 
 ---
 
@@ -108,13 +111,27 @@ COMPUTER-ENGINEERING/
 │   │               ├── EXAMS/                       # Solved OS Internals past exam papers
 │   │               └── LABS/                        # Synchronization and kernel lab guides
 │   └── second_year/
-│       └── first_semester/
-│           └── LLM_FOR_SOFTWARE_ENGINEERING/        # LLMs for Software Engineering (LLM4SE)
-│               ├── README.md                        # Course overview, exam resolutions table & lecture index
-│               ├── STUDY_GUIDE/                     # Publication-grade LaTeX Volumes (Theory & Labs)
-│               │   ├── lectures/                    # Volume I: Foundations to Modern Transformers (96 pages)
-│               │   └── laboratories/                # Volume II: PyTorch Autograd & Deep Learning (27 pages)
-│               └── EXAMS/                           # 8 Official exam sessions (2025–2026) step-by-step solved
+│       ├── first_semester/
+│       │   ├── ADVANCED_MACHINE_LEARNING/           # Advanced Machine Learning (AML)
+│       │   │   ├── README.md                        # Course syllabus & textbook index
+│       │   │   └── STUDY_GUIDE/                     # Comprehensive LaTeX textbook & loss geometry
+│       │   ├── INFORMATION_SYSTEMS_SECURITY/        # Information Systems Security
+│       │   │   ├── README.md                        # Course overview, labs & exam papers
+│       │   │   ├── STUDY_GUIDE/                     # Risk analysis, threat modeling, crypto LaTeX notes
+│       │   │   ├── LABS/                            # Docker Compose, Kali Linux security labs (00 to 05)
+│       │   │   └── EXAMS/                           # Solved exam papers (2021–2025) & Anki flashcards
+│       │   └── LLM_FOR_SOFTWARE_ENGINEERING/        # LLMs for Software Engineering (LLM4SE)
+│       │       ├── README.md                        # Course overview, exam resolutions table & lecture index
+│       │       ├── STUDY_GUIDE/                     # Publication-grade LaTeX Volumes (Theory & Labs)
+│       │       │   ├── lectures/                    # Volume I: Foundations to Modern Transformers (96 pages)
+│       │       │   └── laboratories/                # Volume II: PyTorch Autograd & Deep Learning (27 pages)
+│       │       ├── LABS/                            # Laboratory notebooks (Labs 01 to 10)
+│       │       └── EXAMS/                           # 8 Official exam sessions (2025–2026) step-by-step solved
+│       └── second_semester/
+│           └── EXPLAINABLE_AND_TRUSTWORTHY_AI/      # Explainable & Trustworthy AI (XAI)
+│               ├── README.md                        # Overview, examination questions & papers
+│               ├── NOTES/                           # XAI theory notes & exam question bank PDFs
+│               └── EXAMS/                           # Official exam papers (2025–2026)
 ├── .gitignore
 ├── LICENSE                                          # MIT License
 └── README.md                                        # Master repository hub

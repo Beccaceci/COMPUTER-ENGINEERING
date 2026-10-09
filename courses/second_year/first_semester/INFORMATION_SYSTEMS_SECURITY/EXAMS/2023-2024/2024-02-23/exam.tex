@@ -1,0 +1,197 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm}
+\usepackage{amsmath,amssymb}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    citecolor=blue!70!black,
+    urlcolor=teal!70!black
+}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!10},
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{green!50!black}\itshape,
+    stringstyle=\color{red!70!black}
+}
+
+\newtcolorbox{questionbox}[1][]{
+    colback=gray!5!white,
+    colframe=gray!60!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{solutionbox}[1][]{
+    colback=blue!5!white,
+    colframe=blue!70!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{altbox}[1][]{
+    colback=orange!5!white,
+    colframe=orange!80!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\begin{document}
+
+\title{\textbf{Sicurezza dei Sistemi Informativi} \\ \large Appello d'Esame del 23 Febbraio 2024 \\ \small Anno Accademico 2023-2024}
+\author{Politecnico di Torino --- Docente: Prof. Cataldo Basile}
+\date{2024-02-23}
+\maketitle
+
+
+\section{Testo Ufficiale dell'Esame}
+
+\begin{questionbox}[Domanda 1: Domande a Scelta Multipla]
+Valutare la correttezza delle seguenti affermazioni:
+\begin{enumerate}[label=\alph*.]
+    \item OpenVPN \`e un protocollo che pu\`o essere usato in alternativa ad IPsec per creare Virtual Private Network a livello 2 o 3.
+    \item L'attacco di Kaminsky contro il DNS pu\`o essere mitigato efficacemente mediante l'impiego di IPsec.
+    \item Lo standard Common Criteria prevede che la valutazione della sicurezza avvenga rispetto a un Security Target (ST).
+    \item I sistemi legacy vulnerabili dovrebbero essere sempre i primi ad essere patchati in una strategia di patch management, senza effettuare test preventivi.
+\end{enumerate}
+\end{questionbox}
+
+\begin{questionbox}[Domanda 2: Standard Common Criteria (ISO/IEC 15408)]
+Spiegare cosa sono i \textbf{Common Criteria} e a cosa servono.
+\begin{itemize}
+    \item Descrivere quali caratteristiche ereditano dai precedenti standard (TCSEC, ITSEC) e le peculiarit\`a che li rendono pi\`u flessibili e funzionali;
+    \item Spiegare cosa sono il \textbf{Target of Evaluation (TOE)}, il \textbf{Protection Profile (PP)} e il \textbf{Security Target (ST)};
+    \item Illustrare i livelli di garanzia \textbf{EAL (Evaluation Assurance Level)} da 1 a 7;
+    \item Discutere quali sono i tre attori principali coinvolti nel processo di certificazione e come si garantisce l'indipendenza e il mutuo riconoscimento internazionale (CCRA).
+\end{itemize}
+\end{questionbox}
+
+\begin{questionbox}[Domanda 3: Architettura DMZ e Filtraggio URL HTTPS]
+Spiegare cosa \`e una DMZ (\textit{Demilitarized Zone}) e in che modo pu\`o essere creata (router a tre gambe vs architettura dual-firewall con due firewall di vendor differenti).
+Discutere delle motivazioni di sicurezza che portano alla scelta di una DMZ.
+Supponendo che il traffico da filtrare sia quello diretto verso la URL sicura:
+\begin{center}
+\texttt{https://web.azienda.it/servizio/segreto}
+\end{center}
+Spiegare perch\'e un packet filter tradizionale non pu\`o applicare questo filtro e descrivere la soluzione tecnologica adeguata (Reverse Proxy con terminazione TLS e ispezione L7).
+\end{questionbox}
+
+\newpage
+\section{Soluzione Dettagliata e Guida Risolutiva}
+
+\begin{solutionbox}[Soluzione Domanda 1: Valutazione Crocette]
+\begin{itemize}
+    \item \textbf{a. VERA}: OpenVPN opera nello spazio utente sfruttando interfacce virtuali TUN (livello 3 - IP) o TAP (livello 2 - Ethernet), incapsulando il traffico in tunnel TLS su UDP o TCP come alternativa flessibile a IPsec.
+    \item \textbf{b. FALSA}: L'attacco di Kaminsky \`e un attacco di avvelenamento della cache DNS (\textit{DNS Cache Poisoning}) che sfrutta l'insufficienza di entropia nei Transaction ID delle query DNS. La contromisura standard corretta \`e **DNSSEC** (firme digitali asimmetriche sui record DNS), mentre IPsec opera a livello 3 e non risolve la falsificazione delle risposte dei server DNS ricorsivi non autenticati.
+    \item \textbf{c. VERA}: Nei Common Criteria, il Target of Evaluation (TOE) viene valutato a fronte del suo specifico Security Target (ST), che descrive i requisiti funzionali e di garanzia.
+    \item \textbf{d. FALSA}: I sistemi legacy sono spesso fragili e l'applicazione cieca di patch senza collaudo in ambiente di staging pu\`o causare interruzioni critiche di servizio (\textit{service outage}). NIST SP 800-40 raccomanda un'attenta prioritizzazione basata sul rischio e test di compatibilit\`a.
+\end{itemize}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 2: Common Criteria (ISO/IEC 15408)]
+\textbf{Origine ed Eredit\`a:}
+I Common Criteria hanno unificato gli standard precedenti: dal TCSEC americano hanno ereditato il rigore sui modelli formali di sicurezza, mentre dall'ITSEC europeo hanno ereditato la **separazione categorica tra Requisiti Funzionali di Sicurezza (SFR - Security Functional Requirements)** e **Requisiti di Garanzia/Correttezza (SAR - Security Assurance Requirements)**.
+
+\textbf{Concetti Chiave:}
+\begin{itemize}
+    \item \textbf{TOE (Target of Evaluation)}: Il prodotto o sistema software/hardware sottoposto a valutazione.
+    \item \textbf{Protection Profile (PP)}: Documento indipendente dall'implementazione che definisce le esigenze di sicurezza per una classe specifica di prodotti (es. smart card, firewall, sistemi operativi).
+    \item \textbf{Security Target (ST)}: Documento che descrive le caratteristiche di sicurezza dello specifico TOE sottoposto a certificazione.
+    \item \textbf{EAL (Evaluation Assurance Level)}: Scala da EAL1 (funzionalmente testato) a EAL7 (progettazione verificata formalmente e testata). EAL4 \`e il livello massimo commercialmente conveniente senza richiedere costosi modelli matematici formali.
+\end{itemize}
+
+\textbf{I Tre Attori del Processo:}
+\begin{enumerate}
+    \item \textbf{Sponsor / Developer}: L'azienda che sviluppa il prodotto e commissiona la valutazione.
+    \item \textbf{Evaluation Facility (Laboratorio Indipendente)}: Laboratorio terzo accreditato che esegue i test tecnici seguendo rigorosamente la Common Evaluation Methodology (CEM).
+    \item \textbf{Certification Body (Organismo di Certificazione Nazionale)}: Ente pubblico governativo che supervisiona la valutazione e rilascia il certificato formale.
+\end{enumerate}
+Il trattato internazionale **CCRA (Common Criteria Recognition Arrangement)** garantisce che un certificato rilasciato da uno stato membro sia riconosciuto validamente in tutti gli altri stati firmatari.
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 3: Architettura DMZ e Filtraggio URL HTTPS]
+\textbf{Creazione della DMZ e Architetture a Confronto:}
+Una Demilitarized Zone (\textit{DMZ}) \`e una sottorete perimetrale cuscinetto che separa la rete pubblica non fidata (Internet) dalla rete interna protetta (LAN):
+\begin{itemize}
+    \item \textit{Router/Firewall a tre gambe (Three-Homed Router)}: Un unico apparato gestisce tre interfacce (Esterna/Internet, DMZ, Interna/LAN). \`E economico ma costituisce un singolo punto di fallimento (\textit{Single Point of Failure}).
+    \item \textit{Architettura Dual-Firewall (Two-Tier Screened Subnet)}: Due firewall distinti in serie (preferibilmente di vendor differenti per evitare che un'unica vulnerabilit\`a zero-day li comprometta entrambi): il firewall esterno scherma la DMZ da Internet, il firewall interno scherma la LAN aziendale dalla DMZ.
+\end{itemize}
+
+\textbf{Topologia di Rete (Architettura Two-Tier con Reverse Proxy L7):}
+\begin{center}
+\begin{verbatim}
+                       +--------------------+
+                       |      INTERNET      |
+                       +---------+----------+
+                                 | (Traffico cifrato TCP 443)
+                     +-----------v-----------+
+                     |  FIREWALL ESTERNO L4  | (Vendor A)
+                     +-----------+-----------+
+                                 |
+       +-------------------------v-------------------------+
+       |                  DMZ (192.168.10.0/24)            |
+       |                                                   |
+       |   +-------------------------------------------+   |
+       |   | Reverse Proxy / WAF (Terminazione TLS)    |   |
+       |   | IP: 192.168.10.10                         |   |
+       |   | Ispezione URL: /servizio/segreto          |   |
+       |   +---------------------+---------------------+   |
+       +-------------------------|-------------------------+
+                                 | (HTTP/S lecita e ispezionata)
+                     +-----------v-----------+
+                     |  FIREWALL INTERNO L4  | (Vendor B)
+                     +-----------+-----------+
+                                 |
+       +-------------------------v-------------------------+
+       |               LAN INTERNA (10.0.1.0/24)           |
+       |                                                   |
+       |   [Backend Application Server] 10.0.1.50          |
+       |   [Database Server Riservato]  10.0.1.60          |
+       +---------------------------------------------------+
+\end{verbatim}
+\end{center}
+
+\textbf{Impossibilit\`a per un Packet Filter Tradizionale:}
+Un packet filter operante a livello di trasporto/rete (L3/L4) analizza solo gli header IP (indirizzi sorgente/destinazione) e TCP (porte e flag):
+\begin{enumerate}
+    \item L'intera richiesta HTTP (incluso il metodo \texttt{GET/POST}, il percorso URL sensibile \texttt{/servizio/segreto}, i campi header e l'eventuale payload) viaggia **completamente cifrata** all'interno del payload TLS (\textit{Record Layer}).
+    \item Il packet filter vede unicamente segmenti TCP diretti alla porta di destinazione 443; non pu\`o accedere al payload in chiaro senza rompere il canale crittografico e non \`e pertanto in grado di discriminare una richiesta verso l'URL pubblica \texttt{https://web.azienda.it/} da quella verso l'endpoint confidenziale \texttt{/servizio/segreto}.
+\end{enumerate}
+
+\textbf{Soluzione Tecnologica (Reverse Proxy L7 con Terminazione TLS):}
+Si posiziona nella DMZ un **Reverse Proxy / WAF** (es. Nginx, Envoy o un'applicazione dedicata in Rust) che possiede il certificato digitale X.509 e la chiave privata del server:
+\begin{enumerate}
+    \item Il client esterno completa l'handshake TLS direttamente con il Reverse Proxy.
+    \item Il proxy decifra la richiesta HTTP, ne esegue il parsing sintattico ed estrae il path URL richiesto.
+    \item Se la richiesta corrisponde all'URI protetta \texttt{/servizio/segreto}, il proxy applica i controlli di autorizzazione avanzati (es. verifica di mutua autenticazione mTLS con certificato client o validazione di token JWT/OAuth2).
+    \item Solo in caso di autorizzazione confermata, il proxy inoltra la richiesta al Server Backend interno via connessione cifrata dedicata. In caso contrario, risponde con codice \texttt{403 Forbidden} o \texttt{401 Unauthorized}, bloccando l'attacco prima che raggiunga la LAN interna.
+\end{enumerate}
+\end{solutionbox}
+
+\begin{altbox}[Alternative Implementation Note: Concorrenza Rust per l'Ispezione L7]
+In un reverse proxy ad alte prestazioni scritto in Rust:
+\begin{itemize}
+    \item Si utilizza \texttt{rustls} con backend asincrono \texttt{tokio}, beneficiando della memoria memory-safe che elimina alla radice vulnerabilit\`a di tipo buffer overflow, use-after-free e memory leak.
+    \item \texttt{std::sync::Arc<rustls::ServerConfig>}: La configurazione TLS (certificati, ciphersuite consentite) viene condivisa in sola lettura tra tutti i task asincroni con overhead nullo.
+\end{itemize}
+\end{altbox}
+
+
+\end{document}

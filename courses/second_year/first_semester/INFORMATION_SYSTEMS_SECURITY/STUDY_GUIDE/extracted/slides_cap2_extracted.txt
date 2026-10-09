@@ -1,0 +1,370 @@
+=== SLIDE 1 ===
+Cataldo Basile
+< cataldo.basile @ polito.it >
+Politecnico di Torino
+Dip. Automatica e Informatica
+
+
+=== SLIDE 2 ===
+•gestione del rischio
+•analisi del rischio 
+
+
+=== SLIDE 3 ===
+•aziende dipendono dagli asset digitali
+•obiettivo: identificare i rischi mediante un processo
+• ripetibile
+ oggettivo
+tollerabili
+•le aziende devono riuscire a stabilire
+•la gestione del rischio serve a questo
+
+
+=== SLIDE 4 ===
+• definire precisamente i processi aziendali necessari alla 
+gestione del rischio
+• stimolo per farlo (analisi costi-benefici)…
+• risultati utili anche al di là della sicurezza
+• il NIST ha proposto il Risk Management Framework (RMF)
+-NIST SP 800-39 Managing 
+Information Security Risk
+-NIST SP 800-30 Guide for 
+Conducting Risk Assessment
+-NIST SP 800-37, Risk Management 
+Framework for Information Systems 
+and Organizations
+-NIST SP 800-53, Recommended 
+Security Controls for Federal 
+Information Systems
+-NIST SP 800-53A, Guide for 
+Assessing the Security Controls in 
+Federal Information Systems
+
+
+=== SLIDE 5 ===
+• ASSET
+• DEBOLEZZA
+• VULNERABILITÀ
+• MINACCIA
+• ATTACCO
+• EVENTO (NEGATIVO) 
+
+
+=== SLIDE 6 ===
+=== SLIDE 7 ===
+•proposto dal NIST
+•4 fasi
+NIST SP 800-39 Managing Information Security Risk
+NIST SP 800-30 Guide for Conducting Risk Assessment
+NIST SP 800-37, Risk Management Framework for 
+Information Systems and Organizations
+NIST SP 800-53, Recommended Security Controls for 
+Federal Information Systems
+NIST SP 800-53A, Guide for Assessing the Security 
+Controls in Federal Information Systems
+
+=== SLIDE 8 ===
+1. risk framing
+2. risk assessment
+
+
+=== SLIDE 9 ===
+3. respond / risk mitigation
+4. risk monitoring
+
+
+=== SLIDE 10 ===
+• processo strutturato e flessibile per gestire rischi di sicurezza e privacy
+• Prepare: 
+• Categorize
+• Select
+• Implement
+• Assess
+• Authorize
+• Monitor
+
+
+=== SLIDE 11 ===
+=== SLIDE 12 ===
+• una volta identificati
+• …devo essere in grado di dare un peso al rischio
+• aspetti da considerare
+• danno
+• tempi
+• probabilità
+• …ma alla fine mi serve un punteggio, una valutazione che permetta di 
+confrontare i rischi
+
+
+=== SLIDE 13 ===
+• quantitativo
+• qualitativo
+• semi-quantitativo
+• la scelta dell’approccio da adottare dipende dai dati disponibili, dagli obiettivi e 
+dal livello di precisione richiesto
+• in letteratura approcci che prevedono la monetizzazione
+
+
+=== SLIDE 14 ===
+threats vulnerabilities
+security risks assets
+potential 
+impacts
+exploit
+reduce devalue
+underwrite
+security
+control
+security
+requirements
+
+=== SLIDE 15 ===
+•il punto di partenza dell’analisi può essere diverso
+•threat-oriented
+•asset/impact-oriented
+NIST SP 800-30 
+analysis approach
+
+=== SLIDE 16 ===
+•vulnerability oriented
+•gli approcci non sono mutuamente esclusivi
+NIST SP 800-30 
+analysis approach
+
+=== SLIDE 17 ===
+=== SLIDE 18 ===
+•rischio come combinazione di
+
+
+=== SLIDE 19 ===
+•approccio semi-qualitativo
+
+
+=== SLIDE 20 ===
+• si possono usare fonti diverse 
+• la valutazione del rischio richiede informazioni su
+• le evidenze possono provenire da
+
+
+=== SLIDE 21 ===
+=== SLIDE 22 ===
+• knowledge base che descrive le principali tattiche
+e tecniche usate dagli avversari
+• serve a costruire threat model più affidabili e complete
+• 15 tattiche + centinaia di tecniche, migliaia di esempi
+• tactics
+• techniques/sub-techniques 
+• procedures
+• MITRE CAPEC
+https://attack.mitre.org/
+
+
+=== SLIDE 23 ===
+• report periodico dell’European Union Agency for Cybersecurity (ENISA)
+• utile (in EU) per identificare
+• può supportare
+• ENISA pubblica anche Threat Landscape settoriali
+• https://www.enisa.europa.eu/topics/cyber-threats/threat-landscape
+
+
+=== SLIDE 24 ===
+• Open Web Application Security Project
+• differenti risorse
+
+
+=== SLIDE 25 ===
+•A01:2025 – Broken Access Control
+•A02:2025 – Security Misconfiguration
+•A03:2025 – Software Supply Chain Failures
+•A04:2025 – Cryptographic Failures
+•A05:2025 – Injection
+•A06:2025 – Insecure Design
+•A07:2025 – Authentication Failures
+•A08:2025 – Software or Data Integrity Failures
+•A09:2025 – Security Logging and Alerting Failures
+•A10:2025 – Mishandling of Exceptional Conditions
+https://top10.owasp.org/2025/
+
+=== SLIDE 26 ===
+=== SLIDE 27 ===
+•exposure
+vulnerability
+a flaw in a software, firmware, hardware, or service component 
+resulting from a weakness that can be exploited, causing a 
+negative impact to the confidentiality, integrity, or availability of 
+an impacted component or components
+
+=== SLIDE 28 ===
+• “a standard way of describing publicly disclosed cybersecurity 
+vulnerabilities found in software”
+• https://cve.mitre.org/cve/cna.html
+• i CVE Record sono pubblicati nella CVE List dal CVE Program
+• https://www.cve.org/
+• il National Vulnerability Database (NVD) importa i CVE Record e li 
+arricchisce con informazioni aggiuntive
+• https://nvd.nist.gov/
+
+
+=== SLIDE 29 ===
+• CVE-ID: CVE-2017-5754
+• description
+• references
+• related CWE: CWE-200 information exposure
+
+
+=== SLIDE 30 ===
+• le CVE (o vulnerabilità in genere) sono associate a
+• una severità
+ CVSS
+• https://www.first.org/cvss/calculator/4.0
+• stima la probabilità che una CVE venga sfruttata “in the wild” nei successivi 30 
+giorni nel mondo reale
+ EPSS
+• https://www.first.org/epss/
+
+
+=== SLIDE 31 ===
+• catalogo mantenuto dalla Cybersecurity and Infrastructure Security 
+Agency (CISA)
+• serve a distinguere tra
+• può supportare attività di gestione delle vulnerabilità e del rischio
+• ogni entry include CVE-ID
+• KEV fornisce evidenza di exploitation, non una misura di severity
+
+
+=== SLIDE 32 ===
+• tassonomia delle debolezze di programmazione, configurazione, design, hardware
+• devono essere monitorate da 
+• CVE vs. CWE
+weakness 
+A weakness is an underlying condition that can lead to vulnerabilities 
+in a variety of products. A vulnerability [...] is a specific instance of 
+one or more weaknesses in a specific product that can be exploited
+
+=== SLIDE 33 ===
+•CWE-20: Improper Input Validation
+• https://cwe.mitre.org/data/definitions/20.html
+
+
+=== SLIDE 34 ===
+window of exposure
+scoperta nuova
+vulnerabilità
+vulnerabilità
+resa pubblica
+produttore informato
+della vulnerabilità
+produttore informa
+i suoi clienti aggiornamento
+strumenti (es. IDS)
+rilascio di
+una patch
+patch resa
+nota a tutti
+installazione
+della patch
+t
+risk
+exploit (!)
+protectionpublicationdiscovery
+non nota nota nota e pubblica
+non pericolosa pericolosa
+zero-day patched
+no
+unpatched
+
+
+=== SLIDE 35 ===
+•This vulnerability is being disclosed publicly without a patch in 
+accordance with the ZDI 120 day deadline:
+https://www.zerodayinitiative.com/advisories/ZDI-18-1075/
+
+
+=== SLIDE 36 ===
+• attività tecnica per valutare l’esposizione dei sistemi alle vulnerabilità
+• 4 fasi
+• planning
+• information gathering
+• scanning
+• report dei risultati
+
+
+=== SLIDE 37 ===
+•ci sono diverse tecniche di scansione
+
+
+=== SLIDE 38 ===
+• automatizzano molte attività di discovery e scanning dei target
+• alcuni tool
+• i risultati richiedono comunque validazione e contestualizzazione
+
+
+=== SLIDE 39 ===
+=== SLIDE 40 ===
+• una volta valutati i rischi è necessario decidere come trattarli
+• possibili strategie
+• mitigate
+• avoid
+• transfer / share
+• accept
+• la scelta dipende da
+
+
+=== SLIDE 41 ===
+•knowledge graph di tecniche defensive
+•permette di collegare (formalmente)
+•matrice di contromisure
+•ATT&CK descrive il comportamento dell’avversario
+•D3FEND aiuta a ragionare sulle possibili difese
+https://d3fend.mitre.org/
+
+=== SLIDE 42 ===
+• processo continuo per gestire le vulnerabilità durante il ciclo di vita dei sistemi
+• riceve evidenze da Vulnerability Assessment, ma anche
+• serve a identificare e mantenere traccia delle vulnerabilità
+• dovrebbe proporre possibili interventi
+
+
+=== SLIDE 43 ===
+• obiettivo: automatizzare la gestione delle vulnerabilità
+• attività distribuite tra diversi ruoli
+
+
+=== SLIDE 44 ===
+• “Enterprise patch management is the process of identifying, prioritizing, 
+acquiring, installing, and verifying the installation of patches, updates, 
+and upgrades throughout an organization.”
+• le patch servono a
+• Enterprise Patch Management
+
+
+=== SLIDE 45 ===
+• …in teoria andrebbero applicate tutte e subito ma…
+• priorità
+• testing
+• i vendor sviluppano patch più affidabili, recentemente
+• aggregated patch: più vulnerabilità risolte in una sola patch
+
+
+=== SLIDE 46 ===
+• strategie di alto livello
+• subsets
+• standard first
+• difficult ones later
+• cover all
+• verificare sempre l’avvenuta applicazione e il corretto funzionamento
+• Enterprise Patch Management Tools
+
+
+=== SLIDE 47 ===
+•rischi delle patch
+•rischi associati ai patch management tool
+•i rischi introdotti dal patching devono essere gestiti con lo stesso
+processo di risk management 
+
+
+=== SLIDE 48 ===
+•NIST SP 800-40
+•NIST SP 1800-31 
+https://csrc.nist.gov/pubs/sp/1800/31/final
+

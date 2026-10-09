@@ -1,0 +1,203 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm}
+\usepackage{amsmath,amssymb}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    citecolor=blue!70!black,
+    urlcolor=teal!70!black
+}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!10},
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{green!50!black}\itshape,
+    stringstyle=\color{red!70!black}
+}
+
+\newtcolorbox{questionbox}[1][]{
+    colback=gray!5!white,
+    colframe=gray!60!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{solutionbox}[1][]{
+    colback=blue!5!white,
+    colframe=blue!70!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\newtcolorbox{altbox}[1][]{
+    colback=orange!5!white,
+    colframe=orange!80!black,
+    fonttitle=\bfseries,
+    title={#1},
+    breakable
+}
+
+\begin{document}
+
+\title{\textbf{Sicurezza dei Sistemi Informativi} \\ \large Appello d'Esame del 25 Giugno 2024 \\ \small Anno Accademico 2023-2024}
+\author{Politecnico di Torino --- Docente: Prof. Cataldo Basile}
+\date{2024-06-25}
+\maketitle
+
+
+\section{Testo Ufficiale dell'Esame}
+
+\begin{questionbox}[Domanda 1: Domande a Scelta Multipla (Vulnerabilit\`a e Protezione)]
+Valutare la correttezza delle seguenti affermazioni:
+\begin{enumerate}[label=\alph*.]
+    \item Una vulnerabilit\`a di tipo buffer overflow sullo stack permette a un attaccante di sovrascrivere il frame pointer (Saved EBP/RBP) e l'indirizzo di ritorno (Saved EIP/RIP).
+    \item La tecnica ASLR (Address Space Layout Randomization) rende completamente impossibili gli attacchi basati su Return-Oriented Programming (ROP).
+    \item Gli stack canaries sono valori casuali inseriti prima dell'indirizzo di ritorno che vengono verificati prima dell'uscita della funzione per rilevare la corruzione dello stack.
+    \item Il meccanismo Data Execution Prevention (DEP / NX bit) impedisce l'esecuzione di codice presente nelle sezioni stack e heap della memoria.
+    \item Il processo di Reverse Engineering su codice compilato produce sempre come output il codice sorgente originale identico a quello scritto dallo sviluppatore.
+\end{enumerate}
+\end{questionbox}
+
+\begin{questionbox}[Domanda 2: Phishing Avanzato, Pretexting e Debolezze Umane]
+Spiegare cosa sono il \textbf{Phishing} e il \textbf{Pretexting}, evidenziando le differenze tra le due tecniche.
+Descrivere le varianti principali del phishing:
+\begin{itemize}
+    \item Spear Phishing;
+    \item Whaling;
+    \item Vishing e Smishing.
+\end{itemize}
+Indicare quali debolezze psicologiche e cognitive umane vengono sfruttate (es. autorit\`a, urgenza, timore di sanzioni, avidit\`a) e proporre un piano di contromisure integrato (tecnologiche e formative).
+\end{questionbox}
+
+\begin{questionbox}[Domanda 3: Esercizio di Progettazione Architetturale Screened Subnet]
+Un'organizzazione deve dividere la propria infrastruttura in due livelli di sicurezza distinti:
+\begin{itemize}
+    \item Rete a livello di sicurezza pi\`u basso (pu\`o accedere direttamente ad Internet);
+    \item Rete a livello di sicurezza pi\`u elevato (separata da Internet e accessibile solo attraverso la rete a livello pi\`u basso tramite rigide regole di autorizzazione);
+    \item Due server aziendali che erogano servizi critici devono essere raggiungibili anche da Internet.
+\end{itemize}
+Progettare la topologia di rete, specificare il posizionamento dei dispositivi di sicurezza (firewall, router, DMZ) e compilare la matrice delle regole di autorizzazione.
+\end{questionbox}
+
+\newpage
+\section{Soluzione Dettagliata e Guida Risolutiva}
+
+\begin{solutionbox}[Soluzione Domanda 1: Valutazione Crocette]
+\begin{itemize}
+    \item \textbf{a. VERA}: Un buffer overflow classico su array allocati sullo stack consente, scrivendo oltre la dimensione consentita, di sovrascrivere variabili locali, il Saved Frame Pointer e il Return Address, deviando il flusso di esecuzione.
+    \item \textbf{b. FALSA}: L'ASLR randomizza gli indirizzi base delle librerie e dello stack, ma NON rende impossibili gli attacchi ROP; un attaccante pu\`o aggirarla tramite \textit{Information Disclosure / Memory Leak} per calcolare l'indirizzo base a runtime, oppure effettuare attacchi di forza bruta (in sistemi a 32 bit).
+    \item \textbf{c. VERA}: Lo stack canary \`e una sentinella posta tra le variabili locali e il return address; se l'epilogo della funzione rileva un valore alterato, il programma invoca immediatamente \texttt{\_\_stack\_chk\_fail} terminando l'esecuzione.
+    \item \textbf{d. VERA}: Il flag NX/XD (\textit{No-Execute}) a livello di paginazione di memoria hardware impedisce alla CPU di eseguire istruzioni fetchate da pagine marcate come dati (stack e heap), forzando gli attaccanti a passare ad attacchi di tipo code-reuse (Return-to-libc, ROP).
+    \item \textbf{e. FALSA}: Il compilatore elimina nomi di variabili locali, commenti, tipi complessi e macro; i decompilatori moderni (Ghidra, Hex-Rays) ricostruiscono una rappresentazione ad alto livello approssimata, non il sorgente identico originario.
+\end{itemize}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 2: Phishing, Pretexting e Psicologia dell'Ingegneria Sociale]
+\textbf{Phishing vs Pretexting:}
+\begin{itemize}
+    \item \textbf{Phishing}: Attacco condotto tipicamente in massa via email o messaggistica che induce le vittime a compiere un'azione immediata (cliccare su un link clone o aprire un malware allegato).
+    \item \textbf{Pretexting}: Creazione di uno scenario fittizio credibile e articolato (un "pretesto") in cui l'attaccante impersona una figura autorevole o di fiducia (es. auditor esterno, supporto IT, personale delle forze dell'ordine) per instaurare una relazione e farsi consegnare informazioni riservate nel corso di pi\`u interazioni.
+\end{itemize}
+
+\textbf{Varianti del Phishing:}
+\begin{itemize}
+    \item \textit{Spear Phishing}: Attacco altamente mirato contro un individuo o reparto specifico, personalizzato raccogliendo informazioni preliminari OSINT.
+    \item \textit{Whaling}: Spear phishing diretto contro figure apicali aziendali (CEO, CFO, membri del CDA) con l'obiettivo di frodi finanziarie ingenti (es. CEO Fraud / Business Email Compromise).
+    \item \textit{Vishing (Voice Phishing)}: Condotto telefonicamente, spesso oggi integrato con audio deepfake vocale generativo.
+    \item \textit{Smishing}: Condotto tramite SMS contenenti link ingannevoli per intercettare credenziali o codici OTP SMS.
+\end{itemize}
+
+\textbf{Debolezze Psicologiche Sfruttate:} Senso di urgenza artificioso, timore di sanzioni o blocco conto, principio di autorit\`a, compiacenza e curiosit\`.
+
+\textbf{Contromisure:}
+\begin{itemize}
+    \item \textit{Tecniche}: Adozione di chiavi hardware FIDO2 (resistenti al phishing), autenticazione email (DMARC su policy reject), sandboxing avanzato delle email in ingresso.
+    \item \textit{Formative}: Campagne periodiche di simulazione phishing con debriefing immediato e cultura aziendale priva di colpevolizzazione (\textit{no-blame culture}).
+\end{itemize}
+\end{solutionbox}
+
+\begin{solutionbox}[Soluzione Domanda 3: Topologia a Due Livelli di Sicurezza e DMZ]
+\textbf{Architettura Progettata (Screened Subnet a Due Livelli di Sicurezza):}
+Si adotta una struttura perimetrale a zone gerarchiche con due linee di difesa firewall distinte (Two-Tier Architecture):
+\begin{center}
+\begin{verbatim}
+                         +--------------------+
+                         |      INTERNET      | (Livello 0: Untrusted)
+                         +---------+----------+
+                                   | (Traffico Pubblico TCP 80/443)
+                       +-----------v-----------+
+                       |  FIREWALL ESTERNO L4  |
+                       +-----------+-----------+
+                                   |
+         +-------------------------v-------------------------+
+         |      LIVELLO 1: DMZ SCREENED SUBNET (192.168.1.0/24)|
+         |                                                   |
+         |   [Server Aziendale 1 - Web]  192.168.1.10        |
+         |   [Server Aziendale 2 - API]  192.168.1.20        |
+         |   [WAF / Reverse Proxy]       192.168.1.5         |
+         +-------------------------+-------------------------+
+                                   |
+                       +-----------v-----------+
+                       |  FIREWALL INTERNO L4  |
+                       +-----------+-----------+
+                                   |
+         +-------------------------v-------------------------+
+         |     LIVELLO 2: HIGH SECURITY LAN (10.10.0.0/16)   |
+         |                                                   |
+         |   [Database Master & Storage] 10.10.1.50          |
+         |   [Workstation Riservate]     10.10.2.0/24        |
+         |   [Proxy Uscita Aziendale]    10.10.1.10          |
+         +---------------------------------------------------+
+\end{verbatim}
+\end{center}
+
+\textbf{Subnetting, Instradamento e Flussi di Traffico:}
+\begin{itemize}
+    \item \textbf{Livello 0 (Untrusted / Internet)}: Accesso pubblico consentito esclusivamente verso il WAF/Server 1 e Server 2 in DMZ su porte TCP 80 e 443 tramite Destination NAT (DNAT). Nessun pacchetto esterno pu\`o mai raggiungere il Livello 2.
+    \item \textbf{Livello 1 (DMZ, \texttt{192.168.1.0/24})}: Gateway \texttt{192.168.1.1} su Firewall Esterno e \texttt{192.168.1.2} su Firewall Interno. Ospita i server critici esposti. In caso di compromissione di un server in DMZ, il Firewall Interno blocca rigorosamente qualsiasi movimento laterale verso la LAN interna.
+    \item \textbf{Livello 2 (High Security LAN, \texttt{10.10.0.0/16})}: Gateway \texttt{10.10.0.1}. Rete completamente schermata e isolata. Pu\`o raggiungere i server in DMZ solo per manutenzione su porte specifiche (SSH TCP 22 / SQL TCP 5432). L'uscita verso Internet \`e mediata e filtrata da un proxy aziendale autenticato (\texttt{10.10.1.10}).
+\end{itemize}
+
+\textbf{Matrice delle Regole di Autorizzazione:}
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{llllX}
+\toprule
+\textbf{Origine} & \textbf{Destinazione} & \textbf{Protocollo/Porta} & \textbf{Azione} & \textbf{Motivazione} \\
+\midrule
+Internet & DMZ (Server 1, 2) & TCP 80, 443 & \textbf{PERMIT} & Esposizione dei due servizi pubblici aziendali \\
+Internet & High Security LAN & Qualsiasi & \textbf{DENY} & Isolamento assoluto della rete interna da Internet \\
+High Security LAN & DMZ & Porte dedicate & \textbf{PERMIT} & Amministrazione e aggiornamento dei server in DMZ \\
+High Security LAN & Internet & TCP 80, 443 & \textbf{PERMIT} & Uscita web mediata da proxy aziendale \\
+DMZ & High Security LAN & Qualsiasi & \textbf{DENY} & Previene movimenti laterali in caso di compromissione server DMZ \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\end{solutionbox}
+
+\begin{altbox}[Alternative Implementation Note: Rust per Software Anti-Exploit]
+In Rust, la gestione della memoria \`e verificata staticamente dal \textit{borrow checker} del compilatore:
+\begin{itemize}
+    \item Le vulnerabilit\`a di stack overflow, buffer overflow e use-after-free sono \textbf{impossibili a tempo di compilazione} nel codice Safe Rust.
+    \item Per la programmazione concorrente sicura senza race condition, si utilizzano tipi RAII standard come \texttt{std::sync::Mutex} e \texttt{std::sync::mpsc}.
+\end{itemize}
+\end{altbox}
+
+
+\end{document}
