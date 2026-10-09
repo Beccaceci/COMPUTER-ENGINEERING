@@ -1,0 +1,110 @@
+name: Build and Release Notes & Guides
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-latex-docs:
+    name: Build ${{ matrix.target_name }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - folder: courses/second_year/first_semester/LLM_FOR_SOFTWARE_ENGINEERING/STUDY_GUIDE/lectures
+            root_file: main.tex
+            target_name: LLM4SE_Theory_Guide
+          - folder: courses/second_year/first_semester/LLM_FOR_SOFTWARE_ENGINEERING/STUDY_GUIDE/laboratories
+            root_file: labs.tex
+            target_name: LLM4SE_Lab_Practicum
+          - folder: courses/first_year/second_semester/SYSTEM_PROGRAMMING/API PROGRAMMING/STUDY_GUIDE
+            root_file: main.tex
+            target_name: System_Programming_Study_Guide
+      fail-fast: false
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Compile LaTeX Document
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: ${{ matrix.root_file }}
+          working_directory: ${{ matrix.folder }}
+          args: -pdf -file-line-error -interaction=nonstopmode -synctex=1
+
+      - name: Stage Compiled PDF
+        run: |
+          mkdir -p build_output
+          pdf_base="${{ matrix.root_file }}"
+          pdf_name="${pdf_base%.tex}.pdf"
+          cp "${{ matrix.folder }}/$pdf_name" "build_output/${{ matrix.target_name }}.pdf"
+
+      - name: Upload PDF Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target_name }}-pdf
+          path: build_output/${{ matrix.target_name }}.pdf
+          retention-days: 7
+
+  release:
+    name: Publish Academic Archive & PDFs to GitHub Release
+    needs: build-latex-docs
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release_pdfs
+          merge-multiple: true
+
+      - name: Create All-In-One ZIP Bundle
+        run: |
+          cd release_pdfs
+          zip -9 Computer_Engineering_All_Notes.zip *.pdf
+          cd ..
+
+      - name: List Release Files
+        run: |
+          ls -la release_pdfs/
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name || 'latest' }}
+          name: "Computer Engineering Master's Archive (Compiled Guides & Artifacts)"
+          body: |
+            ## 🎓 Computer Engineering Academic Materials & Study Guides
+
+            All study guides and academic documents have been compiled automatically with TeX Live via GitHub Actions.
+
+            ### 📦 Complete Archive Bundle:
+            - [**Download All Study Guides (ZIP)**](https://github.com/${{ github.repository }}/releases/latest/download/Computer_Engineering_All_Notes.zip)
+
+            ### 📄 Core Course Documents:
+            - **Large Language Models for Software Engineering**:
+              - [Theory Foundations Guide (PDF)](https://github.com/${{ github.repository }}/releases/latest/download/LLM4SE_Theory_Guide.pdf)
+              - [Laboratory Practicum Guide (PDF)](https://github.com/${{ github.repository }}/releases/latest/download/LLM4SE_Lab_Practicum.pdf)
+            - **System Programming (PDS)**:
+              - [System Programming Study Guide (PDF)](https://github.com/${{ github.repository }}/releases/latest/download/System_Programming_Study_Guide.pdf)
+
+            _Commit:_ `${{ github.sha }}`
+          draft: false
+          prerelease: false
+          make_latest: true
+          files: |
+            release_pdfs/*.pdf
+            release_pdfs/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
