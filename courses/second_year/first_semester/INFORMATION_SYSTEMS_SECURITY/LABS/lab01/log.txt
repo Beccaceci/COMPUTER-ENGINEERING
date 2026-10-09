@@ -1,0 +1,127 @@
+Dall'analisi dettagliata del file di log di esecuzione reale ([`lab01_execution_output.txt`](file:///Users/nicolabeccaceci/Desktop/SICUREZZA%20DEI%20SISTEMI%20INFORMATIVI/LABS/lab01/solution/logs/lab01_execution_output.txt)), emerge chiaramente come deve essere strutturato il flusso di lavoro per ciascun esercizio e come deve essere costruita la soluzione didattica nel documento finale.
+
+La skill [**`lab-solution-generator`**](file:///Users/nicolabeccaceci/Desktop/SICUREZZA%20DEI%20SISTEMI%20INFORMATIVI/.agents/skills/lab-solution-generator/SKILL.md) è stata aggiornata per garantire che:
+1. **Tutti gli output reali delle shell** (di Alice, Bob e Chuck) vengano inseriti integralmente nei blocchi di codice LaTeX (`terminal listing`), senza omissioni o riassunti sintetici.
+2. Ciascun output venga decostruito ed esaminato sia a livello di singolo campo/banner, sia nella prospettiva a lungo termine della sicurezza informatica (attacco, difesa, protocolli RFC, firme di rilevamento).
+3. Al termine della compilazione, venga mantenuto unicamente il file finale `lab01_solution.pdf` accanto al testo originale del professore (`01lab_AttacchidiBase.pdf` o `Laboratorio 01.pdf`).
+
+---
+
+### Piano Operativo di Redazione della Soluzione (Laboratorio 01)
+
+Sulla base dei dati reali registrati nei log, ecco come il documento di soluzione approfondirà ogni singolo esercizio:
+
+#### 1. Obiettivo Generale e Architettura di Rete
+* **Scenario**: Sottorete `10.0.2.0/24` con gateway `10.0.2.1`.
+* **I Ruoli**:
+  * **Alice** (`10.0.2.10`, MAC `3a:fa:2d:da:b8:37`): Server target che ospita Apache (`80/tcp`), Exim4 (`25/tcp`), Mock FTP (`2121/tcp`) e un servizio secret/challenge (`1337/tcp`).
+  * **Bob** (`10.0.2.20`, MAC `86:e9:c4:e4:c0:69`): Client legittimo.
+  * **Chuck** (`10.0.2.30`, MAC `be:98:f3:bc:e3:32`): Host attaccante (Kali Linux) che esegue ricognizione, ARP poisoning e packet sniffing.
+* **Obiettivo a Lungo Termine**: Dimostrare le vulnerabilità intrinseche del livello 2 (ARP stateless e non autenticato) e del livello applicativo in chiaro (HTTP, SMTP senza STARTTLS, FTP), mostrando come un attaccante adiacente (stesso dominio di broadcast) possa elevare i propri privilegi a livello di rete per intercettare comunicazioni e credenziali riservate.
+
+---
+
+#### 2. Esercizio 1: Network Scanning & OS Fingerprinting
+* **Comandi Eseguiti**:
+  1. `nmap -sn 10.0.2.0/24`: Ping sweep / ARP scan su layer 2 per identificare i 4 host attivi (Chuck scopre Gateway, Alice e Bob).
+  2. `sudo nmap -O -Pn 10.0.2.10`: Fingerprinting dello stack TCP/IP per dedurre la famiglia del sistema operativo (Linux kernel 4.x/5.x).
+* **Output Shell Reale Integrato**: Visualizzazione dell'output Nmap completo con latenze, indirizzi MAC e fingerprinting CPE.
+* **Spiegazione dei Parametri e Meccanismi**:
+  * `-sn`: Disabilita il port scanning focalizzandosi solo sull'host discovery. In rete locale invia richieste ARP broadcast (estremamente veloci e non bloccabili da firewall host IP).
+  * `-O`: Invia pacchetti TCP SYN, NULL, FIN e probe UDP con combinazioni insolite di flag, analizzando le differenze nell'ISN (Initial Sequence Number), nelle opzioni TCP (MSS, Window Scale, SACK) e nel campo IP ID.
+  * `-Pn`: Salta la verifica ICMP ping (assume l'host attivo), fondamentale contro host che filtrano Echo Request.
+* **Prospettiva a Lungo Termine & Difesa**:
+  * Fase iniziale della Kill Chain (Reconnaissance).
+  * **Difesa**: Restrizioni sull'isolamento di porta (Private VLAN), mascheramento TCP/IP fingerprinting tramite kernel tuning (`tcp_timestamps`, IP ID randomizzati).
+
+---
+
+#### 3. Esercizio 2: Port Scanning su Alice
+* **Comandi Eseguiti**:
+  1. `netstat -tuln` (su Alice): Ispezione dello stato locale dei socket in ascolto (`0.0.0.0:25`, `0.0.0.0:80`, `0.0.0.0:1337`, `0.0.0.0:2121`).
+  2. `nmap -sT -p 1-1024 10.0.2.10` (su Chuck): TCP Connect Scan (3-way handshake completo).
+  3. `sudo nmap -sS -p 1-1024 10.0.2.10` (su Chuck): SYN Stealth Scan (half-open).
+  4. `nmap -p- 10.0.2.10` (su Chuck): Scansione esaustiva di tutte le 65535 porte TCP.
+* **Output Shell Reale Integrato**: Confronto puntuale tra i socket attivi di Alice e le risposte rilevate da Nmap (porte 25 e 80 nel range 1–1024, e scoperta delle porte 1337 e 2121 con `-p-`).
+* **Analisi Tecnica e Differenze**:
+  * `-sT` vs `-sS`: `-sT` effettua `connect()` a livello di sistema operativo; l'applicazione bersaglio riceve la connessione e la registra nei file di log applicativi (es. log di Apache). `-sS` richiede privilegi di root (raw sockets) e invia un `RST` appena riceve il `SYN-ACK`, interrompendo la connessione prima che venga completata, evitando il log a livello applicativo.
+  * Importanza di `-p-`: Le porte non standard (2121 e 1337) sfuggono alle scansioni di default (che controllano solo le prime 1000 porte più comuni), dimostrando il fallimento del concetto di "Security through Obscurity".
+
+---
+
+#### 4. Esercizio 3 & 4: Banner Grabbing, Mock FTP e Identificazione Servizi
+* **Comandi Eseguiti**:
+  1. `echo HELP | nc -v -w 3 10.0.2.10 2121`: Connessione interattiva raw su porta 2121 con Netcat.
+  2. `nmap -sV -Pn -p 25,80,1337,2121 -v 10.0.2.10`: Service version probe e script engine (NSE).
+* **Output Shell Reale Integrato**:
+  * Banner FTP simulato: `Enter your username: Enter your password:`.
+  * Versioni individuate da Nmap: `Apache httpd 2.4.69`, `Exim smtpd 4.98.2`.
+  * Generazione dei Service Fingerprint Nmap per i servizi non standard sulle porte 1337 e 2121.
+* **Significato di Sicurezza**:
+  * Il banner grabbing permette all'attaccante di verificare la presenza di CVE note per quella specifica versione (es. Exim 4.98.2 o Apache 2.4.69).
+  * Dimostra perché i server in produzione devono mascherare le stringhe di versione (`ServerSignature Off`, `ServerTokens Prod` in Apache, `smtp_banner` personalizzato in Exim).
+
+---
+
+#### 5. Esercizio 4.1: Interazione Challenge Porta 1337
+* **Comando Eseguito**: `nc 10.0.2.10 1337` (premendo Invio).
+* **Output Shell Reale Integrato**: Disegno ASCII art del "Super Secret Cat v2.4.67" e cattura della flag:
+  `SSI{p0rt_scann3r5_4r3_4w3s0m3}`.
+* **Lezione Operativa**: Validazione del principio che qualsiasi servizio aperto sulla rete è una potenziale superficie d'attacco o backdoor lasciata per debug.
+
+---
+
+#### 6. Esercizio 5: Man-In-The-Middle (ARP Cache Poisoning con Ettercap)
+* **Comandi Eseguiti**:
+  1. `arp -e` (prima dell'attacco su Bob, Alice e Chuck per mappare i MAC address corretti).
+  2. `sudo ettercap -T -q -M arp:remote /10.0.2.10// /10.0.2.20//` (avvio dell'avvelenamento bidirezionale).
+  3. `arp -e` (ispezione post-attacco su Bob e Alice).
+* **Output Shell Reale Integrato**: Tabella ARP iniziale vs tabella ARP avvelenata.
+  * Il MAC di Chuck (`be:98:f3:bc:e3:32`) viene associato alle voci ARP di Alice e Bob.
+* **Analisi dei Meccanismi**:
+  * Spiegazione dell'assenza di autenticazione in ARP (RFC 826). L'accettazione passiva di *Gratuitous ARP Reply* permette a Chuck di sovrascrivere la cache degli host adiacenti.
+  * Ruolo del flag `arp:remote` e dell'abilitazione automatica di `ip_forward=1` da parte di Ettercap per agire come gateway trasparente senza generare Denial of Service.
+* **Contromisure Aziendali**:
+  * Switch enterprise: **Dynamic ARP Inspection (DAI)** combinato con **DHCP Snooping**.
+  * Tabelle ARP statiche (`arp -s`).
+  * Sistemi di rilevamento tipo `arpwatch` o intrusion detection (Suricata).
+
+---
+
+#### 7. Esercizio 6: Sniffing Traffico HTTP & Intercettazione Credenziali
+* **Comando Eseguito**:
+  `curl -X POST -d 'username=alice_student&password=SuperSecretPassword2026' http://10.0.2.10/login.html` (da Bob).
+* **Output Shell Reale Integrato**: Visualizzazione della pagina HTML di login restituita dal server e cattura del payload POST in chiaro.
+* **Analisi Tecnica & Rilevanza**:
+  * Trasmissione in chiaro dei dati utente nel corpo del pacchetto TCP (`application/x-www-form-urlencoded`).
+  * Perché il protocollo HTTP è inaccettabile per flussi di autenticazione.
+  * Soluzione a lungo termine: **HTTPS (TLS 1.3)** e adozione di **HSTS (HTTP Strict Transport Security)** per prevenire downgrade attack (SSL Stripping).
+
+---
+
+#### 8. Esercizio 7: Sniffing Traffico SMTP ed Esame Mailbox
+* **Comandi Eseguiti**:
+  1. Invio email SMTP su porta 25 da Bob ad Alice (`alice@localhost`).
+  2. `cat /var/mail/alice` su Alice per verificare la corretta ricezione e il contenuto.
+* **Output Shell Reale Integrato**: Traccia esatta del file mailbox `/var/mail/alice` con header completi:
+  * `Envelope-to`, `Received: from labinf_bob.environment_secnet ([10.0.2.20]) by ... with esmtp (Exim 4.98.2)`
+  * `Subject: Richiesta Voto`
+  * Corpo del messaggio: `Ho bisogno di un voto maggiore di 27, il mio id e 123456`.
+* **Analisi Tecnica & Rilevanza**:
+  * Il protocollo SMTP classico (RFC 5321) trasmette sia i metadati di busta che il testo in chiaro.
+  * Intercettazione MITM e rischio di alterazione del messaggio in transito.
+  * Contromisure: **STARTTLS**, **DKIM** (DomainKeys Identified Mail) per l'integrità del messaggio, **SPF** (Sender Policy Framework) e **DMARC** per l'autenticazione del mittente.
+
+---
+
+### Procediamo con la Creazione del Documento Finale?
+
+Tutti i log reali raccolti in [`lab01_execution_output.txt`](file:///Users/nicolabeccaceci/Desktop/SICUREZZA%20DEI%20SISTEMI%20INFORMATIVI/LABS/lab01/solution/logs/lab01_execution_output.txt) sono pronti per essere inseriti.
+
+Seguendo le regole definite nella skill:
+1. Verrà redatto il documento LaTeX completo in `.tmp_build/`.
+2. Verrà sottoposto a verifica da parte dell'esperto di sicurezza informatica.
+3. Verrà compilato producendo [**`LABS/lab01/lab01_solution.pdf`**](file:///Users/nicolabeccaceci/Desktop/SICUREZZA%20DEI%20SISTEMI%20INFORMATIVI/LABS/lab01/lab01_solution.pdf).
+4. Verrà effettuata la pulizia finale, lasciando nella cartella esclusivamente il materiale del professore e la soluzione PDF.
+
+Sei d'accordo che proceda con la compilazione e generazione di `lab01_solution.pdf`?
