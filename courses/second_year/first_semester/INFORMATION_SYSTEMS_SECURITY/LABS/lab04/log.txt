@@ -1,0 +1,1438 @@
+LAB 04 EXECUTION TRACE — supplied handout v3.7 (28/11/2023)
+Started UTC: 2026-10-12T07:04:51.020+00:00
+Handout SHA256: 3fd7918260df63e60b5f87b49bfbb53be4b8cff2e524279972b5a15a513af895
+Topology: temporary isolated two-subnet Docker bridge, Alice (10.94.1.10) — Frank router (10.94.1.1/10.94.2.1) — Bob (10.94.2.10).
+Generated topology configuration is kept in .tmp_build and will be removed after cleanup. Course-provided Apache/proxy config was not supplied.
+
+[Preflight: compose file validation]
+Started UTC: 2026-10-12T07:04:51.242+00:00
+Node: host
+Command: docker compose -p lab04route -f /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab04/.tmp_build/docker-compose.yml config -q
+--- stdout ---
+
+--- stderr ---
+
+Exit status: 0
+
+[Bring up isolated Alice–Frank–Bob routed topology]
+Started UTC: 2026-10-12T07:04:54.191+00:00
+Node: host
+Command: docker compose -p lab04route -f /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab04/.tmp_build/docker-compose.yml up --detach --build --wait --wait-timeout 180
+--- stdout ---
+#1 [internal] load local bake definitions
+#1 reading from stdin 586B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile.kali
+#2 transferring dockerfile: 3.26kB done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/kalilinux/kali-rolling:latest@sha256:02f5d6c019e549b0f55da58e835cad5355ef1030c6b2645265a324e37dfc4acc
+#3 DONE 0.9s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [ 1/11] FROM docker.io/kalilinux/kali-rolling:latest@sha256:02f5d6c019e549b0f55da58e835cad5355ef1030c6b2645265a324e37dfc4acc
+#5 resolve docker.io/kalilinux/kali-rolling:latest@sha256:02f5d6c019e549b0f55da58e835cad5355ef1030c6b2645265a324e37dfc4acc 0.0s done
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 119B done
+#6 DONE 0.0s
+
+#7 [ 8/11] COPY scripts/labinf-node-init.sh /usr/local/bin/labinf-node-init.sh
+#7 CACHED
+
+#8 [ 2/11] RUN echo "wireshark-common wireshark-common/install-setuid boolean true" | debconf-set-selections
+#8 CACHED
+
+#9 [ 9/11] RUN chmod 0755 /usr/local/bin/labinf-ettercap /usr/local/bin/labinf-node-init.sh
+#9 CACHED
+
+#10 [ 4/11] RUN apt-get update && apt-get install -y --no-install-recommends ethtool     && rm -rf /var/lib/apt/lists/*
+#10 CACHED
+
+#11 [ 7/11] COPY scripts/labinf-ettercap /usr/local/bin/labinf-ettercap
+#11 CACHED
+
+#12 [ 5/11] RUN useradd -m -s /bin/bash -G sudo,wireshark kali &&     echo "kali:kali" | chpasswd &&     echo "kali ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+#12 CACHED
+
+#13 [ 6/11] RUN apt-get update && apt-get install -y --no-install-recommends openssh-client &&     rm -rf /var/lib/apt/lists/*
+#13 CACHED
+
+#14 [10/11] RUN printf '#!/bin/bash\ncase "$1" in\n  start|"")\n    if pgrep -x "Xtigervnc" >/dev/null; then\n      echo "[!] Web GUI is already running."\n    else\n      mkdir -p /home/kali/.vnc /home/kali/.config/openbox\n      vncserver :1 -geometry 1366x768 -depth 24 -SecurityTypes None -- /usr/bin/openbox-session >/tmp/vnc.log 2>&1 &\n      sleep 2\n      websockify --web=/usr/share/novnc/ 6080 localhost:5901 >/tmp/novnc.log 2>&1 &\n      sleep 1\n    fi\n    echo "[+] Web GUI active at http://localhost:6080/vnc.html"\n    ;;\n  stop)\n    vncserver -kill :1 2>/dev/null || true\n    pkill -f websockify 2>/dev/null || true\n    echo "[+] Web GUI stopped."\n    ;;\n  status)\n    if pgrep -x "Xtigervnc" >/dev/null; then\n      echo "[+] Web GUI is RUNNING on http://localhost:6080/vnc.html"\n    else\n      echo "[-] Web GUI is NOT running."\n    fi\n    ;;\n  *)\n    echo "Usage: labinf-gui [start|stop|status]"\n    ;;\nesac\n' > /usr/local/bin/labinf-gui && chmod +x /usr/local/bin/labinf-gui
+#14 CACHED
+
+#15 [ 3/11] RUN apt-get update && apt-get install -y --no-install-recommends     ettercap-text-only     nmap     iproute2     net-tools     iputils-ping     curl     wget     dsniff     tcpdump     tshark     lynx     s-nail     dnsutils     netcat-openbsd     ftp     sshpass     procps     nano     sudo     python3     openssl     hashdeep     hexedit     p7zip-full     iptables     iptables-persistent     nftables     conntrack     ulogd2     strongswan     strongswan-swanctl     libstrongswan-extra-plugins     ptunnel     httptunnel     tigervnc-standalone-server     novnc     websockify     openbox     xterm     wireshark     && rm -rf /var/lib/apt/lists/*
+#15 CACHED
+
+#16 [11/11] WORKDIR /home/kali
+#16 CACHED
+
+#17 exporting to image
+#17 exporting layers done
+#17 exporting manifest sha256:cea3ed79b2c78e818ec8e819c8ec1f3978188eb338533e63977f9e3615ae7041 done
+#17 exporting config sha256:e03ac7985d5d0d752e2f1324983c3270f595c0993da06f7c0df5b9b8c114fb56 done
+#17 exporting attestation manifest sha256:c75219fbaf44d0fb7ad295b5e513c2d7857d449fac99eb2bd9dd4d940dd83abf 0.0s done
+#17 exporting manifest list sha256:028f04b89b709ff7937a5b542264117aeee560671dad81dda41b0d9bda2afc56 done
+#17 naming to docker.io/library/labinf-kali-lab04:local done
+#17 unpacking to docker.io/library/labinf-kali-lab04:local done
+#17 DONE 0.1s
+
+#18 resolving provenance for metadata file
+#18 DONE 0.0s
+--- stderr ---
+ Image labinf-kali-lab04:local Pulling 
+ Image labinf-kali-lab04:local Pulling 
+ Image labinf-kali-lab04:local Error pull access denied for labinf-kali-lab04, repository does not exist or may require 'docker login'
+ Image labinf-kali-lab04:local Error pull access denied for labinf-kali-lab04, repository does not exist or may require 'docker login'
+ Image labinf-kali-lab04:local Building 
+ Image labinf-kali-lab04:local Built 
+ Network lab04route_lan_a Creating 
+ Network lab04route_lan_a Created 
+ Network lab04route_lan_b Creating 
+ Network lab04route_lan_b Created 
+ Container lab04route-alice-1 Creating 
+ Container lab04route-frank-1 Creating 
+ Container lab04route-bob-1 Creating 
+ Container lab04route-bob-1 Created 
+ Container lab04route-frank-1 Created 
+ Container lab04route-alice-1 Created 
+ Container lab04route-bob-1 Starting 
+ Container lab04route-frank-1 Starting 
+ Container lab04route-alice-1 Starting 
+ Container lab04route-alice-1 Started 
+ Container lab04route-bob-1 Started 
+Error response from daemon: failed to set up container networking: Address already in use
+Exit status: 1
+
+[Verify node addresses, routes, firewall and tunnel tools]
+Started UTC: 2026-10-12T07:04:54.248+00:00
+Node: frank
+Command: docker compose -p lab04route -f /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab04/.tmp_build/docker-compose.yml exec -T frank bash -lc id; ip -brief address; ip route; iptables --version; for x in htc hts ptunnel sshd apache2; do command -v "$x" || true; done; ip -o link show | head -5
+--- stdout ---
+
+--- stderr ---
+service "frank" is not running
+Exit status: 1
+
+[Configure static routes and confirm end-to-end routed reachability]
+Started UTC: 2026-10-12T07:04:57.432+00:00
+Node: alice
+Command: docker compose -p lab04route -f /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab04/.tmp_build/docker-compose.yml exec -T alice bash -lc sudo -n ip route add 10.94.2.0/24 via 10.94.1.1; ping -c 2 -W 2 10.94.2.10; ip route get 10.94.2.10
+--- stdout ---
+PING 10.94.2.10 (10.94.2.10) 56(84) bytes of data.
+
+--- 10.94.2.10 ping statistics ---
+2 packets transmitted, 0 received, 100% packet loss, time 1046ms
+
+10.94.2.10 via 10.94.1.1 dev eth0 src 10.94.1.10 uid 1000 
+    cache
+--- stderr ---
+
+Exit status: 0
+
+[Configure Bob return route and test routing]
+Started UTC: 2026-10-12T07:05:00.618+00:00
+Node: bob
+Command: docker compose -p lab04route -f /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab04/.tmp_build/docker-compose.yml exec -T bob bash -lc sudo -n ip route add 10.94.1.0/24 via 10.94.2.1; ping -c 2 -W 2 10.94.1.10; ip route get 10.94.1.10
+--- stdout ---
+PING 10.94.1.10 (10.94.1.10) 56(84) bytes of data.
+
+--- 10.94.1.10 ping statistics ---
+2 packets transmitted, 0 received, 100% packet loss, time 1027ms
+
+10.94.1.10 via 10.94.2.1 dev eth0 src 10.94.2.10 uid 1000 
+    cache
+--- stderr ---
+
+Exit status: 0
+
+[Frank forwarding and two-interface inspection]
+Started UTC: 2026-10-12T07:05:00.683+00:00
+Node: frank
+Command: docker compose -p lab04route -f /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab04/.tmp_build/docker-compose.yml exec -T frank bash -lc cat /proc/sys/net/ipv4/ip_forward; ip -brief address; ip route; sysctl net.ipv4.conf.all.send_redirects
+--- stdout ---
+
+--- stderr ---
+service "frank" is not running
+Exit status: 1
+
+[Start temporary HTTP endpoint on Alice]
+Started UTC: 2026-10-12T07:05:01.828+00:00
+Node: alice
+Command: docker compose -p lab04route -f /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab04/.tmp_build/docker-compose.yml exec -T alice bash -lc mkdir -p /home/kali/workspace/lab04/www; printf "Lab04 Alice web endpoint\n" > /home/kali/workspace/lab04/www/index.html; nohup python3 -m http.server 18080 --bind 0.0.0.0 --directory /home/kali/workspace/lab04/www >/tmp/lab04-http.log 2>&1 </dev/null & sleep 1; ss -ltnp | grep 18080
+--- stdout ---
+LISTEN 0      5            0.0.0.0:18080      0.0.0.0:*    users:(("python3",pid=43,fd=3))
+--- stderr ---
+
+Exit status: 0
+
+[Verify routed HTTP request through Frank]
+Started UTC: 2026-10-12T07:05:06.970+00:00
+Node: bob
+Command: docker compose -p lab04route -f /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab04/.tmp_build/docker-compose.yml exec -T bob bash -lc curl --fail --max-time 5 -v http://10.94.1.10:18080/ 2>&1
+--- stdout ---
+*   Trying 10.94.1.10:18080...
+* Connection timed out after 5006 milliseconds
+* closing connection #0
+curl: (28) Connection timed out after 5006 milliseconds
+--- stderr ---
+
+Exit status: 28
+
+[Frank router interfaces and installed tunneling services — corrected topology rerun]
+Started UTC: 2026-10-12T07:05:43.507+00:00
+Node: frank
+Command: id; ip -brief address; ip route; cat /proc/sys/net/ipv4/ip_forward; iptables --version; for x in htc hts ptunnel sshd apache2; do command -v "$x" || true; done
+--- stdout ---
+uid=1000(kali) gid=1000(kali) groups=1000(kali),27(sudo),102(wireshark)
+lo               UNKNOWN        127.0.0.1/8 ::1/128 
+tunl0@NONE       DOWN           
+gre0@NONE        DOWN           
+gretap0@NONE     DOWN           
+erspan0@NONE     DOWN           
+ip_vti0@NONE     DOWN           
+ip6_vti0@NONE    DOWN           
+sit0@NONE        DOWN           
+ip6tnl0@NONE     DOWN           
+ip6gre0@NONE     DOWN           
+eth0@if469       UP             10.94.2.1/24 
+eth1@if470       UP             10.94.1.1/24 
+default via 10.94.1.254 dev eth1 
+10.94.1.0/24 dev eth1 proto kernel scope link src 10.94.1.1 
+10.94.2.0/24 dev eth0 proto kernel scope link src 10.94.2.1 
+1
+iptables v1.8.13 (nf_tables)
+/usr/bin/htc
+/usr/bin/hts
+/usr/sbin/ptunnel
+--- stderr ---
+
+Exit status: 0
+
+[Alice static route and routed ping to Bob — corrected topology rerun]
+Started UTC: 2026-10-12T07:05:44.629+00:00
+Node: alice
+Command: sudo -n ip route replace 10.94.2.0/24 via 10.94.1.1; ip route get 10.94.2.10; ping -c 2 -W 2 10.94.2.10
+--- stdout ---
+10.94.2.10 via 10.94.1.1 dev eth0 src 10.94.1.10 uid 1000 
+    cache 
+PING 10.94.2.10 (10.94.2.10) 56(84) bytes of data.
+64 bytes from 10.94.2.10: icmp_seq=1 ttl=63 time=0.212 ms
+64 bytes from 10.94.2.10: icmp_seq=2 ttl=63 time=0.124 ms
+
+--- 10.94.2.10 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1009ms
+rtt min/avg/max/mdev = 0.124/0.168/0.212/0.044 ms
+--- stderr ---
+
+Exit status: 0
+
+[Bob static return route and routed ping to Alice — corrected topology rerun]
+Started UTC: 2026-10-12T07:05:45.783+00:00
+Node: bob
+Command: sudo -n ip route replace 10.94.1.0/24 via 10.94.2.1; ip route get 10.94.1.10; ping -c 2 -W 2 10.94.1.10
+--- stdout ---
+10.94.1.10 via 10.94.2.1 dev eth0 src 10.94.2.10 uid 1000 
+    cache 
+PING 10.94.1.10 (10.94.1.10) 56(84) bytes of data.
+64 bytes from 10.94.1.10: icmp_seq=1 ttl=63 time=0.113 ms
+64 bytes from 10.94.1.10: icmp_seq=2 ttl=63 time=0.115 ms
+
+--- 10.94.1.10 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1017ms
+rtt min/avg/max/mdev = 0.113/0.114/0.115/0.001 ms
+--- stderr ---
+
+Exit status: 0
+
+[Frank forwarding state and route inspection — corrected topology rerun]
+Started UTC: 2026-10-12T07:05:45.880+00:00
+Node: frank
+Command: cat /proc/sys/net/ipv4/ip_forward; ip -brief address; ip route; sysctl net.ipv4.conf.all.send_redirects
+--- stdout ---
+1
+lo               UNKNOWN        127.0.0.1/8 ::1/128 
+tunl0@NONE       DOWN           
+gre0@NONE        DOWN           
+gretap0@NONE     DOWN           
+erspan0@NONE     DOWN           
+ip_vti0@NONE     DOWN           
+ip6_vti0@NONE    DOWN           
+sit0@NONE        DOWN           
+ip6tnl0@NONE     DOWN           
+ip6gre0@NONE     DOWN           
+eth0@if469       UP             10.94.2.1/24 
+eth1@if470       UP             10.94.1.1/24 
+default via 10.94.1.254 dev eth1 
+10.94.1.0/24 dev eth1 proto kernel scope link src 10.94.1.1 
+10.94.2.0/24 dev eth0 proto kernel scope link src 10.94.2.1 
+net.ipv4.conf.all.send_redirects = 0
+--- stderr ---
+
+Exit status: 0
+
+[Start Alice web endpoint and verify direct routed HTTP — corrected topology rerun]
+Started UTC: 2026-10-12T07:05:46.999+00:00
+Node: alice
+Command: mkdir -p /home/kali/workspace/lab04/www; printf "Lab04 Alice web endpoint\n" > /home/kali/workspace/lab04/www/index.html; nohup python3 -m http.server 18080 --bind 0.0.0.0 --directory /home/kali/workspace/lab04/www >/tmp/lab04-http.log 2>&1 </dev/null & sleep 1; ss -ltnp | grep 18080
+--- stdout ---
+LISTEN 0      5            0.0.0.0:18080      0.0.0.0:*    users:(("python3",pid=43,fd=3))
+--- stderr ---
+
+Exit status: 0
+
+[Test routed HTTP from Bob before router filtering — corrected topology rerun]
+Started UTC: 2026-10-12T07:05:47.129+00:00
+Node: bob
+Command: curl --fail --max-time 5 -sS -v http://10.94.1.10:18080/ 2>&1
+--- stdout ---
+*   Trying 10.94.1.10:18080...
+* Established connection to 10.94.1.10 (10.94.1.10 port 18080) from 10.94.2.10 port 49336 
+* using HTTP/1.x
+> GET / HTTP/1.1
+> Host: 10.94.1.10:18080
+> User-Agent: curl/8.22.0
+> Accept: */*
+> 
+* Request completely sent off
+* HTTP 1.0, assume close after body
+< HTTP/1.0 200 OK
+< Server: SimpleHTTP/0.6 Python/3.14.7
+< Date: Mon, 12 Oct 2026 07:05:47 GMT
+< Content-type: text/html
+< Content-Length: 25
+< Last-Modified: Mon, 12 Oct 2026 07:05:45 GMT
+< 
+{ [25 bytes data]
+* shutting down connection #0
+Lab04 Alice web endpoint
+--- stderr ---
+
+Exit status: 0
+
+[Frank stateless allow-list for Alice-to-web and reply traffic — corrected topology rerun]
+Started UTC: 2026-10-12T07:05:47.275+00:00
+Node: frank
+Command: sudo -n iptables -F; sudo -n iptables -P FORWARD DROP; sudo -n iptables -A FORWARD -i eth0 -o eth1 -p tcp -s 10.94.1.10 -d 10.94.2.10 --dport 18080 -j ACCEPT; sudo -n iptables -A FORWARD -i eth1 -o eth0 -p tcp -s 10.94.2.10 --sport 18080 -d 10.94.1.10 -j ACCEPT; sudo -n iptables -L FORWARD -v -n --line-numbers
+--- stdout ---
+Chain FORWARD (policy DROP 0 packets, 0 bytes)
+num   pkts bytes target     prot opt in     out     source               destination         
+1        0     0 ACCEPT     tcp  --  eth0   eth1    10.94.1.10           10.94.2.10           tcp dpt:18080
+2        0     0 ACCEPT     tcp  --  eth1   eth0    10.94.2.10           10.94.1.10           tcp spt:18080
+--- stderr ---
+
+Exit status: 0
+
+[Verify reverse direction is blocked by stateless policy — corrected topology rerun]
+Started UTC: 2026-10-12T07:05:51.394+00:00
+Node: alice
+Command: curl --max-time 4 -sS -v http://10.94.2.10:18080/ 2>&1
+--- stdout ---
+*   Trying 10.94.2.10:18080...
+* Connection timed out after 4004 milliseconds
+* closing connection #0
+curl: (28) Connection timed out after 4004 milliseconds
+--- stderr ---
+
+Exit status: 28
+
+[Frank stateful ESTABLISHED/RELATED reply policy — corrected topology rerun]
+Started UTC: 2026-10-12T07:05:51.572+00:00
+Node: frank
+Command: sudo -n iptables -F; sudo -n iptables -P FORWARD DROP; sudo -n iptables -A FORWARD -i eth0 -o eth1 -p tcp -s 10.94.1.10 -d 10.94.2.10 --dport 18080 -j ACCEPT; sudo -n iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT; sudo -n iptables -L FORWARD -v -n --line-numbers
+--- stdout ---
+Chain FORWARD (policy DROP 0 packets, 0 bytes)
+num   pkts bytes target     prot opt in     out     source               destination         
+1        0     0 ACCEPT     tcp  --  eth0   eth1    10.94.1.10           10.94.2.10           tcp dpt:18080
+2        0     0 ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 2.1: personal firewall on Alice allows selected web service — corrected topology rerun]
+Started UTC: 2026-10-12T07:05:51.732+00:00
+Node: alice
+Command: sudo -n iptables -F INPUT; sudo -n iptables -P INPUT DROP; sudo -n iptables -A INPUT -i lo -j ACCEPT; sudo -n iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT; sudo -n iptables -A INPUT -p tcp --dport 18080 -s 10.94.2.10 -j ACCEPT; sudo -n iptables -L INPUT -v -n --line-numbers
+--- stdout ---
+Chain INPUT (policy DROP 0 packets, 0 bytes)
+num   pkts bytes target     prot opt in     out     source               destination         
+1        0     0 ACCEPT     all  --  lo     *       0.0.0.0/0            0.0.0.0/0           
+2        0     0 ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+3        0     0 ACCEPT     tcp  --  *      *       10.94.2.10           0.0.0.0/0            tcp dpt:18080
+--- stderr ---
+
+Exit status: 0
+
+[Verify personal firewall service allow and unlisted port deny — corrected topology rerun]
+Started UTC: 2026-10-12T07:05:58.864+00:00
+Node: bob
+Command: curl --max-time 5 -sS http://10.94.1.10:18080/; if nc -z -w 2 10.94.1.10 22; then echo "unexpected TCP/22 open"; exit 1; else echo "TCP/22 blocked by Alice INPUT policy"; fi
+--- stdout ---
+TCP/22 blocked by Alice INPUT policy
+--- stderr ---
+curl: (28) Connection timed out after 5006 milliseconds
+Exit status: 0
+
+[Exercise 2.2.3: selective ICMP and rate-limited echo requests — corrected topology rerun]
+Started UTC: 2026-10-12T07:05:59.004+00:00
+Node: frank
+Command: sudo -n iptables -A FORWARD -p icmp --icmp-type echo-request -s 10.94.1.10 -d 10.94.2.10 -m limit --limit 5/second --limit-burst 10 -j ACCEPT; sudo -n iptables -A FORWARD -p icmp --icmp-type echo-reply -s 10.94.2.10 -d 10.94.1.10 -j ACCEPT; sudo -n iptables -L FORWARD -v -n --line-numbers
+--- stdout ---
+Chain FORWARD (policy DROP 7 packets, 420 bytes)
+num   pkts bytes target     prot opt in     out     source               destination         
+1        0     0 ACCEPT     tcp  --  eth0   eth1    10.94.1.10           10.94.2.10           tcp dpt:18080
+2        0     0 ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+3        0     0 ACCEPT     icmp --  *      *       10.94.1.10           10.94.2.10           icmptype 8 limit: avg 5/sec burst 10
+4        0     0 ACCEPT     icmp --  *      *       10.94.2.10           10.94.1.10           icmptype 0
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 2.2.4: ingress source validation against spoofing — corrected topology rerun]
+Started UTC: 2026-10-12T07:05:59.110+00:00
+Node: frank
+Command: sudo -n iptables -A FORWARD -i eth0 ! -s 10.94.1.0/24 -j DROP; sudo -n iptables -A FORWARD -i eth1 ! -s 10.94.2.0/24 -j DROP; sudo -n iptables -L FORWARD -v -n --line-numbers
+--- stdout ---
+Chain FORWARD (policy DROP 7 packets, 420 bytes)
+num   pkts bytes target     prot opt in     out     source               destination         
+1        0     0 ACCEPT     tcp  --  eth0   eth1    10.94.1.10           10.94.2.10           tcp dpt:18080
+2        0     0 ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+3        0     0 ACCEPT     icmp --  *      *       10.94.1.10           10.94.2.10           icmptype 8 limit: avg 5/sec burst 10
+4        0     0 ACCEPT     icmp --  *      *       10.94.2.10           10.94.1.10           icmptype 0
+5        0     0 DROP       all  --  eth0   *      !10.94.1.0/24         0.0.0.0/0           
+6        0     0 DROP       all  --  eth1   *      !10.94.2.0/24         0.0.0.0/0
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 2.3.1: traffic shaping capability check — corrected topology rerun]
+Started UTC: 2026-10-12T07:05:59.227+00:00
+Node: frank
+Command: sudo -n tc qdisc add dev eth0 root tbf rate 512kbit burst 32kbit latency 400ms; sudo -n tc -s qdisc show dev eth0; sudo -n tc qdisc del dev eth0 root
+--- stdout ---
+qdisc tbf 8001: root refcnt 11 rate 512Kbit burst 4Kb lat 400ms 
+ Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0
+--- stderr ---
+
+Exit status: 0
+
+[Prepare Bob HTTP service and verify initial route — corrected direction/topology]
+Started UTC: 2026-10-12T07:06:28.257+00:00
+Node: bob
+Command: mkdir -p /home/kali/workspace/lab04/bob-www; printf "Bob external HTTP service\n" > /home/kali/workspace/lab04/bob-www/index.html; nohup python3 -m http.server 18080 --bind 0.0.0.0 --directory /home/kali/workspace/lab04/bob-www >/tmp/lab04-bob-http.log 2>&1 </dev/null & sleep 1; ss -ltnp | grep 18080
+--- stdout ---
+LISTEN 0      5            0.0.0.0:18080      0.0.0.0:*    users:(("python3",pid=70,fd=3))
+--- stderr ---
+
+Exit status: 0
+
+[Frank stateless policy: allow Alice web requests and matching replies — corrected direction/topology]
+Started UTC: 2026-10-12T07:06:28.452+00:00
+Node: frank
+Command: sudo -n iptables -F FORWARD; sudo -n iptables -P FORWARD DROP; sudo -n iptables -A FORWARD -i eth1 -o eth0 -p tcp -s 10.94.1.10 -d 10.94.2.10 --dport 18080 -j ACCEPT; sudo -n iptables -A FORWARD -i eth0 -o eth1 -p tcp -s 10.94.2.10 --sport 18080 -d 10.94.1.10 -j ACCEPT; sudo -n iptables -L FORWARD -v -n --line-numbers
+--- stdout ---
+Chain FORWARD (policy DROP 0 packets, 0 bytes)
+num   pkts bytes target     prot opt in     out     source               destination         
+1        0     0 ACCEPT     tcp  --  eth1   eth0    10.94.1.10           10.94.2.10           tcp dpt:18080
+2        0     0 ACCEPT     tcp  --  eth0   eth1    10.94.2.10           10.94.1.10           tcp spt:18080
+--- stderr ---
+
+Exit status: 0
+
+[Verify Alice web access through Frank stateless rules — corrected direction/topology]
+Started UTC: 2026-10-12T07:06:28.578+00:00
+Node: alice
+Command: curl --fail --max-time 5 -sS -v http://10.94.2.10:18080/ 2>&1
+--- stdout ---
+*   Trying 10.94.2.10:18080...
+* Established connection to 10.94.2.10 (10.94.2.10 port 18080) from 10.94.1.10 port 41118 
+* using HTTP/1.x
+> GET / HTTP/1.1
+> Host: 10.94.2.10:18080
+> User-Agent: curl/8.22.0
+> Accept: */*
+> 
+* Request completely sent off
+* HTTP 1.0, assume close after body
+< HTTP/1.0 200 OK
+< Server: SimpleHTTP/0.6 Python/3.14.7
+< Date: Mon, 12 Oct 2026 07:06:28 GMT
+< Content-type: text/html
+< Content-Length: 26
+< Last-Modified: Mon, 12 Oct 2026 07:06:27 GMT
+< 
+{ [26 bytes data]
+* shutting down connection #0
+Bob external HTTP service
+--- stderr ---
+
+Exit status: 0
+
+[Verify unauthorized service and reverse web direction denied — corrected direction/topology]
+Started UTC: 2026-10-12T07:06:32.691+00:00
+Node: bob
+Command: if nc -z -w 2 10.94.1.10 18080; then echo unexpected; exit 1; else echo "reverse direction denied"; fi; if nc -z -w 2 10.94.1.10 22; then echo unexpected; exit 1; else echo "unlisted port denied"; fi
+--- stdout ---
+reverse direction denied
+unlisted port denied
+--- stderr ---
+
+Exit status: 0
+
+[Frank stateful policy permits established return traffic — corrected direction/topology]
+Started UTC: 2026-10-12T07:06:32.869+00:00
+Node: frank
+Command: sudo -n iptables -F FORWARD; sudo -n iptables -P FORWARD DROP; sudo -n iptables -A FORWARD -i eth1 -o eth0 -p tcp -s 10.94.1.10 -d 10.94.2.10 --dport 18080 -j ACCEPT; sudo -n iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT; sudo -n iptables -L FORWARD -v -n --line-numbers
+--- stdout ---
+Chain FORWARD (policy DROP 0 packets, 0 bytes)
+num   pkts bytes target     prot opt in     out     source               destination         
+1        0     0 ACCEPT     tcp  --  eth1   eth0    10.94.1.10           10.94.2.10           tcp dpt:18080
+2        0     0 ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+--- stderr ---
+
+Exit status: 0
+
+[Confirm stateful Alice-to-Bob web request — corrected direction/topology]
+Started UTC: 2026-10-12T07:06:32.972+00:00
+Node: alice
+Command: curl --fail --max-time 5 -sS http://10.94.2.10:18080/
+--- stdout ---
+Bob external HTTP service
+--- stderr ---
+
+Exit status: 0
+
+[Install SSH server on temporary Bob for tunnel exercises — corrected direction/topology]
+Started UTC: 2026-10-12T07:06:41.132+00:00
+Node: bob
+Command: sudo -n apt-get update -qq && sudo -n apt-get install -y -qq openssh-server && sudo -n ssh-keygen -A && sudo -n /usr/sbin/sshd -o ListenAddress=10.94.2.10 -o PasswordAuthentication=no -o PermitRootLogin=no && ss -ltnp | grep ":22 "
+--- stdout ---
+Preconfiguring packages ...
+Selecting previously unselected package systemd-sysv.
+(Reading database ... 
+(Reading database ... 5%
+(Reading database ... 10%
+(Reading database ... 15%
+(Reading database ... 20%
+(Reading database ... 25%
+(Reading database ... 30%
+(Reading database ... 35%
+(Reading database ... 40%
+(Reading database ... 45%
+(Reading database ... 50%
+(Reading database ... 55%
+(Reading database ... 60%
+(Reading database ... 65%
+(Reading database ... 70%
+(Reading database ... 75%
+(Reading database ... 80%
+(Reading database ... 85%
+(Reading database ... 90%
+(Reading database ... 95%
+(Reading database ... 100%
+(Reading database ... 23036 files and directories currently installed.)
+Preparing to unpack .../00-systemd-sysv_262-1_arm64.deb ...
+Unpacking systemd-sysv (262-1) ...
+Selecting previously unselected package sensible-utils.
+Preparing to unpack .../01-sensible-utils_0.0.26_all.deb ...
+Unpacking sensible-utils (0.0.26) ...
+Selecting previously unselected package dbus-bin.
+Preparing to unpack .../02-dbus-bin_1.16.2-5+b1_arm64.deb ...
+Unpacking dbus-bin (1.16.2-5+b1) ...
+Selecting previously unselected package dbus-session-bus-common.
+Preparing to unpack .../03-dbus-session-bus-common_1.16.2-5_all.deb ...
+Unpacking dbus-session-bus-common (1.16.2-5) ...
+Selecting previously unselected package dbus-daemon.
+Preparing to unpack .../04-dbus-daemon_1.16.2-5+b1_arm64.deb ...
+Unpacking dbus-daemon (1.16.2-5+b1) ...
+Selecting previously unselected package dbus-system-bus-common.
+Preparing to unpack .../05-dbus-system-bus-common_1.16.2-5_all.deb ...
+Unpacking dbus-system-bus-common (1.16.2-5) ...
+Selecting previously unselected package dbus.
+Preparing to unpack .../06-dbus_1.16.2-5+b1_arm64.deb ...
+Unpacking dbus (1.16.2-5+b1) ...
+Selecting previously unselected package libnss-systemd:arm64.
+Preparing to unpack .../07-libnss-systemd_262-1_arm64.deb ...
+Unpacking libnss-systemd:arm64 (262-1) ...
+Selecting previously unselected package libpam-systemd:arm64.
+Preparing to unpack .../08-libpam-systemd_262-1_arm64.deb ...
+Unpacking libpam-systemd:arm64 (262-1) ...
+Selecting previously unselected package ncurses-term.
+Preparing to unpack .../09-ncurses-term_6.6+20260608-2_all.deb ...
+Unpacking ncurses-term (6.6+20260608-2) ...
+Selecting previously unselected package libtext-charwidth-perl:arm64.
+Preparing to unpack .../10-libtext-charwidth-perl_0.04-12+b1_arm64.deb ...
+Unpacking libtext-charwidth-perl:arm64 (0.04-12+b1) ...
+Selecting previously unselected package libtext-wrapi18n-perl.
+Preparing to unpack .../11-libtext-wrapi18n-perl_0.06-11_all.deb ...
+Unpacking libtext-wrapi18n-perl (0.06-11) ...
+Selecting previously unselected package ucf.
+Preparing to unpack .../12-ucf_3.0056_all.deb ...
+Moving old data out of the way
+Unpacking ucf (3.0056) ...
+Selecting previously unselected package dbus-user-session.
+Preparing to unpack .../13-dbus-user-session_1.16.2-5+b1_arm64.deb ...
+Unpacking dbus-user-session (1.16.2-5+b1) ...
+Selecting previously unselected package libwrap0:arm64.
+Preparing to unpack .../14-libwrap0_7.6.q-37_arm64.deb ...
+Unpacking libwrap0:arm64 (7.6.q-37) ...
+Selecting previously unselected package libwtmpdb0.
+Preparing to unpack .../15-libwtmpdb0_0.75.0-6_arm64.deb ...
+Unpacking libwtmpdb0 (0.75.0-6) ...
+Selecting previously unselected package openssh-sftp-server.
+Preparing to unpack .../16-openssh-sftp-server_1%3a10.5p1-1_arm64.deb ...
+Unpacking openssh-sftp-server (1:10.5p1-1) ...
+Selecting previously unselected package runit-helper.
+Preparing to unpack .../17-runit-helper_2.16.7_all.deb ...
+Unpacking runit-helper (2.16.7) ...
+Selecting previously unselected package openssh-server.
+Preparing to unpack .../18-openssh-server_1%3a10.5p1-1_arm64.deb ...
+Unpacking openssh-server (1:10.5p1-1) ...
+Selecting previously unselected package systemd-userdbd.
+Preparing to unpack .../19-systemd-userdbd_262-1_arm64.deb ...
+Unpacking systemd-userdbd (262-1) ...
+Setting up libtext-charwidth-perl:arm64 (0.04-12+b1) ...
+Setting up runit-helper (2.16.7) ...
+Setting up openssh-sftp-server (1:10.5p1-1) ...
+Setting up systemd-sysv (262-1) ...
+Setting up libnss-systemd:arm64 (262-1) ...
+Setting up libtext-wrapi18n-perl (0.06-11) ...
+Setting up libwrap0:arm64 (7.6.q-37) ...
+Setting up sensible-utils (0.0.26) ...
+Setting up dbus-session-bus-common (1.16.2-5) ...
+Setting up libwtmpdb0 (0.75.0-6) ...
+Setting up dbus-system-bus-common (1.16.2-5) ...
+Creating group 'messagebus' with GID 994.
+
+Creating user 'messagebus' (System Message Bus) with UID 994 and GID 994.
+
+Setting up dbus-bin (1.16.2-5+b1) ...
+Setting up ncurses-term (6.6+20260608-2) ...
+Setting up systemd-userdbd (262-1) ...
+Created symlink '/etc/systemd/system/sockets.target.wants/systemd-userdbd.socket' → '/usr/lib/systemd/system/systemd-userdbd.socket'.
+
+Setting up dbus-daemon (1.16.2-5+b1) ...
+Setting up dbus (1.16.2-5+b1) ...
+invoke-rc.d: could not determine current runlevel
+invoke-rc.d: policy-rc.d denied execution of start.
+Setting up ucf (3.0056) ...
+Setting up libpam-systemd:arm64 (262-1) ...
+debconf: unable to initialize frontend: Dialog
+debconf: (Dialog frontend will not work on a dumb terminal, an emacs shell buffer, or without a controlling terminal.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Teletype
+debconf: unable to initialize frontend: Teletype
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Noninteractive
+Setting up openssh-server (1:10.5p1-1) ...
+debconf: unable to initialize frontend: Dialog
+debconf: (Dialog frontend will not work on a dumb terminal, an emacs shell buffer, or without a controlling terminal.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Teletype
+debconf: unable to initialize frontend: Teletype
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Noninteractive
+Creating config file /etc/ssh/sshd_config with new version
+Creating SSH2 RSA key; this may take some time ...
+3072 SHA256:LKfuzMoQzG21KTPmhNgdtDFDvh9CQbebxy+F6NK0amU root@e233bad1a7fa (RSA)
+Creating SSH2 ECDSA key; this may take some time ...
+256 SHA256:xHrCg+QON2wF2EU9xmwneq/zEf6QW65N6zPTMnFr+ZQ root@e233bad1a7fa (ECDSA)
+Creating SSH2 ED25519 key; this may take some time ...
+256 SHA256:t1JzsKTxZvg8v//WT5ntMIezHM0IHKOf9do4Y2R9/RM root@e233bad1a7fa (ED25519)
+Creating user 'sshd' (sshd user) with UID 993 and GID 65534.
+
+runit: ssh: start action denied by policy-rc.d
+update-rc.d: As per Kali policy, ssh init script is left disabled.
+invoke-rc.d: could not determine current runlevel
+invoke-rc.d: policy-rc.d denied execution of start.
+Setting up dbus-user-session (1.16.2-5+b1) ...
+Processing triggers for libc-bin (2.43-6) ...
+ssh-keygen: generating new host keys: MLDSA44-ED25519 
+LISTEN 0      128       10.94.2.10:22         0.0.0.0:*
+--- stderr ---
+debconf: unable to initialize frontend: Dialog
+debconf: (Dialog frontend will not work on a dumb terminal, an emacs shell buffer, or without a controlling terminal.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Teletype
+debconf: unable to initialize frontend: Teletype
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Noninteractive
+Exit status: 0
+
+[Tunnel tools and command syntax]
+Started UTC: 2026-10-12T07:07:05.938+00:00
+Node: alice
+Command: htc --help 2>&1 | head -40; hts --help 2>&1 | head -35; ptunnel -h 2>&1 | head -40; ssh -V 2>&1
+--- stdout ---
+Usage: htc [OPTION]... HOST[:PORT]
+Set up a httptunnel connection to PORT at HOST (default port is 8888).
+When a connection is made, I/O is redirected from the source specified
+by the --device, --forward-port or --stdin-stdout switch to the tunnel.
+
+  -A, --proxy-authorization USER:PASSWORD  proxy authorization
+  -z, --proxy-authorization-file FILE      proxy authorization file
+  -B, --proxy-buffer-size BYTES  assume a proxy buffer size of BYTES bytes
+                                 (k, M, and G postfixes recognized)
+  -c, --content-length BYTES     use HTTP PUT requests of BYTES size
+                                 (k, M, and G postfixes recognized)
+  -d, --device DEVICE            use DEVICE for input and output
+  -F, --forward-port PORT        use TCP port PORT for input and output
+  -h, --help                     display this help and exit
+  -k, --keep-alive SECONDS       send keepalive bytes every SECONDS seconds
+                                 (default is 5)
+  -M, --max-connection-age SEC   maximum time a connection will stay
+                                 open is SEC seconds (default is 300)
+  -P, --proxy HOSTNAME[:PORT]    use a HTTP proxy (default port is 8080)
+  -s, --stdin-stdout             use stdin/stdout for communication
+                                 (implies --no-daemon)
+  -S, --strict-content-length    always write Content-Length bytes in requests
+  -T, --timeout TIME             timeout, in milliseconds, before sending
+                                 padding to a buffering proxy
+  -U, --user-agent STRING        specify User-Agent value in HTTP requests
+  -R, --base-uri STRING          specify a URI value for all HTTP requests
+                                 (default is "/index.html?crap=")
+  -V, --version                  output version information and exit
+  -w, --no-daemon                don't fork into the background
+
+Report bugs to bug-httptunnel@gnu.org.
+Usage: hts [OPTION]... [HOST:][PORT]
+Listen for incoming httptunnel connections at PORT (default port is 8888).
+When a connection is made, I/O is redirected to the destination specified
+by the --device, --forward-port or --stdin-stdout switch.
+
+  -c, --content-length BYTES     use HTTP PUT requests of BYTES size
+                                 (k, M, and G postfixes recognized)
+  -d, --device DEVICE            use DEVICE for input and output
+  -F, --forward-port HOST:PORT   connect to PORT at HOST and use it for 
+                                 input and output
+  -h, --help                     display this help and exit
+  -k, --keep-alive SECONDS       send keepalive bytes every SECONDS seconds
+                                 (default is 5)
+  -M, --max-connection-age SEC   maximum time a connection will stay
+                                 open is SEC seconds (default is 300)
+  -r, --chroot ROOT              change root to ROOT
+  -s, --stdin-stdout             use stdin/stdout for communication
+                                 (implies --no-daemon)
+  -S, --strict-content-length    always write Content-Length bytes in requests
+  -u, --user USER                change user to USER
+  -V, --version                  output version information and exit
+  -w, --no-daemon                don't fork into the background
+  -p, --pid-file LOCATION        write a PID file to LOCATION
+
+Report bugs to bug-httptunnel@gnu.org.
+ptunnel v 0.72.
+Usage:   ptunnel -p <addr> -lp <port> -da <dest_addr> -dp <dest_port> [-m max_tunnels] [-v verbosity] [-f logfile]
+         ptunnel [-m max_threads] [-v verbosity] [-c <device>]
+     -p: Set address of peer running packet forwarder. This causes
+         ptunnel to operate in forwarding mode - the absence of this
+         option causes ptunnel to operate in proxy mode.
+    -lp: Set TCP listening port (only used when operating in forward mode)
+    -da: Set remote proxy destination address if client
+         Restrict to only this destination address if server
+    -dp: Set remote proxy destionation port if client
+         Restrict to only this destination port if server
+     -m: Set maximum number of concurrent tunnels
+     -v: Verbosity level (-1 to 4, where -1 is no output, and 4 is all output)
+     -c: Enable libpcap on the given device.
+     -f: Specify a file to log to, rather than printing to standard out.
+     -s: Client only. Enables continuous output of statistics (packet loss, etc.)
+-daemon: Run in background, the PID will be written in the file supplied as argument
+-syslog: Output debug to syslog instead of standard out.
+   -udp: Toggle use of UDP instead of ICMP. Proxy will listen on port 53 (must be root).
+
+Security features:  [-x password] [-u] [-setuid user] [-setgid group] [-chroot dir]
+     -x: Set password (must be same on client and proxy)
+     -u: Run proxy in unprivileged mode. This causes the proxy to forward
+         packets using standard echo requests, instead of crafting custom echo replies.
+         Unprivileged mode will only work on some systems, and is in general less reliable
+         than running in privileged mode.
+         Please consider combining the following three options instead:
+-setuid: When started in privileged mode, drop down to user's rights as soon as possible
+-setgid: When started in privileged mode, drop down to group's rights as soon as possible
+-chroot: When started in privileged mode, restrict file access to the specified directory
+-setcon: Set SELinux context when all there is left to do are network I/O operations
+         To combine with -chroot you will have to `mount --bind /proc /chrootdir/proc`
+
+Starting the proxy (needs to run as root):
+ [root #] ptunnel
+Starting a client (also needs root):
+ [root #] ptunnel -p proxy.pingtunnel.com -lp 8000 -da login.domain.com -dp 22 -c eth0
+And then using the tunnel to ssh to login.domain.com:
+ [user $] ssh -p 8000 localhost
+And that's it. Enjoy your tunnel!
+OpenSSH_10.5p1 Debian-1, OpenSSL 3.6.4 25 Aug 2026
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.1: permit web port and start HTTPtunnel server on Bob]
+Started UTC: 2026-10-12T07:07:07.139+00:00
+Node: frank
+Command: sudo -n iptables -F FORWARD; sudo -n iptables -P FORWARD DROP; sudo -n iptables -A FORWARD -i eth1 -o eth0 -p tcp -s 10.94.1.10 --dport 80 -j ACCEPT; sudo -n iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT; sudo -n iptables -L FORWARD -v -n; sudo -n hts -F 10.94.2.10:22 80 >/tmp/lab04-hts.log 2>&1 </dev/null & sleep 1; ss -ltnp | grep ":80 "
+--- stdout ---
+Chain FORWARD (policy DROP 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 ACCEPT     tcp  --  eth1   eth0    10.94.1.10           0.0.0.0/0            tcp dpt:80
+    0     0 ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+LISTEN 0      1            0.0.0.0:80         0.0.0.0:*
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.1: Alice HTTPtunnel client and SSH endpoint check]
+Started UTC: 2026-10-12T07:07:10.326+00:00
+Node: alice
+Command: htc -F 17777 10.94.2.10:80 >/tmp/lab04-htc.log 2>&1 </dev/null & sleep 2; timeout 8 ssh-keyscan -T 5 -p 17777 127.0.0.1 2>&1 | head -8; rc=${PIPESTATUS[0]}; echo ssh_banner_status:$rc; sudo -n pkill -x htc || true
+--- stdout ---
+127.0.0.1: Connection closed by remote host
+ssh_banner_status:1
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.1: capture HTTP tunnel request markers]
+Started UTC: 2026-10-12T07:07:15.465+00:00
+Node: frank
+Command: timeout 5 sudo -n tcpdump -nn -i eth1 -A -c 6 "host 10.94.1.10 and tcp port 80" 2>&1 || true
+--- stdout ---
+tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+listening on eth1, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+
+0 packets captured
+0 packets received by filter
+0 packets dropped by kernel
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.2: configure ICMP forwarding and start Ptunnel proxy]
+Started UTC: 2026-10-12T07:07:17.656+00:00
+Node: frank
+Command: sudo -n pkill -x ptunnel || true; sudo -n iptables -F FORWARD; sudo -n iptables -P FORWARD DROP; sudo -n iptables -A FORWARD -p icmp -s 10.94.1.10 -d 10.94.2.10 --icmp-type echo-request -j ACCEPT; sudo -n iptables -A FORWARD -p icmp -s 10.94.2.10 -d 10.94.1.10 --icmp-type echo-reply -j ACCEPT; sudo -n iptables -A FORWARD -p icmp -s 10.94.2.10 -d 10.94.1.10 --icmp-type echo-request -j ACCEPT; sudo -n iptables -A FORWARD -p icmp -s 10.94.1.10 -d 10.94.2.10 --icmp-type echo-reply -j ACCEPT; sudo -n ptunnel -x lab04-demo >/tmp/lab04-ptunnel.log 2>&1 </dev/null & sleep 2; pgrep -af ptunnel || true; cat /tmp/lab04-ptunnel.log
+--- stdout ---
+260 bash -lc sudo -n pkill -x ptunnel || true; sudo -n iptables -F FORWARD; sudo -n iptables -P FORWARD DROP; sudo -n iptables -A FORWARD -p icmp -s 10.94.1.10 -d 10.94.2.10 --icmp-type echo-request -j ACCEPT; sudo -n iptables -A FORWARD -p icmp -s 10.94.2.10 -d 10.94.1.10 --icmp-type echo-reply -j ACCEPT; sudo -n iptables -A FORWARD -p icmp -s 10.94.2.10 -d 10.94.1.10 --icmp-type echo-request -j ACCEPT; sudo -n iptables -A FORWARD -p icmp -s 10.94.1.10 -d 10.94.2.10 --icmp-type echo-reply -j ACCEPT; sudo -n ptunnel -x lab04-demo >/tmp/lab04-ptunnel.log 2>&1 </dev/null & sleep 2; pgrep -af ptunnel || true; cat /tmp/lab04-ptunnel.log
+294 sudo -n ptunnel -x lab04-demo
+297 ptunnel -x
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.2: Ptunnel client to Bob SSH through permitted ICMP]
+Started UTC: 2026-10-12T07:07:28.781+00:00
+Node: alice
+Command: sudo -n ptunnel -p 10.94.2.10 -lp 8000 -da 10.94.2.10 -dp 22 -x lab04-demo >/tmp/lab04-ptunnel-client.log 2>&1 </dev/null & sleep 3; timeout 8 nc -v 127.0.0.1 8000 </dev/null 2>&1; rc=$?; echo "tunneled_ssh_banner_status:$rc"; cat /tmp/lab04-ptunnel-client.log
+--- stdout ---
+Connection to 127.0.0.1 8000 port [tcp/*] succeeded!
+tunneled_ssh_banner_status:124
+--- stderr ---
+
+Exit status: 0
+
+[Stop temporary tunnel processes before following exercise]
+Started UTC: 2026-10-12T07:07:28.956+00:00
+Node: frank
+Command: sudo -n pkill -x ptunnel || true; sudo -n pkill -x hts || true; sudo -n iptables -F FORWARD; sudo -n iptables -P FORWARD ACCEPT; echo "temporary tunnel processes and filter rules cleared"
+--- stdout ---
+temporary tunnel processes and filter rules cleared
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.1: HTTPtunnel help and server/client syntax — corrected node assignment]
+Started UTC: 2026-10-12T07:07:56.186+00:00
+Node: alice
+Command: hts --help 2>&1 | head -30; htc --help 2>&1 | head -30
+--- stdout ---
+Usage: hts [OPTION]... [HOST:][PORT]
+Listen for incoming httptunnel connections at PORT (default port is 8888).
+When a connection is made, I/O is redirected to the destination specified
+by the --device, --forward-port or --stdin-stdout switch.
+
+  -c, --content-length BYTES     use HTTP PUT requests of BYTES size
+                                 (k, M, and G postfixes recognized)
+  -d, --device DEVICE            use DEVICE for input and output
+  -F, --forward-port HOST:PORT   connect to PORT at HOST and use it for 
+                                 input and output
+  -h, --help                     display this help and exit
+  -k, --keep-alive SECONDS       send keepalive bytes every SECONDS seconds
+                                 (default is 5)
+  -M, --max-connection-age SEC   maximum time a connection will stay
+                                 open is SEC seconds (default is 300)
+  -r, --chroot ROOT              change root to ROOT
+  -s, --stdin-stdout             use stdin/stdout for communication
+                                 (implies --no-daemon)
+  -S, --strict-content-length    always write Content-Length bytes in requests
+  -u, --user USER                change user to USER
+  -V, --version                  output version information and exit
+  -w, --no-daemon                don't fork into the background
+  -p, --pid-file LOCATION        write a PID file to LOCATION
+
+Report bugs to bug-httptunnel@gnu.org.
+Usage: htc [OPTION]... HOST[:PORT]
+Set up a httptunnel connection to PORT at HOST (default port is 8888).
+When a connection is made, I/O is redirected from the source specified
+by the --device, --forward-port or --stdin-stdout switch to the tunnel.
+
+  -A, --proxy-authorization USER:PASSWORD  proxy authorization
+  -z, --proxy-authorization-file FILE      proxy authorization file
+  -B, --proxy-buffer-size BYTES  assume a proxy buffer size of BYTES bytes
+                                 (k, M, and G postfixes recognized)
+  -c, --content-length BYTES     use HTTP PUT requests of BYTES size
+                                 (k, M, and G postfixes recognized)
+  -d, --device DEVICE            use DEVICE for input and output
+  -F, --forward-port PORT        use TCP port PORT for input and output
+  -h, --help                     display this help and exit
+  -k, --keep-alive SECONDS       send keepalive bytes every SECONDS seconds
+                                 (default is 5)
+  -M, --max-connection-age SEC   maximum time a connection will stay
+                                 open is SEC seconds (default is 300)
+  -P, --proxy HOSTNAME[:PORT]    use a HTTP proxy (default port is 8080)
+  -s, --stdin-stdout             use stdin/stdout for communication
+                                 (implies --no-daemon)
+  -S, --strict-content-length    always write Content-Length bytes in requests
+  -T, --timeout TIME             timeout, in milliseconds, before sending
+                                 padding to a buffering proxy
+  -U, --user-agent STRING        specify User-Agent value in HTTP requests
+  -R, --base-uri STRING          specify a URI value for all HTTP requests
+                                 (default is "/index.html?crap=")
+  -V, --version                  output version information and exit
+  -w, --no-daemon                don't fork into the background
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.1: Frank permits Alice-to-Bob tunnel HTTP port — corrected node assignment]
+Started UTC: 2026-10-12T07:07:56.312+00:00
+Node: frank
+Command: sudo -n iptables -F FORWARD; sudo -n iptables -P FORWARD DROP; sudo -n iptables -A FORWARD -i eth1 -o eth0 -p tcp -s 10.94.1.10 -d 10.94.2.10 --dport 80 -j ACCEPT; sudo -n iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT; sudo -n iptables -L FORWARD -v -n
+--- stdout ---
+Chain FORWARD (policy DROP 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 ACCEPT     tcp  --  eth1   eth0    10.94.1.10           10.94.2.10           tcp dpt:80
+    0     0 ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.1: Bob hts forwards HTTPtunnel to local SSH service — corrected node assignment]
+Started UTC: 2026-10-12T07:07:58.490+00:00
+Node: bob
+Command: sudo -n pkill -x hts || true; sudo -n hts -F 127.0.0.1:22 80 >/tmp/lab04-hts.log 2>&1 </dev/null & sleep 2; ss -ltnp | grep ":80 "; cat /tmp/lab04-hts.log
+--- stdout ---
+LISTEN 0      1            0.0.0.0:80         0.0.0.0:*
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.1: Alice htc and SSH banner through tunnel — corrected node assignment]
+Started UTC: 2026-10-12T07:08:02.670+00:00
+Node: alice
+Command: sudo -n pkill -x htc || true; htc -F 17777 10.94.2.10:80 >/tmp/lab04-htc.log 2>&1 </dev/null & sleep 3; timeout 8 ssh-keyscan -T 5 -p 17777 127.0.0.1 2>&1 | head -12; echo keyscan_pipeline_status:${PIPESTATUS[0]}; cat /tmp/lab04-htc.log
+--- stdout ---
+127.0.0.1: Connection closed by remote host
+127.0.0.1: Connection closed by remote host
+keyscan_pipeline_status:1
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.2: Ptunnel help/usage — corrected node assignment]
+Started UTC: 2026-10-12T07:08:02.787+00:00
+Node: alice
+Command: ptunnel -h 2>&1 | head -60
+--- stdout ---
+ptunnel v 0.72.
+Usage:   ptunnel -p <addr> -lp <port> -da <dest_addr> -dp <dest_port> [-m max_tunnels] [-v verbosity] [-f logfile]
+         ptunnel [-m max_threads] [-v verbosity] [-c <device>]
+     -p: Set address of peer running packet forwarder. This causes
+         ptunnel to operate in forwarding mode - the absence of this
+         option causes ptunnel to operate in proxy mode.
+    -lp: Set TCP listening port (only used when operating in forward mode)
+    -da: Set remote proxy destination address if client
+         Restrict to only this destination address if server
+    -dp: Set remote proxy destionation port if client
+         Restrict to only this destination port if server
+     -m: Set maximum number of concurrent tunnels
+     -v: Verbosity level (-1 to 4, where -1 is no output, and 4 is all output)
+     -c: Enable libpcap on the given device.
+     -f: Specify a file to log to, rather than printing to standard out.
+     -s: Client only. Enables continuous output of statistics (packet loss, etc.)
+-daemon: Run in background, the PID will be written in the file supplied as argument
+-syslog: Output debug to syslog instead of standard out.
+   -udp: Toggle use of UDP instead of ICMP. Proxy will listen on port 53 (must be root).
+
+Security features:  [-x password] [-u] [-setuid user] [-setgid group] [-chroot dir]
+     -x: Set password (must be same on client and proxy)
+     -u: Run proxy in unprivileged mode. This causes the proxy to forward
+         packets using standard echo requests, instead of crafting custom echo replies.
+         Unprivileged mode will only work on some systems, and is in general less reliable
+         than running in privileged mode.
+         Please consider combining the following three options instead:
+-setuid: When started in privileged mode, drop down to user's rights as soon as possible
+-setgid: When started in privileged mode, drop down to group's rights as soon as possible
+-chroot: When started in privileged mode, restrict file access to the specified directory
+-setcon: Set SELinux context when all there is left to do are network I/O operations
+         To combine with -chroot you will have to `mount --bind /proc /chrootdir/proc`
+
+Starting the proxy (needs to run as root):
+ [root #] ptunnel
+Starting a client (also needs root):
+ [root #] ptunnel -p proxy.pingtunnel.com -lp 8000 -da login.domain.com -dp 22 -c eth0
+And then using the tunnel to ssh to login.domain.com:
+ [user $] ssh -p 8000 localhost
+And that's it. Enjoy your tunnel!
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.2: Bob proxy, Frank ICMP filter, and Alice client — corrected node assignment]
+Started UTC: 2026-10-12T07:08:02.967+00:00
+Node: frank
+Command: sudo -n pkill -x ptunnel || true; sudo -n pkill -x hts || true; sudo -n iptables -F FORWARD; sudo -n iptables -P FORWARD DROP; sudo -n iptables -A FORWARD -p icmp -s 10.94.1.10 -d 10.94.2.10 -j ACCEPT; sudo -n iptables -A FORWARD -p icmp -s 10.94.2.10 -d 10.94.1.10 -j ACCEPT; sudo -n iptables -L FORWARD -v -n
+--- stdout ---
+Chain FORWARD (policy DROP 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 ACCEPT     icmp --  *      *       10.94.1.10           10.94.2.10          
+    0     0 ACCEPT     icmp --  *      *       10.94.2.10           10.94.1.10
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.2: launch Ptunnel proxy on Bob — corrected node assignment]
+Started UTC: 2026-10-12T07:08:05.079+00:00
+Node: bob
+Command: sudo -n ptunnel -x lab04-demo >/tmp/lab04-ptunnel.log 2>&1 </dev/null & sleep 2; pgrep -af ptunnel || true; cat /tmp/lab04-ptunnel.log
+--- stdout ---
+631 bash -lc sudo -n ptunnel -x lab04-demo >/tmp/lab04-ptunnel.log 2>&1 </dev/null & sleep 2; pgrep -af ptunnel || true; cat /tmp/lab04-ptunnel.log
+643 sudo -n ptunnel -x lab04-demo
+646 ptunnel -x
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.2: start Ptunnel client on Alice and probe tunneled SSH — corrected node assignment]
+Started UTC: 2026-10-12T07:08:10.905+00:00
+Node: alice
+Command: sudo -n ptunnel -p 10.94.2.10 -lp 8000 -da 10.94.2.10 -dp 22 -x lab04-demo >/tmp/lab04-ptunnel-client.log 2>&1 </dev/null & sleep 4; timeout 8 ssh-keyscan -T 5 -p 8000 127.0.0.1 2>&1 | head -12; echo keyscan_pipeline_status:${PIPESTATUS[0]}; cat /tmp/lab04-ptunnel-client.log
+--- stdout ---
+# 127.0.0.1:8000 SSH-2.0-OpenSSH_10.5p1 Debian-1
+# 127.0.0.1:8000 SSH-2.0-OpenSSH_10.5p1 Debian-1
+[127.0.0.1]:8000 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCY1o691JhgHjOgNInhrnCoY+L3seMhJDYuwbwpboOCvdiJTNpB6GTCmeEpLj1MkY+dH7VPhsBS53h8qXXvzy6Ll/PDzsfCuLR2oL/4w0IIef87CTvwVsvwucNnMVQi/CmPAkXGsOSmFYD7vif9RJmMiNmv8yHZ7Xzp3oNHjwm4GKvDp+h6GP8xa9PnyHQf3Kr2Urfn2ItDKKaBKVmdvdeeMOsQAvVTudAh/ef8XW1/OxK0phXNqEbtGyiLJvgDzBP93840wMYLokTI+DDPvF3NOg1ugtbeqi+W7z3SPm0xXNSyZ7Tx/3jibLkGwsZDTVRpF/A9SLTmgQPPL3OVKGDpdTpeWjZrUyQlUF7/oCkaZ/+AwxI5h45xiEsSj2m9DNYuaL6x3ML42YpLQcb9nQakQCfadA4Wx7MA8XaM0sa032wJjKM667vY+HC6NMtQZw6AAyUOoDKEuo6QJ06mfZgASU2O07aHyMA4m037g9v7kTHd1PrMQlDtEMOpPRQ3h28=
+# 127.0.0.1:8000 SSH-2.0-OpenSSH_10.5p1 Debian-1
+[127.0.0.1]:8000 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBD8INkRr588aRlvm3n10ekOp19VAXGQD+LxGiRSWUbOKZwbSrH67eL6Vl+ryDOFnWFO3GA4adKIfjYhOw8YgpgM=
+# 127.0.0.1:8000 SSH-2.0-OpenSSH_10.5p1 Debian-1
+[127.0.0.1]:8000 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBHf1DYWhjEBeqGuOzfuKUrvJ2QmhaaceGPyB9OGFwSj
+# 127.0.0.1:8000 SSH-2.0-OpenSSH_10.5p1 Debian-1
+# 127.0.0.1:8000 SSH-2.0-OpenSSH_10.5p1 Debian-1
+keyscan_pipeline_status:0
+[inf]: Starting ptunnel v 0.72.
+[inf]: (c) 2004-2011 Daniel Stoedle, <daniels@cs.uit.no>
+[inf]: Security features by Sebastien Raveau, <sebastien.raveau@epita.fr>
+[inf]: Relaying packets from incoming TCP streams.
+[err]: Failed to bind listening socket: Address already in use
+[inf]: ptunnel is exiting.
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.2: remove stale Ptunnel client and reserve alternate local port]
+Started UTC: 2026-10-12T07:09:14.664+00:00
+Node: alice
+Command: sudo -n pkill -x ptunnel || true; sleep 1; pgrep -af ptunnel || true; ss -ltnp | grep 8001 || true
+--- stdout ---
+272 bash -lc sudo -n pkill -x ptunnel || true; sleep 1; pgrep -af ptunnel || true; ss -ltnp | grep 8001 || true
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.2: run Ptunnel proxy on Bob with explicit interface]
+Started UTC: 2026-10-12T07:09:16.802+00:00
+Node: bob
+Command: sudo -n pkill -x ptunnel || true; sudo -n ptunnel -x lab04-demo -c eth0 >/tmp/lab04-ptunnel.log 2>&1 </dev/null & sleep 2; pgrep -af ptunnel || true; cat /tmp/lab04-ptunnel.log
+--- stdout ---
+678 bash -lc sudo -n pkill -x ptunnel || true; sudo -n ptunnel -x lab04-demo -c eth0 >/tmp/lab04-ptunnel.log 2>&1 </dev/null & sleep 2; pgrep -af ptunnel || true; cat /tmp/lab04-ptunnel.log
+693 sudo -n ptunnel -x lab04-demo -c eth0
+696 ptunnel -x            -c eth0
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.2: run Ptunnel client on Alice with clean local port]
+Started UTC: 2026-10-12T07:09:28.933+00:00
+Node: alice
+Command: sudo -n ptunnel -p 10.94.2.10 -lp 8001 -da 10.94.2.10 -dp 22 -x lab04-demo -c eth0 >/tmp/lab04-ptunnel-client.log 2>&1 </dev/null & sleep 4; ss -ltnp | grep 8001 || true; timeout 8 ssh-keyscan -T 5 -p 8001 127.0.0.1 2>&1 | head -12; echo keyscan_pipeline_status:${PIPESTATUS[0]}; cat /tmp/lab04-ptunnel-client.log
+--- stdout ---
+LISTEN 0      10           0.0.0.0:8001       0.0.0.0:*   
+keyscan_pipeline_status:124
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.3: install temporary SSH gateway on Frank]
+Started UTC: 2026-10-12T07:09:37.919+00:00
+Node: frank
+Command: sudo -n apt-get update -qq && sudo -n apt-get install -y -qq openssh-server && sudo -n ssh-keygen -A && sudo -n useradd -m -s /bin/bash ali 2>/dev/null || true; sudo -n mkdir -p /home/ali/.ssh; sudo -n chmod 700 /home/ali/.ssh; echo "Gateway account and host keys prepared"
+--- stdout ---
+Preconfiguring packages ...
+Selecting previously unselected package systemd-sysv.
+(Reading database ... 
+(Reading database ... 5%
+(Reading database ... 10%
+(Reading database ... 15%
+(Reading database ... 20%
+(Reading database ... 25%
+(Reading database ... 30%
+(Reading database ... 35%
+(Reading database ... 40%
+(Reading database ... 45%
+(Reading database ... 50%
+(Reading database ... 55%
+(Reading database ... 60%
+(Reading database ... 65%
+(Reading database ... 70%
+(Reading database ... 75%
+(Reading database ... 80%
+(Reading database ... 85%
+(Reading database ... 90%
+(Reading database ... 95%
+(Reading database ... 100%
+(Reading database ... 23036 files and directories currently installed.)
+Preparing to unpack .../00-systemd-sysv_262-1_arm64.deb ...
+Unpacking systemd-sysv (262-1) ...
+Selecting previously unselected package sensible-utils.
+Preparing to unpack .../01-sensible-utils_0.0.26_all.deb ...
+Unpacking sensible-utils (0.0.26) ...
+Selecting previously unselected package dbus-bin.
+Preparing to unpack .../02-dbus-bin_1.16.2-5+b1_arm64.deb ...
+Unpacking dbus-bin (1.16.2-5+b1) ...
+Selecting previously unselected package dbus-session-bus-common.
+Preparing to unpack .../03-dbus-session-bus-common_1.16.2-5_all.deb ...
+Unpacking dbus-session-bus-common (1.16.2-5) ...
+Selecting previously unselected package dbus-daemon.
+Preparing to unpack .../04-dbus-daemon_1.16.2-5+b1_arm64.deb ...
+Unpacking dbus-daemon (1.16.2-5+b1) ...
+Selecting previously unselected package dbus-system-bus-common.
+Preparing to unpack .../05-dbus-system-bus-common_1.16.2-5_all.deb ...
+Unpacking dbus-system-bus-common (1.16.2-5) ...
+Selecting previously unselected package dbus.
+Preparing to unpack .../06-dbus_1.16.2-5+b1_arm64.deb ...
+Unpacking dbus (1.16.2-5+b1) ...
+Selecting previously unselected package libnss-systemd:arm64.
+Preparing to unpack .../07-libnss-systemd_262-1_arm64.deb ...
+Unpacking libnss-systemd:arm64 (262-1) ...
+Selecting previously unselected package libpam-systemd:arm64.
+Preparing to unpack .../08-libpam-systemd_262-1_arm64.deb ...
+Unpacking libpam-systemd:arm64 (262-1) ...
+Selecting previously unselected package ncurses-term.
+Preparing to unpack .../09-ncurses-term_6.6+20260608-2_all.deb ...
+Unpacking ncurses-term (6.6+20260608-2) ...
+Selecting previously unselected package libtext-charwidth-perl:arm64.
+Preparing to unpack .../10-libtext-charwidth-perl_0.04-12+b1_arm64.deb ...
+Unpacking libtext-charwidth-perl:arm64 (0.04-12+b1) ...
+Selecting previously unselected package libtext-wrapi18n-perl.
+Preparing to unpack .../11-libtext-wrapi18n-perl_0.06-11_all.deb ...
+Unpacking libtext-wrapi18n-perl (0.06-11) ...
+Selecting previously unselected package ucf.
+Preparing to unpack .../12-ucf_3.0056_all.deb ...
+Moving old data out of the way
+Unpacking ucf (3.0056) ...
+Selecting previously unselected package dbus-user-session.
+Preparing to unpack .../13-dbus-user-session_1.16.2-5+b1_arm64.deb ...
+Unpacking dbus-user-session (1.16.2-5+b1) ...
+Selecting previously unselected package libwrap0:arm64.
+Preparing to unpack .../14-libwrap0_7.6.q-37_arm64.deb ...
+Unpacking libwrap0:arm64 (7.6.q-37) ...
+Selecting previously unselected package libwtmpdb0.
+Preparing to unpack .../15-libwtmpdb0_0.75.0-6_arm64.deb ...
+Unpacking libwtmpdb0 (0.75.0-6) ...
+Selecting previously unselected package openssh-sftp-server.
+Preparing to unpack .../16-openssh-sftp-server_1%3a10.5p1-1_arm64.deb ...
+Unpacking openssh-sftp-server (1:10.5p1-1) ...
+Selecting previously unselected package runit-helper.
+Preparing to unpack .../17-runit-helper_2.16.7_all.deb ...
+Unpacking runit-helper (2.16.7) ...
+Selecting previously unselected package openssh-server.
+Preparing to unpack .../18-openssh-server_1%3a10.5p1-1_arm64.deb ...
+Unpacking openssh-server (1:10.5p1-1) ...
+Selecting previously unselected package systemd-userdbd.
+Preparing to unpack .../19-systemd-userdbd_262-1_arm64.deb ...
+Unpacking systemd-userdbd (262-1) ...
+Setting up libtext-charwidth-perl:arm64 (0.04-12+b1) ...
+Setting up runit-helper (2.16.7) ...
+Setting up openssh-sftp-server (1:10.5p1-1) ...
+Setting up systemd-sysv (262-1) ...
+Setting up libnss-systemd:arm64 (262-1) ...
+Setting up libtext-wrapi18n-perl (0.06-11) ...
+Setting up libwrap0:arm64 (7.6.q-37) ...
+Setting up sensible-utils (0.0.26) ...
+Setting up dbus-session-bus-common (1.16.2-5) ...
+Setting up libwtmpdb0 (0.75.0-6) ...
+Setting up dbus-system-bus-common (1.16.2-5) ...
+Creating group 'messagebus' with GID 994.
+
+Creating user 'messagebus' (System Message Bus) with UID 994 and GID 994.
+
+Setting up dbus-bin (1.16.2-5+b1) ...
+Setting up ncurses-term (6.6+20260608-2) ...
+Setting up systemd-userdbd (262-1) ...
+Created symlink '/etc/systemd/system/sockets.target.wants/systemd-userdbd.socket' → '/usr/lib/systemd/system/systemd-userdbd.socket'.
+
+Setting up dbus-daemon (1.16.2-5+b1) ...
+Setting up dbus (1.16.2-5+b1) ...
+invoke-rc.d: could not determine current runlevel
+invoke-rc.d: policy-rc.d denied execution of start.
+Setting up ucf (3.0056) ...
+Setting up libpam-systemd:arm64 (262-1) ...
+debconf: unable to initialize frontend: Dialog
+debconf: (Dialog frontend will not work on a dumb terminal, an emacs shell buffer, or without a controlling terminal.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Teletype
+debconf: unable to initialize frontend: Teletype
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Noninteractive
+Setting up openssh-server (1:10.5p1-1) ...
+debconf: unable to initialize frontend: Dialog
+debconf: (Dialog frontend will not work on a dumb terminal, an emacs shell buffer, or without a controlling terminal.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Teletype
+debconf: unable to initialize frontend: Teletype
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Noninteractive
+Creating config file /etc/ssh/sshd_config with new version
+Creating SSH2 RSA key; this may take some time ...
+3072 SHA256:UvmXbCmJzDxnfgnU6yWebXTAbmT9O04ToLRNwDrhN3E root@0adfb7afbcfd (RSA)
+Creating SSH2 ECDSA key; this may take some time ...
+256 SHA256:HVkLDTSGM1X/oIRrL71Upx8MsKpyUHWHJFXntludtT4 root@0adfb7afbcfd (ECDSA)
+Creating SSH2 ED25519 key; this may take some time ...
+256 SHA256:4hyKmM3YW+Ch8EFRUXyZxTFCZzN7/lfmofv2ARvxXuI root@0adfb7afbcfd (ED25519)
+Creating user 'sshd' (sshd user) with UID 993 and GID 65534.
+
+runit: ssh: start action denied by policy-rc.d
+update-rc.d: As per Kali policy, ssh init script is left disabled.
+invoke-rc.d: could not determine current runlevel
+invoke-rc.d: policy-rc.d denied execution of start.
+Setting up dbus-user-session (1.16.2-5+b1) ...
+Processing triggers for libc-bin (2.43-6) ...
+ssh-keygen: generating new host keys: MLDSA44-ED25519 
+Gateway account and host keys prepared
+--- stderr ---
+debconf: unable to initialize frontend: Dialog
+debconf: (Dialog frontend will not work on a dumb terminal, an emacs shell buffer, or without a controlling terminal.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Teletype
+debconf: unable to initialize frontend: Teletype
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Noninteractive
+Exit status: 0
+
+[Exercise 3.2: Ptunnel diagnostics after client socket opened]
+Started UTC: 2026-10-12T07:09:54.968+00:00
+Node: alice
+Command: cat /tmp/lab04-ptunnel-client.log; ss -ntp | grep 8001 || true
+--- stdout ---
+
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.2: Ptunnel proxy diagnostics]
+Started UTC: 2026-10-12T07:09:55.079+00:00
+Node: bob
+Command: cat /tmp/lab04-ptunnel.log; sudo -n pkill -x ptunnel || true
+--- stdout ---
+
+--- stderr ---
+
+Exit status: 0
+
+[Prepare Bob port-80 HTTP server for SSH circuit-gateway exercise]
+Started UTC: 2026-10-12T07:09:56.204+00:00
+Node: bob
+Command: sudo -n pkill -x hts || true; mkdir -p /home/kali/workspace/lab04/bob-www; nohup sudo -n python3 -m http.server 80 --bind 0.0.0.0 --directory /home/kali/workspace/lab04/bob-www >/tmp/lab04-bob-http80.log 2>&1 </dev/null & sleep 1; ss -ltnp | grep ":80 "
+--- stdout ---
+LISTEN 0      5            0.0.0.0:80         0.0.0.0:*
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.3: Alice generate SSH gateway key pair]
+Started UTC: 2026-10-12T07:09:56.376+00:00
+Node: alice
+Command: mkdir -p ~/.ssh; chmod 700 ~/.ssh; ssh-keygen -q -t rsa -b 2048 -N "" -f ~/.ssh/lab04_gateway_key; cat ~/.ssh/lab04_gateway_key.pub
+--- stdout ---
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsrUda6ANQds7SIDudoORg9mDtzVf6yod4m0NlBumg9zpY5lRhVAz7bILcae3PyPr8oJquD+ZbPLP/McUZD1A0RAxu4MeFnmR89vUefOUAs0Qn/YmJ9l2ZTfvvf5MkyZXoTvJ2Z84AkVthywCybVeaH79TvrNV0+nT3fW2xICjhLpdRR8DjC63kj0yMaGXJ/Cfnm3juaomQ1SV9LxcVMbpLls+xXjNFqW/4DHFTvNmI8B8TAmIRrBW5MfdyxtYUTHlrhbv4UDehLPi3hbNhwy1d/DrmOe+S28T8mWLN3tChodkUxzuc+W2eEtTipqtgP55gNlAMQ1xLaSTms+tYniZ kali@7886346ece84
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.3: authorize Alice key and start Frank restricted SSH gateway]
+Started UTC: 2026-10-12T07:09:56.484+00:00
+Node: frank
+Command: sudo -n sh -c 'echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsrUda6ANQds7SIDudoORg9mDtzVf6yod4m0NlBumg9zpY5lRhVAz7bILcae3PyPr8oJquD+ZbPLP/McUZD1A0RAxu4MeFnmR89vUefOUAs0Qn/YmJ9l2ZTfvvf5MkyZXoTvJ2Z84AkVthywCybVeaH79TvrNV0+nT3fW2xICjhLpdRR8DjC63kj0yMaGXJ/Cfnm3juaomQ1SV9LxcVMbpLls+xXjNFqW/4DHFTvNmI8B8TAmIRrBW5MfdyxtYUTHlrhbv4UDehLPi3hbNhwy1d/DrmOe+S28T8mWLN3tChodkUxzuc+W2eEtTipqtgP55gNlAMQ1xLaSTms+tYniZ kali@7886346ece84" >> /home/ali/.ssh/authorized_keys; chown -R ali:ali /home/ali/.ssh; chmod 600 /home/ali/.ssh/authorized_keys; /usr/sbin/sshd -p 1080 -o PidFile=/tmp/lab04_sshd.pid -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o AllowTcpForwarding=no -o PermitRootLogin=no'; ss -ltnp | grep ":1080 "
+--- stdout ---
+LISTEN 0      128          0.0.0.0:1080       0.0.0.0:*   
+LISTEN 0      128             [::]:1080          [::]:*
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.3: Alice authenticates to Frank gateway]
+Started UTC: 2026-10-12T07:09:56.673+00:00
+Node: alice
+Command: ssh -p 1080 -i ~/.ssh/lab04_gateway_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 ali@10.94.1.1 id
+--- stdout ---
+uid=1001(ali) gid=1001(ali) groups=1001(ali)
+--- stderr ---
+Warning: Permanently added '[10.94.1.1]:1080' (ED25519) to the list of known hosts.
+Exit status: 0
+
+[Exercise 3.3: dynamic SOCKS forwarding denied by gateway policy]
+Started UTC: 2026-10-12T07:09:57.868+00:00
+Node: alice
+Command: ssh -p 1080 -i ~/.ssh/lab04_gateway_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ExitOnForwardFailure=yes -f -N -D 1080 ali@10.94.1.1; sleep 1; curl --max-time 5 -v --socks5-hostname 127.0.0.1:1080 http://10.94.2.10/ 2>&1; rc=$?; echo socks_without_forwarding_status:$rc; pkill -f "ssh -p 1080 .* -D 1080" || true
+--- stdout ---
+*   Trying 127.0.0.1:1080...
+* Failed to receive SOCKS response, proxy closed connection
+* closing connection #0
+curl: (97) Failed to receive SOCKS response, proxy closed connection
+socks_without_forwarding_status:97
+--- stderr ---
+Warning: Permanently added '[10.94.1.1]:1080' (ED25519) to the list of known hosts.
+Exit status: 143
+
+[Exercise 3.3: permit only Bob HTTP through Frank circuit gateway]
+Started UTC: 2026-10-12T07:09:58.003+00:00
+Node: frank
+Command: sudo -n kill "$(cat /tmp/lab04_sshd.pid)"; sudo -n /usr/sbin/sshd -p 1080 -o PidFile=/tmp/lab04_sshd.pid -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o AllowTcpForwarding=yes -o PermitOpen=10.94.2.10:80 -o PermitRootLogin=no; ss -ltnp | grep ":1080 "
+--- stdout ---
+LISTEN 0      128          0.0.0.0:1080       0.0.0.0:*   
+LISTEN 0      128             [::]:1080          [::]:*
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.3: verify SOCKS can reach Bob HTTP only]
+Started UTC: 2026-10-12T07:09:59.204+00:00
+Node: alice
+Command: ssh -p 1080 -i ~/.ssh/lab04_gateway_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ExitOnForwardFailure=yes -f -N -D 1080 ali@10.94.1.1; sleep 1; curl --max-time 5 -fsS --socks5-hostname 127.0.0.1:1080 http://10.94.2.10/; if curl --max-time 3 -fsS --socks5-hostname 127.0.0.1:1080 http://10.94.2.10:22/; then echo "unexpected access to SSH through PermitOpen"; exit 1; else echo "SSH destination denied by PermitOpen"; fi; pkill -f "ssh -p 1080 .* -D 1080" || true
+--- stdout ---
+Bob external HTTP service
+SSH destination denied by PermitOpen
+--- stderr ---
+Warning: Permanently added '[10.94.1.1]:1080' (ED25519) to the list of known hosts.
+curl: (97) Failed to receive SOCKS response, proxy closed connection
+Exit status: 143
+
+[Exercise 3.1: hts foreground mode on Bob and tunnel test from Alice]
+Started UTC: 2026-10-12T07:10:26.220+00:00
+Node: bob
+Command: sudo -n pkill -x python3 || true; sudo -n pkill -x hts || true; nohup sudo -n hts -w -F 10.94.2.10:22 0.0.0.0:80 >/tmp/lab04-hts-foreground.log 2>&1 </dev/null & sleep 2; pgrep -af hts || true; ss -ltnp | grep ":80 "; cat /tmp/lab04-hts-foreground.log
+--- stdout ---
+767 bash -lc sudo -n pkill -x python3 || true; sudo -n pkill -x hts || true; nohup sudo -n hts -w -F 10.94.2.10:22 0.0.0.0:80 >/tmp/lab04-hts-foreground.log 2>&1 </dev/null & sleep 2; pgrep -af hts || true; ss -ltnp | grep ":80 "; cat /tmp/lab04-hts-foreground.log
+785 sudo -n hts -w -F 10.94.2.10:22 0.0.0.0:80
+788 hts -w -F 10.94.2.10:22 0.0.0.0 80
+LISTEN 0      1            0.0.0.0:80         0.0.0.0:*
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.1: Alice htc foreground mode with SSH host-key probe]
+Started UTC: 2026-10-12T07:10:34.373+00:00
+Node: alice
+Command: sudo -n pkill -x htc || true; nohup htc -w -F 17777 10.94.2.10:80 >/tmp/lab04-htc-foreground.log 2>&1 </dev/null & sleep 3; timeout 8 ssh-keyscan -T 5 -p 17777 127.0.0.1 2>&1 | head -12; echo keyscan_status:${PIPESTATUS[0]}; cat /tmp/lab04-htc-foreground.log
+--- stdout ---
+keyscan_status:1
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.1: hts and htc diagnostics]
+Started UTC: 2026-10-12T07:10:34.498+00:00
+Node: bob
+Command: cat /tmp/lab04-hts-foreground.log; pgrep -af hts || true
+--- stdout ---
+785 sudo -n hts -w -F 10.94.2.10:22 0.0.0.0:80
+788 hts -w -F 10.94.2.10:22 0.0.0.0 80
+792 bash -lc cat /tmp/lab04-hts-foreground.log; pgrep -af hts || true
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.1: stop httptunnel client and server]
+Started UTC: 2026-10-12T07:10:34.608+00:00
+Node: alice
+Command: sudo -n pkill -x htc || true
+--- stdout ---
+
+--- stderr ---
+
+Exit status: 0
+
+[Exercise 3.1: stop httptunnel server]
+Started UTC: 2026-10-12T07:10:34.713+00:00
+Node: bob
+Command: sudo -n pkill -x hts || true; pgrep -af hts || true
+--- stdout ---
+806 bash -lc sudo -n pkill -x hts || true; pgrep -af hts || true
+--- stderr ---
+
+Exit status: 0
+
+[Teardown: temporary Frank routed topology]
+Started UTC: 2026-10-12T07:10:53.421+00:00
+Command: docker compose -p lab04route -f /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab04/.tmp_build/docker-compose.yml down --remove-orphans --volumes
+--- stdout ---
+
+--- stderr ---
+ Container lab04route-bob-1 Stopping 
+ Container lab04route-frank-1 Stopping 
+ Container lab04route-alice-1 Stopping 
+ Container lab04route-bob-1 Stopped 
+ Container lab04route-bob-1 Removing 
+ Container lab04route-alice-1 Stopped 
+ Container lab04route-alice-1 Removing 
+ Container lab04route-frank-1 Stopped 
+ Container lab04route-frank-1 Removing 
+ Container lab04route-bob-1 Removed 
+ Container lab04route-alice-1 Removed 
+ Container lab04route-frank-1 Removed 
+ Network lab04route_lan_a Removing 
+ Network lab04route_lan_b Removing 
+ Network lab04route_lan_b Removed 
+ Network lab04route_lan_a Removed
+Exit status: 0
+
+
+[Exercise 3.4: locate the required course Apache proxy configuration files]
+Started UTC: 2026-10-12T07:17:12.649+00:00
+Node: host filesystem
+Command: find "/Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab04" -maxdepth 5 -type f \( -name "frank-apache2-config" -o -name "bob-apache2-config" \) -print; for f in frank-apache2-config bob-apache2-config; do test -f "/Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab04/$f" || echo "MISSING COURSE INPUT: $f"; done
+--- stdout ---
+MISSING COURSE INPUT: frank-apache2-config
+MISSING COURSE INPUT: bob-apache2-config
+--- stderr ---
+
+Exit status: 0
+Elapsed seconds: 0.000
+
+[Run closure]
+Closed UTC: 2026-10-12T07:17:12+00:00
+Coverage: Executed the temporary Alice–Frank–Bob routed topology, routing/firewall/conntrack/rate-limit/spoofing/traffic-shaping checks, and the SSH SOCKS gateway restriction checks. HTTPtunnel and Ptunnel did not complete an SSH relay in this Docker topology; the failed attempts and diagnostics are recorded. Required frank-apache2-config and bob-apache2-config files are missing, so the final Apache reverse-proxy exercise was blocked. Temporary topology was torn down successfully. No solution PDF was generated or changed.

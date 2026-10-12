@@ -1,573 +1,595 @@
-================================================================================
-AVVIO ESECUZIONE LABORATORIO 02: CRITTOGRAFIA DI BASE (OPENSSL)
-Data: Wed Oct  7 09:38:11 CEST 2026
-OpenSSL Version: OpenSSL 3.5.7 9 Jun 2026 (Library: OpenSSL 3.5.7 9 Jun 2026)
-Host Kernel: Darwin 25.6.0 arm64
-Directory di lavoro: /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build
-================================================================================
+LAB 02 EXECUTION TRACE — supplied handout v1.1 (31/10/2023)
+Started UTC: 2026-10-12T07:00:04.583+00:00
+Handout SHA256: 7930a12cbe3c544f450c7ad211b4b8d4ea4cf06afae4087ef2e0630b0ffb70df
+Execution node: Chuck (Kali container), isolated compose network; working directory /home/kali/workspace/lab02
+Generated helper fixtures are labeled; missing course ZIP contents are not represented as official inputs.
 
-################################################################################
-[FASE 0: PREPARAZIONE AMBIENTE E SCRIPT DI SUPPORTO]
-################################################################################
-hex string is too short, padding with zero bytes to length
-[FASE 0] File di supporto generati con successo.
+[Preflight: crypto and filesystem tools]
+Started UTC: 2026-10-12T07:00:04.584+00:00
+Node: chuck
+Command: date -u; id; openssl version -a; python3 --version; hashdeep -V; command -v sha1sum; command -v time; openssl list -cipher-algorithms | grep -E -i "AES-128-GCM|AES-128-CBC|RC4|DES-CBC" | head -20
+--- stdout ---
+Mon Oct 12 07:00:04 UTC 2026
+uid=1000(kali) gid=1000(kali) groups=1000(kali),27(sudo),102(wireshark)
+OpenSSL 3.6.4 25 Aug 2026 (Library: OpenSSL 3.6.4 25 Aug 2026)
+built on: Tue Aug 25 18:40:24 2026 UTC
+platform: debian-arm64
+options:  bn(64,64)
+compiler: gcc -fPIC -pthread -Wa,--noexecstack -Wall -fzero-call-used-regs=used-gpr -Wa,--noexecstack -g -O2 -Werror=implicit-function-declaration -ffile-prefix-map=/build/reproducible-path/openssl-3.6.4=. -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -mbranch-protection=standard -DOPENSSL_USE_NODELETE -DOPENSSL_PIC -DOPENSSL_BUILDING_OPENSSL -DZLIB -DZSTD -DNDEBUG -Wdate-time -D_FORTIFY_SOURCE=2
+OPENSSLDIR: "/usr/lib/ssl"
+ENGINESDIR: "/usr/lib/aarch64-linux-gnu/engines-3"
+MODULESDIR: "/usr/lib/aarch64-linux-gnu/ossl-modules"
+Seeding source: os-specific
+CPUINFO: OPENSSL_armcap=0x8fd
+Python 3.14.7
+4.4
+/usr/bin/sha1sum
+time
+  AES-128-CBC
+  aes128 => AES-128-CBC
+  des => DES-CBC
+  DES-CBC
+  RC4
+  RC4-40
+  RC4-HMAC-MD5
+  { 2.16.840.1.101.3.4.1.6, aes-128-gcm, id-aes128-GCM } @ default
+  { 2.16.840.1.101.3.4.1.2, AES-128-CBC, AES128 } @ default
+  AES-128-CBC-CTS @ default
+  AES-128-GCM-SIV @ default
+  AES-128-CBC-HMAC-SHA1-ETM @ default
+  AES-128-CBC-HMAC-SHA256-ETM @ default
+  AES-128-CBC-HMAC-SHA512-ETM @ default
+  { 1.3.14.3.2.7, DES, DES-CBC } @ legacy
+  { 1.2.840.113549.3.4, RC4 } @ legacy
+  RC4-40 @ legacy
+  RC4-HMAC-MD5 @ legacy
+--- stderr ---
 
-################################################################################
-[ESERCIZIO 1: ALGORITMI DI CIFRATURA SIMMETRICA]
-################################################################################
-=== Es 1.1: Creazione plaintext di 32 byte ===
--rw-r--r--@ 1 nicolabeccaceci  staff  32 Oct  7 09:38 /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/ptext
-      32 /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/ptext
+Exit status: 0
+Elapsed seconds: 0.259
 
-=== Es 1.1: Cifratura AES-128-CBC ===
-salt=0000000000000000
+[Exercise 1.1: create exactly 32-byte plaintext]
+Started UTC: 2026-10-12T07:00:04.843+00:00
+Node: chuck
+Command: printf '0123456789ABCDEF0123456789ABCDEF' > ptext; wc -c ptext; od -An -tx1 ptext
+--- stdout ---
+32 ptext
+ 30 31 32 33 34 35 36 37 38 39 41 42 43 44 45 46
+*
+--- stderr ---
+
+Exit status: 0
+Elapsed seconds: 0.149
+
+[Exercise 1.1: AES-128-CBC with explicit key and IV]
+Started UTC: 2026-10-12T07:00:04.992+00:00
+Node: chuck
+Command: openssl enc -e -in ptext -out ctext.aes128 -K 00112233445566778899aabbccddeeff -iv 0102030405060708090a0b0c0d0e0f10 -aes-128-cbc -p; wc -c ctext.aes128
+--- stdout ---
+salt=904760C1FFFF0000
 key=00112233445566778899AABBCCDDEEFF
 iv =0102030405060708090A0B0C0D0E0F10
+48 ctext.aes128
+--- stderr ---
 
-=== Es 1.1: Cifratura DES-CBC ===
-salt=0000000000000000
+Exit status: 0
+Elapsed seconds: 0.124
+
+[Exercise 1.1: DES-CBC, RC4, 3DES-CBC, and ChaCha20]
+Started UTC: 2026-10-12T07:00:05.117+00:00
+Node: chuck
+Command: set +e; openssl enc -provider default -provider legacy -e -in ptext -out ctext.des -K 0123456789abcdef -iv 1234567890abcdef -des-cbc -p; echo DES_status:$?; openssl enc -provider default -provider legacy -e -in ptext -out ctext.rc4 -K 00112233445566778899aabbccddeeff -rc4 -p; echo RC4_status:$?; openssl enc -provider default -provider legacy -e -in ptext -out ctext.des3 -K 0123456789abcdef0123456789abcdef0123456789abcdef -iv 1234567890abcdef -des-ede3-cbc -p; echo 3DES_status:$?; openssl enc -e -in ptext -out ctext.chacha20 -K 00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff -iv 0102030405060708090a0b0c0d0e0f10 -chacha20 -p; echo ChaCha20_status:$?; wc -c ctext.*
+--- stdout ---
+salt=60AAF5D4FFFF0000
 key=0123456789ABCDEF
-iv =123456789ABCDEF0
-
-=== Es 1.1: Cifratura RC4 (Stream Cipher) ===
-salt=0000000000000000
+iv =1234567890ABCDEF
+DES_status:0
+salt=D0663FD0FFFF0000
 key=00112233445566778899AABBCCDDEEFF
-
-=== Es 1.1: Cifratura 3DES (DES-EDE3-CBC) ===
-salt=0000000000000000
+RC4_status:0
+salt=407270F8FFFF0000
 key=0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
-iv =123456789ABCDEF0
-
-=== Es 1.1: Cifratura ChaCha20 ===
-hex string is too short, padding with zero bytes to length
-salt=0000000000000000
-key=00112233445566778899AABBCCDDEEFF00000000000000000000000000000000
+iv =1234567890ABCDEF
+3DES_status:0
+salt=C0F45DD4FFFF0000
+key=00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF
 iv =0102030405060708090A0B0C0D0E0F10
+ChaCha20_status:0
+ 48 ctext.aes128
+ 32 ctext.chacha20
+ 40 ctext.des
+ 40 ctext.des3
+ 32 ctext.rc4
+192 total
+--- stderr ---
 
-=== Es 1.1: Confronto dimensioni file cifrati rispetto a ptext (32 byte) ===
--rw-r--r--@ 1 nicolabeccaceci  staff  48 Oct  7 09:38 /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/ctext.aes128
--rw-r--r--@ 1 nicolabeccaceci  staff  32 Oct  7 09:34 /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/ctext.aes128.nopad
--rw-r--r--@ 1 nicolabeccaceci  staff   0 Oct  7 09:34 /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/ctext.bad
--rw-r--r--@ 1 nicolabeccaceci  staff  32 Oct  7 09:38 /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/ctext.chacha20
--rw-r--r--@ 1 nicolabeccaceci  staff  40 Oct  7 09:38 /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/ctext.des
--rw-r--r--@ 1 nicolabeccaceci  staff  40 Oct  7 09:38 /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/ctext.des3
--rw-r--r--@ 1 nicolabeccaceci  staff  64 Oct  7 09:34 /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/ctext.kdf
--rw-r--r--@ 1 nicolabeccaceci  staff  32 Oct  7 09:38 /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/ctext.rc4
--rw-r--r--@ 1 nicolabeccaceci  staff  32 Oct  7 09:38 /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/ptext
+Exit status: 0
+Elapsed seconds: 0.146
 
-=== Es 1.1: Cifratura AES-128-CBC con opzione -nopad ===
-salt=0000000000000000
+[Exercise 1.1: decrypt and compare successful cipher outputs]
+Started UTC: 2026-10-12T07:00:05.262+00:00
+Node: chuck
+Command: set -e; openssl enc -d -in ctext.aes128 -out dtext.aes128 -K 00112233445566778899aabbccddeeff -iv 0102030405060708090a0b0c0d0e0f10 -aes-128-cbc; openssl enc -provider default -provider legacy -d -in ctext.des -out dtext.des -K 0123456789abcdef -iv 1234567890abcdef -des-cbc; openssl enc -provider default -provider legacy -d -in ctext.rc4 -out dtext.rc4 -K 00112233445566778899aabbccddeeff -rc4; openssl enc -provider default -provider legacy -d -in ctext.des3 -out dtext.des3 -K 0123456789abcdef0123456789abcdef0123456789abcdef -iv 1234567890abcdef -des-ede3-cbc; openssl enc -d -in ctext.chacha20 -out dtext.chacha20 -K 00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff -iv 0102030405060708090a0b0c0d0e0f10 -chacha20; for f in dtext.*; do cmp ptext "$f" && echo "$f: identical"; done
+--- stdout ---
+dtext.aes128: identical
+dtext.chacha20: identical
+dtext.des: identical
+dtext.des3: identical
+dtext.rc4: identical
+--- stderr ---
+
+Exit status: 0
+Elapsed seconds: 0.152
+
+[Exercise 1.1: no-padding behavior for aligned and unaligned messages]
+Started UTC: 2026-10-12T07:00:05.414+00:00
+Node: chuck
+Command: set +e; openssl enc -e -in ptext -out ctext.nopad -K 00112233445566778899aabbccddeeff -iv 0102030405060708090a0b0c0d0e0f10 -aes-128-cbc -nopad -p; echo aligned_status:$?; printf x >> ptext; openssl enc -e -in ptext -out ctext.bad -K 00112233445566778899aabbccddeeff -iv 0102030405060708090a0b0c0d0e0f10 -aes-128-cbc -nopad -p; echo unaligned_status:$?
+--- stdout ---
+salt=309A1CF5FFFF0000
 key=00112233445566778899AABBCCDDEEFF
 iv =0102030405060708090A0B0C0D0E0F10
--rw-r--r--@ 1 nicolabeccaceci  staff  32 Oct  7 09:38 /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/ctext.aes128.nopad
-
-=== Es 1.1: Test -nopad su messaggio non multiplo di 16 byte (fallimento atteso) ===
+aligned_status:0
+salt=60759CF0FFFF0000
+key=00112233445566778899AABBCCDDEEFF
+iv =0102030405060708090A0B0C0D0E0F10
+unaligned_status:1
+--- stderr ---
 bad encrypt
-806189F301000000:error:1C80006B:Provider routines:ossl_cipher_generic_block_final:wrong final block length:providers/implementations/ciphers/ciphercommon.c:442:
-salt=0000000000000000
-key=00112233445566778899AABBCCDDEEFF
-iv =0102030405060708090A0B0C0D0E0F10
-Codice uscita openssl con padding errato: 1
+404D1D81FFFF0000:error:1C80006B:Provider routines:ossl_cipher_generic_block_final:wrong final block length:providers/implementations/ciphers/ciphercommon.c:945:
+Exit status: 0
+Elapsed seconds: 0.126
 
-=== Es 1.1: Decifratura di tutti i file cifrati ===
-salt=0000000000000000
-key=00112233445566778899AABBCCDDEEFF
-iv =0102030405060708090A0B0C0D0E0F10
-salt=0000000000000000
-key=0123456789ABCDEF
-iv =123456789ABCDEF0
-salt=0000000000000000
-key=00112233445566778899AABBCCDDEEFF
-salt=0000000000000000
-key=0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
-iv =123456789ABCDEF0
-hex string is too short, padding with zero bytes to length
-salt=0000000000000000
-key=00112233445566778899AABBCCDDEEFF00000000000000000000000000000000
-iv =0102030405060708090A0B0C0D0E0F10
-Verifica integrità decifratura (diff con ptext):
-Files /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/ptext and /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/dtext.aes128 are identical
-Files /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/ptext and /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/dtext.des are identical
-Files /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/ptext and /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/dtext.rc4 are identical
-Files /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/ptext and /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/dtext.des3 are identical
-Files /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/ptext and /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/dtext.chacha20 are identical
+[Exercise 1.1: passphrase key derivation]
+Started UTC: 2026-10-12T07:00:05.541+00:00
+Node: chuck
+Command: printf "key derivation sample\n" > kdf.txt; openssl enc -e -pbkdf2 -in kdf.txt -out kdf.enc -aes-128-cbc -pass pass:classroom-demo -p; openssl enc -d -pbkdf2 -in kdf.enc -out kdf.dec -aes-128-cbc -pass pass:classroom-demo; cmp kdf.txt kdf.dec
+--- stdout ---
+salt=68C1C0BE497695C0
+key=A682F127D80C1660A65F0AC99C6A856A
+iv =BC3CFA499A1E2999C463898210099045
+--- stderr ---
 
-=== Es 1.1: Cifratura con KDF (Key Derivation Function da passphrase) ===
-*** WARNING : deprecated key derivation used.
-Using -iter or -pbkdf2 would be better.
-salt=F4A51A83DD8847B1
-key=45ACF81095749886D68D92265F32F387
-iv =E2D327363D6905E36BCDEF942C76C513
+Exit status: 0
+Elapsed seconds: 0.142
 
-=== Es 1.2: Attacco a Forza Bruta su messaggio RC4 di Alice ===
-hex string is too short, padding with zero bytes to length
-[GENERATORE ALICE] Generato alice_ctext con chiave casuale a 4-bit (chiave reale segreta per debug: F)
--rw-r--r--@ 1 nicolabeccaceci  staff  49 Oct  7 09:38 alice_ctext
-[BRUTE FORCE] Tentativo di cracking chiave a 4 bit su alice_ctext...
-[SUCCESSO] Chiave identificata: 1
-[CONTENUTO DECIFRATO]: ~�IĄ�e�E�R�'t-�)
-�B(�ˎ���[SUCCESSO] Chiave identificata: 2
-[CONTENUTO DECIFRATO]: �{w�m�>�8�NǶ�%`?�k�=Eن�%�~��[SUCCESSO] Chiave identificata: 3
-[CONTENUTO DECIFRATO]: >�|g�g�砋�=��fh�z�7?�|�T>Ҏ�րv��[SUCCESSO] Chiave identificata: 6
-[CONTENUTO DECIFRATO]: �zm�y�zYᖩ>;�c?�1���LĿw�sD>��2�g[SUCCESSO] Chiave identificata: 8
-[CONTENUTO DECIFRATO]: ^2k�֗�Ez'P�-��<F�_�h;�sK*\�r5=�g𱇨[SUCCESSO] Chiave identificata: A
-[CONTENUTO DECIFRATO]: �=Za5r}�jU�i�f�#�)�Ҡ<�J�u�/�=�4�[SUCCESSO] Chiave identificata: B
-[CONTENUTO DECIFRATO]: 8߲g�2�X-�mP-�>�R�5�ae"�i��5�&�,�v�&�[SUCCESSO] Chiave identificata: C
-[CONTENUTO DECIFRATO]: �$��H�X�鐩)�5�dP5m�p�A7B�L�[SUCCESSO] Chiave identificata: D
-[CONTENUTO DECIFRATO]: �tK�9�(�X#�ȳ�AX7�D�|��N�3�~�e�[SUCCESSO] Chiave identificata: E
-[CONTENUTO DECIFRATO]: o��Cjy�%$1�UV�j�Mӵ�B÷l�iX=�4��a�[SUCCESSO] Chiave identificata: F
-[CONTENUTO DECIFRATO]: Questo e' un messaggio segreto di Alice per Bob!
+[Exercise 1.2: course brute-force inputs missing; inspect and mark blocked]
+Started UTC: 2026-10-12T07:00:05.683+00:00
+Node: chuck
+Command: for f in "Es1.2 Alice Secret Message.py" alice_ctext testbruteforce_enc testbruteforce.enc; do if test -f "$f"; then ls -l "$f"; else echo "MISSING COURSE INPUT: $f (02lab - materiale.zip not supplied)"; fi; done
+--- stdout ---
+MISSING COURSE INPUT: Es1.2 Alice Secret Message.py (02lab - materiale.zip not supplied)
+MISSING COURSE INPUT: alice_ctext (02lab - materiale.zip not supplied)
+MISSING COURSE INPUT: testbruteforce_enc (02lab - materiale.zip not supplied)
+MISSING COURSE INPUT: testbruteforce.enc (02lab - materiale.zip not supplied)
+--- stderr ---
 
-=== Es 1.2: Tentativo di Brute Force su bruteforce_enc (file random) ===
-[TEST SU FILE PSEUDO-RANDOM] Esecuzione attacco su bruteforce_enc:
-Key 0:            a1  8c  19  c5  b7  b7  e5  f7  5a  2f  0e  7b  db  f7  85  1d
-Key 1:            15  b3  64  c4  76  1d  c4  61  e0  66  e4  d8  2e  a2  fc  38
-Key 2:            60  cc  fc  2b  72  e8  e0  65  7f  5f  f6  cb  47  e6  68  56
-Key 3:            55  ba  03  20  bc  60  7c  43  03  ee  85  c3  19  b4  2d  39
-Key 4:            84  c1  2d  ad  97  c0  db  cf  98  a7  8b  fe  61  1f  01  56
-Key 5:            69  0d  86  18  94  ef  ff  fd  98  69  7b  1b  2e  fc  6e  47
-Key 6:            fb  14  fd  31  50  b9  f4  59  b6  04  3b  82  04  8b  a7  8b
-Key 7:            15  06  24  3e  e1  21  ce  18  f1  84  12  63  04  e0  e9  12
-Key 8:            35  28  ec  b5  79  d2  5b  32  dd  de  27  19  b5  72  6c  a3
-Key 9:            f9  d8  9f  85  9b  8f  96  a2  b2  ae  8e  89  f2  60  c5  d7
-Key A:            bc  e2  72  61  f3  66  b8  d7  19  e3  b6  09  c7  96  7b  e7
-Key B:            53  c5  35  3b  78  35  10  fd  49  d2  e0  0e  c2  32  b4  7c
-Key C:            be  e6  a3  dc  3d  86  6a  bf  d6  36  96  9c  ca  81  70  1e
-Key D:            6a  f1  f3  17  62  3e  73  4e  f2  56  7e  85  69  2f  c1  ad
-Key E:            04  d8  7d  4f  60  44  e7  dc  e1  5b  46  52  69  c1  cc  90
-Key F:            3a  6f  e2  2f  dd  68  ad  c0  43  5e  17  0d  b2  4f  fc  fd
-Conclusione: Impossibile distinguere il chiaro senza ridondanza nota a priori (Unicity Distance).
+Exit status: 0
+Elapsed seconds: 0.126
 
-=== Es 1.3: Benchmark Prestazioni Cifrari Simmetrici (File generati con openssl rand) ===
---- Benchmark file: r_100B.dat ---
-AES-128-CBC: real	0m0.007s
-AES-256-CBC: real	0m0.007s
-ChaCha20:    real	0m0.007s
---- Benchmark file: r_10KB.dat ---
-AES-128-CBC: real	0m0.007s
-AES-256-CBC: real	0m0.007s
-ChaCha20:    real	0m0.007s
---- Benchmark file: r_1MB.dat ---
-AES-128-CBC: real	0m0.008s
-AES-256-CBC: real	0m0.008s
-ChaCha20:    real	0m0.008s
---- Benchmark file: r_10MB.dat ---
-AES-128-CBC: real	0m0.019s
-AES-256-CBC: real	0m0.021s
-ChaCha20:    real	0m0.016s
+[Exercise 1.3: generate sizes and time AES encrypt/decrypt samples]
+Started UTC: 2026-10-12T07:00:05.809+00:00
+Node: chuck
+Command: set -e; for spec in 100B:100 10kB:10000 1MB:1000000 100MB:100000000; do name=${spec%%:*}; size=${spec##*:}; openssl rand -out "$name.bin" "$size"; /usr/bin/time -f "$name AES-128-CBC encrypt elapsed=%e user=%U sys=%S" openssl enc -e -aes-128-cbc -in "$name.bin" -out "$name.enc" -K 00112233445566778899aabbccddeeff -iv 0102030405060708090a0b0c0d0e0f10; /usr/bin/time -f "$name AES-128-CBC decrypt elapsed=%e user=%U sys=%S" openssl enc -d -aes-128-cbc -in "$name.enc" -out "$name.dec" -K 00112233445566778899aabbccddeeff -iv 0102030405060708090a0b0c0d0e0f10; cmp "$name.bin" "$name.dec"; done
+--- stdout ---
 
-=== Es 1.3: Esecuzione openssl speed aes-128-cbc ===
-Doing aes-128-cbc ops for 1s on 16 size blocks: 49079743 aes-128-cbc ops in 1.00s
-Doing aes-128-cbc ops for 1s on 64 size blocks: 20951816 aes-128-cbc ops in 0.99s
-Doing aes-128-cbc ops for 1s on 256 size blocks: 6093444 aes-128-cbc ops in 1.00s
-Doing aes-128-cbc ops for 1s on 1024 size blocks: 1561072 aes-128-cbc ops in 0.99s
-Doing aes-128-cbc ops for 1s on 8192 size blocks: 198953 aes-128-cbc ops in 0.99s
-Doing aes-128-cbc ops for 1s on 16384 size blocks: 99454 aes-128-cbc ops in 1.00s
-version: 3.5.7
-built on: Tue Jun  9 19:50:21 2026 UTC
-options: bn(64,64)
-compiler: arm64-apple-darwin20.0.0-clang -fPIC -arch arm64 -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /Users/nicolabeccaceci/miniconda3/include -fdebug-prefix-map=/Users/ec2-user/croot/openssl_1781034588958/work=/usr/local/src/conda/openssl-3.5.7 -fdebug-prefix-map=/Users/nicolabeccaceci/miniconda3=/usr/local/src/conda-prefix -DL_ENDIAN -DOPENSSL_PIC -D_REENTRANT -DOPENSSL_BUILDING_OPENSSL -DNDEBUG -D_FORTIFY_SOURCE=2 -DNDEBUG -isystem /Users/nicolabeccaceci/miniconda3/include -mmacosx-version-min=12.1  -mmacosx-version-min=12.1
-CPUINFO: OPENSSL_armcap=0x87d
-The 'numbers' are in 1000s of bytes per second processed.
-type             16 bytes     64 bytes    256 bytes   1024 bytes   8192 bytes  16384 bytes
-aes-128-cbc     785275.89k  1354460.83k  1559921.66k  1614684.57k  1646285.83k  1629454.34k
+--- stderr ---
+bash: line 1: /usr/bin/time: No such file or directory
+Exit status: 127
+Elapsed seconds: 0.138
 
-################################################################################
-[ESERCIZIO 2: ALGORITMI DI CIFRATURA ASIMMETRICA]
-################################################################################
-=== Es 2.1: Generazione Coppia di Chiavi RSA a 2048 bit per Alice ===
--rw-------@ 1 nicolabeccaceci  staff  1704 Oct  7 09:38 rsa.key.alice
+[Exercise 1.3: OpenSSL speed and available cipher comparison]
+Started UTC: 2026-10-12T07:00:05.947+00:00
+Node: chuck
+Command: openssl speed -seconds 1 aes-128-cbc aes-192-cbc aes-256-cbc chacha20; openssl speed -seconds 1 -provider default -provider legacy des-cbc des-ede3-cbc rc4
+--- stdout ---
 
-=== Es 2.1: Ispezione Struttura Interna Chiave Privata RSA (PKCS#1 / CRT) ===
+--- stderr ---
+speed: Unknown algorithm chacha20
+speed: Unknown algorithm des-ede3-cbc
+Exit status: 1
+Elapsed seconds: 0.127
+
+[Exercise 2.1: RSA 2048 generation, parameters, public key extraction]
+Started UTC: 2026-10-12T07:00:06.075+00:00
+Node: chuck
+Command: openssl genrsa -out rsa.key.alice 2048; openssl rsa -in rsa.key.alice -text -noout | head -28; openssl rsa -in rsa.key.alice -pubout -out rsa.pubkey.alice; openssl pkey -pubin -in rsa.pubkey.alice -text -noout
+--- stdout ---
 Private-Key: (2048 bit, 2 primes)
 modulus:
-    00:df:88:6f:72:1c:87:b8:26:8a:f7:55:7d:30:6d:
-    0f:db:a3:8a:43:5a:52:85:19:12:7b:96:2a:c8:0d:
-    a7:b0:ea:02:3d:a0:4f:e4:34:48:d2:d4:33:98:92:
-    ab:b7:36:ff:ed:4f:c6:f7:fc:4a:94:a5:ad:90:46:
-    1b:77:10:23:94:38:47:ff:d6:e7:f2:5c:42:ec:d7:
-    47:b8:83:ba:7d:24:5a:b9:c7:de:22:92:16:33:f0:
-    50:12:99:41:7f:29:01:68:71:09:e9:f2:17:82:8b:
-    ee:a4:38:19:28:13:48:9e:ac:6d:5d:0d:83:49:67:
-    0b:53:b9:c7:ee:24:31:eb:69:b4:60:f2:27:d7:8d:
-    37:bd:11:ce:40:cc:a3:e9:f2:e2:8f:17:33:ff:d2:
-    0e:8c:72:1d:01:b2:58:7a:f2:8d:ad:12:0c:2a:54:
-    5a:c1:72:ad:a2:69:4f:5f:3f:ec:4c:a4:3f:a0:18:
-    32:0f:6b:94:7d:29:fd:57:4c:6d:e3:46:d4:bf:e2:
-    bf:67:71:29:6c:e1:e6:49:07:12:09:aa:28:c3:e4:
-    39:b2:44:6a:07:5e:d1:6d:7b:aa:b9:f2:1b:11:7f:
-    6a:25:b0:8e:cd:da:d9:3f:e6:8b:fe:40:00:6c:d5:
-    32:6b:85:5b:2b:fe:2a:85:14:81:93:47:b1:b1:e4:
-    a7:6d
+    00:c2:3f:3b:9d:9f:e3:0b:31:a6:51:fa:e5:3c:17:
+    08:84:ce:6e:d3:66:08:d8:8d:dd:5b:67:93:a8:da:
+    c9:68:1b:c8:31:05:ea:99:6b:eb:c0:94:ff:84:db:
+    29:83:9d:7a:99:b7:6b:5e:59:07:a4:a4:6d:9f:3e:
+    2e:a6:24:a1:13:62:70:cf:96:a5:85:50:9d:06:ec:
+    cb:a2:e4:c9:34:ee:07:f8:4e:41:92:3a:4c:37:d5:
+    1b:80:74:6a:61:2b:58:cf:ca:46:40:f2:d8:13:ed:
+    aa:e7:35:21:8c:61:aa:5f:dd:ce:3d:7c:ac:bf:b7:
+    e3:e3:d6:76:29:7b:3e:55:db:f1:52:8e:42:37:95:
+    e2:67:42:3d:01:fc:a1:1a:01:ce:d5:20:e7:b2:48:
+    93:44:e8:93:1f:a0:de:24:98:b5:fb:a2:ae:41:7d:
+    5f:b8:1b:ba:fd:9a:a4:e4:b1:f7:e3:85:d9:01:c4:
+    43:8c:e9:ba:5b:1b:bc:ac:b2:85:21:53:02:9e:20:
+    ec:30:16:8a:5f:23:37:62:a4:7d:84:ec:a9:30:f0:
+    4e:74:ca:eb:05:7b:c2:84:4a:ce:b8:fc:59:fd:df:
+    62:97:84:40:41:88:b7:04:c2:71:5a:13:14:d6:f1:
+    71:79:9e:de:66:e4:45:b0:77:8f:67:cd:b6:ec:fc:
+    e7:77
 publicExponent: 65537 (0x10001)
 privateExponent:
-    5a:01:01:7e:9c:e6:38:cb:ac:20:b2:97:59:ac:50:
-    3a:4b:bb:1c:2b:7e:16:81:65:e3:c5:2f:2c:a5:f2:
-    e3:55:15:d9:e2:76:c8:98:14:ca:6f:0e:e7:5c:07:
-    30:1a:41:2a:38:79:10:d8:d0:de:d1:66:f5:34:85:
-    52:87:79:0b:f1:2d:6c:62:07:ba:9a:53:88:31:96:
-    7b:40:ef:11:fc:55:5b:80:92:7c:b0:fd:a7:a4:17:
-    59:a5:c3:ad:83:c1:41:60:62:71:84:3c:db:1f:a4:
-    d3:12:93:6e:83:75:36:0e:8f:6a:6c:4a:74:7f:bd:
-    1b:d5:2e:1f:41:0b:a8:91:82:9d:c0:60:52:66:a5:
-    00:9f:c3:3d:42:69:2e:ec:3b:2b:20:c1:62:02:d4:
-    c9:75:35:97:30:5e:89:4f:e1:5b:4c:2e:a4:d9:6c:
-    90:7d:e2:0c:cd:7b:09:3c:a7:8c:94:d1:52:c6:f7:
-    0c:6a:3c:76:47:00:db:50:04:97:8f:1c:90:15:8b:
-
-=== Es 2.1: Estrazione e Visualizzazione Chiave Pubblica RSA ===
-writing RSA key
+    13:a3:f6:20:ad:72:75:06:cb:a4:dd:64:01:4b:e8:
+    ea:18:bf:5e:f3:a1:b0:57:c3:ca:82:b2:0c:f0:36:
+    4e:27:04:fa:63:f9:41:13:06:ee:dd:81:ea:8a:88:
+    6b:8c:e8:41:13:a9:31:0c:7a:77:dc:c2:52:c8:24:
+    4a:5b:48:c8:1f:7b:7d:99:e3:59:93:f9:94:a2:2b:
+    c2:e8:34:29:fc:69:64:e3:70:c0:da:d1:2b:12:0a:
 Public-Key: (2048 bit)
 Modulus:
-    00:df:88:6f:72:1c:87:b8:26:8a:f7:55:7d:30:6d:
-    0f:db:a3:8a:43:5a:52:85:19:12:7b:96:2a:c8:0d:
-    a7:b0:ea:02:3d:a0:4f:e4:34:48:d2:d4:33:98:92:
-    ab:b7:36:ff:ed:4f:c6:f7:fc:4a:94:a5:ad:90:46:
-    1b:77:10:23:94:38:47:ff:d6:e7:f2:5c:42:ec:d7:
-    47:b8:83:ba:7d:24:5a:b9:c7:de:22:92:16:33:f0:
-    50:12:99:41:7f:29:01:68:71:09:e9:f2:17:82:8b:
-    ee:a4:38:19:28:13:48:9e:ac:6d:5d:0d:83:49:67:
-    0b:53:b9:c7:ee:24:31:eb:69:b4:60:f2:27:d7:8d:
-    37:bd:11:ce:40:cc:a3:e9:f2:e2:8f:17:33:ff:d2:
-    0e:8c:72:1d:01:b2:58:7a:f2:8d:ad:12:0c:2a:54:
-    5a:c1:72:ad:a2:69:4f:5f:3f:ec:4c:a4:3f:a0:18:
-    32:0f:6b:94:7d:29:fd:57:4c:6d:e3:46:d4:bf:e2:
-    bf:67:71:29:6c:e1:e6:49:07:12:09:aa:28:c3:e4:
-    39:b2:44:6a:07:5e:d1:6d:7b:aa:b9:f2:1b:11:7f:
-    6a:25:b0:8e:cd:da:d9:3f:e6:8b:fe:40:00:6c:d5:
-    32:6b:85:5b:2b:fe:2a:85:14:81:93:47:b1:b1:e4:
-    a7:6d
+    00:c2:3f:3b:9d:9f:e3:0b:31:a6:51:fa:e5:3c:17:
+    08:84:ce:6e:d3:66:08:d8:8d:dd:5b:67:93:a8:da:
+    c9:68:1b:c8:31:05:ea:99:6b:eb:c0:94:ff:84:db:
+    29:83:9d:7a:99:b7:6b:5e:59:07:a4:a4:6d:9f:3e:
+    2e:a6:24:a1:13:62:70:cf:96:a5:85:50:9d:06:ec:
+    cb:a2:e4:c9:34:ee:07:f8:4e:41:92:3a:4c:37:d5:
+    1b:80:74:6a:61:2b:58:cf:ca:46:40:f2:d8:13:ed:
+    aa:e7:35:21:8c:61:aa:5f:dd:ce:3d:7c:ac:bf:b7:
+    e3:e3:d6:76:29:7b:3e:55:db:f1:52:8e:42:37:95:
+    e2:67:42:3d:01:fc:a1:1a:01:ce:d5:20:e7:b2:48:
+    93:44:e8:93:1f:a0:de:24:98:b5:fb:a2:ae:41:7d:
+    5f:b8:1b:ba:fd:9a:a4:e4:b1:f7:e3:85:d9:01:c4:
+    43:8c:e9:ba:5b:1b:bc:ac:b2:85:21:53:02:9e:20:
+    ec:30:16:8a:5f:23:37:62:a4:7d:84:ec:a9:30:f0:
+    4e:74:ca:eb:05:7b:c2:84:4a:ce:b8:fc:59:fd:df:
+    62:97:84:40:41:88:b7:04:c2:71:5a:13:14:d6:f1:
+    71:79:9e:de:66:e4:45:b0:77:8f:67:cd:b6:ec:fc:
+    e7:77
 Exponent: 65537 (0x10001)
+--- stderr ---
+writing RSA key
+Exit status: 0
+Elapsed seconds: 0.199
 
-=== Es 2.2: Cifratura e Decifratura con Chiave RSA (pkeyutl) ===
--rw-r--r--@ 1 nicolabeccaceci  staff  33 Oct  7 09:38 plain
-Cifratura asimmetrica per Alice (con la sua chiave pubblica):
--rw-r--r--@ 1 nicolabeccaceci  staff  256 Oct  7 09:38 encRSA
-Decifratura asimmetrica da parte di Alice (con la sua chiave privata):
-Un grandissimo segreto per Alice
-Files plain and decRSA are identical
-
-=== Es 2.2: Limite Dimensione Messaggio in RSA (Tentativo di Cifratura di file grande) ===
+[Exercise 2.2: RSA encryption, decryption, and input-size limit]
+Started UTC: 2026-10-12T07:00:06.274+00:00
+Node: chuck
+Command: set -e; printf "Un grandissimo segreto" > plain; openssl pkeyutl -encrypt -in plain -pubin -inkey rsa.pubkey.alice -out encRSA; openssl pkeyutl -decrypt -in encRSA -inkey rsa.key.alice -out plain.dec; cmp plain plain.dec; openssl rand -out too-large.bin 246; set +e; openssl pkeyutl -encrypt -in too-large.bin -pubin -inkey rsa.pubkey.alice -out too-large.enc; echo max_input_status:$?; openssl pkeyutl -encrypt -in plain -pubin -inkey rsa.pubkey.alice -out encRSA.oaep -pkeyopt rsa_padding_mode:oaep; openssl pkeyutl -decrypt -in encRSA.oaep -inkey rsa.key.alice -out plain.oaep.dec -pkeyopt rsa_padding_mode:oaep; cmp plain plain.oaep.dec
+--- stdout ---
+max_input_status:1
+--- stderr ---
 Public Key operation error
-806189F301000000:error:0200006E:rsa routines:ossl_rsa_padding_add_PKCS1_type_2_ex:data too large for key size:crypto/rsa/rsa_pk1.c:132:
-Codice uscita cifratura file grande con RSA (fallimento per superamento modulo): 1
+407DA9B4FFFF0000:error:0200006E:rsa routines:ossl_rsa_padding_add_PKCS1_type_2_ex:data too large for key size:../crypto/rsa/rsa_pk1.c:132:
+Exit status: 0
+Elapsed seconds: 0.158
 
-=== Es 2.3: Operazioni di Firma e Verifica Digitale RSA ===
-Creazione firma digitale su 'plain' con chiave privata di Alice:
--rw-r--r--@ 1 nicolabeccaceci  staff  256 Oct  7 09:38 sig.alice
-Verifica e Recupero (verifyrecover) con chiave pubblica di Alice:
-Un grandissimo segreto per Alice
-Verifica formale della firma (verify) con chiave pubblica di Alice:
-Signature Verified Successfully
-Test verifica firma con payload alterato (fallimento atteso):
-806189F301000000:error:030000EA:digital envelope routines:EVP_PKEY_verify:provider signature failure:crypto/evp/signature.c:1176:RSA verify:
-Signature Verification Failure
-Codice uscita verifica firma manomessa: 1
+[Exercise 2.2: assigned Internet PDF download availability]
+Started UTC: 2026-10-12T07:00:06.432+00:00
+Node: chuck
+Command: curl -L --fail --max-time 30 -o chap8.pdf https://cacr.uwaterloo.ca/hac/about/chap8.pdf; rc=$?; echo download_status:$rc; test -s chap8.pdf && file chap8.pdf || true
+--- stdout ---
+download_status:0
+--- stderr ---
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
 
-=== Es 2.4: Generazione Chiavi su Curve Ellittiche (EC / SECG 192-bit) ===
-  secp192k1 : SECG curve over a 192 bit prime field
--rw-------@ 1 nicolabeccaceci  staff  261 Oct  7 09:38 ec.key.alice
-Estrazione chiave pubblica EC di Alice:
-read EC key
-writing EC key
-read EC key
-Public-Key: (192 bit)
-pub:
-    04:0f:e9:90:a4:95:fa:e3:70:36:f4:fb:99:80:73:
-    92:f2:1d:b9:27:6e:b9:6e:f8:61:b7:dc:a8:a8:35:
-    d7:2e:40:cf:4e:1c:da:04:5b:41:e9:d8:c0:22:05:
-    22:73:bf:73
-ASN1 OID: secp192k1
+  0      0   0      0   0      0      0      0                              0
+100 296.3k 100 296.3k   0      0 259.5k      0   00:01   00:01              0
+100 296.3k 100 296.3k   0      0 259.5k      0   00:01   00:01              0
+100 296.3k 100 296.3k   0      0 259.4k      0   00:01   00:01              0
+bash: line 1: file: command not found
+Exit status: 0
+Elapsed seconds: 1.272
 
-=== Es 2.5: Firma e Verifica Digitale ECDSA ===
-Firma digitale con ECDSA su 'plain':
--rw-r--r--@ 1 nicolabeccaceci  staff  56 Oct  7 09:38 ecsig.alice
-Verifica formale ECDSA con chiave pubblica EC:
-Signature Verified Successfully
+[Exercise 2.3: RSA signing and verification]
+Started UTC: 2026-10-12T07:00:07.704+00:00
+Node: chuck
+Command: set -e; openssl dgst -sha256 -sign rsa.key.alice -out sig.alice plain; openssl dgst -sha256 -verify rsa.pubkey.alice -signature sig.alice plain; printf "!" >> plain; set +e; openssl dgst -sha256 -verify rsa.pubkey.alice -signature sig.alice plain; echo modified_message_verify_status:$?
+--- stdout ---
+Verified OK
+Verification failure
+modified_message_verify_status:1
+--- stderr ---
+40DD03BAFFFF0000:error:02000068:rsa routines:ossl_rsa_verify:bad signature:../crypto/rsa/rsa_sign.c:441:
+40DD03BAFFFF0000:error:1C880004:Provider routines:rsa_verify_directly:RSA lib:providers/implementations/signature/rsa_sig.c:1063:
+Exit status: 0
+Elapsed seconds: 0.139
 
-=== Es 2.6: Benchmark Comparativo Prestazioni Asimmetriche (openssl speed) ===
---- Speed RSA (512 vs 1024 vs 2048 vs 4096 bit) ---
-Doing 512 bits private rsa sign ops for 1s: 43849 512 bits private RSA sign ops in 1.00s
-Doing 512 bits public rsa verify ops for 1s: 558241 512 bits public RSA verify ops in 0.99s
-Doing 512 bits public rsa encrypt ops for 1s: 482641 512 bits public RSA encrypt ops in 1.00s
-Doing 512 bits private rsa decrypt ops for 1s: 36907 512 bits private RSA decrypt ops in 0.98s
-Doing 1024 bits private rsa sign ops for 1s: 9847 1024 bits private RSA sign ops in 1.00s
-Doing 1024 bits public rsa verify ops for 1s: 213112 1024 bits public RSA verify ops in 1.00s
-Doing 1024 bits public rsa encrypt ops for 1s: 175674 1024 bits public RSA encrypt ops in 0.92s
-Doing 1024 bits private rsa decrypt ops for 1s: 7530 1024 bits private RSA decrypt ops in 0.86s
-Doing 2048 bits private rsa sign ops for 1s: 682 2048 bits private RSA sign ops in 0.54s
-Doing 2048 bits public rsa verify ops for 1s: 45669 2048 bits public RSA verify ops in 0.84s
-Doing 2048 bits public rsa encrypt ops for 1s: 49043 2048 bits public RSA encrypt ops in 0.88s
-Doing 2048 bits private rsa decrypt ops for 1s: 1604 2048 bits private RSA decrypt ops in 1.00s
+[Exercises 2.4–2.5: SECG 192-bit EC key and ECDSA signature]
+Started UTC: 2026-10-12T07:00:07.843+00:00
+Node: chuck
+Command: set -e; openssl ecparam -name prime192v1 -genkey -noout -out ec.key.alice; openssl ec -in ec.key.alice -pubout -out ec.pubkey.alice; printf "ECDSA lab message\n" > ecmsg; openssl dgst -sha256 -sign ec.key.alice -out ecsig ecmsg; openssl dgst -sha256 -verify ec.pubkey.alice -signature ecsig ecmsg
+--- stdout ---
+Verified OK
+--- stderr ---
+
+Exit status: 0
+Elapsed seconds: 0.141
+
+[Exercise 2.6: asymmetric speed samples]
+Started UTC: 2026-10-12T07:00:07.985+00:00
+Node: chuck
+Command: openssl speed -seconds 1 rsa512 rsa1024 rsa2048 rsa4096 ecdsap160 ecdsap256
+--- stdout ---
+version: 3.6.4
+built on: Tue Aug 25 18:40:24 2026 UTC
+options: bn(64,64)
+compiler: gcc -fPIC -pthread -Wa,--noexecstack -Wall -fzero-call-used-regs=used-gpr -Wa,--noexecstack -g -O2 -Werror=implicit-function-declaration -ffile-prefix-map=/build/reproducible-path/openssl-3.6.4=. -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -mbranch-protection=standard -DOPENSSL_USE_NODELETE -DOPENSSL_PIC -DOPENSSL_BUILDING_OPENSSL -DZLIB -DZSTD -DNDEBUG -Wdate-time -D_FORTIFY_SOURCE=2
+CPUINFO: OPENSSL_armcap=0x8fd
+                   sign    verify    encrypt   decrypt   sign/s verify/s  encr./s  decr./s
+rsa   512 bits 0.000024s 0.000002s 0.000002s 0.000029s  40960.0 549799.0 429728.4  34041.0
+rsa  1024 bits 0.000106s 0.000005s 0.000005s 0.000108s   9401.0 207304.0 186200.0   9247.0
+rsa  2048 bits 0.000617s 0.000016s 0.000016s 0.000634s   1620.0  63522.8  61999.0   1578.2
+rsa  4096 bits 0.003861s 0.000057s 0.000058s 0.003900s    259.0  17660.0  17174.0    256.4
+                              sign    verify    sign/s verify/s
+ 160 bits ecdsa (secp160r1)   0.0002s   0.0002s   6327.0   6015.0
+ 256 bits ecdsa (nistp256)   0.0000s   0.0001s  51022.0  16924.0
+                               keygen    encaps    decaps keygens/s  encaps/s  decaps/s
+                     rsa512 0.002012s 0.000003s 0.000030s     497.0  306824.2   32864.0
+                    rsa1024 0.012469s 0.000006s 0.000112s      80.2  155738.1    8929.0
+                    rsa2048 0.051000s 0.000018s 0.000619s      19.6   56881.0    1615.0
+                    rsa4096 0.376667s 0.000064s 0.004156s       2.7   15545.0     240.6
+                               keygen     signs    verify keygens/s    sign/s  verify/s
+                     rsa512 0.002000s 0.000024s 0.000002s     500.0   42304.0  569281.0
+                    rsa1024 0.011882s 0.000102s 0.000005s      84.2    9765.0  194760.0
+                    rsa2048 0.049048s 0.000736s 0.000023s      20.4    1359.0   43512.0
+                    rsa4096 0.580000s 0.003861s 0.000057s       1.7     259.0   17415.8
+--- stderr ---
+Doing 512 bits private rsa sign ops for 1s: 40960 512 bits private RSA sign ops in 1.00s
+Doing 512 bits public rsa verify ops for 1s: 549799 512 bits public RSA verify ops in 1.00s
+Doing 512 bits public rsa encrypt ops for 1s: 408242 512 bits public RSA encrypt ops in 0.95s
+Doing 512 bits private rsa decrypt ops for 1s: 34041 512 bits private RSA decrypt ops in 1.00s
+Doing 1024 bits private rsa sign ops for 1s: 9401 1024 bits private RSA sign ops in 1.00s
+Doing 1024 bits public rsa verify ops for 1s: 207304 1024 bits public RSA verify ops in 1.00s
+Doing 1024 bits public rsa encrypt ops for 1s: 180614 1024 bits public RSA encrypt ops in 0.97s
+Doing 1024 bits private rsa decrypt ops for 1s: 9247 1024 bits private RSA decrypt ops in 1.00s
+Doing 2048 bits private rsa sign ops for 1s: 1620 2048 bits private RSA sign ops in 1.00s
+Doing 2048 bits public rsa verify ops for 1s: 64158 2048 bits public RSA verify ops in 1.01s
+Doing 2048 bits public rsa encrypt ops for 1s: 60759 2048 bits public RSA encrypt ops in 0.98s
+Doing 2048 bits private rsa decrypt ops for 1s: 1594 2048 bits private RSA decrypt ops in 1.01s
 Doing 4096 bits private rsa sign ops for 1s: 259 4096 bits private RSA sign ops in 1.00s
-Doing 4096 bits public rsa verify ops for 1s: 17588 4096 bits public RSA verify ops in 1.00s
-Doing 4096 bits public rsa encrypt ops for 1s: 16616 4096 bits public RSA encrypt ops in 0.97s
-Doing 4096 bits private rsa decrypt ops for 1s: 247 4096 bits private RSA decrypt ops in 0.98s
-Doing rsa512 keygen ops for 1s: 471 rsa512 KEM keygen ops in 0.89s
-Doing rsa512 encaps ops for 1s: 366160 rsa512 KEM encaps ops in 0.94s
-Doing rsa512 decaps ops for 1s: 41177 rsa512 KEM decaps ops in 0.95s
-Doing rsa1024 keygen ops for 1s: 99 rsa1024 KEM keygen ops in 0.99s
-Doing rsa1024 encaps ops for 1s: 177386 rsa1024 KEM encaps ops in 1.00s
-Doing rsa1024 decaps ops for 1s: 9804 rsa1024 KEM decaps ops in 1.00s
-Doing rsa2048 keygen ops for 1s: 23 rsa2048 KEM keygen ops in 1.01s
-Doing rsa2048 encaps ops for 1s: 58554 rsa2048 KEM encaps ops in 0.99s
-Doing rsa2048 decaps ops for 1s: 1585 rsa2048 KEM decaps ops in 0.99s
-Doing rsa4096 keygen ops for 1s: 2 rsa4096 KEM keygen ops in 1.54s
-Doing rsa4096 encaps ops for 1s: 16913 rsa4096 KEM encaps ops in 1.00s
-Doing rsa4096 decaps ops for 1s: 249 rsa4096 KEM decaps ops in 0.98s
-Doing rsa512 keygen ops for 1s: 495 rsa512 signature keygen ops in 0.96s
-Doing rsa512 signs ops for 1s: 43396 rsa512 signature sign ops in 0.99s
-Doing rsa512 verify ops for 1s: 555105 rsa512 signature verify ops in 0.99s
-Doing rsa1024 keygen ops for 1s: 101 rsa1024 signature keygen ops in 0.98s
-Doing rsa1024 signs ops for 1s: 9734 rsa1024 signature sign ops in 0.99s
-Doing rsa1024 verify ops for 1s: 206651 rsa1024 signature verify ops in 0.99s
-Doing rsa2048 keygen ops for 1s: 16 rsa2048 signature keygen ops in 1.02s
-Doing rsa2048 signs ops for 1s: 1627 rsa2048 signature sign ops in 1.01s
-Doing rsa2048 verify ops for 1s: 64724 rsa2048 signature verify ops in 0.99s
-Doing rsa4096 keygen ops for 1s: 2 rsa4096 signature keygen ops in 1.40s
-Doing rsa4096 signs ops for 1s: 252 rsa4096 signature sign ops in 0.98s
-Doing rsa4096 verify ops for 1s: 17694 rsa4096 signature verify ops in 1.00s
-version: 3.5.7
-built on: Tue Jun  9 19:50:21 2026 UTC
-options: bn(64,64)
-compiler: arm64-apple-darwin20.0.0-clang -fPIC -arch arm64 -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /Users/nicolabeccaceci/miniconda3/include -fdebug-prefix-map=/Users/ec2-user/croot/openssl_1781034588958/work=/usr/local/src/conda/openssl-3.5.7 -fdebug-prefix-map=/Users/nicolabeccaceci/miniconda3=/usr/local/src/conda-prefix -DL_ENDIAN -DOPENSSL_PIC -D_REENTRANT -DOPENSSL_BUILDING_OPENSSL -DNDEBUG -D_FORTIFY_SOURCE=2 -DNDEBUG -isystem /Users/nicolabeccaceci/miniconda3/include -mmacosx-version-min=12.1  -mmacosx-version-min=12.1
-CPUINFO: OPENSSL_armcap=0x87d
-                   sign    verify    encrypt   decrypt   sign/s verify/s  encr./s  decr./s
-rsa   512 bits 0.000023s 0.000002s 0.000002s 0.000027s  43849.0 563879.8 482641.0  37660.2
-rsa  1024 bits 0.000102s 0.000005s 0.000005s 0.000114s   9847.0 213112.0 190950.0   8755.8
-rsa  2048 bits 0.000792s 0.000018s 0.000018s 0.000623s   1263.0  54367.9  55730.7   1604.0
-rsa  4096 bits 0.003861s 0.000057s 0.000058s 0.003968s    259.0  17588.0  17129.9    252.0
-                               keygen    encaps    decaps keygens/s  encaps/s  decaps/s
-                     rsa512 0.001890s 0.000003s 0.000023s     529.2  389531.9   43344.2
-                    rsa1024 0.010000s 0.000006s 0.000102s     100.0  177386.0    9804.0
-                    rsa2048 0.043913s 0.000017s 0.000625s      22.8   59145.5    1601.0
-                    rsa4096 0.770000s 0.000059s 0.003936s       1.3   16913.0     254.1
-                               keygen     signs    verify keygens/s    sign/s  verify/s
-                     rsa512 0.001939s 0.000023s 0.000002s     515.6   43834.3  560712.1
-                    rsa1024 0.009703s 0.000102s 0.000005s     103.1    9832.3  208738.4
-                    rsa2048 0.063750s 0.000621s 0.000015s      15.7    1610.9   65377.8
-                    rsa4096 0.700000s 0.003889s 0.000057s       1.4     257.1   17694.0
---- Speed Firma Bassa Sicurezza: RSA 1024 vs DSA 1024 vs ECDSA 160 ---
-Doing 1024 bits private rsa sign ops for 1s: 9772 1024 bits private RSA sign ops in 1.00s
-Doing 1024 bits public rsa verify ops for 1s: 110224 1024 bits public RSA verify ops in 0.70s
-Doing 1024 bits public rsa encrypt ops for 1s: 170863 1024 bits public RSA encrypt ops in 0.94s
-Doing 1024 bits private rsa decrypt ops for 1s: 8955 1024 bits private RSA decrypt ops in 0.97s
-Doing 1024 bits sign dsa ops for 1s: 13066 1024 bits DSA sign ops in 1.00s
-Doing 1024 bits verify dsa ops for 1s: 16856 1024 bits DSA verify ops in 0.98s
-Doing 160 bits sign ecdsa ops for 1s: 7138 160 bits ECDSA sign ops in 1.00s
-Doing 160 bits verify ecdsa ops for 1s: 6750 160 bits ECDSA verify ops in 0.99s
-Doing rsa1024 keygen ops for 1s: 103 rsa1024 KEM keygen ops in 0.99s
-Doing rsa1024 encaps ops for 1s: 159852 rsa1024 KEM encaps ops in 0.93s
-Doing rsa1024 decaps ops for 1s: 9568 rsa1024 KEM decaps ops in 0.99s
-Doing rsa1024 keygen ops for 1s: 102 rsa1024 signature keygen ops in 1.00s
-Doing rsa1024 signs ops for 1s: 9528 rsa1024 signature sign ops in 0.98s
-Doing rsa1024 verify ops for 1s: 212175 rsa1024 signature verify ops in 1.00s
-Doing dsa1024 keygen ops for 1s: 7273 dsa1024 signature keygen ops in 1.00s
-Doing dsa1024 signs ops for 1s: 9989 dsa1024 signature sign ops in 0.99s
-Doing dsa1024 verify ops for 1s: 14994 dsa1024 signature verify ops in 0.98s
-version: 3.5.7
-built on: Tue Jun  9 19:50:21 2026 UTC
-options: bn(64,64)
-compiler: arm64-apple-darwin20.0.0-clang -fPIC -arch arm64 -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /Users/nicolabeccaceci/miniconda3/include -fdebug-prefix-map=/Users/ec2-user/croot/openssl_1781034588958/work=/usr/local/src/conda/openssl-3.5.7 -fdebug-prefix-map=/Users/nicolabeccaceci/miniconda3=/usr/local/src/conda-prefix -DL_ENDIAN -DOPENSSL_PIC -D_REENTRANT -DOPENSSL_BUILDING_OPENSSL -DNDEBUG -D_FORTIFY_SOURCE=2 -DNDEBUG -isystem /Users/nicolabeccaceci/miniconda3/include -mmacosx-version-min=12.1  -mmacosx-version-min=12.1
-CPUINFO: OPENSSL_armcap=0x87d
-                   sign    verify    encrypt   decrypt   sign/s verify/s  encr./s  decr./s
-rsa  1024 bits 0.000102s 0.000006s 0.000006s 0.000108s   9772.0 157462.9 181769.1   9232.0
-                  sign    verify    sign/s verify/s
-dsa 1024 bits 0.000077s 0.000058s  13066.0  17200.0
-                              sign    verify    sign/s verify/s
- 160 bits ecdsa (secp160r1)   0.0001s   0.0001s   7138.0   6818.2
-                               keygen    encaps    decaps keygens/s  encaps/s  decaps/s
-                    rsa1024 0.009612s 0.000006s 0.000103s     104.0  171883.9    9664.6
-                               keygen     signs    verify keygens/s    sign/s  verify/s
-                    rsa1024 0.009804s 0.000103s 0.000005s     102.0    9722.4  212175.0
-                    dsa1024 0.000137s 0.000099s 0.000065s    7273.0   10089.9   15300.0
---- Speed Firma Alta Sicurezza: RSA 2048 vs DSA 2048 vs ECDSA 256 ---
-Doing 2048 bits private rsa sign ops for 1s: 1569 2048 bits private RSA sign ops in 0.99s
-Doing 2048 bits public rsa verify ops for 1s: 63632 2048 bits public RSA verify ops in 0.98s
-Doing 2048 bits public rsa encrypt ops for 1s: 60991 2048 bits public RSA encrypt ops in 0.99s
-Doing 2048 bits private rsa decrypt ops for 1s: 1564 2048 bits private RSA decrypt ops in 0.98s
-Doing 2048 bits sign dsa ops for 1s: 4626 2048 bits DSA sign ops in 0.99s
-Doing 2048 bits verify dsa ops for 1s: 5035 2048 bits DSA verify ops in 0.98s
-Doing 256 bits sign ecdsa ops for 1s: 50828 256 bits ECDSA sign ops in 1.00s
-Doing 256 bits verify ecdsa ops for 1s: 16933 256 bits ECDSA verify ops in 1.00s
-Doing rsa2048 keygen ops for 1s: 25 rsa2048 KEM keygen ops in 1.00s
-Doing rsa2048 encaps ops for 1s: 56345 rsa2048 KEM encaps ops in 0.99s
-Doing rsa2048 decaps ops for 1s: 1606 rsa2048 KEM decaps ops in 0.99s
-Doing rsa2048 keygen ops for 1s: 22 rsa2048 signature keygen ops in 1.02s
-Doing rsa2048 signs ops for 1s: 1624 rsa2048 signature sign ops in 1.00s
-Doing rsa2048 verify ops for 1s: 64633 rsa2048 signature verify ops in 1.00s
-Doing dsa2048 keygen ops for 1s: 2181 dsa2048 signature keygen ops in 0.99s
-Doing dsa2048 signs ops for 1s: 3605 dsa2048 signature sign ops in 1.00s
-Doing dsa2048 verify ops for 1s: 4866 dsa2048 signature verify ops in 0.99s
-version: 3.5.7
-built on: Tue Jun  9 19:50:21 2026 UTC
-options: bn(64,64)
-compiler: arm64-apple-darwin20.0.0-clang -fPIC -arch arm64 -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /Users/nicolabeccaceci/miniconda3/include -fdebug-prefix-map=/Users/ec2-user/croot/openssl_1781034588958/work=/usr/local/src/conda/openssl-3.5.7 -fdebug-prefix-map=/Users/nicolabeccaceci/miniconda3=/usr/local/src/conda-prefix -DL_ENDIAN -DOPENSSL_PIC -D_REENTRANT -DOPENSSL_BUILDING_OPENSSL -DNDEBUG -D_FORTIFY_SOURCE=2 -DNDEBUG -isystem /Users/nicolabeccaceci/miniconda3/include -mmacosx-version-min=12.1  -mmacosx-version-min=12.1
-CPUINFO: OPENSSL_armcap=0x87d
-                   sign    verify    encrypt   decrypt   sign/s verify/s  encr./s  decr./s
-rsa  2048 bits 0.000631s 0.000015s 0.000016s 0.000627s   1584.8  64930.6  61607.1   1595.9
-                  sign    verify    sign/s verify/s
-dsa 2048 bits 0.000214s 0.000195s   4672.7   5137.8
-                              sign    verify    sign/s verify/s
- 256 bits ecdsa (nistp256)   0.0000s   0.0001s  50828.0  16933.0
-                               keygen    encaps    decaps keygens/s  encaps/s  decaps/s
-                    rsa2048 0.040000s 0.000018s 0.000616s      25.0   56914.1    1622.2
-                               keygen     signs    verify keygens/s    sign/s  verify/s
-                    rsa2048 0.046364s 0.000616s 0.000015s      21.6    1624.0   64633.0
-                    dsa2048 0.000454s 0.000277s 0.000203s    2203.0    3605.0    4915.2
---- Speed Throughput Asimmetrico vs Simmetrico vs Hash (RSA 2048, AES 128, SHA-256) ---
-Doing sha256 ops for 1s on 16 size blocks: 8894292 sha256 ops in 0.99s
-Doing sha256 ops for 1s on 64 size blocks: 7413474 sha256 ops in 1.01s
-Doing sha256 ops for 1s on 256 size blocks: 4058367 sha256 ops in 0.99s
-Doing sha256 ops for 1s on 1024 size blocks: 1430800 sha256 ops in 0.99s
-Doing sha256 ops for 1s on 8192 size blocks: 204156 sha256 ops in 0.99s
-Doing sha256 ops for 1s on 16384 size blocks: 102633 sha256 ops in 0.99s
-Doing aes-128-cbc ops for 1s on 16 size blocks: 48938952 aes-128-cbc ops in 1.00s
-Doing aes-128-cbc ops for 1s on 64 size blocks: 21018067 aes-128-cbc ops in 1.00s
-Doing aes-128-cbc ops for 1s on 256 size blocks: 6106790 aes-128-cbc ops in 1.00s
-Doing aes-128-cbc ops for 1s on 1024 size blocks: 1575464 aes-128-cbc ops in 1.00s
-Doing aes-128-cbc ops for 1s on 8192 size blocks: 195054 aes-128-cbc ops in 1.00s
-Doing aes-128-cbc ops for 1s on 16384 size blocks: 97197 aes-128-cbc ops in 0.99s
-Doing 2048 bits private rsa sign ops for 1s: 1607 2048 bits private RSA sign ops in 0.99s
-Doing 2048 bits public rsa verify ops for 1s: 64376 2048 bits public RSA verify ops in 0.99s
-Doing 2048 bits public rsa encrypt ops for 1s: 62544 2048 bits public RSA encrypt ops in 1.00s
-Doing 2048 bits private rsa decrypt ops for 1s: 1613 2048 bits private RSA decrypt ops in 1.00s
-Doing rsa2048 keygen ops for 1s: 24 rsa2048 KEM keygen ops in 1.00s
-Doing rsa2048 encaps ops for 1s: 58686 rsa2048 KEM encaps ops in 1.00s
-Doing rsa2048 decaps ops for 1s: 1627 rsa2048 KEM decaps ops in 0.99s
-Doing rsa2048 keygen ops for 1s: 24 rsa2048 signature keygen ops in 1.01s
-Doing rsa2048 signs ops for 1s: 1560 rsa2048 signature sign ops in 0.98s
-Doing rsa2048 verify ops for 1s: 64687 rsa2048 signature verify ops in 0.99s
-version: 3.5.7
-built on: Tue Jun  9 19:50:21 2026 UTC
-options: bn(64,64)
-compiler: arm64-apple-darwin20.0.0-clang -fPIC -arch arm64 -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /Users/nicolabeccaceci/miniconda3/include -fdebug-prefix-map=/Users/ec2-user/croot/openssl_1781034588958/work=/usr/local/src/conda/openssl-3.5.7 -fdebug-prefix-map=/Users/nicolabeccaceci/miniconda3=/usr/local/src/conda-prefix -DL_ENDIAN -DOPENSSL_PIC -D_REENTRANT -DOPENSSL_BUILDING_OPENSSL -DNDEBUG -D_FORTIFY_SOURCE=2 -DNDEBUG -isystem /Users/nicolabeccaceci/miniconda3/include -mmacosx-version-min=12.1  -mmacosx-version-min=12.1
-CPUINFO: OPENSSL_armcap=0x87d
-The 'numbers' are in 1000s of bytes per second processed.
-type             16 bytes     64 bytes    256 bytes   1024 bytes   8192 bytes  16384 bytes
-sha256          143746.13k   469764.69k  1049436.32k  1479938.59k  1689339.35k  1698524.32k
-aes-128-cbc     783023.23k  1345156.29k  1563338.24k  1613275.14k  1597882.37k  1608561.26k
-                   sign    verify    encrypt   decrypt   sign/s verify/s  encr./s  decr./s
-rsa  2048 bits 0.000616s 0.000015s 0.000016s 0.000620s   1623.2  65026.3  62544.0   1613.0
-                               keygen    encaps    decaps keygens/s  encaps/s  decaps/s
-                    rsa2048 0.041667s 0.000017s 0.000608s      24.0   58686.0    1643.4
-                               keygen     signs    verify keygens/s    sign/s  verify/s
-                    rsa2048 0.042083s 0.000628s 0.000015s      23.8    1591.8   65340.4
+Doing 4096 bits public rsa verify ops for 1s: 17660 4096 bits public RSA verify ops in 1.00s
+Doing 4096 bits public rsa encrypt ops for 1s: 17174 4096 bits public RSA encrypt ops in 1.00s
+Doing 4096 bits private rsa decrypt ops for 1s: 259 4096 bits private RSA decrypt ops in 1.01s
+Doing 160 bits sign ecdsa ops for 1s: 6327 160 bits ECDSA sign ops in 1.00s
+Doing 160 bits verify ecdsa ops for 1s: 6015 160 bits ECDSA verify ops in 1.00s
+Doing 256 bits sign ecdsa ops for 1s: 51022 256 bits ECDSA sign ops in 1.00s
+Doing 256 bits verify ecdsa ops for 1s: 16924 256 bits ECDSA verify ops in 1.00s
+Doing rsa512 keygen ops for 1s: 492 rsa512 KEM keygen ops in 0.99s
+Doing rsa512 encaps ops for 1s: 291483 rsa512 KEM encaps ops in 0.95s
+Doing rsa512 decaps ops for 1s: 32864 rsa512 KEM decaps ops in 1.00s
+Doing rsa1024 keygen ops for 1s: 81 rsa1024 KEM keygen ops in 1.01s
+Doing rsa1024 encaps ops for 1s: 151066 rsa1024 KEM encaps ops in 0.97s
+Doing rsa1024 decaps ops for 1s: 8929 rsa1024 KEM decaps ops in 1.00s
+Doing rsa2048 keygen ops for 1s: 20 rsa2048 KEM keygen ops in 1.02s
+Doing rsa2048 encaps ops for 1s: 56881 rsa2048 KEM encaps ops in 1.00s
+Doing rsa2048 decaps ops for 1s: 1615 rsa2048 KEM decaps ops in 1.00s
+Doing rsa4096 keygen ops for 1s: 3 rsa4096 KEM keygen ops in 1.13s
+Doing rsa4096 encaps ops for 1s: 15545 rsa4096 KEM encaps ops in 1.00s
+Doing rsa4096 decaps ops for 1s: 243 rsa4096 KEM decaps ops in 1.01s
+Doing rsa512 keygen ops for 1s: 495 rsa512 signature keygen ops in 0.99s
+Doing rsa512 signs ops for 1s: 42304 rsa512 signature sign ops in 1.00s
+Doing rsa512 verify ops for 1s: 569281 rsa512 signature verify ops in 1.00s
+Doing rsa1024 keygen ops for 1s: 85 rsa1024 signature keygen ops in 1.01s
+Doing rsa1024 signs ops for 1s: 9765 rsa1024 signature sign ops in 1.00s
+Doing rsa1024 verify ops for 1s: 194760 rsa1024 signature verify ops in 1.00s
+Doing rsa2048 keygen ops for 1s: 21 rsa2048 signature keygen ops in 1.03s
+Doing rsa2048 signs ops for 1s: 1359 rsa2048 signature sign ops in 1.00s
+Doing rsa2048 verify ops for 1s: 43512 rsa2048 signature verify ops in 1.00s
+Doing rsa4096 keygen ops for 1s: 3 rsa4096 signature keygen ops in 1.74s
+Doing rsa4096 signs ops for 1s: 259 rsa4096 signature sign ops in 1.00s
+Doing rsa4096 verify ops for 1s: 17590 rsa4096 signature verify ops in 1.01s
+Exit status: 0
+Elapsed seconds: 46.126
 
-################################################################################
-[ESERCIZIO 3: ALGORITMI DI DIGEST CRITTOGRAFICO]
-################################################################################
-=== Es 3.1: Calcolo Digest su Messaggio di Prova ===
--rw-r--r--@ 1 nicolabeccaceci  staff  58 Oct  7 09:39 msg
-Valori digest calcolati per 'msg':
-MD5(msg)= 11b3179f61fd6dacb5a881454bd6ef12
-SHA1(msg)= 4b0b732d0c658d79d1d2fa8e84dffd5f2f8ed896
-SHA2-256(msg)= 236a12af73b8a2072259a9e029ced9f468b5d7a478d7b24b1859e284ba5ad2c0
-SHA3-256(msg)= 6d84f96b413d6e576602709a976c3b73b7923a3dd8685aa6b172452a50c52689
+[Exercise 3.1: MD5, SHA1, SHA256, SHA3-256 and avalanche]
+Started UTC: 2026-10-12T07:00:54.110+00:00
+Node: chuck
+Command: set -e; printf "Questo e’ un messaggio di prova per il calcolo del digest!" > msg; for alg in md5 sha1 sha256 sha3-256; do openssl dgst -"$alg" -out "$alg.dgst" msg; cat "$alg.dgst"; done; cp msg msg.original; sed -i "s/!$/?/" msg; for alg in md5 sha1 sha256 sha3-256; do openssl dgst -"$alg" msg; done; mv msg.original msg; openssl mac -digest sha256 -macopt hexkey:00112233445566778899aabbccddeeff HMAC msg
+--- stdout ---
+MD5(msg)= 3454d4b4847c7e8be808321ca8ba8d01
+SHA1(msg)= bf95662969237e1c85bbd2ad3a763375e7211ce1
+SHA2-256(msg)= 33999b6f7706513362225c310f1566a315751d0987353158f15035b22d3e1bd7
+SHA3-256(msg)= fb2e536425184f0817093faafa68cc97c53ba824589d4a28245a56dcf32a3a14
+MD5(msg)= 650320fc1dcf8597f371b6f708f329da
+SHA1(msg)= 35d404711c39a0b58f84ef1a259decd46bd6328c
+SHA2-256(msg)= 6f594926db57d147905a17598c3a9c26b2fab7c5fbf3d29755a068ba76c67469
+SHA3-256(msg)= a5d31fd1edcc332a2c37f2c0f5d0684feefe3cdc6013d5c63a870a341d331df3
+--- stderr ---
+mac: Extra argument after MAC name: "msg"
+mac: Use -help for summary.
+Exit status: 1
+Elapsed seconds: 0.175
 
-=== Es 3.1: Dimostrazione Effetto Valanga (Avalanche Effect) ===
-SHA-256 originale:  SHA2-256(msg)= 236a12af73b8a2072259a9e029ced9f468b5d7a478d7b24b1859e284ba5ad2c0
-SHA-256 modificato: SHA2-256(msg_modified)= c1ae84073fb4b5d02bfacec6b6820c553d8e04aa3019bf2c865efc8b005dcef2
+[Exercise 3.2: IHA support script unavailable]
+Started UTC: 2026-10-12T07:00:54.286+00:00
+Node: chuck
+Command: if test -f IHA.sh; then bash IHA.sh msg; else echo "BLOCKED: IHA.sh not found; required course support archive 02lab - materiale.zip is absent. No substitute hash implementation claimed."; fi
+--- stdout ---
+BLOCKED: IHA.sh not found; required course support archive 02lab - materiale.zip is absent. No substitute hash implementation claimed.
+--- stderr ---
 
-=== Es 3.1: Costruzione Digest basata su Cifrario a Blocchi (Costruzione CBC-MAC) ===
-Ultimo blocco a 16 byte (CBC-MAC digest):
-           c2  af  9b  0e  99  70  9e  a6  78  d6  2b  50  c2  f6  8a  bc
+Exit status: 0
+Elapsed seconds: 0.115
 
+[Exercise 3.3: digest performance sample]
+Started UTC: 2026-10-12T07:00:54.400+00:00
+Node: chuck
+Command: openssl speed -seconds 1 md5 sha1 sha256 sha512 sha3-256 sha3-512
+--- stdout ---
 
-=== Es 3.2: Analisi Collisioni con IHA (Insecure Hash Algorithm a 4-bit) ===
-IHA: F
-Target IHA hash per 'msg': F
-Collisione trovata con successo dopo 2 tentativi (aggiunti 2 spazi in coda al file).
-Digest finale di msg1: F
+--- stderr ---
+speed: Unknown algorithm sha3-256
+Exit status: 1
+Elapsed seconds: 0.120
 
-=== Es 3.3: Benchmark Algoritmi di Hash (openssl speed) ===
-Doing md5 ops for 1s on 16 size blocks: 5167406 md5 ops in 1.00s
-Doing md5 ops for 1s on 64 size blocks: 3144668 md5 ops in 1.00s
-Doing md5 ops for 1s on 256 size blocks: 1410658 md5 ops in 0.98s
-Doing md5 ops for 1s on 1024 size blocks: 439424 md5 ops in 1.00s
-Doing md5 ops for 1s on 8192 size blocks: 58980 md5 ops in 1.00s
-Doing md5 ops for 1s on 16384 size blocks: 29662 md5 ops in 1.00s
-Doing sha1 ops for 1s on 16 size blocks: 8514675 sha1 ops in 0.99s
-Doing sha1 ops for 1s on 64 size blocks: 7263851 sha1 ops in 0.99s
-Doing sha1 ops for 1s on 256 size blocks: 4058702 sha1 ops in 1.00s
-Doing sha1 ops for 1s on 1024 size blocks: 1438454 sha1 ops in 1.00s
-Doing sha1 ops for 1s on 8192 size blocks: 205148 sha1 ops in 1.00s
-Doing sha1 ops for 1s on 16384 size blocks: 103475 sha1 ops in 1.00s
-Doing sha256 ops for 1s on 16 size blocks: 8874101 sha256 ops in 0.99s
-Doing sha256 ops for 1s on 64 size blocks: 7327650 sha256 ops in 1.00s
-Doing sha256 ops for 1s on 256 size blocks: 3983680 sha256 ops in 0.99s
-Doing sha256 ops for 1s on 1024 size blocks: 1436180 sha256 ops in 0.99s
-Doing sha256 ops for 1s on 8192 size blocks: 203259 sha256 ops in 1.00s
-Doing sha256 ops for 1s on 16384 size blocks: 101351 sha256 ops in 0.97s
-Doing sha512 ops for 1s on 16 size blocks: 4027376 sha512 ops in 0.82s
-Doing sha512 ops for 1s on 64 size blocks: 4498682 sha512 ops in 0.92s
-Doing sha512 ops for 1s on 256 size blocks: 1992793 sha512 ops in 0.92s
-Doing sha512 ops for 1s on 1024 size blocks: 754516 sha512 ops in 0.94s
-Doing sha512 ops for 1s on 8192 size blocks: 108768 sha512 ops in 0.89s
-Doing sha512 ops for 1s on 16384 size blocks: 56573 sha512 ops in 0.93s
-version: 3.5.7
-built on: Tue Jun  9 19:50:21 2026 UTC
-options: bn(64,64)
-compiler: arm64-apple-darwin20.0.0-clang -fPIC -arch arm64 -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /Users/nicolabeccaceci/miniconda3/include -fdebug-prefix-map=/Users/ec2-user/croot/openssl_1781034588958/work=/usr/local/src/conda/openssl-3.5.7 -fdebug-prefix-map=/Users/nicolabeccaceci/miniconda3=/usr/local/src/conda-prefix -DL_ENDIAN -DOPENSSL_PIC -D_REENTRANT -DOPENSSL_BUILDING_OPENSSL -DNDEBUG -D_FORTIFY_SOURCE=2 -DNDEBUG -isystem /Users/nicolabeccaceci/miniconda3/include -mmacosx-version-min=12.1  -mmacosx-version-min=12.1
-CPUINFO: OPENSSL_armcap=0x87d
-The 'numbers' are in 1000s of bytes per second processed.
-type             16 bytes     64 bytes    256 bytes   1024 bytes   8192 bytes  16384 bytes
-md5              82678.50k   201258.75k   368498.42k   449970.18k   483164.16k   485982.21k
-sha1            137610.91k   469582.29k  1039027.71k  1472976.90k  1680572.42k  1695334.40k
-sha256          143419.81k   468969.60k  1030123.31k  1485503.35k  1665097.73k  1711891.53k
-sha512           78582.95k   312951.79k   554516.31k   821940.83k  1001154.44k   996658.10k
+[Exercise 4.1: RC4 bit-flipping malleability, generated exercise input]
+Started UTC: 2026-10-12T07:00:54.521+00:00
+Node: chuck
+Command: set -e; printf "456789\n" > numeri.txt; openssl enc -provider default -provider legacy -e -rc4 -K 0102030405060708090a0b0c0d0e0f10 -in numeri.txt -out numeri.enc; python3 -c "p=bytearray(open("numeri.enc","rb").read()); p[0] ^= ord("4") ^ ord("9"); open("numeri.tampered.enc","wb").write(p)"; openssl enc -provider default -provider legacy -d -rc4 -K 0102030405060708090a0b0c0d0e0f10 -in numeri.tampered.enc -out numeri.tampered.txt; cat numeri.txt numeri.tampered.txt; printf "0123456789ABCDEF" > cbc.txt; openssl enc -e -aes-128-cbc -K 00112233445566778899aabbccddeeff -iv 0102030405060708090a0b0c0d0e0f10 -in cbc.txt -out cbc.enc; cp cbc.enc cbc.bad.enc; python3 -c "p=bytearray(open("cbc.bad.enc","rb").read()); p[0] ^= 1; open("cbc.bad.enc","wb").write(p)"; set +e; openssl enc -d -aes-128-cbc -K 00112233445566778899aabbccddeeff -iv 0102030405060708090a0b0c0d0e0f10 -in cbc.bad.enc -out cbc.bad.txt; echo CBC_tamper_status:$?
+--- stdout ---
 
-################################################################################
-[ESERCIZIO 4: APPROFONDIMENTI ED ESERCIZI OPZIONALI]
-################################################################################
-=== Es 4.1: Manomissione Bit-Flipping su Cifrario a Flusso (RC4) ===
-Testo originale di Alice: 456789
-hex string is too short, padding with zero bytes to length
-File numeri_tampered.enc alterato da Mallory creato con successo.
-hex string is too short, padding with zero bytes to length
-Testo decifrato da Bob (Bonifico manipolato): 956789
+--- stderr ---
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    p=bytearray(open(numeri.enc,rb).read()); p[0] ^= ord(4) ^ ord(9); open(numeri.tampered.enc,wb).write(p)
+                     ^^^^^^
+NameError: name 'numeri' is not defined
+Exit status: 1
+Elapsed seconds: 0.171
 
-=== Es 4.1: Test dello stesso attacco Bit-Flipping su AES-128-CBC ===
-bad decrypt
-806189F301000000:error:1C800064:Provider routines:ossl_cipher_unpadblock:bad decrypt:providers/implementations/ciphers/ciphercommon_block.c:107:
-Esito decifratura CBC alterato (corruzione propagata / errore padding): 1
-
-=== Es 4.2: Vulnerabilità Pattern ECB vs CBC ===
-Esame byte cifrati ecb_enc_1 (DES-ECB con pattern ripetuti):
-           0d  79  d4  41  fc  65  03  63  0d  79  d4  41  fc  65  03  63
+[Exercise 4.2: supplied ECB candidate files missing; generated pattern demonstration]
+Started UTC: 2026-10-12T07:00:54.692+00:00
+Node: chuck
+Command: set -e; for f in "ecb plain 1" "ecb plain 2" "ecb enc"; do test -f "$f" || echo "MISSING COURSE INPUT: $f (02lab - materiale.zip not supplied)"; done; python3 - <<'PY'
+open("ecb.synthetic", "wb").write((b"ABCDEFGH"*8)+(b"IJKLMNOP"*8))
+PY
+openssl enc -provider default -provider legacy -e -des-ecb -K 0123456789abcdef -in ecb.synthetic -out ecb.synthetic.enc; od -An -tx1 -N64 ecb.synthetic.enc; echo "Generated fixture only; cannot identify official encrypted candidate without supplied files/key."
+--- stdout ---
+MISSING COURSE INPUT: ecb plain 1 (02lab - materiale.zip not supplied)
+MISSING COURSE INPUT: ecb plain 2 (02lab - materiale.zip not supplied)
+MISSING COURSE INPUT: ecb enc (02lab - materiale.zip not supplied)
+ 8d f6 a7 a3 fe ae 6d 34 8d f6 a7 a3 fe ae 6d 34
 *
-           08  6f  9a  1d  74  c9  4d  4e                                
+Generated fixture only; cannot identify official encrypted candidate without supplied files/key.
+--- stderr ---
 
-Esame byte cifrati ecb_enc_2 (DES-ECB senza pattern identici a blocchi):
-           b8  d8  ef  f2  1b  c2  ae  b5  a0  50  c7  08  f3  1e  ea  b2
-           d5  2f  79  03  79  93  56  46  78  15  fa  89  18  1c  7a  5f
+Exit status: 0
+Elapsed seconds: 0.129
+
+[Exercise 4.3: create a tree and detect unauthorized change with hashdeep]
+Started UTC: 2026-10-12T07:00:54.821+00:00
+Node: chuck
+Command: set -e; mkdir -p tree/sub1 tree/sub2; printf "configuration\n" > tree/sub1/config.cfg; printf "document\n" > tree/doc.txt; printf "database\n" > tree/data.db; hashdeep -c sha1 -r tree > hash.list; cat hash.list; hashdeep -c sha1 -r -x -k hash.list tree; printf "tamper\n" >> tree/sub1/config.cfg; set +e; hashdeep -c sha1 -r -x -k hash.list tree; echo post_tamper_hashdeep_status:$?
+--- stdout ---
+%%%% HASHDEEP-1.0
+%%%% size,sha1,filename
+## Invoked from: /home/kali/workspace/lab02
+## $ hashdeep -c sha1 -r tree
+## 
+14,3b4a1aff7a9f5bbf0de2089a52ffeca3ac1b5912,/home/kali/workspace/lab02/tree/sub1/config.cfg
+9,afd07c67db08cec01d970caa9dbce7fcad012872,/home/kali/workspace/lab02/tree/data.db
+9,24cef30e093885de0d9b6118f584f000119346a9,/home/kali/workspace/lab02/tree/doc.txt
+/home/kali/workspace/lab02/tree/sub1/config.cfg
+post_tamper_hashdeep_status:1
+--- stderr ---
+
+Exit status: 0
+Elapsed seconds: 0.141
+
+Finished UTC: 2026-10-12T07:00:54.962+00:00
+Exercise limits: the official ZIP was absent; the Alice-message/ECB examples above are clearly marked generated demonstrations. Official testbruteforce_enc and IHA collision tasks were not executed.
+[Exercise 1.3: file-size timings with available shell time utility — corrective rerun]
+Started UTC: 2026-10-12T07:02:14.590+00:00
+Node: chuck
+Command: set -e; printf 0123456789ABCDEF0123456789ABCDEF > ptext; for spec in 100B:100 10kB:10000 1MB:1000000 100MB:100000000; do name=${spec%%:*}; size=${spec##*:}; openssl rand -out "$name.bin" "$size"; { time -p openssl enc -e -aes-128-cbc -in "$name.bin" -out "$name.enc" -K 00112233445566778899aabbccddeeff -iv 0102030405060708090a0b0c0d0e0f10; } 2>&1; { time -p openssl enc -d -aes-128-cbc -in "$name.enc" -out "$name.dec" -K 00112233445566778899aabbccddeeff -iv 0102030405060708090a0b0c0d0e0f10; } 2>&1; cmp "$name.bin" "$name.dec"; echo "$name round-trip: verified"; done
+--- stdout ---
+real 0.00
+user 0.00
+sys 0.00
+real 0.00
+user 0.00
+sys 0.00
+100B round-trip: verified
+real 0.00
+user 0.00
+sys 0.00
+real 0.00
+user 0.00
+sys 0.00
+10kB round-trip: verified
+real 0.02
+user 0.00
+sys 0.00
+real 0.02
+user 0.00
+sys 0.00
+1MB round-trip: verified
+real 1.13
+user 0.08
+sys 0.19
+real 1.12
+user 0.04
+sys 0.20
+100MB round-trip: verified
+--- stderr ---
+
+Exit status: 0
+Elapsed seconds: 3.552
+
+[Exercise 1.3: AES-128-CBC OpenSSL speed benchmark — corrective rerun]
+Started UTC: 2026-10-12T07:02:18.143+00:00
+Node: chuck
+Command: openssl speed -seconds 1 -evp aes-128-cbc
+--- stdout ---
+version: 3.6.4
+built on: Tue Aug 25 18:40:24 2026 UTC
+options: bn(64,64)
+compiler: gcc -fPIC -pthread -Wa,--noexecstack -Wall -fzero-call-used-regs=used-gpr -Wa,--noexecstack -g -O2 -Werror=implicit-function-declaration -ffile-prefix-map=/build/reproducible-path/openssl-3.6.4=. -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -mbranch-protection=standard -DOPENSSL_USE_NODELETE -DOPENSSL_PIC -DOPENSSL_BUILDING_OPENSSL -DZLIB -DZSTD -DNDEBUG -Wdate-time -D_FORTIFY_SOURCE=2
+CPUINFO: OPENSSL_armcap=0x8fd
+The 'numbers' are in 1000s of bytes per second processed.
+type             16 bytes     64 bytes    256 bytes   1024 bytes   8192 bytes  16384 bytes
+AES-128-CBC     580053.82k  1363908.29k  1549873.15k  1598447.62k  1589428.22k  1591050.24k
+--- stderr ---
+Doing AES-128-CBC ops for 1s on 16 size blocks: 36253364 AES-128-CBC ops in 1.00s
+Doing AES-128-CBC ops for 1s on 64 size blocks: 21311067 AES-128-CBC ops in 1.00s
+Doing AES-128-CBC ops for 1s on 256 size blocks: 6054192 AES-128-CBC ops in 1.00s
+Doing AES-128-CBC ops for 1s on 1024 size blocks: 1560984 AES-128-CBC ops in 1.00s
+Doing AES-128-CBC ops for 1s on 8192 size blocks: 194022 AES-128-CBC ops in 1.00s
+Doing AES-128-CBC ops for 1s on 16384 size blocks: 97110 AES-128-CBC ops in 1.00s
+Exit status: 0
+Elapsed seconds: 6.144
+
+[Exercise 1.3: SHA-256 OpenSSL speed benchmark — corrective rerun]
+Started UTC: 2026-10-12T07:02:24.288+00:00
+Node: chuck
+Command: openssl speed -seconds 1 -evp sha256
+--- stdout ---
+version: 3.6.4
+built on: Tue Aug 25 18:40:24 2026 UTC
+options: bn(64,64)
+compiler: gcc -fPIC -pthread -Wa,--noexecstack -Wall -fzero-call-used-regs=used-gpr -Wa,--noexecstack -g -O2 -Werror=implicit-function-declaration -ffile-prefix-map=/build/reproducible-path/openssl-3.6.4=. -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -mbranch-protection=standard -DOPENSSL_USE_NODELETE -DOPENSSL_PIC -DOPENSSL_BUILDING_OPENSSL -DZLIB -DZSTD -DNDEBUG -Wdate-time -D_FORTIFY_SOURCE=2
+CPUINFO: OPENSSL_armcap=0x8fd
+The 'numbers' are in 1000s of bytes per second processed.
+type             16 bytes     64 bytes    256 bytes   1024 bytes   8192 bytes  16384 bytes
+sha256          138330.70k   419448.06k   968274.94k  1431710.72k  1661026.30k  1676918.78k
+--- stderr ---
+Doing sha256 ops for 1s on 16 size blocks: 8645669 sha256 ops in 1.00s
+Doing sha256 ops for 1s on 64 size blocks: 6553876 sha256 ops in 1.00s
+Doing sha256 ops for 1s on 256 size blocks: 3782324 sha256 ops in 1.00s
+Doing sha256 ops for 1s on 1024 size blocks: 1398155 sha256 ops in 1.00s
+Doing sha256 ops for 1s on 8192 size blocks: 202762 sha256 ops in 1.00s
+Doing sha256 ops for 1s on 16384 size blocks: 102351 sha256 ops in 1.00s
+Exit status: 0
+Elapsed seconds: 6.139
+
+[Exercise 3.1: HMAC-SHA256 generation with OpenSSL 3 — corrective rerun]
+Started UTC: 2026-10-12T07:02:30.429+00:00
+Node: chuck
+Command: openssl mac -digest sha256 -macopt hexkey:00112233445566778899aabbccddeeff -in msg HMAC; cp msg msg.hmac-input; cp msg.hmac-input msg; openssl mac -digest sha256 -macopt hexkey:00112233445566778899aabbccddeeff -in msg HMAC > msg.hmac; cmp msg.hmac <(openssl mac -digest sha256 -macopt hexkey:00112233445566778899aabbccddeeff -in msg HMAC); printf X >> msg; openssl mac -digest sha256 -macopt hexkey:00112233445566778899aabbccddeeff -in msg HMAC > changed.hmac; cmp -s msg.hmac changed.hmac && exit 1 || echo "Message modification changes HMAC"
+--- stdout ---
+56580B35D84DB7B97BBB7575759F8FD77916A5A9035F0342A69D7A9C37290347
+Message modification changes HMAC
+--- stderr ---
+
+Exit status: 0
+Elapsed seconds: 0.149
+
+[Exercise 4.1: RC4 bit flip and CBC tamper behavior — corrected quoting — corrective rerun]
+Started UTC: 2026-10-12T07:02:30.579+00:00
+Node: chuck
+Command: set -e; printf "456789\n" > numeri.txt; openssl enc -provider default -provider legacy -e -rc4 -K 0102030405060708090a0b0c0d0e0f10 -in numeri.txt -out numeri.enc; python3 -c 'from pathlib import Path; p=bytearray(Path("numeri.enc").read_bytes()); p[0] ^= ord("4") ^ ord("9"); Path("numeri.tampered.enc").write_bytes(p)'; openssl enc -provider default -provider legacy -d -rc4 -K 0102030405060708090a0b0c0d0e0f10 -in numeri.tampered.enc -out numeri.tampered.txt; echo "original:"; cat numeri.txt; echo "tampered:"; cat numeri.tampered.txt; printf "0123456789ABCDEF" > cbc.txt; openssl enc -e -aes-128-cbc -K 00112233445566778899aabbccddeeff -iv 0102030405060708090a0b0c0d0e0f10 -in cbc.txt -out cbc.enc; python3 -c 'from pathlib import Path; p=bytearray(Path("cbc.enc").read_bytes()); p[0] ^= 1; Path("cbc.bad.enc").write_bytes(p)'; if openssl enc -d -aes-128-cbc -K 00112233445566778899aabbccddeeff -iv 0102030405060708090a0b0c0d0e0f10 -in cbc.bad.enc -out cbc.bad.txt; then echo "CBC tamper happened to have valid padding; inspect plaintext"; cat cbc.bad.txt; else echo "CBC tamper detected as padding/decryption error (expected for this mutation)"; fi
+--- stdout ---
+original:
+456789
+tampered:
+956789
+CBC tamper detected as padding/decryption error (expected for this mutation)
+--- stderr ---
+bad decrypt
+406DBF98FFFF0000:error:1C800064:Provider routines:ossl_cipher_unpadblock:bad decrypt:../providers/implementations/ciphers/ciphercommon_block.c:112:
+Exit status: 0
+Elapsed seconds: 0.181
 
 
-=== Es 4.3: Integrità File e Directory (Albero tree e verifica hash) ===
-tree/sub1/config.cfg
-tree/data.db
-tree/sub2/system.log
-tree/doc1.txt
-Calcolo sha256sum di tutti i file nell'albero:
-11c61ae1073b478eb8cc553a243f76ad7bd3c22293f997f07d184b02ed3eee6e  tree/sub1/config.cfg
-9d12454c0fe1e1e8d1eaa4dc62d35a28954dd324d16a0c575981c3e507bb274b  tree/data.db
-bac1606046d674b0a7e22bd961f3665dc5ca85d9ac01ec7181a5c56c3308058e  tree/sub2/system.log
-ee86d282b39b78274174cf64272c472b0c387e3b1d6064170801dc05daefd70d  tree/doc1.txt
-Verifica integrità pre-modifica:
-tree/sub1/config.cfg: OK
-tree/data.db: OK
-tree/sub2/system.log: OK
-tree/doc1.txt: OK
-Manomissione non autorizzata di tree/sub1/config.cfg da parte di un intruso:
-Riesecuzione verifica integrità post-manomissione (rilevazione discrepanza):
-tree/sub1/config.cfg: FAILED
-tree/data.db: OK
-tree/sub2/system.log: OK
-tree/doc1.txt: OK
-shasum: WARNING: 1 computed checksum did NOT match
-Codice uscita verifica integrità compromessa: 1
-
-================================================================================
-ESECUZIONE LABORATORIO 02 COMPLETATA CON SUCCESSO!
-Tutti i log salvati in: /Users/nicolabeccaceci/Desktop/SICUREZZA DEI SISTEMI INFORMATIVI/LABS/lab02/.tmp_build/log.txt
-================================================================================
+[Run closure]
+Closed UTC: 2026-10-12T07:17:12+00:00
+Coverage: Executed the supplied Lab02 handout procedures that could run with available tools and generated, explicitly labeled fixtures where original exercise inputs were absent. Corrective reruns for benchmark timing, OpenSSL speed syntax, HMAC, RC4 bit-flipping and CBC tampering are included after the initial run closure; earlier failures remain in this trace. The official 02lab material archive is missing, so the professor's brute-force ciphertext, IHA collision script/input, ECB-pattern files and original hashdeep tree were not reproduced. No solution PDF was generated or changed.
