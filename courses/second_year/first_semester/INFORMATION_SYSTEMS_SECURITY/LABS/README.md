@@ -7,17 +7,16 @@ This directory hosts the available assignment texts, pedagogical solutions, and 
 
 ---
 
-## 🛠️ Simulation Environment
+## 🛠️ Simulation Environment Repository
 
-All Docker containers, multi-node network topologies (Alice, Bob, Chuck), automation scripts, and virtual machine setup guides are integrated directly within this directory under [`labinf/`](labinf/) and are also maintained as a standalone repository:
+All Docker containers, multi-node network topologies (Alice, Bob, Chuck), automation scripts, and virtual machine setup guides have been consolidated into a dedicated, standalone repository:
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub_Repository-polito--ssi--labinf-blue?logo=github&style=for-the-badge)](https://github.com/Beccaceci/polito-ssi-labinf)
 
-* 👉 **Local environment directory:** [`labinf/`](labinf/)
-* 👉 **Standalone repository:** [**https://github.com/Beccaceci/polito-ssi-labinf**](https://github.com/Beccaceci/polito-ssi-labinf)
+👉 **Access the environment here:** [**https://github.com/Beccaceci/polito-ssi-labinf**](https://github.com/Beccaceci/polito-ssi-labinf)
 
-The environment provides:
-* **One-command instant startup** (`./labinf/labinf.sh start`) with interactive ANSI terminal menu.
+The dedicated environment repo provides:
+* **One-command instant startup** (`./labinf.sh start`) with interactive ANSI terminal menu.
 * **Full multi-node topology** on subnet `10.0.2.0/24`: Alice (Server `10.0.2.10`), Bob (Client `10.0.2.20`), Chuck (Kali Attacker `10.0.2.30`).
 * **Multi-arch prebuilt images** (`linux/amd64` and `linux/arm64` for Mac Apple Silicon).
 * Native Linux kernel capabilities (`NET_ADMIN`, `NET_RAW`, `ip_forward=1`) for `iptables`, `nftables`, and `StrongSwan`.
@@ -48,13 +47,6 @@ Each laboratory folder adheres strictly to the following standardized layout:
 ```text
 LABS/
 ├── README.md               # Master index, one-click solution downloads, environment link
-├── labinf/                 # Multi-node simulation environment (Compose, Kali, target services, tests)
-│   ├── README.md           # Universal OS setup & user guide
-│   ├── labinf.sh           # Unix CLI launcher & verification suite
-│   ├── labinf.ps1          # Windows PowerShell launcher & verification suite
-│   ├── environment/        # Docker Compose configuration, Dockerfiles, and supervision scripts
-│   ├── tests/              # Automated acceptance & integration test suite
-│   └── workspace/          # Shared cross-container workspace folder
 ├── lab00/
 │   └── lab00.pdf           # Introductory laboratory text
 ├── lab01/
