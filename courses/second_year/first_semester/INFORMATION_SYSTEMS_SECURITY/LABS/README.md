@@ -31,10 +31,10 @@ Click the buttons below to directly download or view the comprehensive pedagogic
 | :--- | :--- | :---: | :---: | :---: | :---: |
 | **Lab 00** | Introduction & Environment Setup | [📄 `lab00.pdf`](lab00/lab00.pdf) | *No exercises required* | — | ✅ Ready |
 | **Lab 01** | Network Recon, Nmap, ARP Poisoning & Sniffing | [📄 `lab01.pdf`](lab01/lab01.pdf) | [**📥 Download Solution (PDF)**](lab01/lab01_solution.pdf?raw=true) | [📝 `log.txt`](lab01/log.txt) | ✅ Solved & Verified |
-| **Lab 02** | Base Cryptography (OpenSSL, AES, RSA, ECC, Hash) | [📄 `lab02.pdf`](lab02/lab02.pdf) | [Existing solution PDF](lab02/lab02_solution.pdf) | [📝 `log.txt`](lab02/log.txt) | ⚠️ Review required: handout is A.A. 2023/24; solution labels itself A.A. 2025/26. |
-| **Lab 03** | Applied Cryptography (MAC, HMAC, PBKDF2, PKI, CA, X.509) | [📄 `lab03.pdf`](lab03/lab03.pdf) | *Upcoming* | [📝 `log.txt`](lab03/log.txt) | ⏳ Awaiting course archive (`aes-gcm.py`) |
-| **Lab 04** | Firewalling (iptables, nftables, conntrack, NAT, DMZ) | [📄 `lab04.pdf`](lab04/lab04.pdf) | *Upcoming* | [📝 `log.txt`](lab04/log.txt) | ⏳ Routed topology tested; awaiting proxy configs |
-| **Lab 05** | IPsec & Transport Layer Security (StrongSwan, TLS) | [📄 `lab05.pdf`](lab05/lab05.pdf) | *Upcoming* | [📝 `log.txt`](lab05/log.txt) | ⏳ TLS & XFRM tested; awaiting StrongSwan archive |
+| **Lab 02** | Base Cryptography (OpenSSL, AES, RSA, ECC, Hash) | [📄 `lab02.pdf`](lab02/lab02.pdf) | [**📥 Download Solution (PDF)**](lab02/lab02_solution.pdf?raw=true) | [📝 `log.txt`](lab02/log.txt) | ✅ Solved & Verified |
+| **Lab 03** | Applied Cryptography (MAC, HMAC, PBKDF2, PKI, CA, X.509) | [📄 `lab03.pdf`](lab03/lab03.pdf) | [**📥 Download Solution (PDF)**](lab03/lab03_solution.pdf?raw=true) | [📝 `log.txt`](lab03/log.txt) | ✅ Solved & Verified |
+| **Lab 04** | Firewalling (iptables, nftables, conntrack, NAT, DMZ) | [📄 `lab04.pdf`](lab04/lab04.pdf) | [**📥 Download Solution (PDF)**](lab04/lab04_solution.pdf?raw=true) | [📝 `log.txt`](lab04/log.txt) | ✅ Solved & Verified |
+| **Lab 05** | IPsec & Transport Layer Security (StrongSwan, TLS) | [📄 `lab05.pdf`](lab05/lab05.pdf) | [**📥 Download Solution (PDF)**](lab05/lab05_solution.pdf?raw=true) | [📝 `log.txt`](lab05/log.txt) | ✅ Solved & Verified |
 
 ---
 
@@ -59,12 +59,15 @@ LABS/
 │   └── log.txt             # Raw shell execution traces
 ├── lab03/
 │   ├── lab03.pdf           # Official professor assignment
+│   ├── lab03_solution.pdf  # Comprehensive pedagogical solution (HMAC, AEAD, PKI, CA, S/MIME, PKCS#12)
 │   └── log.txt             # Raw shell execution traces
 ├── lab04/
 │   ├── lab04.pdf           # Official professor assignment
+│   ├── lab04_solution.pdf  # Comprehensive pedagogical solution (iptables, conntrack, httptunnel, ptunnel, SSH gateway)
 │   └── log.txt             # Raw shell execution traces
 └── lab05/
     ├── lab05.pdf           # Official professor assignment
+    ├── lab05_solution.pdf  # Comprehensive pedagogical solution (XFRM ESP transport, IKE, TLS 1.2, mTLS)
     └── log.txt             # Raw shell execution traces
 ```
 
