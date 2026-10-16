@@ -11,6 +11,7 @@
 \usepackage{amsthm}
 \usepackage{mathtools}
 \usepackage{bm}
+\usepackage{centernot}
 
 % Tables & Formatting
 \usepackage{booktabs}
@@ -39,6 +40,15 @@
 % Citations & Hyperlinks
 \usepackage{cite}
 \usepackage[colorlinks=true,linkcolor=blue!70!black,citecolor=teal!70!black,urlcolor=cyan!70!black]{hyperref}
+\usepackage{bookmark}
+\bookmarksetup{numbered=true}
+% Format chapter numbers as "2." and section numbers as "2.1" in bookmarks
+\makeatletter
+\def\Hy@numberline#1{\expanded{\noexpand\BKM@check#1..}\@nil{#1} }
+\def\BKM@check#1.#2.#3\@nil#4{%
+  \IfBlankTF{#2}{#4.}{#4}%
+}
+\makeatother
 \usepackage[capitalize,noabbrev]{cleveref}
 
 % Header and Footer

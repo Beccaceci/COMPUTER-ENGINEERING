@@ -1,0 +1,1076 @@
+\chapter{Deep feedforward networks, representation learning, and backpropagation}
+\label{sec:deep_feedforward_and_backpropagation}
+
+\section{The perceptron, linear separability, and the dawn of neural computing}
+\label{sec:perceptron_and_linear_separability}
+
+The quest for computational learning models began with the ambition to emulate biological neural processing. Having investigated Bayesian decision theory, parametric estimation, and linear classifiers in previous chapters, we now examine the foundational connectionist architecture: the \textbf{Perceptron}.
+
+\subsection{The biological neuron and Rosenblatt's artificial threshold unit}
+\label{sec:biological_and_artificial_neuron}
+
+In biological nervous systems, an individual neuron consists of four primary morphological structures:
+\begin{itemize}[noitemsep]
+  \item \textbf{Dendrites}: Branching nerve fibers that receive incoming chemical neurotransmitter signals from adjacent upstream neurons across synaptic clefts.
+  \item \textbf{Soma (Cell Body)}: The metabolic hub containing the nucleus, which integrates and accumulates incoming post-synaptic electrical potentials over space and time.
+  \item \textbf{Axon}: A long, slender nerve transmission cable (often insulated by fatty myelin sheaths) that propagates an all-or-nothing action potential (voltage spike) down its length once the soma's membrane potential surpasses an excitation threshold.
+  \item \textbf{Synapses}: Chemical junctions connecting axon terminal boutons to recipient dendrites, where biological synaptic plasticity modulates the efficacy of electrical transmission.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.92, every node/.style={transform shape}]
+  % Left Panel: Biological Neuron
+  \begin{scope}[shift={(0,0)}]
+    \node[font=\bfseries\sffamily\color{politoNavy}] at (3.0, 2.7) {(a) Biological Neuron Anatomy};
+    
+    % Dendrites branching
+    \draw[thick, deepblue] (0.2, 1.8) -- (1.5, 1.2);
+    \draw[thick, deepblue] (0.0, 1.0) -- (1.5, 0.8);
+    \draw[thick, deepblue] (0.3, 0.0) -- (1.5, 0.4);
+    \draw[thick, deepblue] (-0.2, 1.5) -- (0.8, 1.2);
+    \draw[thick, deepblue] (-0.2, 0.4) -- (0.8, 0.6);
+    \node[font=\scriptsize\color{deepblue}, align=center] at (0.3, -0.4) {Dendrites\\(Inputs $\mathbf{x}$)};
+
+    % Soma (cell body)
+    \draw[fill=deepblue!15, draw=deepblue, very thick] (2.2, 0.8) circle (0.85);
+    \draw[fill=deepblue!40, draw=deepblue] (2.2, 0.8) circle (0.35);
+    \node[font=\scriptsize\bfseries\color{politoNavy}, align=center] at (2.2, 0.8) {Soma\\($\sum$)};
+    \node[font=\scriptsize\color{deepblue}, align=center] at (2.2, -0.4) {Cell Body\\(Accumulator)};
+
+    % Axon with myelin sheath
+    \draw[ultra thick, deepblue] (3.05, 0.8) -- (5.2, 0.8);
+    \foreach \x in {3.3, 3.9, 4.5} {
+      \draw[fill=skyBlue!40, draw=politoNavy, rounded corners=2pt] (\x, 0.60) rectangle (\x+0.45, 1.00);
+    }
+    \node[font=\scriptsize\color{deepblue}, align=center] at (4.1, -0.4) {Axon Cable\\(Transmission)};
+
+    % Axon Terminals / Synapses
+    \draw[thick, deepblue] (5.2, 0.8) -- (5.9, 1.3);
+    \draw[thick, deepblue] (5.2, 0.8) -- (6.0, 0.8);
+    \draw[thick, deepblue] (5.2, 0.8) -- (5.9, 0.3);
+    \foreach \pos in {(5.9, 1.3), (6.0, 0.8), (5.9, 0.3)} {
+      \fill[examred] \pos circle (2.2pt);
+    }
+    \node[font=\scriptsize\color{examred}, align=center] at (6.0, -0.4) {Synaptic Boutons\\(Output $\hat{y}$)};
+  \end{scope}
+
+  % Vertical Separator
+  \draw[dashed, gray!40, thick] (6.9, -0.8) -- (6.9, 3.1);
+
+  % Right Panel: Artificial Perceptron
+  \begin{scope}[shift={(7.8,0)}]
+    \node[font=\bfseries\sffamily\color{politoNavy}] at (3.5, 2.7) {(b) Rosenblatt's Artificial Perceptron};
+
+    % Inputs
+    \node[circle, draw=deepblue, fill=deepblue!10, thick, inner sep=2pt, font=\footnotesize] (x1) at (0, 1.8) {$x_1$};
+    \node[circle, draw=deepblue, fill=deepblue!10, thick, inner sep=2pt, font=\footnotesize] (x2) at (0, 0.9) {$x_2$};
+    \node[font=\footnotesize] (xdots) at (0, 0.2) {$\vdots$};
+    \node[circle, draw=deepblue, fill=deepblue!10, thick, inner sep=2pt, font=\footnotesize] (xd) at (0, -0.6) {$x_d$};
+    \node[circle, draw=gray!70, fill=gray!10, thick, inner sep=2pt, font=\footnotesize] (xb) at (0, -1.4) {$+1$};
+
+    % Summation Node
+    \node[circle, draw=politoNavy, fill=politoNavy!15, very thick, inner sep=5pt, font=\normalsize] (sum) at (2.8, 0.6) {$\sum$};
+    \node[font=\tiny\color{politoNavy}, below=2pt of sum] {$z = \mathbf{w}^\top\mathbf{x} + b$};
+
+    % Connections with weights
+    \draw[-{Stealth}, thick] (x1) -- node[above, font=\scriptsize] {$w_1$} (sum);
+    \draw[-{Stealth}, thick] (x2) -- node[above, font=\scriptsize] {$w_2$} (sum);
+    \draw[-{Stealth}, thick] (xd) -- node[below, font=\scriptsize] {$w_d$} (sum);
+    \draw[-{Stealth}, thick, dashed] (xb) -- node[below, font=\scriptsize] {$b$} (sum);
+
+    % Activation Function Block
+    \node[rectangle, draw=intuitiongreen, fill=intuitiongreen!15, thick, inner sep=5pt, font=\footnotesize, right=0.9cm of sum] (act) {$\operatorname{sgn}(z)$};
+
+    \draw[-{Stealth}, thick] (sum) -- node[above, font=\scriptsize] {$z$} (act);
+
+    % Output
+    \node[right=0.9cm of act, font=\footnotesize\bfseries] (out) {$\hat{y} \in \{-1, +1\}$};
+    \draw[-{Stealth}, very thick, examred] (act) -- (out);
+  \end{scope}
+\end{tikzpicture}
+\caption{Morphological and mathematical correspondence between biological and artificial neural processing. (a) A biological neuron integrates post-synaptic potentials across dendrites into the metabolic soma, firing an action potential down the myelinated axon toward synaptic terminals. (b) Rosenblatt's artificial perceptron models this mechanism: numerical inputs $x_j$ are modulated by synaptic parameters $w_j$, accumulated by affine summation $z = \mathbf{w}^\top \mathbf{x} + b$, and thresholded by a Heaviside sign function to produce binary classification $\hat{y} \in \{-1, +1\}$.}
+\label{fig:biological_vs_artificial_neuron}
+\end{figure}
+
+In 1958, Frank Rosenblatt~\cite{rosenblatt1958perceptron} formalized this biological mechanism into the \textbf{Perceptron}. Given an input vector of features $\mathbf{x} = [x_1, \dots, x_d]^\top \in \R^d$, the artificial neuron associates each input channel with a tunable real-valued weight $w_j \in \R$, incorporates a scalar bias threshold $b \in \R$, and computes a linear activation score:
+\begin{equation}
+z \triangleq \mathbf{w}^\top \mathbf{x} + b = \sum_{j=1}^d w_j x_j + b.
+\label{eq:perceptron_preactivation}
+\end{equation}
+The continuous scalar score $z$ is then passed through a discontinuous Heaviside step activation function:
+\begin{equation}
+\hat{y} = f(z) = \operatorname{sgn}(z) = \begin{cases} +1 & \text{if } \mathbf{w}^\top \mathbf{x} + b \ge 0, \\ -1 & \text{if } \mathbf{w}^\top \mathbf{x} + b < 0. \end{cases}
+\label{eq:perceptron_activation}
+\end{equation}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=1.15]
+  % Axes
+  \draw[-{Stealth}, gray!70, thick] (-1.0, 0) -- (5.0, 0) node[right, font=\footnotesize] {$x_1$};
+  \draw[-{Stealth}, gray!70, thick] (0, -1.0) -- (0, 4.2) node[above, font=\footnotesize] {$x_2$};
+
+  % Half-space shading
+  \fill[deepblue!8, opacity=0.8] (-0.8, 3.8) -- (4.2, 0.46) -- (4.5, 3.8) -- (-0.8, 3.8) -- cycle;
+  \fill[examred!8, opacity=0.8] (-0.8, 3.8) -- (4.2, 0.46) -- (4.2, -0.8) -- (-0.8, -0.8) -- cycle;
+
+  % Hyperplane: w1*x1 + w2*x2 + b = 0
+  \draw[very thick, politoNavy] (-0.6, 2.5) -- (4.4, -0.8) node[right, font=\footnotesize, align=left] {Decision Hyperplane:\\$\mathbf{w}^\top \mathbf{x} + b = 0$};
+
+  % Normal vector w from a point on the line (1.5, 1.0)
+  \coordinate (P) at (1.5, 1.0);
+  \draw[-{Stealth[length=6pt]}, ultra thick, intuitiongreen] (P) -- ++(1.0, 1.5) node[above right, font=\footnotesize\bfseries] {$\mathbf{w}$ (Orthogonal Normal Vector)};
+
+  % Perpendicular projection from Origin (0,0) to line
+  \coordinate (Proj) at (0.923, 1.385);
+  \draw[dashed, thick, gray!80] (0, 0) -- (Proj);
+  \draw[thick, gray!80] (0.8, 1.2) -- (0.95, 1.1) -- (1.07, 1.28);
+  \node[left, font=\scriptsize\bfseries, text=politoNavy] at (0.45, 0.75) {$d = \frac{|b|}{\|\mathbf{w}\|_2}$};
+
+  % Data points: Positive Class (+1)
+  \node[star, star points=5, star point ratio=2.2, draw=deepblue, fill=deepblue!30, thick, inner sep=2.5pt] at (2.2, 2.6) {};
+  \node[star, star points=5, star point ratio=2.2, draw=deepblue, fill=deepblue!30, thick, inner sep=2.5pt] at (3.5, 2.1) {};
+  \node[star, star points=5, star point ratio=2.2, draw=deepblue, fill=deepblue!30, thick, inner sep=2.5pt] at (1.2, 3.1) {};
+  \node[star, star points=5, star point ratio=2.2, draw=deepblue, fill=deepblue!30, thick, inner sep=2.5pt] at (3.8, 3.3) {};
+  \node[font=\footnotesize\bfseries, text=deepblue] at (3.2, 3.8) {Positive Half-Space: $\mathbf{w}^\top\mathbf{x} + b > 0$};
+
+  % Data points: Negative Class (-1)
+  \node[circle, draw=examred, fill=examred!20, thick, inner sep=2.5pt] at (0.5, 0.5) {};
+  \node[circle, draw=examred, fill=examred!20, thick, inner sep=2.5pt] at (1.5, -0.2) {};
+  \node[circle, draw=examred, fill=examred!20, thick, inner sep=2.5pt] at (2.8, -0.4) {};
+  \node[circle, draw=examred, fill=examred!20, thick, inner sep=2.5pt] at (0.2, 1.2) {};
+  \node[font=\footnotesize\bfseries, text=examred] at (1.5, -0.7) {Negative Half-Space: $\mathbf{w}^\top\mathbf{x} + b < 0$};
+
+  % Origin
+  \fill (0,0) circle (2pt) node[below left, font=\footnotesize] {$\mathbf{0}$};
+\end{tikzpicture}
+\caption{The geometry of the linear decision boundary defined by the perceptron. The parameter vector $\mathbf{w} \in \mathbb{R}^d$ is the orthogonal normal vector to the hyperplane pointing directly toward the positive decision half-space. The scalar bias $b \in \mathbb{R}$ offsets the hyperplane from the origin, establishing a signed perpendicular Euclidean distance of $\frac{|b|}{\|\mathbf{w}\|_2}$.}
+\label{fig:hyperplane_geometry}
+\end{figure}
+
+As visualized in Figure~\ref{fig:hyperplane_geometry}, the equation $\mathbf{w}^\top \mathbf{x} + b = 0$ defines a $(d-1)$-dimensional \textbf{decision hyperplane} that partitions the $d$-dimensional input space $\mathcal{X} \subseteq \R^d$ into two open half-spaces. The weight vector $\mathbf{w}$ is the normal vector to the hyperplane, pointing toward the positive decision region, while $b / \|\mathbf{w}\|_2$ quantifies the signed perpendicular distance from the coordinate origin to the hyperplane.
+
+\subsection{The perceptron learning algorithm and Novikoff's convergence theorem}
+\label{sec:perceptron_learning_algorithm}
+
+Given a supervised training dataset $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^N$ with labels $y_i \in \{-1, +1\}$, the perceptron learning algorithm operates in an online, mistake-driven fashion. Parameters are initialized arbitrarily (typically $\mathbf{w}^{(0)} = \mathbf{0}, b^{(0)} = 0$).
+
+At step $t$, the algorithm inspects a training instance $(\mathbf{x}_i, y_i)$. If the current hypothesis correctly classifies the instance ($y_i (\mathbf{w}^{(t)\top} \mathbf{x}_i + b^{(t)}) > 0$), no modification is made. If the instance is misclassified ($y_i (\mathbf{w}^{(t)\top} \mathbf{x}_i + b^{(t)}) \le 0$), the parameters are updated via the additive correction:
+\begin{align}
+\mathbf{w}^{(t+1)} &= \mathbf{w}^{(t)} + \eta y_i \mathbf{x}_i, \label{eq:perceptron_update_w} \\
+b^{(t+1)} &= b^{(t)} + \eta y_i R^2, \label{eq:perceptron_update_b}
+\end{align}
+where $\eta > 0$ is the learning rate (often set to $\eta = 1$ without loss of generality, as scaling both sides leaves the sign unchanged), and $R = \max_i \|\mathbf{x}_i\|_2$.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.48\linewidth}
+  \centering
+  \begin{tikzpicture}[scale=1.05]
+    \node[font=\footnotesize\bfseries\color{politoNavy}] at (1.5, 3.2) {(a) Parameter Space: Vector Correction};
+    \draw[-{Stealth}, gray!50] (-0.5, 0) -- (3.2, 0) node[right, font=\tiny] {$w_1$};
+    \draw[-{Stealth}, gray!50] (0, -0.5) -- (0, 3.0) node[above, font=\tiny] {$w_2$};
+    
+    % w(t)
+    \coordinate (W0) at (0.8, 1.8);
+    \draw[-{Stealth[length=6pt]}, very thick, politoNavy] (0, 0) -- (W0) node[above left, font=\footnotesize] {$\mathbf{w}^{(t)}$};
+    
+    % Misclassified sample vector y_i * x_i (positive class: +x_i)
+    \coordinate (X) at (1.6, -0.4);
+    \draw[-{Stealth[length=6pt]}, very thick, examred] (W0) -- ++(X) node[midway, above right, font=\footnotesize] {$+y_i \mathbf{x}_i$};
+    
+    % w(t+1)
+    \coordinate (W1) at ($(W0) + (X)$);
+    \draw[-{Stealth[length=6pt]}, very thick, intuitiongreen] (0, 0) -- (W1) node[right, font=\footnotesize\bfseries] {$\mathbf{w}^{(t+1)}$};
+    
+    \node[draw=politoNavy, fill=politoNavy!5, rounded corners, font=\scriptsize, align=center] at (1.5, -0.8) {$\mathbf{w}^{(t+1)} = \mathbf{w}^{(t)} + \eta y_i \mathbf{x}_i$};
+  \end{tikzpicture}
+\end{minipage}\hfill
+\begin{minipage}{0.48\linewidth}
+  \centering
+  \begin{tikzpicture}[scale=1.05]
+    \node[font=\footnotesize\bfseries\color{politoNavy}] at (1.5, 3.2) {(b) Input Space: Boundary Rotation};
+    \draw[-{Stealth}, gray!50] (-1.0, 0) -- (3.2, 0) node[right, font=\tiny] {$x_1$};
+    \draw[-{Stealth}, gray!50] (0, -1.0) -- (0, 3.0) node[above, font=\tiny] {$x_2$};
+
+    % Old boundary w(t)^T x = 0
+    \draw[thick, politoNavy, dashed] (-0.9, 0.4) -- (2.5, -1.1) node[below right, font=\tiny, align=left] {Old boundary:\\$\mathbf{w}^{(t)\top}\mathbf{x}=0$};
+    
+    % Misclassified point x_i (positive class y_i = +1)
+    \node[star, star points=5, star point ratio=2.2, draw=examred, fill=examred!30, thick, inner sep=2.5pt, label={right:\scriptsize $\mathbf{x}_i \ (y_i = +1)$}] (xi) at (1.2, -0.8) {};
+
+    % New boundary w(t+1)^T x = 0
+    \draw[very thick, intuitiongreen] (-0.8, -0.6) -- (2.0, 2.2) node[above right, font=\tiny, align=left] {New boundary:\\$\mathbf{w}^{(t+1)\top}\mathbf{x}=0$};
+
+    % Rotation arrow
+    \draw[-{Stealth}, thick, deepdiveTeal] (1.8, -0.7) to[bend right=25] (1.3, 1.4) node[midway, right, font=\tiny] {Boundary rotates toward $\mathbf{x}_i$};
+  \end{tikzpicture}
+\end{minipage}
+\caption{Geometric dynamics of the Perceptron Learning Algorithm update. (a) In parameter space, whenever a training sample $(\mathbf{x}_i, y_i)$ is misclassified, the algorithm performs vector addition $\mathbf{w}^{(t+1)} = \mathbf{w}^{(t)} + y_i \mathbf{x}_i$. (b) In input space, adding $y_i \mathbf{x}_i$ rotates the orthogonal decision hyperplane directly toward the misclassified sample, pulling it into the correct decision region.}
+\label{fig:perceptron_learning_dynamics}
+\end{figure}
+
+The historical significance of Rosenblatt's perceptron stems from the fact that it was the first machine learning model accompanied by a rigorous mathematical convergence proof, formalized by Albert Novikoff in 1962~\cite{novikoff1962convergence}.
+
+\begin{theorem}[Novikoff's Perceptron Convergence Theorem]
+\label{thm:novikoff_convergence}
+Let $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^N$ be a training dataset where $\|\mathbf{x}_i\|_2 \le R$ for all $i$. Assume the dataset is strictly \textbf{linearly separable}: that is, there exists an optimal unit-norm parameter vector $\mathbf{w}^*$ ($\|\mathbf{w}^*\|_2 = 1$) and an optimal margin $\gamma > 0$ such that:
+\begin{equation}
+y_i (\mathbf{w}^{*\top} \mathbf{x}_i) \ge \gamma, \quad \forall i \in \{1, \dots, N\}.
+\label{eq:linear_separability_condition}
+\end{equation}
+Then, starting from $\mathbf{w}^{(0)} = \mathbf{0}$, the perceptron learning algorithm makes at most $k$ mistake updates before converging to a perfectly separating hyperplane, where:
+\begin{equation}
+k \le \left( \frac{R}{\gamma} \right)^2.
+\label{eq:novikoff_bound}
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Let $\mathbf{w}^{(k)}$ denote the weight vector after $k$ mistaken updates. Assume the $k$-th update was triggered by misclassified sample $(\mathbf{x}_i, y_i)$, meaning $y_i (\mathbf{w}^{(k-1)\top} \mathbf{x}_i) \le 0$. The update rule is $\mathbf{w}^{(k)} = \mathbf{w}^{(k-1)} + y_i \mathbf{x}_i$.
+
+We bound the inner product $\mathbf{w}^{(k)\top} \mathbf{w}^*$ from below. Expanding recursively:
+\begin{equation}
+\mathbf{w}^{(k)\top} \mathbf{w}^* = (\mathbf{w}^{(k-1)} + y_i \mathbf{x}_i)^\top \mathbf{w}^* = \mathbf{w}^{(k-1)\top} \mathbf{w}^* + y_i \mathbf{x}_i^\top \mathbf{w}^* \ge \mathbf{w}^{(k-1)\top} \mathbf{w}^* + \gamma.
+\end{equation}
+Inductively from $\mathbf{w}^{(0)} = \mathbf{0}$, after $k$ mistakes:
+\begin{equation}
+\mathbf{w}^{(k)\top} \mathbf{w}^* \ge k \gamma.
+\label{eq:novikoff_inner_bound}
+\end{equation}
+
+Next, we bound the squared Euclidean norm $\|\mathbf{w}^{(k)}\|_2^2$ from above:
+\begin{align}
+\|\mathbf{w}^{(k)}\|_2^2 &= \|\mathbf{w}^{(k-1)} + y_i \mathbf{x}_i\|_2^2 = \|\mathbf{w}^{(k-1)}\|_2^2 + 2 y_i \mathbf{w}^{(k-1)\top} \mathbf{x}_i + \|\mathbf{x}_i\|_2^2 \nonumber \\
+&\le \|\mathbf{w}^{(k-1)}\|_2^2 + 0 + R^2 = \|\mathbf{w}^{(k-1)}\|_2^2 + R^2,
+\end{align}
+where we used the mistake condition $y_i \mathbf{w}^{(k-1)\top} \mathbf{x}_i \le 0$ and the radius bound $\|\mathbf{x}_i\|_2 \le R$. Inductively from $\mathbf{w}^{(0)} = \mathbf{0}$:
+\begin{equation}
+\|\mathbf{w}^{(k)}\|_2^2 \le k R^2 \implies \|\mathbf{w}^{(k)}\|_2 \le \sqrt{k} R.
+\label{eq:novikoff_norm_bound}
+\end{equation}
+
+By the Cauchy-Schwarz inequality, for any unit vector $\mathbf{w}^*$:
+\begin{equation}
+\mathbf{w}^{(k)\top} \mathbf{w}^* \le \|\mathbf{w}^{(k)}\|_2 \|\mathbf{w}^*\|_2 = \|\mathbf{w}^{(k)}\|_2.
+\end{equation}
+Combining Equation~\eqref{eq:novikoff_inner_bound} and Equation~\eqref{eq:novikoff_norm_bound}:
+\begin{equation}
+k \gamma \le \mathbf{w}^{(k)\top} \mathbf{w}^* \le \|\mathbf{w}^{(k)}\|_2 \le \sqrt{k} R \implies k \gamma \le \sqrt{k} R \implies \sqrt{k} \le \frac{R}{\gamma} \implies k \le \left( \frac{R}{\gamma} \right)^2.
+\end{equation}
+This completes the proof.
+\end{proof}
+
+\subsection{The fatal flaws: The XOR impasse and Minsky \& Papert's critique}
+\label{sec:xor_and_minsky_critique}
+
+Despite the mathematical elegance of Novikoff's theorem, the single-layer perceptron suffers from fundamental theoretical limitations that ultimately triggered the historical ``First AI Winter''.
+
+\paragraph{1. The Non-Separability Catastrophe: Infinite Cycling.}
+Novikoff's Perceptron Convergence Theorem (Theorem~\ref{thm:novikoff_convergence}) holds strictly under the premise that the training dataset $\mathcal{D}$ is linearly separable, meaning that a strictly positive margin exists: $\gamma > 0$. 
+
+However, in realistic real-world datasets, sensory noise, label ambiguity, and overlapping class probability distributions inevitably render data \textbf{linearly non-separable} ($\gamma \le 0$). When applied to non-separable data, the perceptron learning algorithm fails catastrophically:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Destruction of the Convergence Guarantee}: If no hyperplane can simultaneously satisfy all training constraints $y_i(\mathbf{w}^\top \mathbf{x}_i) > 0$, the upper bound $k \le (R/\gamma)^2$ becomes undefined ($\gamma \to 0$ implies $k \to \infty$).
+  \item \textbf{The Inseparable Outlier and Boundary Thrashing}: Consider a dataset where an inseparable outlier (e.g., a negative point located within a cluster of positive samples) is encountered. Because the point is misclassified, the algorithm updates the weight vector:
+  \begin{equation}
+  \mathbf{w}^{(t+1)} = \mathbf{w}^{(t)} + y_i \mathbf{x}_i.
+  \end{equation}
+  As illustrated in Figure~\ref{fig:perceptron_flaw_nonseparable}, this update forcibly rotates the decision boundary from $H^{(t)}$ to $H^{(t+1)}$ to satisfy the outlier.
+  \item \textbf{Perpetual Ping-Pong Oscillation}: Crucially, rotating the hyperplane to correctly classify the outlier inevitably moves the boundary across previously well-classified points, immediately causing them to become misclassified. In subsequent iterations, those newly misclassified points trigger counter-updates that rotate the boundary back toward $H^{(t)}$.
+  \item \textbf{Infinite Looping}: The algorithm becomes trapped in an infinite ping-pong oscillation between conflicting hyperplanes, violently thrashing back and forth and \textbf{never terminating}.
+\end{itemize}
+
+To mitigate this catastrophic behavior in practical applications, Stephen Gallant introduced the heuristic \textbf{Pocket Algorithm}~\cite{gallant1990perceptron}, which runs the perceptron algorithm for a predetermined number of iterations while storing (``in its pocket'') the parameter vector that achieved the lowest classification error seen so far. Nevertheless, the fundamental theoretical guarantee of exact convergence is irrevocably lost on non-separable data.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=1.15]
+  \draw[-{Stealth}, gray!50] (-0.5, 0) -- (4.4, 0) node[right, font=\footnotesize] {$x_1$};
+  \draw[-{Stealth}, gray!50] (0, -0.5) -- (0, 3.6) node[above, font=\footnotesize] {$x_2$};
+
+  % Positive cluster (+1 stars)
+  \node[star, star points=5, star point ratio=2.2, draw=politoNavy, fill=politoNavy!30, thick, inner sep=2pt] at (0.8, 2.5) {};
+  \node[star, star points=5, star point ratio=2.2, draw=politoNavy, fill=politoNavy!30, thick, inner sep=2pt] at (1.3, 3.1) {};
+  \node[star, star points=5, star point ratio=2.2, draw=politoNavy, fill=politoNavy!30, thick, inner sep=2pt] at (2.2, 3.0) {};
+  \node[star, star points=5, star point ratio=2.2, draw=politoNavy, fill=politoNavy!30, thick, inner sep=2pt] at (2.5, 2.4) {};
+
+  % Negative cluster (-1 circles)
+  \node[circle, draw=examred, fill=examred!20, thick, inner sep=2pt] at (2.7, 0.7) {};
+  \node[circle, draw=examred, fill=examred!20, thick, inner sep=2pt] at (3.4, 1.1) {};
+  \node[circle, draw=examred, fill=examred!20, thick, inner sep=2pt] at (3.2, 0.4) {};
+
+  % The Inseparable Outlier Negative point inside Positive cluster
+  \node[circle, draw=examred, fill=examred!70, very thick, inner sep=2.5pt] (outlier) at (1.5, 2.0) {};
+  \node[font=\scriptsize\bfseries, text=examred, above left] at (1.5, 2.0) {Inseparable Outlier ($-1$)};
+
+  % Two alternating oscillating hyperplanes
+  \draw[thick, deepblue, dashed] (0.2, 1.4) -- (3.8, 2.6) node[right, font=\scriptsize, text=deepblue] {Hyperplane $H^{(t)}$};
+  \draw[thick, examred, dashdotted] (0.8, 3.4) -- (2.6, 0.3) node[below right, font=\scriptsize, text=examred] {Hyperplane $H^{(t+1)}$};
+
+  % Oscillation cycle arrows in clear zone
+  \draw[-{Stealth}, thick, deepdiveTeal] (3.3, 2.2) to[bend left=35] (2.9, 1.2);
+  \draw[-{Stealth}, thick, deepdiveTeal] (2.7, 1.2) to[bend left=35] (3.1, 2.2);
+  \node[font=\scriptsize\bfseries, text=deepdiveTeal, right, align=left] at (3.4, 1.7) {Perpetual\\Oscillation};
+
+  \node[draw=examred, fill=examback, rounded corners, font=\scriptsize, align=center] at (2.0, -0.6) {Non-separable data: Algorithm oscillates indefinitely ($k \to \infty$).};
+\end{tikzpicture}
+\caption{Flaw 1 of the Perceptron: Non-separability and infinite cycling. When classes overlap or contain an inseparable outlier, no separating hyperplane exists ($\gamma \le 0$). The perceptron learning algorithm continually rotates to satisfy the misclassified outlier, which promptly causes previously classified points to fail, trapping the algorithm in an infinite ping-pong oscillation between conflicting hyperplanes $H^{(t)}$ and $H^{(t+1)}$.}
+\label{fig:perceptron_flaw_nonseparable}
+\end{figure}
+
+The non-separability catastrophe demonstrates that the perceptron fails in the presence of noise and outliers. Yet a far deeper question remains: what if the data contains zero noise, zero outliers, and is completely deterministic? Can a single-layer perceptron learn even the simplest logical functions? As Marvin Minsky and Seymour Papert demonstrated, the answer is an emphatic no.
+
+\paragraph{2. Inability to Compute Exclusive-OR (XOR).}
+In their landmark 1969 monograph \textit{Perceptrons}, Marvin Minsky and Seymour Papert~\cite{minsky1969perceptrons} established that a single-layer perceptron is geometrically incapable of computing basic non-linear Boolean predicates, most famously the \textbf{Exclusive-OR (XOR)} function.
+
+Consider the four canonical vertices of the unit square $[0, 1]^2$ defining the XOR logic gate:
+\begin{equation}
+\begin{aligned}
+\mathbf{x}_1 = [0, 0]^\top &\implies y = -1, \\
+\mathbf{x}_2 = [0, 1]^\top &\implies y = +1,
+\end{aligned}
+\qquad
+\begin{aligned}
+\mathbf{x}_3 = [1, 0]^\top &\implies y = +1, \\
+\mathbf{x}_4 = [1, 1]^\top &\implies y = -1.
+\end{aligned}
+\label{eq:xor_dataset}
+\end{equation}
+
+To classify these four points correctly with zero training error, a perceptron parameterized by weights $(w_1, w_2)$ and bias $b$ must satisfy the four simultaneous strict linear inequalities:
+\begin{align}
+\text{For } \mathbf{x}_1 = [0, 0]^\top: \quad & w_1 \cdot 0 + w_2 \cdot 0 + b < 0 \implies b < 0, \label{eq:xor_ineq1} \\
+\text{For } \mathbf{x}_2 = [0, 1]^\top: \quad & w_1 \cdot 0 + w_2 \cdot 1 + b \ge 0 \implies w_2 + b \ge 0, \label{eq:xor_ineq2} \\
+\text{For } \mathbf{x}_3 = [1, 0]^\top: \quad & w_1 \cdot 1 + w_2 \cdot 0 + b \ge 0 \implies w_1 + b \ge 0, \label{eq:xor_ineq3} \\
+\text{For } \mathbf{x}_4 = [1, 1]^\top: \quad & w_1 \cdot 1 + w_2 \cdot 1 + b < 0 \implies w_1 + w_2 + b < 0. \label{eq:xor_ineq4}
+\end{align}
+
+We now derive the formal algebraic impossibility proof:
+\begin{proof}
+Summing the two positive-class inequalities~\eqref{eq:xor_ineq2} and~\eqref{eq:xor_ineq3}:
+\begin{equation}
+(w_2 + b) + (w_1 + b) \ge 0 \implies w_1 + w_2 + 2b \ge 0 \implies w_1 + w_2 + b \ge -b.
+\end{equation}
+Because Equation~\eqref{eq:xor_ineq1} requires $b < 0$, multiplying by $-1$ yields $-b > 0$. Therefore:
+\begin{equation}
+w_1 + w_2 + b \ge -b > 0 \implies w_1 + w_2 + b > 0.
+\label{eq:xor_contradiction_positive}
+\end{equation}
+However, Equation~\eqref{eq:xor_ineq4} strictly requires:
+\begin{equation}
+w_1 + w_2 + b < 0.
+\label{eq:xor_contradiction_negative}
+\end{equation}
+Equations~\eqref{eq:xor_contradiction_positive} and~\eqref{eq:xor_contradiction_negative} are directly contradictory: a real quantity cannot be strictly positive and strictly negative simultaneously ($0 < w_1 + w_2 + b < 0$, a manifest contradiction in $\mathbb{R}$). 
+\end{proof}
+
+Hence, \textbf{no parameter vector $\mathbf{w} \in \mathbb{R}^2$ and bias $b \in \mathbb{R}$ can ever classify the XOR problem}. Geometrically, as illustrated in Figure~\ref{fig:perceptron_flaw_xor}, the positive points $(0, 1)$ and $(1, 0)$ and negative points $(0, 0)$ and $(1, 1)$ occupy opposite diagonals of the unit square. Any straight line drawn through the plane can at best isolate three of the four points, always misclassifying at least one vertex.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=1.3]
+  % Axes
+  \draw[-{Stealth}, gray!70, thick] (-0.4, 0) -- (2.2, 0) node[right, font=\footnotesize] {$x_1$};
+  \draw[-{Stealth}, gray!70, thick] (0, -0.4) -- (0, 2.2) node[above, font=\footnotesize] {$x_2$};
+  \draw[help lines, color=gray!20, step=1] (-0.2,-0.2) grid (1.5,1.5);
+
+  % XOR points with non-conflicting placement
+  \node[circle, draw=examred, fill=examred!30, very thick, inner sep=3pt, label={below left:\footnotesize $(0,0): y=-1$}] at (0, 0) {};
+  \node[circle, draw=examred, fill=examred!30, very thick, inner sep=3pt, label={above right:\footnotesize $(1,1): y=-1$}] at (1, 1) {};
+  \node[star, star points=5, star point ratio=2.2, draw=politoNavy, fill=politoNavy!40, very thick, inner sep=3pt, label={above left:\footnotesize $(0,1): y=+1$}] at (0, 1) {};
+  \node[star, star points=5, star point ratio=2.2, draw=politoNavy, fill=politoNavy!40, very thick, inner sep=3pt, label={below right:\footnotesize $(1,0): y=+1$}] at (1, 0) {};
+
+  % Candidate hyperplanes failing (placed in open spaces)
+  \draw[thick, gray!60, dashed] (-0.3, 0.5) -- (1.7, 0.5) node[right, font=\tiny, text=gray!80] {Candidate 1 ($x_2 = 0.5$)};
+  \draw[thick, gray!60, dashed] (0.5, -0.3) -- (0.5, 1.7) node[above, font=\tiny, text=gray!80] {Candidate 2 ($x_1 = 0.5$)};
+  \draw[thick, examred, dashdotted] (-0.3, 0.8) node[left, font=\tiny, text=examred] {Diagonal partition} -- (1.1, -0.2);
+
+  \node[draw=examred, fill=examback, rounded corners, font=\scriptsize, align=center] at (0.9, -0.9) {Minsky \& Papert (1969): No single linear boundary can isolate opposite diagonal pairs.};
+\end{tikzpicture}
+\caption{Flaw 2 of the Perceptron: The XOR non-linear separability impasse. The Exclusive-OR (XOR) function assigns positive labels ($y = +1$) to coordinates $(0, 1)$ and $(1, 0)$, and negative labels ($y = -1$) to $(0, 0)$ and $(1, 1)$. Because positive and negative pairs occupy alternate diagonals of the unit square $[0, 1]^2$, no single linear decision hyperplane can separate the two classes.}
+\label{fig:perceptron_flaw_xor}
+\end{figure}
+
+The publication of Minsky and Papert's critique had devastating historical ramifications. Because early AI researchers lacked an algorithm to train multi-layer neural architectures with hidden units, the field broadly concluded that artificial neural networks were fundamentally flawed and unscalable, causing government and academic funding to evaporate and initiating the decade-long First AI Winter.
+
+\paragraph{3. Zero Derivative and Optimization Incompatibility.}
+The third fatal flaw of Rosenblatt's perceptron lies in its activation function. The discontinuous step activation:
+\begin{equation}
+f(z) = \operatorname{sgn}(z) = \begin{cases} +1 & \text{if } z \ge 0, \\ -1 & \text{if } z < 0, \end{cases}
+\end{equation}
+is piecewise constant. Its derivative is zero everywhere that it is defined:
+\begin{equation}
+f'(z) = \frac{d}{dz}\operatorname{sgn}(z) = 0, \quad \forall z \ne 0,
+\end{equation}
+and is completely undefined (or infinite) at the discontinuity $z = 0$. 
+
+Consequently, the parameter gradient of the pre-activation with respect to weights:
+\begin{equation}
+\nabla_\mathbf{w} f(\mathbf{w}^\top \mathbf{x} + b) = f'(z) \cdot \mathbf{x} = \mathbf{0}, \quad \forall z \ne 0.
+\end{equation}
+Because the gradient is identically zero almost everywhere, \textbf{gradient-based optimization algorithms cannot receive any directional learning signal}. Perturbing the weights by an infinitesimal step $\Delta \mathbf{w}$ either produces zero change in output or an abrupt, unpredictable jump across the step discontinuity. The perceptron cannot be trained using gradient descent, precluding integration into modern continuous optimization and backpropagation frameworks.
+
+---
+
+\section{Multilayer perceptrons, representation learning, and universal approximation}
+\label{sec:mlp_and_representation_learning}
+
+To overcome the perceptron's limitations, the architecture must undergo two simultaneous mathematical transformations: (1) transitioning from discrete step functions to continuous differentiable activations, and (2) stacking neurons into cascading \textbf{hidden layers} to construct \textbf{Multilayer Perceptrons (MLPs)}.
+
+\subsection{Why we need activation functions and task-dependent probability squashing}
+\label{sec:continuous_probabilities_softmax}
+
+Before introducing specific activation functions, we must answer a foundational theoretical question: \textit{why can we not simply stack multiple layers of linear perceptrons without activation functions?}
+
+\paragraph{The Compositional Collapse Theorem of Linear Networks.}
+Suppose we cascade $L$ layers where each layer computes a pure affine transformation without non-linear activations:
+\begin{align}
+\mathbf{h}^{(1)} &= \mathbf{W}_1 \mathbf{x} + \mathbf{b}_1, \\
+\mathbf{h}^{(2)} &= \mathbf{W}_2 \mathbf{h}^{(1)} + \mathbf{b}_2 = \mathbf{W}_2 (\mathbf{W}_1 \mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2 = (\mathbf{W}_2 \mathbf{W}_1)\mathbf{x} + (\mathbf{W}_2 \mathbf{b}_1 + \mathbf{b}_2), \\
+&\;\,\vdots \nonumber \\
+\hat{\mathbf{y}} &= \mathbf{W}_L \mathbf{h}^{(L-1)} + \mathbf{b}_L = \left( \prod_{l=L}^1 \mathbf{W}_l \right) \mathbf{x} + \mathbf{b}_{\text{eff}} = \mathbf{W}_{\text{eff}} \mathbf{x} + \mathbf{b}_{\text{eff}}.
+\end{align}
+Because matrix multiplication is associative and affine transformations are closed under composition, \textbf{any multi-layer linear network collapses mathematically into a single linear transformation}! Stacking 100 linear layers provides zero additional representational capacity over a simple single-layer linear model. 
+
+Non-linear activation functions are the sole mathematical mechanism that breaks affine subspace closure, enabling the network to bend, warp, and fold coordinate space to carve complex, non-linear decision boundaries.
+
+\paragraph{Task-Dependent Activation Selection: Sigmoid vs. Softmax.}
+Once non-linearity is introduced, the mathematical form of the output activation function must be chosen strictly according to the probabilistic structure of the target task:
+\begin{enumerate}
+  \item \textbf{Binary Classification ($y \in \{0, 1\}$ or $\{-1, +1\}$)}:
+    The output is a single scalar probability modeling a Bernoulli likelihood $P(y = 1 \mid \mathbf{x})$. We apply the smooth \textbf{Logistic Sigmoid activation}:
+    \begin{equation}
+    \sigma(z) \triangleq \frac{1}{1 + e^{-z}} \in (0, 1), \quad \text{with } P(y = 1 \mid \mathbf{x}) = \sigma(\mathbf{w}^\top \mathbf{x} + b).
+    \label{eq:sigmoid_formula}
+    \end{equation}
+    Sigmoid maps unconstrained real-valued logits $z \in (-\infty, +\infty)$ monotonically into the valid probability interval $(0, 1)$, with derivative $\sigma'(z) = \sigma(z)(1 - \sigma(z))$.
+  \item \textbf{Multiclass Categorical Classification ($y \in \{1, \dots, K\}$ with $K > 2$)}:
+    When classes are mutually exclusive, the output must be a probability vector residing on the $(K-1)$-dimensional probability simplex $\Delta^{K-1} = \{\mathbf{p} \in \R^K : p_k \ge 0, \, \sum_k p_k = 1\}$. We compute a vector of $K$ unconstrained logits:
+    \begin{equation}
+    \mathbf{z} = \mathbf{W}\mathbf{x} + \mathbf{b} \in \R^K,
+    \end{equation}
+    and apply the \textbf{Softmax activation function}:
+    \begin{equation}
+    \hat{y}_k \triangleq P(y = k \mid \mathbf{x}) = \operatorname{Softmax}(\mathbf{z})_k = \frac{\exp(z_k)}{\sum_{j=1}^K \exp(z_j)}, \quad \forall k \in \{1, \dots, K\}.
+    \label{eq:softmax_definition}
+    \end{equation}
+\end{enumerate}
+
+Softmax satisfies three essential analytical properties:
+\begin{itemize}[noitemsep]
+  \item \textbf{Strict Positivity}: $\hat{y}_k > 0$ for all finite logits $z_k$.
+  \item \textbf{Unit Normalization}: $\sum_{k=1}^K \hat{y}_k = 1$.
+  \item \textbf{Shift Invariance}: For any constant $c \in \R$, $\operatorname{Softmax}(\mathbf{z} + c \mathbf{1}) = \operatorname{Softmax}(\mathbf{z})$. Subtracting $\max_k z_k$ prevents numerical floating-point overflow.
+\end{itemize}
+
+Representing the ground truth label via a one-hot indicator vector $\mathbf{y} \in \{0, 1\}^K$, the corresponding loss is the \textbf{Categorical Cross-Entropy}:
+\begin{equation}
+\mathcal{L}_{\text{CE}}(\mathbf{y}, \hat{\mathbf{y}}) \triangleq -\sum_{k=1}^K y_k \ln \hat{y}_k = -\ln \hat{y}_{\text{true class}}.
+\label{eq:categorical_cross_entropy}
+\end{equation}
+Differentiating with respect to logit $z_i$ reveals that the pre-activation gradient is simply the residual prediction error:
+\begin{equation}
+\frac{\partial \mathcal{L}_{\text{CE}}}{\partial z_i} = \hat{y}_i - y_i.
+\label{eq:softmax_cross_entropy_gradient}
+\end{equation}
+
+\subsection{Resolving the XOR dilemma via hidden representation warping}
+\label{sec:resolving_xor_hidden_representations}
+
+Having established differentiable activations, we now resolve Minsky and Papert's XOR impasse by introducing an intermediate \textbf{hidden layer}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=1.0, every node/.style={transform shape}]
+  % Layer 0: Input Layer
+  \node[circle, draw=deepblue, fill=deepblue!10, thick, inner sep=3pt] (x1) at (0, 1.2) {$x_1$};
+  \node[circle, draw=deepblue, fill=deepblue!10, thick, inner sep=3pt] (x2) at (0, -1.2) {$x_2$};
+  \node[font=\footnotesize\bfseries\color{politoNavy}] at (0, 2.2) {Input $\mathbf{x} \in \R^2$};
+
+  % Layer 1: Hidden Layer
+  \node[circle, draw=intuitiongreen, fill=intuitiongreen!15, very thick, inner sep=3pt] (h1) at (3.2, 1.2) {$h_1$};
+  \node[circle, draw=intuitiongreen, fill=intuitiongreen!15, very thick, inner sep=3pt] (h2) at (3.2, -1.2) {$h_2$};
+  \node[font=\footnotesize\bfseries\color{intuitiongreen}] at (3.2, 2.2) {Hidden $\mathbf{h} = \sigma(\mathbf{W}_1\mathbf{x}+\mathbf{b}_1)$};
+
+  % Layer 2: Output Layer
+  \node[circle, draw=examred, fill=examred!15, very thick, inner sep=3pt] (y) at (6.4, 0.0) {$\hat{y}$};
+  \node[font=\footnotesize\bfseries\color{examred}] at (6.4, 2.2) {Output $\hat{y} = \mathbf{w}_2^\top\mathbf{h}+b_2$};
+
+  % Connections: Input to Hidden (W1)
+  \draw[-{Stealth}, thick] (x1) -- node[above, font=\scriptsize] {$W_{11}=1$} (h1);
+  \draw[-{Stealth}, thick] (x1) -- node[near start, above right, font=\scriptsize] {$W_{21}=1$} (h2);
+  \draw[-{Stealth}, thick] (x2) -- node[near start, below right, font=\scriptsize] {$W_{12}=1$} (h1);
+  \draw[-{Stealth}, thick] (x2) -- node[below, font=\scriptsize] {$W_{22}=1$} (h2);
+
+  % Biases for Hidden
+  \node[gray!70, font=\scriptsize] (b1_1) at (3.2, 0.4) {$b_1=0$};
+  \node[gray!70, font=\scriptsize] (b1_2) at (3.2, -2.0) {$b_2=-1$};
+
+  % Connections: Hidden to Output (w2)
+  \draw[-{Stealth}, thick] (h1) -- node[above right, font=\scriptsize] {$w_{2,1}=1$} (y);
+  \draw[-{Stealth}, thick] (h2) -- node[below right, font=\scriptsize] {$w_{2,2}=-2$} (y);
+
+  % Output Arrow
+  \draw[-{Stealth}, very thick, examred] (y) -- ++(1.2, 0) node[right, font=\footnotesize\bfseries] {$\hat{y} \in \{0, 1\}$};
+\end{tikzpicture}
+\caption{The Multi-Layer Perceptron (MLP) architecture resolving XOR. Input coordinates $(x_1, x_2)$ are projected into a 2D hidden layer $\mathbf{h} = \operatorname{ReLU}(\mathbf{W}_1 \mathbf{x} + \mathbf{b}_1)$ that extracts non-linear representations, followed by a linear output unit that classifies the transformed points cleanly.}
+\label{fig:mlp_architecture}
+\end{figure}
+
+Consider the two-layer feedforward network depicted in Figure~\ref{fig:mlp_architecture}:
+\begin{align}
+\mathbf{h} &= \operatorname{ReLU}(\mathbf{W}_1 \mathbf{x} + \mathbf{b}_1), \quad \text{with } \mathbf{W}_1 = \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}, \, \mathbf{b}_1 = \begin{bmatrix} 0 \\ -1 \end{bmatrix}, \label{eq:xor_hidden_forward} \\
+\hat{y} &= \mathbf{w}_2^\top \mathbf{h} + b_2, \quad \text{with } \mathbf{w}_2 = \begin{bmatrix} 1 \\ -2 \end{bmatrix}, \, b_2 = 0, \label{eq:xor_output_forward}
+\end{align}
+where $\operatorname{ReLU}(z) \triangleq \max(0, z)$.
+
+Evaluating the forward pass across the four XOR input configurations:
+\begin{enumerate}
+  \item \textbf{Input $\mathbf{x} = [0, 0]^\top$ (Negative Class)}:
+    \begin{equation}
+    \mathbf{W}_1 \mathbf{x} + \mathbf{b}_1 = \begin{bmatrix} 0 \\ -1 \end{bmatrix} \implies \mathbf{h} = \operatorname{ReLU}\left(\begin{bmatrix} 0 \\ -1 \end{bmatrix}\right) = \begin{bmatrix} 0 \\ 0 \end{bmatrix} \implies \hat{y} = [1, -2] \begin{bmatrix} 0 \\ 0 \end{bmatrix} = 0.
+    \end{equation}
+  \item \textbf{Input $\mathbf{x} = [1, 0]^\top$ (Positive Class)}:
+    \begin{equation}
+    \mathbf{W}_1 \mathbf{x} + \mathbf{b}_1 = \begin{bmatrix} 1 \\ 0 \end{bmatrix} \implies \mathbf{h} = \operatorname{ReLU}\left(\begin{bmatrix} 1 \\ 0 \end{bmatrix}\right) = \begin{bmatrix} 1 \\ 0 \end{bmatrix} \implies \hat{y} = [1, -2] \begin{bmatrix} 1 \\ 0 \end{bmatrix} = 1.
+    \end{equation}
+  \item \textbf{Input $\mathbf{x} = [0, 1]^\top$ (Positive Class)}:
+    \begin{equation}
+    \mathbf{W}_1 \mathbf{x} + \mathbf{b}_1 = \begin{bmatrix} 1 \\ 0 \end{bmatrix} \implies \mathbf{h} = \operatorname{ReLU}\left(\begin{bmatrix} 1 \\ 0 \end{bmatrix}\right) = \begin{bmatrix} 1 \\ 0 \end{bmatrix} \implies \hat{y} = [1, -2] \begin{bmatrix} 1 \\ 0 \end{bmatrix} = 1.
+    \end{equation}
+  \item \textbf{Input $\mathbf{x} = [1, 1]^\top$ (Negative Class)}:
+    \begin{equation}
+    \mathbf{W}_1 \mathbf{x} + \mathbf{b}_1 = \begin{bmatrix} 2 \\ 1 \end{bmatrix} \implies \mathbf{h} = \operatorname{ReLU}\left(\begin{bmatrix} 2 \\ 1 \end{bmatrix}\right) = \begin{bmatrix} 2 \\ 1 \end{bmatrix} \implies \hat{y} = [1, -2] \begin{bmatrix} 2 \\ 1 \end{bmatrix} = 0.
+    \end{equation}
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.48\linewidth}
+  \centering
+  \begin{tikzpicture}[scale=1.1]
+    \draw[-{Stealth}, gray!70, thick] (-0.3, 0) -- (1.6, 0) node[right, font=\footnotesize] {$x_1$};
+    \draw[-{Stealth}, gray!70, thick] (0, -0.3) -- (0, 1.6) node[above, font=\footnotesize] {$x_2$};
+    \draw[help lines, color=gray!20, step=1] (-0.2,-0.2) grid (1.4,1.4);
+    
+    % Points
+    \node[circle, draw=examred, fill=examred!20, thick, inner sep=3pt, label={below left:\scriptsize $(0,0): y=0$}] at (0, 0) {};
+    \node[circle, draw=examred, fill=examred!20, thick, inner sep=3pt, label={above right:\scriptsize $(1,1): y=0$}] at (1, 1) {};
+    \node[star, star points=5, star point ratio=2.2, draw=politoNavy, fill=politoNavy!30, thick, inner sep=2.5pt, label={above left:\scriptsize $(0,1): y=1$}] at (0, 1) {};
+    \node[star, star points=5, star point ratio=2.2, draw=politoNavy, fill=politoNavy!30, thick, inner sep=2.5pt, label={below right:\scriptsize $(1,0): y=1$}] at (1, 0) {};
+
+    \node[font=\footnotesize\bfseries, align=center, text=examred] at (0.5, -0.7) {Input Space $\mathcal{X}$:\\Non-linearly Separable};
+  \end{tikzpicture}
+\end{minipage}\hfill
+\begin{minipage}{0.48\linewidth}
+  \centering
+  \begin{tikzpicture}[scale=1.1]
+    \draw[-{Stealth}, gray!70, thick] (-0.3, 0) -- (2.4, 0) node[right, font=\footnotesize] {$h_1$};
+    \draw[-{Stealth}, gray!70, thick] (0, -0.3) -- (0, 1.6) node[above, font=\footnotesize] {$h_2$};
+    \draw[help lines, color=gray!20, step=1] (-0.2,-0.2) grid (2.2,1.4);
+
+    % Transformed Points
+    \node[circle, draw=examred, fill=examred!20, thick, inner sep=3pt, label={below left:\scriptsize $(0,0)$}] at (0, 0) {};
+    \node[circle, draw=examred, fill=examred!20, thick, inner sep=3pt, label={above right:\scriptsize $(2,1)$}] at (2, 1) {};
+    \node[star, star points=5, star point ratio=2.2, draw=politoNavy, fill=politoNavy!30, thick, inner sep=2.5pt, label={above:\scriptsize Coincident: $(1,0)$}] at (1, 0) {};
+
+    % Separating hyperplane
+    \draw[very thick, intuitiongreen] (0.5, -0.2) -- (1.5, 1.4) node[right, font=\scriptsize, align=left] {Hyperplane:\\$h_1 - 2h_2 = 0.5$};
+
+    \node[font=\footnotesize\bfseries, align=center, text=intuitiongreen] at (1.0, -0.7) {Hidden Space $\mathcal{H}$:\\Linearly Separable!};
+  \end{tikzpicture}
+\end{minipage}
+\caption{The geometric mechanism of representation learning resolving the XOR problem. Left: In the raw input space $\mathcal{X}$, no single line can separate the positive stars from the negative circles. Right: The non-linear hidden layer transformation $\mathbf{h} = \operatorname{ReLU}(\mathbf{W}_1 \mathbf{x} + \mathbf{b}_1)$ collapses both positive points $[0, 1]^\top$ and $[1, 0]^\top$ onto the single coordinate $[1, 0]^\top$, while mapping $[1, 1]^\top$ to $[2, 1]^\top$. In this hidden space $\mathcal{H}$, the classes are cleanly separated by a single linear hyperplane $h_1 - 2h_2 = 0.5$.}
+\label{fig:xor_representation_warping}
+\end{figure}
+
+Figure~\ref{fig:xor_representation_warping} illuminates the deep geometric principle at work: \textbf{the hidden layer performs representation learning}. Instead of relying on handcrafted features, the network automatically warps and projects the input space into a latent coordinate system $\mathcal{H}$ where previously non-separable distributions become strictly linearly separable!
+
+\subsection{From individual perceptrons to deep fully connected networks (FCNs)}
+\label{sec:perceptron_to_fcn}
+
+Building upon the single-hidden-layer MLP, we generalize this construction to arbitrary depth. By cascading multiple layers of perceptrons such that every neuron in layer $l-1$ connects to every neuron in layer $l$, we obtain a \textbf{Fully Connected Network (FCN)}, also termed a \textbf{Dense Feedforward Neural Network}.
+
+Formally, an $L$-layer Fully Connected Network computes a sequence of coupled affine-non-linear vector recurrences:
+\begin{align}
+\mathbf{a}^{(0)} &\equiv \mathbf{x} \in \R^{d_0}, \label{eq:fcn_input} \\
+\mathbf{z}^{(l)} &= \mathbf{W}^{(l)} \mathbf{a}^{(l-1)} + \mathbf{b}^{(l)}, \quad \mathbf{W}^{(l)} \in \R^{d_l \times d_{l-1}}, \, \mathbf{b}^{(l)} \in \R^{d_l}, \quad \forall l \in \{1, \dots, L\}, \label{eq:fcn_preactivation} \\
+\mathbf{a}^{(l)} &= \sigma\left( \mathbf{z}^{(l)} \right) \in \R^{d_l}, \label{eq:fcn_activation}
+\end{align}
+where $\mathbf{z}^{(l)}$ is the layer-$l$ pre-activation vector, $\sigma(\cdot)$ is an element-wise activation function, and $\mathbf{a}^{(l)}$ denotes the layer-$l$ activations (with $\hat{\mathbf{y}} \equiv \mathbf{a}^{(L)}$).
+
+The total parameter count of a dense FCN scales quadratically with layer width:
+\begin{equation}
+N_{\text{dense parameters}} = \sum_{l=1}^L \left( d_{l-1} \cdot d_l + d_l \right).
+\label{eq:dense_parameter_count}
+\end{equation}
+As illustrated in Figure~\ref{fig:fcn_topology}, the bipartite graph between adjacent layers is complete: every neuron receives input from all neurons of the preceding layer.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.95, every node/.style={transform shape}]
+  % Styles
+  \tikzstyle{inputnode}=[circle, draw=deepblue, fill=deepblue!10, thick, inner sep=2.5pt]
+  \tikzstyle{hiddennode1}=[circle, draw=intuitiongreen, fill=intuitiongreen!15, thick, inner sep=2.5pt]
+  \tikzstyle{hiddennode2}=[circle, draw=politoNavy, fill=politoNavy!15, thick, inner sep=2.5pt]
+  \tikzstyle{outputnode}=[circle, draw=examred, fill=examred!20, thick, inner sep=2.5pt]
+
+  % Layer 0: Input (d0 = 4)
+  \foreach \i in {1,...,4} {
+    \node[inputnode] (L0_\i) at (0, 2.5 - \i*1.0) {$x_\i$};
+  }
+  \node[font=\footnotesize\bfseries\color{deepblue}] at (0, 2.2) {Layer $\mathbf{a}^{(0)} \in \R^4$};
+
+  % Layer 1: Hidden 1 (d1 = 5)
+  \foreach \j in {1,...,5} {
+    \node[hiddennode1] (L1_\j) at (3.0, 3.0 - \j*1.0) {$h^{(1)}_\j$};
+  }
+  \node[font=\footnotesize\bfseries\color{intuitiongreen}] at (3.0, 2.6) {Layer $\mathbf{a}^{(1)} \in \R^5$};
+
+  % Layer 2: Hidden 2 (d2 = 5)
+  \foreach \k in {1,...,5} {
+    \node[hiddennode2] (L2_\k) at (6.0, 3.0 - \k*1.0) {$h^{(2)}_\k$};
+  }
+  \node[font=\footnotesize\bfseries\color{politoNavy}] at (6.0, 2.6) {Layer $\mathbf{a}^{(2)} \in \R^5$};
+
+  % Layer 3: Output (d3 = 3)
+  \foreach \m in {1,...,3} {
+    \node[outputnode] (L3_\m) at (9.0, 2.0 - \m*1.0) {$\hat{y}_\m$};
+  }
+  \node[font=\footnotesize\bfseries\color{examred}] at (9.0, 1.6) {Layer $\mathbf{a}^{(3)} \in \R^3$};
+
+  % Connect L0 to L1
+  \foreach \i in {1,...,4} {
+    \foreach \j in {1,...,5} {
+      \draw[-{Stealth}, gray!40, thin] (L0_\i) -- (L1_\j);
+    }
+  }
+
+  % Connect L1 to L2
+  \foreach \j in {1,...,5} {
+    \foreach \k in {1,...,5} {
+      \draw[-{Stealth}, gray!40, thin] (L1_\j) -- (L2_\k);
+    }
+  }
+
+  % Connect L2 to L3
+  \foreach \k in {1,...,5} {
+    \foreach \m in {1,...,3} {
+      \draw[-{Stealth}, gray!40, thin] (L2_\k) -- (L3_\m);
+    }
+  }
+
+  % Annotations for weight matrices
+  \node[font=\scriptsize\bfseries\color{gray!80}] at (1.5, -2.5) {$\mathbf{W}^{(1)} \in \R^{5 \times 4}$};
+  \node[font=\scriptsize\bfseries\color{gray!80}] at (4.5, -2.5) {$\mathbf{W}^{(2)} \in \R^{5 \times 5}$};
+  \node[font=\scriptsize\bfseries\color{gray!80}] at (7.5, -2.5) {$\mathbf{W}^{(3)} \in \R^{3 \times 5}$};
+\end{tikzpicture}
+\caption{The architectural topology of a deep Fully Connected Network (FCN). Each layer $l$ performs an affine transformation followed by an element-wise non-linear activation: $\mathbf{a}^{(l)} = \sigma(\mathbf{W}^{(l)} \mathbf{a}^{(l-1)} + \mathbf{b}^{(l)})$. In this dense topology, the bipartite graph between adjacent layers is complete: every neuron receives input from all neurons of the preceding layer.}
+\label{fig:fcn_topology}
+\end{figure}
+
+While fully connected architectures possess universal approximation properties, Equation~\eqref{eq:dense_parameter_count} reveals the seed of their catastrophic failure when confronted with high-dimensional image tensors.
+
+\subsection{Activation functions and the deep ReLU revolution}
+\label{sec:activation_functions_and_relu}
+
+The choice of non-linear activation function $\sigma(\cdot)$ governs how gradients propagate across depth.
+
+\paragraph{1. The Vanishing Gradient Bottleneck of Sigmoid and Tanh.}
+Historically, early neural networks employed the logistic sigmoid $\sigma(z) = \frac{1}{1 + e^{-z}}$ or the hyperbolic tangent:
+\begin{equation}
+\tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}} = 2\sigma(2z) - 1.
+\end{equation}
+Both functions are smooth and bounded. However, their derivatives saturate asymptotically:
+\begin{equation}
+\frac{d\sigma(z)}{dz} = \sigma(z)(1 - \sigma(z)) \le 0.25, \quad \frac{d\tanh(z)}{dz} = 1 - \tanh^2(z) \le 1.0.
+\end{equation}
+Whenever a neuron's activation falls into the saturated tail regime ($|z| \gg 0$), the local derivative is nearly zero ($\sigma'(z) \approx 0$). In a network with $L$ cascading layers, backpropagating the gradient requires multiplying $L$ derivative terms by the chain rule:
+\begin{equation}
+\frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(1)}} \propto \prod_{l=1}^L \mathbf{W}^{(l)\top} \operatorname{diag}\left( \sigma'(\mathbf{z}^{(l)}) \right).
+\end{equation}
+Because $\sigma'(z) \le 0.25$, this product decays exponentially with depth: $0.25^L \to 0$. By layer 4 or 5, the gradient signal vanishes completely ($\|\nabla_{\mathbf{W}^{(1)}} \mathcal{L}\| \approx 0$). Early layers stop learning entirely, freezing at their random initialization.
+
+\paragraph{2. The Rectified Linear Unit (ReLU) Revolution.}
+To solve the vanishing gradient problem, modern deep learning adopted the \textbf{Rectified Linear Unit (ReLU)}~\cite{glorot2011deep,nair2010rectified}:
+\begin{equation}
+\operatorname{ReLU}(z) \triangleq \max(0, z) = \begin{cases} z & \text{if } z \ge 0, \\ 0 & \text{if } z < 0. \end{cases}
+\label{eq:relu_formula}
+\end{equation}
+Its derivative is piecewise constant:
+\begin{equation}
+\frac{d}{dz}\operatorname{ReLU}(z) = \begin{cases} 1 & \text{if } z > 0, \\ 0 & \text{if } z < 0. \end{cases}
+\end{equation}
+ReLU provides two transformative mathematical advantages:
+\begin{itemize}[noitemsep]
+  \item \textbf{Non-Saturating Gradient}: For all active neurons ($z > 0$), the derivative is exactly $1$, completely eliminating vanishing gradients regardless of network depth ($1^L = 1$).
+  \item \textbf{Computational Efficiency}: Computing $\max(0, z)$ requires a single comparison instruction on modern CPUs/GPUs, avoiding expensive transcendental exponential evaluations ($e^{-z}$).
+  \item \textbf{Sparse Representations}: Neurons with negative inputs output an exact zero, inducing sparse activation patterns where only a subset of pathways fire for any given input.
+\end{itemize}
+
+\paragraph{3. The ``Dying ReLU'' Pathological Failure: Mathematical Mechanics.}
+Despite its non-saturating advantage for active units ($z > 0$), standard ReLU introduces an insidious optimization vulnerability known as the \textbf{``Dying ReLU''} problem. Under specific gradient dynamics, a single large update can permanently knock a neuron into the negative pre-activation regime across the entire data support, rendering it permanently inert and incapable of ever updating again.
+
+We formalize the exact mechanical sequence of this failure:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Neuron Mechanics and Gradient Transmission}: Consider a neuron parameterized by weight vector $\mathbf{w}$ and scalar bias $b$, evaluating input $\mathbf{x} \in \mathbb{R}^d$:
+  \begin{equation}
+  z = \mathbf{w}^\top \mathbf{x} + b, \qquad a = \operatorname{ReLU}(z) = \max(0, z).
+  \end{equation}
+  During backpropagation, the gradient of the scalar loss $\mathcal{L}$ with respect to the pre-activation $z$ is:
+  \begin{equation}
+  \frac{\partial \mathcal{L}}{\partial z} = \frac{\partial \mathcal{L}}{\partial a} \cdot \frac{da}{dz} = \begin{cases} \frac{\partial \mathcal{L}}{\partial a} & \text{if } z > 0, \\ 0 & \text{if } z < 0. \end{cases}
+  \label{eq:relu_gradient_cases}
+  \end{equation}
+  Parameter updates under stochastic gradient descent (learning rate $\eta > 0$) evaluate to:
+  \begin{equation}
+  \mathbf{w}^{(t+1)} = \mathbf{w}^{(t)} - \eta \left( \frac{\partial \mathcal{L}}{\partial z} \mathbf{x} \right), \qquad b^{(t+1)} = b^{(t)} - \eta \frac{\partial \mathcal{L}}{\partial z}.
+  \end{equation}
+
+  \item \textbf{The Destructive Trigger (The Large Positive Gradient Step)}: Suppose the neuron is initially active ($z > 0$). If a sudden large error is backpropagated to this unit---triggered by an excessively high learning rate $\eta$, an unnormalized outlier batch, or unfortunate weight initialization---the incoming gradient signal $\frac{\partial \mathcal{L}}{\partial z}$ can be a massive positive scalar:
+  \begin{equation}
+  \frac{\partial \mathcal{L}}{\partial z} \gg 0.
+  \end{equation}
+  The gradient step subtracts $\eta \frac{\partial \mathcal{L}}{\partial z}$ directly from the bias parameter, driving it to an extreme negative value:
+  \begin{equation}
+  b^{(t+1)} = b^{(t)} - \eta \frac{\partial \mathcal{L}}{\partial z} \ll 0.
+  \end{equation}
+  Simultaneously, for any positive input features ($x_j > 0$), the weight update subtracts $\eta \frac{\partial \mathcal{L}}{\partial z} x_j$, driving the weights $\mathbf{w}$ strongly negative as well.
+
+  \item \textbf{The Inactive Trap ($z < 0$ Across the Entire Data Distribution)}: Consider the neuron's pre-activation evaluated on any arbitrary sample $\mathbf{x}$ from the data distribution $\mathcal{D}$:
+  \begin{equation}
+  z^{(t+1)}(\mathbf{x}) = \mathbf{w}^{(t+1)\top} \mathbf{x} + b^{(t+1)}.
+  \end{equation}
+  Because $b^{(t+1)}$ is now deeply negative, the scalar offset dominates the bounded inner product $\mathbf{w}^{(t+1)\top} \mathbf{x}$. As a result, the pre-activation remains strictly negative across the entire training dataset:
+  \begin{equation}
+  z^{(t+1)}(\mathbf{x}) < 0, \quad \forall \mathbf{x} \sim \mathcal{D}.
+  \end{equation}
+  Consequently, the neuron emits zero activation for every sample:
+  \begin{equation}
+  a(\mathbf{x}) = \operatorname{ReLU}\left( z^{(t+1)}(\mathbf{x}) \right) = 0, \quad \forall \mathbf{x} \sim \mathcal{D}.
+  \end{equation}
+
+  \item \textbf{The Permanence: Zero-Gradient Lockout}: Why is the neuron unable to recover on subsequent iterations? On any future iteration $t+k$, for every incoming training sample $\mathbf{x}$:
+  \begin{equation}
+  z(\mathbf{x}) < 0 \implies \frac{da}{dz} = 0 \implies \frac{\partial \mathcal{L}}{\partial z} = \frac{\partial \mathcal{L}}{\partial a} \cdot 0 = 0.
+  \end{equation}
+  Because the local pre-activation gradient vanishes identically for all samples in every batch:
+  \begin{equation}
+  \nabla_\mathbf{w} \mathcal{L} = \frac{\partial \mathcal{L}}{\partial z} \mathbf{x} = \mathbf{0}, \qquad \frac{\partial \mathcal{L}}{\partial b} = \frac{\partial \mathcal{L}}{\partial z} = 0.
+  \end{equation}
+  The gradient update evaluates to a permanent identity:
+  \begin{equation}
+  \mathbf{w}^{(t+k+1)} = \mathbf{w}^{(t+k)} - \eta \mathbf{0} = \mathbf{w}^{(t+k)}, \qquad b^{(t+k+1)} = b^{(t+k)} - \eta \cdot 0 = b^{(t+k)}.
+  \end{equation}
+  Because the gradients are identically zero across all possible training batches, no gradient-based update can ever modify $\mathbf{w}$ or $b$ again. The neuron is permanently dead. When multiple neurons in a hidden layer suffer this lockout, the representational capacity of the network permanently and irreversibly collapses.
+\end{enumerate}
+
+\paragraph{Why Momentum and Weight Decay Fail to Resurrect Dead Neurons.}
+Two standard optimizer mechanics fail to remedy this lockout:
+\begin{itemize}[noitemsep]
+  \item \textbf{Momentum}: The velocity vector updates as $\mathbf{v}_{t+1} = \beta \mathbf{v}_t + \eta \nabla_\theta \mathcal{L}_t$. Once gradients vanish identically across batches ($\nabla_\theta \mathcal{L} = \mathbf{0}$), velocity decays exponentially ($\mathbf{v}_{t+k} = \beta^k \mathbf{v}_t \to \mathbf{0}$), freezing parameters permanently.
+  \item \textbf{Weight Decay ($L_2$ Regularization)}: Weight decay pulls weights toward zero ($\mathbf{w} \leftarrow (1 - \eta \lambda)\mathbf{w}$). However, biases $b$ are standardly excluded from weight decay to prevent underfitting; furthermore, even if $\mathbf{w} \to \mathbf{0}$, the pre-activation remains $z = \mathbf{0}^\top \mathbf{x} + b = b \ll 0$, which remains strictly negative and permanently locked.
+\end{itemize}
+
+\paragraph{4. Mathematical Resolution via Modern ReLU Variants.}
+To prevent zero-gradient lockout, alternative non-linearities guarantee a strictly non-zero derivative in the negative regime ($z < 0$), ensuring that $\frac{da}{dz} \ne 0$ so corrective gradient signals can flow and pull deeply negative biases back up:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Leaky ReLU}~\cite{maas2013rectifier}: Replaces the zero-gradient flatline with a small positive slope $\alpha \approx 0.01$:
+  \begin{equation}
+  f(z) = \max(\alpha z, z) = \begin{cases} z & \text{if } z \ge 0, \\ \alpha z & \text{if } z < 0, \end{cases} \implies \frac{df}{dz} = \begin{cases} 1 & \text{if } z \ge 0, \\ \alpha & \text{if } z < 0. \end{cases}
+  \end{equation}
+  Even when knocked into $z < 0$, the neuron receives a live gradient $\frac{\partial \mathcal{L}}{\partial z} = \alpha \frac{\partial \mathcal{L}}{\partial a} \ne 0$, producing corrective parameter updates $b \leftarrow b - \eta \alpha \frac{\partial \mathcal{L}}{\partial a}$ that can restore the unit to active status.
+  \item \textbf{Parametric ReLU (PReLU)}~\cite{he2015delving}: Treats the negative slope $\alpha$ as a learnable parameter optimized end-to-end via backpropagation ($\frac{\partial \mathcal{L}}{\partial \alpha} = \sum_{\mathbf{x}} \frac{\partial \mathcal{L}}{\partial a} \min(0, z)$).
+  \item \textbf{Exponential Linear Unit (ELU)}~\cite{clevert2015fast}: Employs a saturating exponential curve for negative inputs:
+  \begin{equation}
+  f(z) = \begin{cases} z & \text{if } z \ge 0, \\ \alpha (e^z - 1) & \text{if } z < 0, \end{cases} \implies \frac{df}{dz} = \begin{cases} 1 & \text{if } z \ge 0, \\ f(z) + \alpha & \text{if } z < 0. \end{cases}
+  \end{equation}
+  ELU provides $C^1$ smoothness at $z = 0$ (when $\alpha = 1$) and drives mean activations closer to zero, accelerating convergence.
+  \item \textbf{Architectural Safeguards}: In standard ReLU architectures, dying neurons are prevented by: (i) conservative initial learning rates with warm-up schedules; (ii) He/Kaiming initialization ($\operatorname{Var}(w) = 2/d_{\text{in}}$)~\cite{he2015delving}; and (iii) \textbf{Batch Normalization}, which re-centers and re-scales pre-activations before non-linearities, mathematically guaranteeing that roughly $50\%$ of inputs produce positive activations ($z > 0$).
+\end{itemize}
+
+\subsection{The Universal Approximation Theorem: Expressive power vs. learnability}
+\label{sec:universal_approximation_theorem}
+
+How expressive are neural networks? This fundamental question is answered by the \textbf{Universal Approximation Theorem}, independently proved by George Cybenko (1989)~\cite{cybenko1989approximation} for sigmoidal functions and generalized by Kurt Hornik (1991)~\cite{hornik1991approximation} for arbitrary non-linear activations.
+
+\begin{theorem}[Universal Approximation Theorem~\cite{cybenko1989approximation,hornik1991approximation}]
+Let $\sigma: \R \to \R$ be any continuous, non-constant, bounded activation function. Let $K \subset \R^d$ be a compact (closed and bounded) subset. Then, for any continuous target function $f \in C(K)$ and any arbitrary error tolerance $\epsilon > 0$, there exists an integer $M \in \mathbb{N}$, weight vectors $\mathbf{w}_j \in \R^d$, biases $b_j \in \R$, and output weights $\alpha_j \in \R$ such that the single-hidden-layer network:
+\begin{equation}
+F(\mathbf{x}) = \sum_{j=1}^M \alpha_j \sigma(\mathbf{w}_j^\top \mathbf{x} + b_j),
+\label{eq:universal_approximator_form}
+\end{equation}
+satisfies uniform approximation over all $\mathbf{x} \in K$:
+\begin{equation}
+\sup_{\mathbf{x} \in K} |F(\mathbf{x}) - f(\mathbf{x})| < \epsilon.
+\label{eq:universal_approximation_bound}
+\end{equation}
+\end{theorem}
+
+\paragraph{Critical oral exam insight: Representation vs. learnability.}
+In oral examinations, a pervasive misconception is asserting that the Universal Approximation Theorem guarantees that a single-hidden-layer network will solve any learning problem. As Yoshua Bengio emphasizes in \textit{Deep Learning}~\cite{goodfellow2016deep}, this is false:
+\begin{enumerate}
+  \item \textbf{Existence vs. Optimization}: The theorem is purely an \textbf{existential theorem}. It proves that valid parameters $(\mathbf{W}, \mathbf{b})$ exist, but provides zero guarantee that iterative optimization (gradient descent) can ever locate them in a non-convex landscape.
+  \item \textbf{Exponential Width Bottleneck}: The required number of hidden units $M$ can scale exponentially with input dimensionality ($M \sim \mathcal{O}(2^d)$), rendering shallow approximation computationally intractable for high-dimensional data.
+  \item \textbf{The Power of Depth}: Deep networks with $L$ cascading layers can represent compositional functions (such as hierarchical visual geometries) using a \textbf{polynomial number of parameters} $\mathcal{O}(d)$, whereas achieving identical approximation in a shallow single-layer network requires an exponential number of neurons $\mathcal{O}(2^d)$. Depth is statistically and computationally superior to width.
+\end{enumerate}
+
+---
+
+\section{The non-existence of closed-form solutions and the computational graph}
+\label{sec:why_we_need_gradient_descent}
+
+In classical linear regression with quadratic loss, the optimal parameter vector admits a direct analytical matrix inversion via the Normal Equations:
+\begin{equation}
+\mathbf{w}^* = (\mathbf{X}^\top \mathbf{X})^{-1} \mathbf{X}^\top \mathbf{y}.
+\end{equation}
+Why can we not apply a similar closed-form algebraic solution to Multi-Layer Perceptrons and Deep Neural Networks?
+
+Consider an $L$-layer neural network hypothesis:
+\begin{equation}
+f(\mathbf{x}; \boldsymbol{\theta}) = \mathbf{W}^{(L)} \sigma\left( \mathbf{W}^{(L-1)} \sigma\left( \dots \sigma\left( \mathbf{W}^{(1)} \mathbf{x} + \mathbf{b}^{(1)} \right) \dots \right) + \mathbf{b}^{(L-1)} \right) + \mathbf{b}^{(L)},
+\label{eq:deep_composition_hypothesis}
+\end{equation}
+evaluated across training set $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^N$ under empirical risk objective:
+\begin{equation}
+\hat{\mathcal{R}}_N(\boldsymbol{\theta}) = \frac{1}{N} \sum_{i=1}^N \mathcal{L}\left( f(\mathbf{x}_i; \boldsymbol{\theta}), \, y_i \right).
+\end{equation}
+
+To find the minimizer analytically, one must equate the gradient with respect to all parameter matrices $\mathbf{W}^{(l)}$ to zero:
+\begin{equation}
+\nabla_{\boldsymbol{\theta}} \hat{\mathcal{R}}_N(\boldsymbol{\theta}) = \mathbf{0}.
+\label{eq:stationary_condition_deep}
+\end{equation}
+Equation~\eqref{eq:stationary_condition_deep} represents a system of millions of coupled, transcendental non-linear algebraic equations. Because parameters $\mathbf{W}^{(1)}$ are deeply entangled inside cascading non-linear activation functions $\sigma(\cdot)$, they \textbf{cannot be decoupled, factorized, or inverted through linear algebra}.
+
+Furthermore, as established in Chapter~\ref{sec:optimization_and_gradient_descent}, the empirical loss surface of a deep neural network is non-convex, characterized by uncountably many saddle points, local valleys, and permutation symmetries (weight space symmetries where reordering hidden neurons yields identical loss).
+
+Because closed-form solutions are mathematically impossible, \textbf{iterative numerical optimization—specifically first-order Gradient Descent—is the only viable mathematical vehicle for training deep learning models}.
+
+\section{Computational graphs and automatic differentiation: Forward vs. reverse mode}
+\label{sec:computational_graphs_autodiff}
+
+To execute gradient descent, we must compute the exact gradient vector $\nabla_{\boldsymbol{\theta}} \mathcal{L}$ for networks containing millions to billions of parameters. 
+
+\paragraph{1. The Failure of Numerical Finite Differences.}
+One naive approach is numerical perturbation (finite differences):
+\begin{equation}
+\frac{\partial \mathcal{L}}{\partial \theta_j} \approx \frac{\mathcal{L}(\boldsymbol{\theta} + \epsilon \mathbf{e}_j) - \mathcal{L}(\boldsymbol{\theta})}{\epsilon}.
+\end{equation}
+For a model with $W$ total parameters, evaluating this quotient requires $W + 1$ forward passes through the network. In modern networks where $W \sim 10^8$ (AlexNet, ResNet), computing a single parameter update step would require 100 million network evaluations, leading to an intractable computational complexity of $\mathcal{O}(W^2)$.
+
+\paragraph{2. The Computational Graph.}
+Modern frameworks (PyTorch, JAX) formulate deep networks as \textbf{Directed Acyclic Graphs (DAGs)} where nodes represent variables (tensors) and directed edges represent primitive differentiable operations ($+$, $\times$, $\sigma$, $\ln$).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=1.05]
+  % Nodes
+  \node[circle, draw=deepblue, fill=deepblue!15, thick, inner sep=3pt] (x) at (0, 1.2) {$x$};
+  \node[circle, draw=deepblue, fill=deepblue!15, thick, inner sep=3pt] (w) at (0, -0.2) {$w$};
+  \node[circle, draw=politoNavy, fill=politoNavy!20, thick, inner sep=3pt] (mul) at (2.0, 0.5) {$\times$};
+  \node[circle, draw=deepblue, fill=deepblue!15, thick, inner sep=3pt] (b) at (2.0, -1.0) {$b$};
+  \node[circle, draw=politoNavy, fill=politoNavy!20, thick, inner sep=3pt] (add) at (4.0, 0.0) {$+$};
+  \node[circle, draw=intuitiongreen, fill=intuitiongreen!20, thick, inner sep=3pt] (sig) at (6.0, 0.0) {$\sigma$};
+  \node[circle, draw=deepblue, fill=deepblue!15, thick, inner sep=3pt] (y) at (6.0, -1.2) {$y$};
+  \node[circle, draw=examred, fill=examred!25, thick, inner sep=3pt] (loss) at (8.0, -0.6) {$\mathcal{L}$};
+
+  % Forward Edges (Blue)
+  \draw[-{Stealth}, very thick, deepblue] (x) -- node[above, font=\scriptsize] {$x$} (mul);
+  \draw[-{Stealth}, very thick, deepblue] (w) -- node[below, font=\scriptsize] {$w$} (mul);
+  \draw[-{Stealth}, very thick, deepblue] (mul) -- node[above, font=\scriptsize] {$wx$} (add);
+  \draw[-{Stealth}, very thick, deepblue] (b) -- node[below, font=\scriptsize] {$b$} (add);
+  \draw[-{Stealth}, very thick, deepblue] (add) -- node[above, font=\scriptsize] {$z$} (sig);
+  \draw[-{Stealth}, very thick, deepblue] (sig) -- node[above, font=\scriptsize] {$\hat{y}$} (loss);
+  \draw[-{Stealth}, very thick, deepblue] (y) -- node[below, font=\scriptsize] {$y$} (loss);
+
+  % Backward Adjoint Flow (Red Dashed)
+  \draw[-{Stealth}, thick, examred, dashed] (loss) to[bend left=30] node[above, font=\tiny\bfseries] {$\frac{\partial \mathcal{L}}{\partial \hat{y}}$} (sig);
+  \draw[-{Stealth}, thick, examred, dashed] (sig) to[bend left=30] node[above, font=\tiny\bfseries] {$\frac{\partial \mathcal{L}}{\partial z}$} (add);
+  \draw[-{Stealth}, thick, examred, dashed] (add) to[bend left=30] node[above, font=\tiny\bfseries] {$\frac{\partial \mathcal{L}}{\partial (wx)}$} (mul);
+  \draw[-{Stealth}, thick, examred, dashed] (add) to[bend left=30] node[below, font=\tiny\bfseries] {$\frac{\partial \mathcal{L}}{\partial b}$} (b);
+  \draw[-{Stealth}, thick, examred, dashed] (mul) to[bend left=30] node[below, font=\tiny\bfseries] {$\frac{\partial \mathcal{L}}{\partial w}$} (w);
+
+  % Legend
+  \node[draw=gray!60, fill=white, rounded corners, font=\scriptsize, align=left] at (4.0, 2.0) {
+    \textcolor{deepblue}{\textbf{--- Forward Pass}}: Activations evaluated and cached\\
+    \textcolor{examred}{\textbf{- - Backward Pass}}: Adjoint sensitivities propagated via chain rule
+  };
+\end{tikzpicture}
+\caption{A Directed Acyclic Graph (DAG) representation of a computational graph for an artificial neuron with scalar loss $\mathcal{L}(\sigma(wx + b), y)$. Forward evaluation (solid blue lines) evaluates and caches intermediate variables. Reverse-mode automatic differentiation (dashed red lines) propagates adjoint sensitivities backwards from the scalar loss.}
+\label{fig:computational_graph}
+\end{figure}
+
+\paragraph{3. Forward-Mode vs. Reverse-Mode Automatic Differentiation.}
+Let $f: \R^n \to \R^m$ be a differentiable function computed on a graph:
+\begin{itemize}
+  \item \textbf{Forward-Mode Autodiff (Tangent Propagation)}: Propagates directional derivatives $\dot{v} \triangleq \frac{\partial v}{\partial x_i}$ forward along the graph alongside values $v$. To compute the full Jacobian $\mathbf{J} \in \R^{m \times n}$, forward-mode requires $n$ independent sweeps. It is computationally optimal when $n \ll m$ (few inputs, many outputs).
+  \item \textbf{Reverse-Mode Autodiff (Adjoint Propagation)}: First evaluates the forward pass to compute and cache all intermediate variables $v$. Then, starting from the final scalar objective, it propagates adjoint sensitivity variables backwards:
+    \begin{equation}
+    \bar{v} \triangleq \frac{\partial \mathcal{L}}{\partial v}.
+    \label{eq:adjoint_definition}
+    \end{equation}
+    Reverse-mode requires $m$ backward sweeps. 
+\end{itemize}
+
+In deep learning, the loss function is a \textbf{scalar} ($\mathcal{L} \in \R$, so $m = 1$), while the parameter count is massive ($n = W \sim 10^8$). Reverse-mode automatic differentiation evaluates the \textbf{entire parameter gradient $\nabla_{\boldsymbol{\theta}} \mathcal{L} \in \R^W$ in exactly ONE backward pass}, reducing computational complexity from $\mathcal{O}(W^2)$ to $\mathcal{O}(W)$! This single-pass reverse mode is known as \textbf{Backpropagation}.
+
+\section{The backpropagation algorithm: Full mathematical derivation and numerical walkthrough}
+\label{sec:backpropagation_derivation}
+
+We now derive the backpropagation algorithm from first principles across an arbitrary $L$-layer network.
+
+\paragraph{Forward Pass Equations.}
+For layers $l = 1, \dots, L$:
+\begin{align}
+\mathbf{z}^{(l)} &= \mathbf{W}^{(l)} \mathbf{a}^{(l-1)} + \mathbf{b}^{(l)}, \quad \text{where } \mathbf{z}^{(l)} \in \R^{d_l}, \, \mathbf{W}^{(l)} \in \R^{d_l \times d_{l-1}}, \label{eq:forward_z} \\
+\mathbf{a}^{(l)} &= \sigma\left( \mathbf{z}^{(l)} \right) \in \R^{d_l}, \label{eq:forward_a}
+\end{align}
+with input initialization $\mathbf{a}^{(0)} \equiv \mathbf{x} \in \R^{d_0}$, and final scalar loss $\mathcal{L}(\mathbf{a}^{(L)}, \mathbf{y}) \in \R$.
+
+\paragraph{Backward Pass: The Error Adjoint Vector $\boldsymbol{\delta}^{(l)}$.}
+We define the layer error vector $\boldsymbol{\delta}^{(l)}$ as the partial derivative of the scalar loss with respect to the pre-activation vector $\mathbf{z}^{(l)}$:
+\begin{equation}
+\boldsymbol{\delta}^{(l)} \triangleq \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(l)}} \in \R^{d_l}.
+\label{eq:delta_definition}
+\end{equation}
+
+\paragraph{1. Base Case: Output Layer Error $\boldsymbol{\delta}^{(L)}$.}
+Applying the multivariate chain rule to the final layer:
+\begin{equation}
+\delta_k^{(L)} = \frac{\partial \mathcal{L}}{\partial z_k^{(L)}} = \sum_{j=1}^{d_L} \frac{\partial \mathcal{L}}{\partial a_j^{(L)}} \frac{\partial a_j^{(L)}}{\partial z_k^{(L)}} = \frac{\partial \mathcal{L}}{\partial a_k^{(L)}} \sigma'\left( z_k^{(L)} \right).
+\end{equation}
+In vector notation:
+\begin{equation}
+\boldsymbol{\delta}^{(L)} = \nabla_{\mathbf{a}^{(L)}} \mathcal{L} \odot \sigma'\left( \mathbf{z}^{(L)} \right),
+\label{eq:delta_output_layer}
+\end{equation}
+where $\odot$ denotes the Hadamard (element-wise) product. For cross-entropy coupled with softmax or sigmoid, this simplifies directly to $\boldsymbol{\delta}^{(L)} = \hat{\mathbf{y}} - \mathbf{y}$.
+
+\paragraph{2. Inductive Step: Error Backpropagation Recurrence $\boldsymbol{\delta}^{(l)}$.}
+Suppose the error vector $\boldsymbol{\delta}^{(l+1)} \in \R^{d_{l+1}}$ at layer $l+1$ is known. We compute $\boldsymbol{\delta}^{(l)} \in \R^{d_l}$ by differentiating through layer $l+1$. By the multivariate chain rule:
+\begin{equation}
+\delta_j^{(l)} = \frac{\partial \mathcal{L}}{\partial z_j^{(l)}} = \sum_{k=1}^{d_{l+1}} \frac{\partial \mathcal{L}}{\partial z_k^{(l+1)}} \frac{\partial z_k^{(l+1)}}{\partial z_j^{(l)}}.
+\label{eq:delta_chain_component}
+\end{equation}
+From Equation~\eqref{eq:forward_z}, $z_k^{(l+1)} = \sum_{m=1}^{d_l} W_{km}^{(l+1)} a_m^{(l)} + b_k^{(l+1)} = \sum_{m=1}^{d_l} W_{km}^{(l+1)} \sigma(z_m^{(l)}) + b_k^{(l+1)}$. Differentiating with respect to $z_j^{(l)}$:
+\begin{equation}
+\frac{\partial z_k^{(l+1)}}{\partial z_j^{(l)}} = W_{kj}^{(l+1)} \sigma'\left( z_j^{(l)} \right).
+\end{equation}
+Substituting this into Equation~\eqref{eq:delta_chain_component} and recalling that $\delta_k^{(l+1)} = \frac{\partial \mathcal{L}}{\partial z_k^{(l+1)}}$:
+\begin{equation}
+\delta_j^{(l)} = \sum_{k=1}^{d_{l+1}} \delta_k^{(l+1)} W_{kj}^{(l+1)} \sigma'\left( z_j^{(l)} \right) = \left( \sum_{k=1}^{d_{l+1}} W_{kj}^{(l+1)} \delta_k^{(l+1)} \right) \sigma'\left( z_j^{(l)} \right).
+\end{equation}
+In compact vector matrix form:
+\begin{equation}
+\boldsymbol{\delta}^{(l)} = \left( (\mathbf{W}^{(l+1)})^\top \boldsymbol{\delta}^{(l+1)} \right) \odot \sigma'\left( \mathbf{z}^{(l)} \right).
+\label{eq:backprop_recurrence_matrix}
+\end{equation}
+Equation~\eqref{eq:backprop_recurrence_matrix} is the celebrated \textbf{Backpropagation Recurrence}: the error signal flows backwards by multiplying with the transposed weight matrix $(\mathbf{W}^{(l+1)})^\top$, followed by element-wise modulation by the local derivative $\sigma'(\mathbf{z}^{(l)})$.
+
+\paragraph{3. Parameter Gradients.}
+Once $\boldsymbol{\delta}^{(l)}$ is computed, the gradients with respect to parameters at layer $l$ follow directly:
+\begin{align}
+\frac{\partial \mathcal{L}}{\partial W_{jk}^{(l)}} &= \frac{\partial \mathcal{L}}{\partial z_j^{(l)}} \frac{\partial z_j^{(l)}}{\partial W_{jk}^{(l)}} = \delta_j^{(l)} a_k^{(l-1)} \implies \frac{\partial \mathcal{L}}{\partial \mathbf{W}^{(l)}} = \boldsymbol{\delta}^{(l)} (\mathbf{a}^{(l-1)})^\top \in \R^{d_l \times d_{l-1}}, \label{eq:grad_weight_matrix} \\
+\frac{\partial \mathcal{L}}{\partial b_j^{(l)}} &= \frac{\partial \mathcal{L}}{\partial z_j^{(l)}} \frac{\partial z_j^{(l)}}{\partial b_j^{(l)}} = \delta_j^{(l)} \cdot 1 \implies \frac{\partial \mathcal{L}}{\partial \mathbf{b}^{(l)}} = \boldsymbol{\delta}^{(l)} \in \R^{d_l}. \label{eq:grad_bias_vector}
+\end{align}
+
+\paragraph{4. Memory Bottleneck: Forward Activation Caching.}
+Observe the structure of Equation~\eqref{eq:grad_weight_matrix}: evaluating $\frac{\partial \mathcal{L}}{\partial \mathbf{W}^{(l)}}$ requires the forward activation vector $\mathbf{a}^{(l-1)}$. Consequently, all intermediate activations computed during the forward pass must be stored in memory (GPU VRAM) until the backward pass reaches that layer. This requirement explains why training deep networks consumes vastly more memory than inference.
+
+---
+
+
+\subsection{Concrete end-to-end numerical walkthrough}
+\label{sec:backprop_numerical_walkthrough}
+
+To demystify the tensor algebra and provide an absolute, unambiguous computational reference, we trace an entire forward and backward pass with concrete numbers on a minimal network:
+\begin{itemize}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
+  \item Input layer: $\vx = [x_1, x_2]^\top = [0.5, -0.2]^\top \in \R^2$.
+  \item Hidden layer: 2 neurons with sigmoid activations $\sigma(z) = \frac{1}{1 + e^{-z}}$.
+    \begin{equation}
+    \mW^{(1)} = \begin{bmatrix} 0.4 & -0.5 \\ 0.2 & 0.8 \end{bmatrix}, \quad \vb^{(1)} = \begin{bmatrix} 0.1 \\ -0.1 \end{bmatrix}.
+    \end{equation}
+  \item Output layer: 1 neuron with linear activation $\hat{y} = z^{(2)} = \vw^{(2)\top} \mathbf{a}^{(1)} + b^{(2)}$ and squared error loss $\mathcal{L} = \frac{1}{2}(\hat{y} - y)^2$ with ground-truth target $y = 1.0$.
+    \begin{equation}
+    \vw^{(2)} = \begin{bmatrix} 0.7 \\ -0.3 \end{bmatrix}, \quad b^{(2)} = 0.2.
+    \end{equation}
+\end{itemize}
+
+\paragraph{1. Forward Pass Evaluation.}
+First, evaluate pre-activations at the hidden layer:
+\begin{align}
+z_1^{(1)} &= W_{11}^{(1)} x_1 + W_{12}^{(1)} x_2 + b_1^{(1)} = (0.4)(0.5) + (-0.5)(-0.2) + 0.1 = 0.20 + 0.10 + 0.1 = 0.40, \nonumber \\
+z_2^{(1)} &= W_{21}^{(1)} x_1 + W_{22}^{(1)} x_2 + b_2^{(1)} = (0.2)(0.5) + (0.8)(-0.2) - 0.1 = 0.10 - 0.16 - 0.1 = -0.16.
+\end{align}
+Applying the logistic sigmoid activation $\sigma(z) = \frac{1}{1 + e^{-z}}$:
+\begin{align}
+a_1^{(1)} &= \sigma(0.40) = \frac{1}{1 + e^{-0.40}} \approx 0.5987, \nonumber \\
+a_2^{(1)} &= \sigma(-0.16) = \frac{1}{1 + e^{0.16}} \approx 0.4601.
+\end{align}
+Next, evaluate the output pre-activation and prediction:
+\begin{align}
+\hat{y} = z^{(2)} &= w_1^{(2)} a_1^{(1)} + w_2^{(2)} a_2^{(1)} + b^{(2)} \nonumber \\
+&= (0.7)(0.5987) + (-0.3)(0.4601) + 0.2 \approx 0.4191 - 0.1380 + 0.2 = 0.4811.
+\end{align}
+The forward loss evaluates to:
+\begin{equation}
+\mathcal{L} = \frac{1}{2}(\hat{y} - y)^2 = \frac{1}{2}(0.4811 - 1.0)^2 = \frac{1}{2}(-0.5189)^2 \approx 0.1346.
+\end{equation}
+
+\paragraph{2. Backward Pass Evaluation.}
+Step 1: Compute the output layer error adjoint $\delta^{(2)}$:
+\begin{equation}
+\delta^{(2)} \triangleq \frac{\partial \mathcal{L}}{\partial z^{(2)}} = \hat{y} - y = 0.4811 - 1.0 = -0.5189.
+\end{equation}
+Output parameter gradients follow immediately:
+\begin{align}
+\frac{\partial \mathcal{L}}{\partial w_1^{(2)}} &= \delta^{(2)} a_1^{(1)} = (-0.5189)(0.5987) \approx -0.3107, \nonumber \\
+\frac{\partial \mathcal{L}}{\partial w_2^{(2)}} &= \delta^{(2)} a_2^{(1)} = (-0.5189)(0.4601) \approx -0.2387, \nonumber \\
+\frac{\partial \mathcal{L}}{\partial b^{(2)}} &= \delta^{(2)} = -0.5189.
+\end{align}
+
+Step 2: Backpropagate errors to the hidden layer pre-activations $\boldsymbol{\delta}^{(1)}$:
+\begin{equation}
+\boldsymbol{\delta}^{(1)} = \left( (\vw^{(2)})^\top \delta^{(2)} \right) \odot \sigma'(\mathbf{z}^{(1)}).
+\end{equation}
+First compute the activation derivatives $\sigma'(z) = \sigma(z)(1 - \sigma(z))$:
+\begin{align}
+\sigma'(z_1^{(1)}) &= a_1^{(1)}(1 - a_1^{(1)}) = (0.5987)(0.4013) \approx 0.2403, \nonumber \\
+\sigma'(z_2^{(1)}) &= a_2^{(1)}(1 - a_2^{(1)}) = (0.4601)(0.5399) \approx 0.2484.
+\end{align}
+Now multiply the backpropagated error by the activation derivatives:
+\begin{align}
+\delta_1^{(1)} &= \left( w_1^{(2)} \delta^{(2)} \right) \sigma'(z_1^{(1)}) = (0.7)(-0.5189)(0.2403) \approx -0.0873, \nonumber \\
+\delta_2^{(1)} &= \left( w_2^{(2)} \delta^{(2)} \right) \sigma'(z_2^{(1)}) = (-0.3)(-0.5189)(0.2484) \approx +0.0387.
+\end{align}
+
+Step 3: Compute gradients for hidden layer weights and biases:
+\begin{align}
+\frac{\partial \mathcal{L}}{\partial \mW^{(1)}} &= \boldsymbol{\delta}^{(1)} \vx^\top = \begin{bmatrix} -0.0873 \\ +0.0387 \end{bmatrix} \begin{bmatrix} 0.5 & -0.2 \end{bmatrix} = \begin{bmatrix} -0.0437 & +0.0175 \\ +0.0194 & -0.0077 \end{bmatrix}, \nonumber \\
+\frac{\partial \mathcal{L}}{\partial \vb^{(1)}} &= \boldsymbol{\delta}^{(1)} = \begin{bmatrix} -0.0873 \\ +0.0387 \end{bmatrix}.
+\end{align}
+
+This complete numerical trace confirms that with a single backward sweep, the exact gradient vector for all 9 network parameters is obtained at machine precision.
+
+\subsection{Chapter synthesis and roadmap to convolutional networks}
+\label{sec:chapter4_synthesis}
+
+Across this chapter, we have witnessed how the limitations of linear models sparked the deep learning revolution:
+\begin{enumerate}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
+  \item \textbf{The Perceptron barrier}: Rosenblatt's single-layer perceptron was bounded by linear separability, failing catastrophically on the elementary XOR function.
+  \item \textbf{Representation learning}: By introducing non-linear activation functions and hidden layers, Multilayer Perceptrons warp coordinate space, folding hyperplanes to make non-linear manifolds linearly separable.
+  \item \textbf{Universal approximation}: The Hornik-Cybenko theorem guarantees that shallow networks can approximate any continuous function, while deep architectures achieve exponential parameter efficiency through hierarchical representation reuse.
+  \item \textbf{Exact gradient computation}: Reverse-mode automatic differentiation (Backpropagation) computes gradients across arbitrary deep computational DAGs in $\mathcal{O}(W)$ time, enabling large-scale gradient descent.
+\end{enumerate}
+
+\paragraph{Janus-faced bridge to Chapter~\ref{sec:convolutional_neural_networks}.}
+In theory, fully connected Multilayer Perceptrons are universal function approximators. In practice, however, when applied to high-dimensional structured signals---specifically \textbf{visual images}---dense MLPs suffer a total structural breakdown:
+\begin{itemize}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
+  \item \textbf{Catastrophic parameter explosion}: Flattening a modest $256 \times 256 \times 3$ RGB image produces an input vector of $196{,}608$ dimensions. Connecting this to a modest hidden layer of $1{,}000$ neurons requires $\approx 200$ million parameters for a single layer, exceeding memory capacities and guaranteeing severe overfitting.
+  \item \textbf{Destruction of 2D spatial topology}: Flattening a 2D matrix into a 1D vector treats adjacent pixels $(i, j)$ and $(i+1, j)$ with the same disconnected indifference as pixels on opposite sides of the image.
+  \item \textbf{Zero translation equivariance}: Dense MLPs possess zero weight sharing. An object detector trained on the top-left corner cannot recognize the exact same object if it shifts five pixels to the right without retraining all corresponding weights.
+\end{itemize}
+To conquer visual perception, we must inject prior knowledge regarding the physical structure of the visual world into the network architecture itself. In Chapter~\ref{sec:convolutional_neural_networks}, we show how Convolutional Neural Networks accomplish this by acting as an \textbf{infinitely strong spatial prior}.

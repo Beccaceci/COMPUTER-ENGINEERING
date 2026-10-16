@@ -1,0 +1,794 @@
+\chapter{Transfer learning, representation adaptation, and knowledge distillation}
+\label{sec:transfer_learning_distillation}
+
+In Chapter~\ref{sec:deep_network_training_and_regularization}, we established the mathematical mechanisms required to train a deep neural network from scratch: variance-preserving weight initialization, batch normalization dynamics, gradient descent babysitting, and stochastic noise regularization. Yet, an overwhelming empirical challenge remains: \textbf{what happens when the target task possesses only a few dozen or hundred labeled training samples?}
+
+Training a modern deep architecture (such as a 50-layer ResNet with 25.6 million parameters) on a tiny dataset violates the classical sample complexity bound: the model will immediately traverse the interpolation threshold into pathological overfitting. Historically, this led to the widespread dogma that deep learning is exclusively viable when millions of labeled training instances are available.
+
+This chapter dismantles that myth through the paradigm of \textbf{Representation Reuse and Transfer Learning}: transferring inductive visual and semantic representations learned from massive upstream data reservoirs (such as ImageNet) to data-scarce downstream tasks, navigating the delicate trade-offs between feature extraction, fine-tuning, and out-of-distribution feature distortion, and distilling overparameterized models into lightweight edge architectures.
+
+---
+
+\section{The transfer learning paradigm and representation reuse}
+\label{sec:transfer_learning_paradigm}
+
+The classical supervised learning framework assumes that training and testing data are drawn independently and identically from the exact same underlying joint probability distribution:
+\begin{equation}
+(\vx_{\text{train}}, y_{\text{train}}) \sim \mathcal{D}_{\text{source}}, \qquad (\vx_{\text{test}}, y_{\text{test}}) \sim \mathcal{D}_{\text{source}}.
+\end{equation}
+In real-world engineering, this assumption rarely holds. Gathering hundreds of thousands of expert-annotated samples for every novel domain (e.g., rare pathological histopathology, underwater robotics, specialized industrial defect detection) is economically and logistically impossible.
+
+\textbf{Transfer Learning} relaxes the identical distribution assumption. Following the formal statistical framework of Goodfellow, Bengio, and Courville~\cite{goodfellow2016deep}, we define a \textbf{Domain} $\mathcal{D} = \{\mathcal{X}, P(X)\}$ as a tuple of a feature space $\mathcal{X}$ and a marginal probability distribution $P(X)$, and a \textbf{Task} $\mathcal{T} = \{\mathcal{Y}, P(Y \mid X)\}$ as a tuple of a label space $\mathcal{Y}$ and an objective conditional probability distribution $P(Y \mid X)$.
+
+\begin{definition}[Transfer Learning]
+Given a source domain $\mathcal{D}_{\mathcal{S}}$ with source task $\mathcal{T}_{\mathcal{S}}$ and a target domain $\mathcal{D}_{\mathcal{T}}$ with target task $\mathcal{T}_{\mathcal{T}}$, transfer learning aims to improve the learning of the target conditional distribution $P_{\mathcal{T}}(Y_{\mathcal{T}} \mid X_{\mathcal{T}})$ using the statistical strength learned from $\mathcal{D}_{\mathcal{S}}$ and $\mathcal{T}_{\mathcal{S}}$, where:
+\begin{equation}
+\mathcal{D}_{\mathcal{S}} \neq \mathcal{D}_{\mathcal{T}} \qquad \text{or} \qquad \mathcal{T}_{\mathcal{S}} \neq \mathcal{T}_{\mathcal{T}}.
+\end{equation}
+\end{definition}
+
+This definition establishes the clear tripartite taxonomy distinguishing transfer learning from related paradigms:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Transfer Learning}: The tasks themselves differ ($\mathcal{T}_{\mathcal{S}} \neq \mathcal{T}_{\mathcal{T}}$). For instance, $\mathcal{Y}_{\mathcal{S}}$ comprises 1,000 everyday object classes in ImageNet, while $\mathcal{Y}_{\mathcal{T}}$ comprises 5 stages of diabetic retinopathy. The label spaces and conditional functions $P(Y \mid X)$ are distinct.
+  \item \textbf{Domain Adaptation (Covariate Shift)}: The task remains identical ($\mathcal{T}_{\mathcal{S}} = \mathcal{T}_{\mathcal{T}}$, meaning $\mathcal{Y}_{\mathcal{S}} = \mathcal{Y}_{\mathcal{T}}$ and the true underlying conditional mapping $P(Y \mid X)$ is invariant), but the input marginal distribution shifts ($\mathcal{P}_{\mathcal{S}}(X) \neq \mathcal{P}_{\mathcal{T}}(X)$). Examples include training a sentiment classifier on Amazon book reviews and deploying it on consumer electronics reviews, or training autonomous driving perception on sunny California highways and deploying it in snowy Nordic blizzards.
+  \item \textbf{Concept Drift}: A non-stationary data stream where the joint distribution $\mathcal{P}_t(X, Y)$ evolves continuously over temporal horizon $t$, requiring continual adaptation of internal representations.
+\end{enumerate}
+
+\subsection{Underlying factors of variation and architectural dualities}
+\label{sec:factors_of_variation_dualities}
+
+Why does transfer learning work across seemingly unrelated visual problems? Goodfellow et al.~\cite{goodfellow2016deep} explain this through the hypothesis of \textbf{Shared Factors of Variation}. 
+
+High-dimensional sensory data (such as natural images) is generated by underlying physical, geometric, and semantic latent causes: illumination directions, surface reflectance, object poses, edge configurations, and 3D volumetric topologies. When a deep network trains on millions of natural images, its hidden layers learn to disentangle these latent factors. Because these physical factors are shared across virtually all optical phenomena, the learned internal representations remain highly informative for downstream domains.
+
+This insight gives rise to an \textbf{architectural duality} in how representations are shared across tasks (Figure~\ref{fig:shared_representation_duality}):
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.92]
+  \tikzset{
+    box/.style={rectangle, rounded corners=2mm, draw=politoNavy, thick, fill=white, minimum width=2.4cm, minimum height=0.9cm, align=center, font=\sffamily\scriptsize},
+    sharedbox/.style={rectangle, rounded corners=2mm, draw=deepblue, thick, fill=skyBlue!20, minimum width=2.8cm, minimum height=1.1cm, align=center, font=\sffamily\scriptsize\bfseries},
+    conn/.style={-{Stealth[scale=1.0]}, thick, politoNavy}
+  }
+
+  % Topology A (Left): Shared Input, Task-Specific Outputs
+  \node[font=\bfseries\sffamily\small, text=politoNavy] at (2.5, 5.2) {Topology A: Shared Features, Split Heads};
+  \node[box, fill=gray!10] (inA) at (2.5, 0.2) {Input $\vx$};
+  \node[sharedbox] (l1A) at (2.5, 1.6) {Shared Lower Layers\\(Edge / Texture Kernels)};
+  \node[sharedbox] (l2A) at (2.5, 3.0) {Shared Mid Layers\\(Motif / Part Detectors)};
+  \node[box, fill=examred!15, draw=examred] (h1A) at (1.0, 4.3) {Task 1 Head\\(Source Logits $\vy_1$)};
+  \node[box, fill=intuitiongreen!15, draw=intuitiongreen!80!black] (h2A) at (4.0, 4.3) {Task 2 Head\\(Target Logits $\vy_2$)};
+
+  \draw[conn] (inA) -- (l1A);
+  \draw[conn] (l1A) -- (l2A);
+  \draw[conn] (l2A) -| (h1A);
+  \draw[conn] (l2A) -| (h2A);
+
+  % Divider
+  \draw[dashed, gray!40, thick] (6.0, 0.0) -- (6.0, 5.4);
+
+  % Topology B (Right): Disparate Domains, Shared Latent Space, Shared Output
+  \node[font=\bfseries\sffamily\small, text=politoNavy] at (9.5, 5.2) {Topology B: Split Encoders, Shared Manifold};
+  \node[box, fill=gray!10] (inB1) at (8.0, 0.2) {Domain 1 $\vx^{(1)}$\\(e.g., Audio / Text)};
+  \node[box, fill=gray!10] (inB2) at (11.0, 0.2) {Domain 2 $\vx^{(2)}$\\(e.g., Visual Frames)};
+  \node[box, fill=examred!15, draw=examred] (enc1) at (8.0, 1.6) {Domain 1 Encoder\\$f_1(\vx^{(1)}; \boldsymbol{\theta}_1)$};
+  \node[box, fill=intuitiongreen!15, draw=intuitiongreen!80!black] (enc2) at (11.0, 1.6) {Domain 2 Encoder\\$f_2(\vx^{(2)}; \boldsymbol{\theta}_2)$};
+  \node[sharedbox] (latentB) at (9.5, 3.0) {Shared Latent Space $\vh$\\Canonical Semantic Manifold};
+  \node[box, fill=deepblue!15] (outB) at (9.5, 4.3) {Shared Task Predictor\\$\hat{y} = g(\vh; \mathbf{W})$};
+
+  \draw[conn] (inB1) -- (enc1);
+  \draw[conn] (inB2) -- (enc2);
+  \draw[conn] (enc1) |- (latentB);
+  \draw[conn] (enc2) |- (latentB);
+  \draw[conn] (latentB) -- (outB);
+\end{tikzpicture}
+\caption{The architectural duality of shared representations (Goodfellow et al., 2016). In Topology A (standard visual transfer), inputs share identical pixel statistics; lower feature extractors are shared while task-specific heads branch into distinct label spaces. In Topology B (domain adaptation and multimodal alignment), disparate input spaces are transformed by domain-specific encoders into a shared, canonical latent manifold $\vh$, which feeds into a unified task predictor.}
+\label{fig:shared_representation_duality}
+\end{figure}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Topology A (Shared Lower Features, Task-Specific Upper Layers)}: The dominant configuration in computer vision. The input space $\mathcal{X}$ has identical dimensionality and pixel statistics across tasks. The early and intermediate layers are shared, capturing general visual primitives, while specialized classification heads branch out to predict task-dependent labels $y^{(1)}, y^{(2)}$.
+  \item \textbf{Topology B (Task-Specific Lower Encoders, Shared Canonical Representation)}: Occurs when the output variable $y$ has the identical semantics across domains, but the input spaces $\vx^{(1)}, \vx^{(2)}$ differ in dimension or sensory modality. For example, in multi-speaker speech recognition, speaker-specific acoustic front-ends map disparate vocal tracts into a shared phonetic representation. Similarly, in multimodal vision-language models (e.g., CLIP), disparate image and text encoders project into a unified metric embedding space.
+\end{itemize}
+
+\subsection{Hierarchical representation discovery in deep visual networks}
+\label{sec:hierarchical_visual_representations}
+
+Why can weights trained to classify 1,000 everyday object categories in ImageNet (e.g., golden retrievers, tea kettles, freight cars) assist in detecting metastatic tumor cells in microscopic lymph node biopsies?
+
+The answer lies in the \textbf{hierarchical nature of deep visual representations}, first uncovered empirically by Matthew Zeiler and Rob Fergus~\cite{zeiler2014visualizing} and analyzed theoretically by Jason Yosinski et al.~\cite{yosinski2014transferable}:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.92]
+  % Define layer styles
+  \tikzset{
+    stage/.style={rectangle, rounded corners=3mm, draw=politoNavy, fill=white, thick, text width=3.4cm, minimum height=4.2cm, align=center},
+    arrowlabel/.style={font=\bfseries\sffamily\scriptsize, text=politoNavy, align=center}
+  }
+
+  % Stage 1: Low-level features
+  \node[stage, fill=deepblue!8] (s1) at (0, 0) {
+    \textcolor{politoNavy}{\textbf{Stage 1: Early Layers}}\\[1ex]
+    \footnotesize\textbf{Universal Primitives}\\[1.5ex]
+    \raggedright\scriptsize
+    $\bullet$ Gabor-like oriented edges\par
+    $\bullet$ Opponent color blobs\par
+    $\bullet$ Spatial frequency gratings\par
+    $\bullet$ Contrast transitions\\[1.5ex]
+    \centering\textcolor{intuitiongreen!80!black}{\textbf{100\% Task-Agnostic}}
+  };
+
+  % Stage 2: Mid-level features
+  \node[stage, fill=skyBlue!12] (s2) at (4.5, 0) {
+    \textcolor{politoNavy}{\textbf{Stage 2: Mid Layers}}\\[1ex]
+    \footnotesize\textbf{Motif Combinations}\\[1.5ex]
+    \raggedright\scriptsize
+    $\bullet$ Textures \& surface patterns\par
+    $\bullet$ Geometric corners \& junctions\par
+    $\bullet$ Circular / contour curves\par
+    $\bullet$ Structural parts (wheels, eyes)\\[1.5ex]
+    \centering\textcolor{politoNavy}{\textbf{Semi-Universal}}
+  };
+
+  % Stage 3: High-level features
+  \node[stage, fill=examred!8] (s3) at (9.0, 0) {
+    \textcolor{politoNavy}{\textbf{Stage 3: Late Layers}}\\[1ex]
+    \footnotesize\textbf{Semantic Assemblies}\\[1.5ex]
+    \raggedright\scriptsize
+    $\bullet$ Holistic object topologies\par
+    $\bullet$ Class-specific semantics\par
+    $\bullet$ Domain categories (dog breeds)\par
+    $\bullet$ Task decision boundaries\\[1.5ex]
+    \centering\textcolor{examred}{\textbf{Highly Task-Specific}}
+  };
+
+  % Connecting arrows
+  \draw[-{Stealth[scale=1.2]}, very thick, draw=politoNavy] (s1) -- (s2) 
+    node[midway, above, arrowlabel] {Spatial\\Composition};
+  \draw[-{Stealth[scale=1.2]}, very thick, draw=politoNavy] (s2) -- (s3) 
+    node[midway, above, arrowlabel] {Semantic\\Abstraction};
+
+  % Bottom spectrum bar
+  \draw[->, very thick, draw=politoNavy] (-1.8, -2.8) -- (10.8, -2.8)
+    node[midway, below=2pt, font=\bfseries\sffamily\small] {Layer Depth $\longrightarrow$ Increasing Semantic Specificity};
+  \node[font=\bfseries\sffamily\scriptsize, text=intuitiongreen!80!black, left] at (-1.8, -2.8) {Generic Features};
+  \node[font=\bfseries\sffamily\scriptsize, text=examred, right] at (10.8, -2.8) {Task-Specific};
+\end{tikzpicture}
+\caption{The hierarchical representation spectrum in deep convolutional neural networks (Zeiler \& Fergus, 2014). Early convolutional layers learn universal spatial primitives (oriented Gabor edges, color opponency) that transfer seamlessly to virtually any natural visual domain. Intermediate layers compose edges into motifs, textures, and object parts. Late fully connected and global average pooled layers compute high-level semantic assemblies tuned specifically to the source task categories.}
+\label{fig:hierarchical_feature_spectrum}
+\end{figure}
+
+As formalized in Figure~\ref{fig:hierarchical_feature_spectrum}, a deep network does not learn monolithic representations. Instead, it computes an ascending hierarchy of abstractions:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Early Layers (Generic Primitives)}: The initial convolutional kernels ($\text{Conv}_1$, $\text{Conv}_2$) consistently converge to localized oriented edge detectors, color blobs, and spatial gratings. These filters are mathematically analogous to the receptive fields of simple cells in mammalian primary visual cortex ($\text{V}_1$). Because all natural optical images—whether medical CT scans, microscopic biology, or satellite panoramas—share identical low-level edge and contrast statistics, \textbf{early layers are universal and task-agnostic}.
+  \item \textbf{Intermediate Layers (Motifs and Parts)}: Mid-level layers ($\text{Conv}_3$, $\text{Conv}_4$) compose primitive edges into geometric corners, repetitive textures, honeycombs, and component parts (e.g., circular contours, mesh grids).
+  \item \textbf{Deep Layers (Task-Specific Semantics)}: The final stages ($\text{Conv}_5$, fully connected layers, or class logits) assemble mid-level parts into complete class configurations. These representations encode high-level source domain semantics (distinguishing an Afghan Hound from a Golden Retriever) and become increasingly non-transferable to distant downstream problems.
+\end{enumerate}
+
+\subsection{Off-the-shelf CNN features: the DeCAF breakthrough}
+\label{sec:decaf_features}
+
+In 2014, Jeff Donahue et al.~\cite{donahue2014decaf} and Ali Sharif Razavian et al.~\cite{razavian2014cnn} established that deep convolutional networks trained on ImageNet act as \textbf{universal off-the-shelf feature extractors}. 
+
+By stripping off the final 1,000-way classification softmax layer and passing target images through the frozen convolutional backbone, the intermediate activation vector (e.g., the 4,096-dimensional output of layer \texttt{fc7} in AlexNet) serves as an exceptionally rich generic descriptor:
+\begin{equation}
+\boldsymbol{\phi}(\vx) = f_{\text{frozen}}(\vx; \boldsymbol{\theta}_{\text{ImageNet}}) \in \R^{4096}.
+\label{eq:feature_extractor_phi}
+\end{equation}
+Training a simple linear Support Vector Machine (SVM) or logistic regressor on these extracted vectors $\boldsymbol{\phi}(\vx)$ obliterated decades of hand-crafted visual feature engineering (SIFT, HOG, GIST) across diverse benchmarks including Caltech-101, PASCAL VOC object detection, and fine-grained bird classification.
+
+\paragraph{Bishop's Linear Separability Engine and Forward Feature Caching:}
+In their 2024 treatise, Bishop and Bishop~\cite{bishop2024deep} provide a clarifying geometric perspective: successive layers of a deep network act as a \textbf{linear separability engine}. In the raw input pixel space $\mathcal{X}$, data classes are hopelessly intertwined along complex nonlinear manifolds. The hidden layers unroll and untangle these manifolds, mapping the inputs into an embedding space $\boldsymbol{\phi}(\vx) \in \R^d$ where the target classes become linearly separable by a simple hyperplane.
+
+Furthermore, Bishop highlights a crucial computational efficiency principle: \textbf{Forward Feature Caching}. When performing linear probing, running target mini-batches through the entire network on every optimization epoch is computationally wasteful. Because the backbone parameters $\boldsymbol{\theta}_{\text{frozen}}$ are invariant:
+\begin{equation}
+\mathcal{D}_{\text{cached}} = \left\{ \left(\boldsymbol{\phi}(\vx_i), y_i\right) \right\}_{i=1}^{N_{\mathcal{T}}}, \qquad \boldsymbol{\phi}(\vx_i) = f_{\text{frozen}}(\vx_i).
+\end{equation}
+We pass the target dataset \textbf{once} through the frozen network, save the compact feature matrix $\mathbf{\Phi} \in \R^{N_{\mathcal{T}} \times d}$ in system memory, and discard the heavy convolutional backbone during training. Fitting the target linear classifier reduces to a strictly convex optimization problem (such as Ridge classification or L-BFGS logistic regression) that converges in seconds without GPU backpropagation.
+
+---
+
+\section{The adaptation spectrum: Linear probing versus full fine-tuning}
+\label{sec:linear_probing_vs_finetuning}
+
+When deploying a pre-trained network on a downstream task, the practitioner faces a fundamental architectural continuum between two primary protocols:
+
+\paragraph{1. Linear Probing (Feature Extraction):}
+The entire pre-trained backbone parameter vector $\boldsymbol{\theta}_{\text{backbone}}$ is kept strictly \textbf{frozen} ($\nabla_{\boldsymbol{\theta}} \mathcal{L} \leftarrow \mathbf{0}$). The source classification head is discarded and replaced with a newly initialized target head $\mathbf{W}_{\text{head}} \in \R^{C_{\text{target}} \times D}$ and bias $\mathbf{b}_{\text{head}} \in \R^{C_{\text{target}}}$. Optimization updates strictly the head parameters:
+\begin{equation}
+\hat{y} = \operatorname{softmax}\left( \mathbf{W}_{\text{head}} \boldsymbol{\phi}(\vx; \boldsymbol{\theta}_{\text{frozen}}) + \mathbf{b}_{\text{head}} \right).
+\label{eq:linear_probing_formulation}
+\end{equation}
+Because the feature representations are fixed, linear probing reduces to a convex optimization problem: it is computationally rapid, possesses zero risk of corrupting pre-trained features, and cannot overfit through internal representation shifts.
+
+\paragraph{2. Full Fine-Tuning:}
+The target classification head is initialized randomly, but the backbone parameters $\boldsymbol{\theta}_{\text{backbone}}$ are \textbf{unfrozen}. Gradients backpropagate through the entire network, updating all parameters end-to-end:
+\begin{equation}
+\boldsymbol{\theta}_{\text{backbone}} \leftarrow \boldsymbol{\theta}_{\text{backbone}} - \eta_{\text{backbone}} \nabla_{\boldsymbol{\theta}} \mathcal{L}, \qquad \mathbf{W}_{\text{head}} \leftarrow \mathbf{W}_{\text{head}} - \eta_{\text{head}} \nabla_{\mathbf{W}} \mathcal{L}.
+\end{equation}
+
+\subsection{The regularizing perspective and differential learning rate dynamics}
+\label{sec:differential_lr_d2l}
+
+Why does fine-tuning work so effectively compared to random initialization? Simon Prince~\cite{prince2023understanding} formalizes transfer learning as an \textbf{implicit parameter regularization and initialization prior}. In an overparameterized deep loss landscape, the global objective possesses countless local minima and saddle points. Initializing with pre-trained weights places the parameters within a favorable basin of attraction—a region characterized by well-conditioned curvature and high generalization capacity. 
+
+Prince categorizes transfer learning as part of a four-fold data-centric regularization continuum:
+\begin{enumerate}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
+  \item \textbf{Data Augmentation}: Expands the existing dataset via label-preserving spatial and photometric transformations.
+  \item \textbf{Multitask Learning}: Leverages additional concurrent supervisory signals to share statistical strength across tasks.
+  \item \textbf{Transfer Learning}: Sequentially transfers inductive bias learned from a plentiful secondary dataset to a scarce primary dataset.
+  \item \textbf{Self-Supervised Learning}: Exploits massive unlabeled corpora to pre-train generalizable representations via generative masking or contrastive instance discrimination.
+\end{enumerate}
+
+\paragraph{The D2L Differential Learning Rate Protocol:}
+In \textit{Dive into Deep Learning}, Zhang et al.~\cite{zhang2023dive} formulate the definitive engineering protocol for fine-tuning. The model consists of two fundamentally asymmetrical components:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{The Backbone}: Contains millions of parameters carefully pre-trained on massive data. These weights reside in a delicate, well-conditioned minimum. Exposing them to large learning rates causes catastrophic gradient shock, destroying the pre-trained feature detectors.
+  \item \textbf{The Output Head}: Newly added and initialized with random Gaussian noise. It requires substantial gradient updates to establish initial alignment with target labels.
+\end{itemize}
+
+To balance these conflicting demands, Zhang et al. prescribe the \textbf{differential learning rate rule}:
+\begin{equation}
+\eta_{\text{head}} = 10 \cdot \eta_{\text{backbone}}, \qquad \text{e.g.,} \quad \eta_{\text{backbone}} = 10^{-4}, \quad \eta_{\text{head}} = 10^{-3}.
+\label{eq:differential_lr_rule}
+\end{equation}
+Furthermore, Zhang et al. emphasize that downstream inputs \textbf{must strictly preserve the source normalization constants}:
+\begin{equation}
+\boldsymbol{\mu}_{\text{ImageNet}} = [0.485, 0.456, 0.406], \qquad \boldsymbol{\sigma}_{\text{ImageNet}} = [0.229, 0.224, 0.225].
+\end{equation}
+Using the target dataset's own empirical mean and variance shifts the coordinate origin, forcing early convolutional filters to operate outside their calibrated activation distributions.
+
+\subsection{The transfer learning decision matrix}
+\label{sec:transfer_learning_decision_matrix}
+
+How should a machine learning engineer choose between Linear Probing, partial fine-tuning, and full fine-tuning? As formalized by Fei-Fei Li and Justin Johnson, the choice is governed by a \textbf{$2 \times 2$ Decision Matrix} balancing \textbf{Target Dataset Size} against \textbf{Domain Similarity} (Figure~\ref{fig:transfer_decision_matrix}):
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.95]
+  % Define styles
+  \tikzset{
+    box/.style={rectangle, rounded corners=3mm, thick, text width=5.2cm, minimum height=3.6cm, align=center, inner sep=6pt},
+    header/.style={font=\bfseries\sffamily\footnotesize}
+  }
+
+  % Axes
+  \draw[->, very thick, politoNavy] (0, 0) -- (12.2, 0) node[right, header] {Target Dataset Size};
+  \draw[->, very thick, politoNavy] (0, 0) -- (0, 8.2) node[above, header] {Domain Similarity to Source};
+
+  % Quadrant 1 (Top-Left): Small Data, Similar Domain
+  \node[box, fill=skyBlue!20, draw=deepblue] at (3.2, 5.8) {
+    \textcolor{politoNavy}{\textbf{Quadrant I: Small Data, Similar Domain}}\\[1ex]
+    \textcolor{examred}{\textbf{Protocol: Linear Probing on Top Layer}}\\[1ex]
+    \raggedright\scriptsize
+    $\bullet$ Freeze entire backbone; train linear head.\par
+    $\bullet$ High-level semantic features are already aligned.\par
+    $\bullet$ Fine-tuning would cause severe overfitting.\\[1ex]
+    \textit{Example}: Stanford Dogs from ImageNet.
+  };
+
+  % Quadrant 2 (Top-Right): Large Data, Similar Domain
+  \node[box, fill=intuitiongreen!15, draw=intuitiongreen!80!black] at (9.0, 5.8) {
+    \textcolor{politoNavy}{\textbf{Quadrant II: Large Data, Similar Domain}}\\[1ex]
+    \textcolor{intuitiongreen!80!black}{\textbf{Protocol: Full Fine-Tuning}}\\[1ex]
+    \raggedright\scriptsize
+    $\bullet$ Fine-tune multiple or all backbone layers.\par
+    $\bullet$ Use small learning rate ($\approx 0.1 \times \alpha_0$).\par
+    $\bullet$ Ample target data prevents overfitting.\\[1ex]
+    \textit{Example}: Places365 scene recognition.
+  };
+
+  % Quadrant 3 (Bottom-Left): Small Data, Different Domain
+  \node[box, fill=examred!15, draw=examred] at (3.2, 2.0) {
+    \textcolor{politoNavy}{\textbf{Quadrant III: Small Data, Different Domain}}\\[1ex]
+    \textcolor{examred}{\textbf{Protocol: Probe Intermediate Layers}}\\[1ex]
+    \raggedright\scriptsize
+    $\bullet$ High-level semantics are completely irrelevant.\par
+    $\bullet$ Linear probe from early/mid stages ($\text{Conv}_3$).\par
+    $\bullet$ Severe hazard: data too small to fine-tune!\\[1ex]
+    \textit{Example}: Histopathology biopsies ($100$ slides).
+  };
+
+  % Quadrant 4 (Bottom-Right): Large Data, Different Domain
+  \node[box, fill=orange!15, draw=orange!80!black] at (9.0, 2.0) {
+    \textcolor{politoNavy}{\textbf{Quadrant IV: Large Data, Different Domain}}\\[1ex]
+    \textcolor{orange!80!black}{\textbf{Protocol: Fine-Tune All or Scratch}}\\[1ex]
+    \raggedright\scriptsize
+    $\bullet$ Fine-tune all layers from pre-trained weights.\par
+    $\bullet$ Pre-training accelerates initial convergence.\par
+    $\bullet$ Training from scratch is also viable.\\[1ex]
+    \textit{Example}: Large-scale satellite remote sensing.
+  };
+
+  % Axis ticks and labels
+  \node[font=\bfseries\sffamily\scriptsize, text=gray!80] at (3.2, -0.4) {Very Little Data ($10\text{--}100$ / class)};
+  \node[font=\bfseries\sffamily\scriptsize, text=gray!80] at (9.0, -0.4) {Abundant Data ($10^3\text{--}10^5$ / class)};
+  \node[font=\bfseries\sffamily\scriptsize, text=gray!80, rotate=90] at (-0.4, 5.8) {Highly Similar};
+  \node[font=\bfseries\sffamily\scriptsize, text=gray!80, rotate=90] at (-0.4, 2.0) {Vastly Different};
+\end{tikzpicture}
+\caption{The Transfer Learning Decision Matrix. Optimal adaptation protocols depend systematically on the interplay between target data availability and the semantic divergence between source and target domains.}
+\label{fig:transfer_decision_matrix}
+\end{figure}
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Small Dataset, Similar Task (Quadrant I)}:
+    Because target data is scarce, fine-tuning large parameter matrices guarantees overfitting. Because the target task is visually similar to ImageNet (e.g., classifying dog breeds), the pre-trained top-layer features already encode the relevant semantic discriminants. \textbf{Prescription}: Freeze the backbone completely; train strictly a linear classifier on top.
+  \item \textbf{Large Dataset, Similar Task (Quadrant II)}:
+    With abundant data, overfitting is less threatening. The pre-trained weights provide an exceptional initialization. \textbf{Prescription}: Fine-tune the entire network with a small learning rate ($\alpha_{\text{FT}} \approx 0.1 \times \alpha_{\text{base}}$), allowing representations to deform gently to optimal target boundaries.
+  \item \textbf{Small Dataset, Different Task (Quadrant III)}:
+    The most treacherous quadrant in applied machine learning. High-level ImageNet features are irrelevant or misleading, yet the dataset is too small to fine-tune millions of weights. \textbf{Prescription}: Linear probing from intermediate stages (e.g., pooling features from $\text{Conv}_3$ or $\text{Conv}_4$, which retain generic textures and edge combinations rather than semantic natural object assemblies).
+  \item \textbf{Large Dataset, Different Task (Quadrant IV)}:
+    Because data is plentiful, the network can afford to reconfigure all feature layers. Starting from pre-trained weights accelerates optimization compared to random initialization, though training from scratch remains competitive.
+\end{enumerate}
+
+\subsection{Pervasiveness in modern computer vision and multimodal AI}
+\label{sec:pervasiveness_transfer_learning}
+
+Transfer learning is not an auxiliary trick; it is the universal backbone of modern applied artificial intelligence:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Object Detection (Fast and Faster R-CNN)}: Ross Girshick~\cite{girshick2015fast} built the modern object detection framework by taking a pre-trained ImageNet visual backbone (VGG-16 or ResNet), attaching a Region of Interest (RoI) pooling layer to intermediate convolutional features, and fine-tuning the dual outputs for multi-task loss (classification cross-entropy plus bounding box smooth $L_1$ regression).
+  \item \textbf{Multimodal Vision-Language (Karpathy \& Fei-Fei, 2015)}~\cite{karpathy2015deep}: Andrej Karpathy and Li Fei-Fei pioneered end-to-end image captioning by transferring visual features from an ImageNet-pretrained CNN into an unrolled Recurrent Neural Network (RNN/LSTM) initialized with Word2Vec word embeddings, bridging visual and linguistic semantic spaces.
+  \item \textbf{Unified Vision-Language Pre-training (Zhou et al., 2020)}~\cite{zhou2020unified}: Modern foundation pipelines train a CNN on ImageNet, fine-tune on Visual Genome for object and attribute grounding, train a BERT language model on massive text corpora, and jointly fine-tune the multimodal encoder-decoder for Visual Question Answering (VQA) and caption generation.
+\end{itemize}
+
+---
+
+\section{Rethinking pre-training: Speedup versus asymptotic capacity}
+\label{sec:rethinking_pretraining}
+
+For years, the universal assumption across computer vision was that pre-training on ImageNet provided an indispensable regularizer that yielded superior final accuracy that could never be matched by training from scratch.
+
+In 2019, Kaiming He, Ross Girshick, and Piotr Dollár~\cite{he2019rethinking} published their landmark paper \textit{``Rethinking ImageNet Pre-training''}, executing a rigorous empirical deconstruction that transformed the theoretical understanding of transfer learning:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    width=13.5cm,
+    height=6.2cm,
+    title={\textbf{COCO Object Detection: Pre-training vs. Training from Scratch (He et al., 2019)}},
+    xlabel={\textbf{Training Schedule Multiplier ($\times$ iterations)}},
+    ylabel={\textbf{Bounding Box AP (\%)}},
+    xmin=0.5, xmax=5.5,
+    ymin=10, ymax=45,
+    xtick={1, 2, 3, 4, 5},
+    xticklabels={$1\times$ ($30\text{k}$), $2\times$ ($60\text{k}$), $3\times$ ($90\text{k}$), $4\times$ ($120\text{k}$), $5\times$ ($150\text{k}$)},
+    legend pos=south east,
+    legend style={font=\sffamily\footnotesize, fill=white, fill opacity=0.9},
+    axis line style={thick},
+    tick label style={font=\sffamily\small},
+    label style={font=\sffamily\small},
+    grid=both,
+    grid style={line width=.1pt, draw=gray!20}
+]
+
+% Pre-trained + Fine-tuned (Starts high, plateaus early)
+\addplot[color=deepblue, ultra thick, mark=square*] coordinates {
+  (1, 35.5) (2, 38.8) (3, 39.8) (4, 40.0) (5, 40.1)
+};
+\addlegendentry{ImageNet Pre-trained + Fine-tuned}
+
+% Random Init / Scratch (Starts low, catches up at 3x)
+\addplot[color=examred, very thick, mark=triangle*] coordinates {
+  (1, 22.0) (2, 35.2) (3, 39.6) (4, 40.1) (5, 40.2)
+};
+\addlegendentry{Trained from Scratch (Random Init)}
+
+% Annotations
+\draw[dashed, gray!70] (axis cs:3, 10) -- (axis cs:3, 40.5);
+\node[above=2pt, font=\bfseries\sffamily\scriptsize, text=examred, align=center] at (axis cs:3, 40.5) {Parity Achieved at $3\times$ Schedule};
+
+\node[font=\sffamily\scriptsize, text=deepblue, align=center] at (axis cs:1.3, 32.5) {Standard $1\times$\\Fine-Tuning};
+\draw[->, thick, deepblue] (axis cs:1.3, 33.5) -- (axis cs:1.1, 35.0);
+
+\end{axis}
+\end{tikzpicture}
+\caption{Empirical verification of the Rethinking Pre-training phenomenon (He et al., ICCV 2019). On COCO object detection, standard fine-tuning schedules ($1\times$) suggest that pre-training is indispensable. However, extending the schedule to $3\times$ enables a randomly initialized network trained strictly from scratch to achieve identical asymptotic performance ($\approx 40.1\%$ AP). Pre-training accelerates initial learning dynamics but does not alter final model capacity when target data is abundant.}
+\label{fig:rethinking_pretraining_curve}
+\end{figure}
+
+The seminal findings of He et al.~\cite{he2019rethinking} include:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Parity Under Extended Optimization}:
+    When trained on the standard $1\times$ baseline schedule ($30\text{k}$ iterations), ImageNet pre-training vastly outperforms random initialization ($35.5\%$ vs. $22.0\%$ AP). However, this gap is an artifact of premature termination. If the model trained from scratch is allowed to train for a $3\times$ longer schedule ($90\text{k}$ iterations), \textbf{it achieves identical asymptotic accuracy to the pre-trained model} ($40.1\%$ vs. $39.8\%$ AP).
+  \item \textbf{Pre-training as Convergence Acceleration}:
+    ImageNet pre-training does not automatically improve the model's fundamental representational limit or regularize against asymptotic overfitting. Its primary benefit is \textbf{computational acceleration}: it provides a highly conditioned parameter initialization that saves training wall-clock time.
+  \item \textbf{The Data Volume Dependency}:
+    When target data is abundant (e.g., the full COCO dataset with $118\text{k}$ images), collecting more target data is far more effective than pre-training on out-of-domain images. 
+    However, \textbf{when target training data is scarce ($1\text{k}\text{--}10\text{k}$ images), pre-training remains strictly indispensable}: models trained from scratch on tiny datasets fail to converge or overfit catastrophically.
+\end{enumerate}
+
+---
+
+\section{Out-of-distribution robustness and feature distortion: The LP-FT protocol}
+\label{sec:feature_distortion_lp_ft}
+
+While fine-tuning is universally regarded as superior to linear probing on in-distribution data, Ananya Kumar, Aditi Raghunathan, Robbie Jones, Tengyu Ma, and Percy Liang~\cite{kumar2022fine} uncovered a profound theoretical paradox: \textbf{Fine-tuning can severely distort pre-trained representations and dramatically underperform linear probing out-of-distribution}.
+
+\subsection{The in-distribution versus out-of-distribution paradox}
+\label{sec:id_vs_ood_paradox}
+
+Consider a pre-trained foundation model evaluated across two distinct testing distributions:
+\begin{itemize}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
+  \item \textbf{In-Distribution (ID)}: Test data drawn from the identical geographic or sensor distribution as the target training set (e.g., satellite imagery over North America).
+  \item \textbf{Out-of-Distribution (OOD)}: Test data subject to natural distribution shifts (e.g., satellite imagery over Africa or Europe).
+\end{itemize}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Adaptation Protocol} & \textbf{ID Test Accuracy (\%)} & \textbf{OOD Test Accuracy (\%)} & \textbf{OOD vs. ID Gap} \\ \midrule
+\textbf{Linear Probing (LP)} & $82.9\%$ & $\mathbf{66.2\%}$ & $-16.7\%$ \\
+\textbf{Standard Fine-Tuning (FT)} & $\mathbf{85.1\%}$ & $59.3\%$ & $\mathbf{-25.8\%}$ (Severe Collapse!) \\ \midrule
+\textbf{LP-FT (Kumar et al., 2022)} & $\mathbf{85.7\%}$ & $\mathbf{68.8\%}$ & $\mathbf{-16.9\%}$ ($+9.5\%$ over FT) \\ \bottomrule
+\end{tabular}
+\caption{Empirical performance comparison of adaptation protocols across 10 benchmark distribution shift datasets (Kumar et al., ICLR 2022). While standard fine-tuning improves in-distribution accuracy by $+2.2\%$, it causes an catastrophic $-6.9\%$ drop on out-of-distribution generalization compared to linear probing. The 2-step LP-FT protocol resolves this dilemma, simultaneously outperforming FT in-distribution and crushing FT out-of-distribution.}
+\label{tab:lp_ft_benchmark_comparison}
+\end{table}
+
+As documented in Table~\ref{tab:lp_ft_benchmark_comparison}, on 8 out of 10 distribution shift datasets, \textbf{Linear Probing substantially outperforms Full Fine-Tuning under distribution shift} ($66.2\%$ vs. $59.3\%$). Why does fine-tuning destroy out-of-distribution generalization?
+
+\subsection{The mathematical mechanism of feature distortion}
+\label{sec:mechanism_feature_distortion}
+
+The vulnerability of fine-tuning originates from the \textbf{random initialization of the target classification head}:
+\begin{enumerate}[leftmargin=*]
+  \item At iteration $t = 0$, the backbone $\boldsymbol{\phi}(\vx)$ contains well-formed, pre-trained feature representations that generalize well across diverse domains. However, the newly appended linear head $\mathbf{W}_{\text{head}}$ contains completely random Gaussian weights.
+  \item During the initial gradient descent steps, the classification error $\mathcal{L}$ is enormous. The gradient backpropagated from the head into the backbone features is:
+    \begin{equation}
+    \nabla_{\boldsymbol{\phi}} \mathcal{L} = \mathbf{W}_{\text{head}}^\top \nabla_{\mathbf{z}} \mathcal{L}.
+    \label{eq:head_backprop_feature_gradient}
+    \end{equation}
+  \item Because $\mathbf{W}_{\text{head}}$ is uncalibrated, $\nabla_{\boldsymbol{\phi}} \mathcal{L}$ is a massive, noisy vector. Backpropagating this large gradient through the pre-trained weights $\boldsymbol{\theta}_{\text{backbone}}$ causes \textbf{Feature Distortion}: it violently distorts the pre-trained feature representations during the very first epochs of training.
+  \item As analyzed by Simon Prince~\cite{prince2023understanding} and proven by Bubeck and Sellke~\cite{bubeck2021universal}, overparameterized networks have the capacity to fit arbitrary associations. Under the massive gradient shocks of an unaligned head, the overparameterized backbone distorts its manifold specifically to satisfy in-distribution samples through spurious shortcuts, destroying its out-of-distribution invariance.
+\end{enumerate}
+
+\subsection{The 2-step LP-FT algorithm}
+\label{sec:lp_ft_algorithm}
+
+To retain the expressive feature adaptation of fine-tuning while completely immunizing the network against feature distortion, Kumar et al.~\cite{kumar2022fine} formulated the \textbf{Linear Probing then Fine-Tuning (LP-FT)} protocol:
+
+\begin{algorithm}[H]
+\caption{The 2-Step LP-FT Adaptation Protocol}
+\label{alg:lp_ft}
+\begin{algorithmic}[1]
+\Require Pre-trained backbone $f(\cdot; \boldsymbol{\theta}_{\text{pre}})$, target dataset $\mathcal{D}_{\mathcal{T}} = \{(\vx_i, y_i)\}_{i=1}^N$, epochs $E_1, E_2$, learning rates $\eta_{\text{probe}}, \eta_{\text{FT}}$.
+\State Initialize linear classification head $\mathbf{W}_{\text{head}} \sim \mathcal{N}(\mathbf{0}, \sigma^2 \mI), \mathbf{b}_{\text{head}} = \mathbf{0}$.
+\State \textbf{Phase 1: Linear Probing (Head Alignment)}
+\State Freeze backbone: $\nabla_{\boldsymbol{\theta}} \mathcal{L} \leftarrow \mathbf{0}$.
+\For{epoch $= 1$ to $E_1$}
+  \State Train \textbf{strictly} the head parameters $(\mathbf{W}_{\text{head}}, \mathbf{b}_{\text{head}})$ to convergence using $\eta_{\text{probe}}$.
+\EndFor
+\State \Comment{The classification head is now perfectly aligned with the pre-trained feature manifold.}
+\State \textbf{Phase 2: Gentle End-to-End Fine-Tuning}
+\State Unfreeze all backbone parameters: enable $\nabla_{\boldsymbol{\theta}} \mathcal{L}$.
+\For{epoch $= 1$ to $E_2$}
+  \State Train the full network end-to-end using a scaled learning rate $\eta_{\text{FT}}$ with cosine decay.
+\EndFor
+\State \Return Fully adapted model $(\boldsymbol{\theta}^*, \mathbf{W}_{\text{head}}^*, \mathbf{b}_{\text{head}}^*)$.
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Why LP-FT Prevents Feature Distortion:}
+In Phase 1, training only the head aligns $\mathbf{W}_{\text{head}}$ with the pre-trained feature space without altering a single weight in the backbone. When Phase 2 begins, the initial error gradient $\nabla_{\boldsymbol{\phi}} \mathcal{L}$ is already small and meaningful: there are no violent initial gradient shocks. The features are refined smoothly to maximize target margin without distorting the underlying universal manifold.
+
+As confirmed in Table~\ref{tab:lp_ft_benchmark_comparison}, LP-FT achieves the highest accuracy across both domains: \textbf{$85.7\%$ on ID} (beating standard fine-tuning) and \textbf{$68.8\%$ on OOD} (\textbf{$+9.5\%$ over fine-tuning}).
+
+---
+
+\section{Knowledge distillation: Compressing overparameterized models into lightweight edge networks}
+\label{sec:knowledge_distillation}
+
+Up to this point, representation transfer has focused on adapting a single model to a new task. A complementary paradigm concerns transferring the knowledge of an overparameterized, high-capacity model (or model ensemble) into a \textbf{compact, lightweight student network} suitable for edge deployment.
+
+The roots of model compression date back to Cristian Bucilu\v{a}, Rich Caruana, and Alexandru Niculescu-Mizil (2006)~\cite{bucilua2006model}, who demonstrated that massive ensembles could be compressed into a single neural network by matching pseudo-labeled predictions on large unlabeled data pools. This methodology was modernized into its foundational theoretical form by Geoffrey Hinton, Oriol Vinyals, and Jeff Dean (2015)~\cite{hinton2015distilling} as \textbf{Knowledge Distillation}.
+
+\subsection{Soft targets and the concept of dark knowledge}
+\label{sec:dark_knowledge_concept}
+
+Standard supervised classification trains networks using \textbf{hard one-hot ground-truth targets}:
+\begin{equation}
+\vy = [0, \dots, 0, 1, 0, \dots, 0]^\top \in \R^C.
+\end{equation}
+A one-hot label provides an impoverished supervisory signal: it treats all non-ground-truth classes as equally impossible. For instance, in an animal classification task:
+\begin{itemize}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
+  \item An image of a \textit{Tiger} may have ground-truth label $y_{\text{tiger}} = 1$.
+  \item Hard cross-entropy penalizes a model equally whether it assigns small probability to a \textit{Tabby Cat} or to a \textit{Boeing 747}.
+\end{itemize}
+
+However, a well-trained, high-capacity \textbf{Teacher Model} computes continuous pre-softmax logit scores $\mathbf{z} \in \R^C$. These logits encode rich geometric information about the semantic relationships among categories: the teacher recognizes that a tiger shares extensive structural traits with a domestic cat, but virtually none with an airliner. 
+
+Hinton et al.~\cite{hinton2015distilling} termed this hidden structural similarity \textbf{Dark Knowledge}. Transferring dark knowledge enables a compact student network to learn the smooth decision manifolds discovered by the cumbersome teacher.
+
+\subsection{Temperature-scaled Softmax dynamics}
+\label{sec:temperature_scaled_softmax}
+
+In a standard trained network, the softmax probabilities:
+\begin{equation}
+p_i = \frac{\exp(z_i)}{\sum_j \exp(z_j)}
+\end{equation}
+are heavily peaked: the correct class probability is typically $p_k > 0.999$, while non-target probabilities are crushed into floating-point underflow ($10^{-6}$ to $10^{-12}$). This masks the dark knowledge.
+
+To expose the relative class affinities, Hinton et al. introduced a scalar \textbf{Temperature Parameter} $T > 1$ into the softmax function:
+\begin{equation}
+p_i^{(T)} = \frac{\exp\left(\frac{z_i}{T}\right)}{\sum_{j=1}^C \exp\left(\frac{z_j}{T}\right)}.
+\label{eq:temperature_softmax}
+\end{equation}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.92]
+  % Define styles
+  \tikzset{
+    box/.style={rectangle, rounded corners=2mm, draw=politoNavy, thick, fill=white, minimum width=3.2cm, minimum height=1.0cm, align=center},
+    lossnode/.style={circle, draw=examred, thick, fill=examred!15, minimum size=1.1cm, font=\bfseries\sffamily\footnotesize}
+  }
+
+  % Input Data
+  \node[font=\bfseries\sffamily\small, text=politoNavy] (input) at (-3.5, 0) {Input Sample $\vx$};
+
+  % Teacher Branch (Top)
+  \node[box, fill=deepblue!15] (teacher) at (0, 2.2) {\textbf{Teacher Model}\\\scriptsize(Large / Pre-trained / Frozen)};
+  \node[box, fill=skyBlue!20] (tsoft) at (4.5, 2.2) {Softmax ($T = \tau$)\\$p_i^{(T)}$};
+
+  % Student Branch (Bottom)
+  \node[box, fill=intuitiongreen!15] (student) at (0, -2.2) {\textbf{Student Model}\\\scriptsize(Compact / Learnable)};
+  \node[box, fill=intuitiongreen!25] (ssoft_t) at (4.5, -1.2) {Softmax ($T = \tau$)\\$q_i^{(T)}$};
+  \node[box, fill=intuitiongreen!25] (ssoft_1) at (4.5, -3.2) {Softmax ($T = 1$)\\$q_i^{(1)}$};
+
+  % Ground truth
+  \node[font=\bfseries\sffamily\small, text=gray!80] (gt) at (4.5, -4.6) {Ground Truth $y$};
+
+  % Losses
+  \node[lossnode] (l_kd) at (8.5, 0.5) {$\mathcal{L}_{\text{KD}}$};
+  \node[lossnode] (l_ce) at (8.5, -3.9) {$\mathcal{L}_{\text{CE}}$};
+
+  % Total loss
+  \node[rectangle, rounded corners=3mm, draw=examred, very thick, fill=examred!20, font=\bfseries\sffamily\small, align=center] (total) at (11.8, -1.7) {Total Loss\\$\mathcal{L}_{\text{total}}$};
+
+  % Arrows
+  \draw[-{Stealth}, very thick, politoNavy] (input) |- (teacher.west);
+  \draw[-{Stealth}, very thick, politoNavy] (input) |- (student.west);
+  \draw[-{Stealth}, thick] (teacher) -- (tsoft) node[midway, above, font=\scriptsize\sffamily] {Logits $\mathbf{z}$};
+  \draw[-{Stealth}, thick] (student) |- (ssoft_t) node[near start, above, font=\scriptsize\sffamily] {Logits $\mathbf{v}$};
+  \draw[-{Stealth}, thick] (student) |- (ssoft_1);
+
+  \draw[-{Stealth}, thick, deepblue] (tsoft) -| (l_kd.north) node[near end, left, font=\scriptsize\sffamily] {Soft Targets $p^{(T)}$};
+  \draw[-{Stealth}, thick, intuitiongreen!80!black] (ssoft_t) -| (l_kd.south) node[near end, left, font=\scriptsize\sffamily] {Soft Output $q^{(T)}$};
+
+  \draw[-{Stealth}, thick, intuitiongreen!80!black] (ssoft_1) -- (l_ce);
+  \draw[-{Stealth}, thick, gray!80] (gt) -- (l_ce);
+
+  \draw[-{Stealth}, very thick, examred] (l_kd) -| (total.north);
+  \draw[-{Stealth}, very thick, examred] (l_ce) -| (total.south);
+\end{tikzpicture}
+\caption{The Knowledge Distillation architectural framework (Hinton et al., 2015). A high-capacity pre-trained teacher emits softened class probabilities $p^{(T)}$ at temperature $T > 1$. The student network matches these soft targets via Kullback-Leibler divergence $\mathcal{L}_{\text{KD}}$ while simultaneously minimizing standard hard cross-entropy $\mathcal{L}_{\text{CE}}$ at $T=1$.}
+\label{fig:knowledge_distillation_architecture}
+\end{figure}
+
+\begin{itemize}[leftmargin=*]
+  \item When $T = 1$, Equation~\eqref{eq:temperature_softmax} recovers standard softmax.
+  \item When $T \to \infty$, the logits are compressed toward zero, and the probabilities approach a uniform distribution: $p_i \to \frac{1}{C}$. In this high-temperature limit, the relative logit differences $z_i - z_j$ are preserved linearly without exponential exaggeration.
+\end{itemize}
+
+\subsection{The dual distillation objective function}
+\label{sec:dual_distillation_objective}
+
+As illustrated in Figure~\ref{fig:knowledge_distillation_architecture}, the student network (with trainable weights $\vw$ producing logits $\mathbf{v}$) is trained on a linear combination of two objectives:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Soft Target Loss ($\mathcal{L}_{\text{KD}}$)}: Minimizes the Kullback-Leibler (KL) divergence between the softened teacher probabilities $p^{(T)}$ and the softened student probabilities $q^{(T)}$:
+    \begin{equation}
+    \mathcal{L}_{\text{KD}}(\mathbf{v}, \mathbf{z}; T) = D_{\text{KL}}\left( \mathbf{p}^{(T)} \parallel \mathbf{q}^{(T)} \right) = \sum_{i=1}^C p_i^{(T)} \log\left( \frac{p_i^{(T)}}{q_i^{(T)}} \right).
+    \label{eq:kd_kl_divergence}
+    \end{equation}
+  \item \textbf{Hard Target Loss ($\mathcal{L}_{\text{CE}}$)}: Standard cross-entropy between the student's unsoftened predictions ($T = 1$) and the true one-hot ground-truth label $y$:
+    \begin{equation}
+    \mathcal{L}_{\text{CE}}(\mathbf{v}, y) = -\sum_{i=1}^C y_i \log q_i^{(T=1)}.
+    \end{equation}
+\end{enumerate}
+
+Combining both terms yields the total Knowledge Distillation objective:
+\begin{equation}
+\mathcal{L}_{\text{total}} = (1 - \lambda) \mathcal{L}_{\text{CE}}(\mathbf{v}, y) + \lambda \cdot T^2 \cdot D_{\text{KL}}\left( \mathbf{p}^{(T)} \parallel \mathbf{q}^{(T)} \right),
+\label{eq:full_kd_loss_formula}
+\end{equation}
+where $\lambda \in [0, 1]$ is a balancing hyperparameter (typically $\lambda = 0.5$ or $0.7$).
+
+\subsection{Derivation of the $T^2$ gradient scaling factor}
+\label{sec:t_squared_scaling_derivation}
+
+A common oral examination trap is to ask: \textbf{why is the distillation loss multiplied by $T^2$ in Equation~\eqref{eq:full_kd_loss_formula}?}
+
+To see why, we compute the gradient of the KL divergence loss with respect to a single student logit $v_i$. Using the standard cross-entropy gradient identity $\frac{\partial \mathcal{L}_{\text{CE}}}{\partial z_i} = q_i - y_i$, the derivative of the soft loss with respect to $v_i$ is:
+\begin{equation}
+\frac{\partial \mathcal{L}_{\text{KD}}}{\partial v_i} = \frac{\partial}{\partial v_i} \left[ -\sum_{j=1}^C p_j^{(T)} \log q_j^{(T)} \right] = \frac{1}{T} \left( q_i^{(T)} - p_i^{(T)} \right).
+\label{eq:grad_kd_single_t}
+\end{equation}
+Now, evaluate the high-temperature Taylor series expansion ($T \to \infty$) for the softened probabilities:
+\begin{equation}
+q_i^{(T)} = \frac{\exp(v_i / T)}{\sum_j \exp(v_j / T)} \approx \frac{1 + \frac{v_i}{T}}{C + \frac{1}{T}\sum_j v_j}.
+\end{equation}
+Assuming pre-activations are zero-mean centered across classes ($\sum_j v_j = 0$ and $\sum_j z_j = 0$):
+\begin{equation}
+q_i^{(T)} \approx \frac{1}{C} + \frac{v_i}{C T}, \qquad p_i^{(T)} \approx \frac{1}{C} + \frac{z_i}{C T}.
+\end{equation}
+Substituting these approximations into the gradient expression Equation~\eqref{eq:grad_kd_single_t}:
+\begin{equation}
+\frac{\partial \mathcal{L}_{\text{KD}}}{\partial v_i} = \frac{1}{T} \left[ \left( \frac{1}{C} + \frac{v_i}{C T} \right) - \left( \frac{1}{C} + \frac{z_i}{C T} \right) \right] = \frac{1}{C T^2} (v_i - z_i).
+\label{eq:t_squared_vanishing_grad}
+\end{equation}
+
+\begin{theorem}[$T^2$ Gradient Normalization]
+As temperature $T$ increases, the magnitude of the gradient $\frac{\partial \mathcal{L}_{\text{KD}}}{\partial v_i}$ scales inversely as $\frac{1}{T^2}$. 
+
+Multiplying the distillation loss by $T^2$ in the objective function ensures that the gradient magnitude remains invariant to the temperature parameter:
+\begin{equation}
+\nabla_{\mathbf{v}} \left[ T^2 \mathcal{L}_{\text{KD}} \right] \approx \frac{1}{C} (\mathbf{v} - \mathbf{z}).
+\end{equation}
+This keeps the relative gradient contributions of the hard ground-truth loss and the soft distillation loss properly balanced, preventing the soft dark knowledge signal from vanishing as $T$ increases.
+\end{theorem}
+
+\subsection{Intermediate feature distillation: Attention transfer}
+\label{sec:attention_transfer_distillation}
+
+In complex computer vision tasks, distilling strictly the final pre-softmax logits is often insufficient: two deep architectures can output identical class probabilities while routing information through entirely disparate internal representational mechanisms.
+
+As reviewed by Simon Prince~\cite{prince2023understanding}, Sergey Zagoruyko and Nikos Komodakis (2017)~\cite{zagoruyko2017paying} introduced \textbf{Attention Transfer (AT)} to supervise intermediate layers directly. They defined spatial attention maps that capture where a convolutional network concentrates its representational energy:
+
+\begin{definition}[Spatial Attention Map]
+Let $\mathbf{A} \in \R^{C \times H \times W}$ denote the 3D activation tensor at an intermediate convolutional stage with $C$ feature channels and spatial dimensions $H \times W$. The spatial attention mapping operator $\mathcal{F}_{\text{AT}}: \R^{C \times H \times W} \to \R^{H \times W}$ is computed by summing the absolute channel energies:
+\begin{equation}
+\mathcal{F}_{\text{AT}}(\mathbf{A}) = \sum_{c=1}^C |\mathbf{A}_c|^p,
+\label{eq:attention_map_definition}
+\end{equation}
+where $p = 2$ provides optimal empirical sensitivity to salient visual motifs.
+\end{definition}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.90]
+  \tikzset{
+    block/.style={rectangle, rounded corners=2mm, draw=politoNavy, thick, fill=white, minimum width=2.2cm, minimum height=0.9cm, align=center, font=\sffamily\scriptsize},
+    attnode/.style={rectangle, rounded corners=1.5mm, draw=deepdiveTeal, thick, fill=deepdiveTeal!15, minimum width=1.8cm, minimum height=0.7cm, align=center, font=\sffamily\tiny\bfseries},
+    lossblock/.style={circle, draw=examred, thick, fill=examred!15, minimum size=0.9cm, font=\bfseries\sffamily\tiny},
+    conn/.style={-{Stealth[scale=0.9]}, thick, politoNavy}
+  }
+
+  % Input
+  \node[font=\bfseries\sffamily\footnotesize, text=politoNavy] (input) at (-2.0, 0) {Input Image $\vx$};
+
+  % Teacher (Top)
+  \node[font=\bfseries\sffamily\small, text=deepblue] at (5.0, 2.5) {High-Capacity Teacher Network};
+  \node[block, fill=deepblue!15] (t1) at (0.5, 1.5) {$\text{Stage}_1$\\(Channels: 64)};
+  \node[block, fill=deepblue!15] (t2) at (3.5, 1.5) {$\text{Stage}_2$\\(Channels: 128)};
+  \node[block, fill=deepblue!15] (t3) at (6.5, 1.5) {$\text{Stage}_3$\\(Channels: 256)};
+  \node[block, fill=deepblue!25] (thead) at (9.5, 1.5) {Logits $\mathbf{z}$\\Softmax($T$)};
+
+  % Teacher Attention Maps
+  \node[attnode] (tat1) at (1.5, 0.4) {$\mathcal{F}_{\text{AT}}(\mathbf{A}_T^{(1)})$};
+  \node[attnode] (tat2) at (4.5, 0.4) {$\mathcal{F}_{\text{AT}}(\mathbf{A}_T^{(2)})$};
+  \node[attnode] (tat3) at (7.5, 0.4) {$\mathcal{F}_{\text{AT}}(\mathbf{A}_T^{(3)})$};
+
+  % Student (Bottom)
+  \node[font=\bfseries\sffamily\small, text=intuitiongreen!80!black] at (5.0, -2.5) {Compact Student Network};
+  \node[block, fill=intuitiongreen!15] (s1) at (0.5, -1.5) {$\text{Stage}_1$\\(Channels: 32)};
+  \node[block, fill=intuitiongreen!15] (s2) at (3.5, -1.5) {$\text{Stage}_2$\\(Channels: 64)};
+  \node[block, fill=intuitiongreen!15] (s3) at (6.5, -1.5) {$\text{Stage}_3$\\(Channels: 128)};
+  \node[block, fill=intuitiongreen!25] (shead) at (9.5, -1.5) {Logits $\mathbf{v}$\\Softmax($T$)};
+
+  % Student Attention Maps
+  \node[attnode] (sat1) at (1.5, -0.4) {$\mathcal{F}_{\text{AT}}(\mathbf{A}_S^{(1)})$};
+  \node[attnode] (sat2) at (4.5, -0.4) {$\mathcal{F}_{\text{AT}}(\mathbf{A}_S^{(2)})$};
+  \node[attnode] (sat3) at (7.5, -0.4) {$\mathcal{F}_{\text{AT}}(\mathbf{A}_S^{(3)})$};
+
+  % Connections within networks
+  \draw[conn] (input) |- (t1.west);
+  \draw[conn] (input) |- (s1.west);
+  \draw[conn] (t1) -- (t2);
+  \draw[conn] (t2) -- (t3);
+  \draw[conn] (t3) -- (thead);
+  \draw[conn] (s1) -- (s2);
+  \draw[conn] (s2) -- (s3);
+  \draw[conn] (s3) -- (shead);
+
+  % Attention tap connections
+  \draw[-{Stealth}, dashed, deepblue] (t1.south east) -- (tat1.north);
+  \draw[-{Stealth}, dashed, deepblue] (t2.south east) -- (tat2.north);
+  \draw[-{Stealth}, dashed, deepblue] (t3.south east) -- (tat3.north);
+
+  \draw[-{Stealth}, dashed, intuitiongreen!80!black] (s1.north east) -- (sat1.south);
+  \draw[-{Stealth}, dashed, intuitiongreen!80!black] (s2.north east) -- (sat2.south);
+  \draw[-{Stealth}, dashed, intuitiongreen!80!black] (s3.north east) -- (sat3.south);
+
+  % Distillation losses
+  \node[lossblock] (lat1) at (1.5, 0.0) {$\mathcal{L}_{\text{AT}}^{(1)}$};
+  \node[lossblock] (lat2) at (4.5, 0.0) {$\mathcal{L}_{\text{AT}}^{(2)}$};
+  \node[lossblock] (lat3) at (7.5, 0.0) {$\mathcal{L}_{\text{AT}}^{(3)}$};
+  \node[lossblock] (lkd) at (11.5, 0.0) {$T^2 D_{\text{KL}}$};
+
+  \draw[-{Stealth}, draw=examred, thick] (tat1) -- (lat1);
+  \draw[-{Stealth}, draw=examred, thick] (sat1) -- (lat1);
+  \draw[-{Stealth}, draw=examred, thick] (tat2) -- (lat2);
+  \draw[-{Stealth}, draw=examred, thick] (sat2) -- (lat2);
+  \draw[-{Stealth}, draw=examred, thick] (tat3) -- (lat3);
+  \draw[-{Stealth}, draw=examred, thick] (sat3) -- (lat3);
+
+  \draw[-{Stealth}, draw=examred, thick] (thead) -| (lkd.north);
+  \draw[-{Stealth}, draw=examred, thick] (shead) -| (lkd.south);
+
+  % Hard CE loss
+  \node[lossblock] (lce) at (9.5, -2.9) {$\mathcal{L}_{\text{CE}}$};
+  \node[font=\bfseries\sffamily\tiny, text=gray!80] at (9.5, -3.6) {Labels $\vy$};
+  \draw[-{Stealth}, draw=gray!80, thick] (9.5, -3.4) -- (lce);
+  \draw[-{Stealth}, draw=intuitiongreen!80!black, thick] (shead) -- (lce);
+\end{tikzpicture}
+\caption{Multi-level knowledge distillation combining Hinton's softened logit matching with Zagoruyko \& Komodakis (2017) intermediate Attention Transfer (AT). Beyond mimicking output probabilities via $T^2 D_{\text{KL}}$, the compact student is explicitly supervised at intermediate stages ($\mathcal{L}_{\text{AT}}^{(1)}, \mathcal{L}_{\text{AT}}^{(2)}, \mathcal{L}_{\text{AT}}^{(3)}$) to replicate the 2D spatial attention heatmaps of the overparameterized teacher.}
+\label{fig:multilevel_knowledge_distillation}
+\end{figure}
+
+As illustrated in Figure~\ref{fig:multilevel_knowledge_distillation}, normalized attention vectors $\hat{\mathbf{a}} = \frac{\operatorname{vec}(\mathcal{F}_{\text{AT}}(\mathbf{A}))}{\|\operatorname{vec}(\mathcal{F}_{\text{AT}}(\mathbf{A}))\|_2}$ are matched across a set of paired intermediate stages $\mathcal{I}$:
+\begin{equation}
+\mathcal{L}_{\text{AT}} = \frac{1}{2} \sum_{j \in \mathcal{I}} \left\| \frac{\operatorname{vec}(\mathcal{F}_{\text{AT}}(\mathbf{A}_S^{(j)}))}{\|\operatorname{vec}(\mathcal{F}_{\text{AT}}(\mathbf{A}_S^{(j)}))\|_2} - \frac{\operatorname{vec}(\mathcal{F}_{\text{AT}}(\mathbf{A}_T^{(j)}))}{\|\operatorname{vec}(\mathcal{F}_{\text{AT}}(\mathbf{A}_T^{(j)}))\|_2} \right\|_2^2.
+\label{eq:attention_transfer_loss}
+\end{equation}
+By matching these 2D spatial attention heatmaps, the student model is forced not only to produce identical class logits, but to look at the exact same salient anatomical or visual parts (e.g., eyes, wheels, tumor borders) as the heavy teacher network.
+
+\subsection{Can distillation defeat overparameterization?}
+\label{sec:distillation_overparameterization_limits}
+
+An enduring theoretical question in deep learning is whether distillation can compress an overparameterized model down to an \textit{underparameterized} regime without sacrificing generalization accuracy.
+
+Simon Prince~\cite{prince2023understanding} notes that while distillation can successfully approximate a 34-layer ResNet ($\sim 63$ million parameters) with an 18-layer ResNet ($\sim 11$ million parameters) on ImageNet, the distilled student is \textbf{still strictly overparameterized} relative to the training set size ($1.28$ million images).
+
+Recent mathematical theory explains why underparameterized models encounter fundamental boundaries:
+\begin{theorem}[Universal Law of Robustness, Bubeck \& Sellke, 2021]
+In a $D$-dimensional feature space, smooth interpolation of $N$ data points with a Lipschitz-bounded neural network requires at least:
+\begin{equation}
+P \gtrsim N \cdot D
+\end{equation}
+parameters~\cite{bubeck2021universal}. Simple interpolation without smoothness requires only $P \approx N$, but maintaining a smooth, non-oscillating decision boundary requires an additional factor of $D$ in model capacity.
+\end{theorem}
+Consequently, compressing a network below this threshold impairs its Lipschitz continuity, leading to fragile decision boundaries and degraded out-of-distribution robustness. Distillation transfers dark knowledge and smooths optimization landscapes, but it cannot override the geometric capacity bounds governing smooth function approximation.
+
+---
+
+\section{The representation learning continuum: Transfer, multitask, and meta-learning}
+\label{sec:representation_learning_continuum}
+
+Transfer learning does not exist in isolation. It forms a coherent theoretical spectrum with \textbf{Multitask Learning} and \textbf{Meta-Learning}, as synthesized across Bishop~\cite{bishop2024deep}, Goodfellow et al.~\cite{goodfellow2016deep}, and Prince~\cite{prince2023understanding}:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Transfer Learning (Sequential Transfer)}: Knowledge is acquired sequentially on an upstream source domain $\mathcal{D}_{\mathcal{S}}$ and subsequently transferred to a downstream target domain $\mathcal{D}_{\mathcal{T}}$. The primary challenge is preventing \textit{catastrophic forgetting} of generic representations while adapting to target specificities.
+  \item \textbf{Multitask Learning (Simultaneous Joint Learning)}: Rich Caruana (1997)~\cite{caruana1997multitask} pioneered multitask learning, where a network is trained to optimize $K$ related tasks simultaneously:
+    \begin{equation}
+    \mathcal{L}_{\text{multitask}}(\boldsymbol{\theta}_{\text{shared}}, \boldsymbol{\theta}_1, \dots, \boldsymbol{\theta}_K) = \sum_{k=1}^K \alpha_k \mathcal{L}_k\left( f_k(\vx; \boldsymbol{\theta}_{\text{shared}}, \boldsymbol{\theta}_k), \vy_k \right).
+    \label{eq:multitask_loss}
+    \end{equation}
+    Because the shared parameters $\boldsymbol{\theta}_{\text{shared}}$ must satisfy gradient constraints from multiple objectives concurrently, the tasks act as mutual regularizers. Caruana demonstrated that representations learned under multitask objectives generalize significantly better than single-task models because task-specific noise cancels out.
+  \item \textbf{Meta-Learning (Learning to Learn)}: While multitask learning solves a fixed set of known tasks, meta-learning (Finn et al., 2017)~\cite{finn2017model} trains across a distribution of tasks $p(\mathcal{T})$ to discover an optimal parameter initialization $\boldsymbol{\theta}^*$ that can adapt to entirely novel, unseen tasks within $K$ gradient descent steps (few-shot learning):
+    \begin{equation}
+    \boldsymbol{\theta}^* = \arg\min_{\boldsymbol{\theta}} \sum_{\mathcal{T}_i \sim p(\mathcal{T})} \mathcal{L}_{\mathcal{T}_i}\left( \boldsymbol{\theta} - \alpha \nabla_{\boldsymbol{\theta}} \mathcal{L}_{\mathcal{T}_i}(\boldsymbol{\theta}) \right).
+    \label{eq:maml_meta_learning}
+    \end{equation}
+\end{enumerate}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{@{}p{2.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Paradigm} & \textbf{Primary Objective} & \textbf{Temporal Pipeline} & \textbf{Parameter Sharing} & \textbf{Primary Failure Mode} \\ \midrule
+\textbf{Transfer Learning} & Transfer source knowledge to boost scarce target task accuracy & Sequential ($\mathcal{T}_{\mathcal{S}} \to \mathcal{T}_{\mathcal{T}}$) & Backbone reused; head re-initialized & Negative transfer; feature distortion on OOD \\
+\textbf{Domain Adaptation} & Minimize degradation under covariate shift & Simultaneous or 2-stage adaptation & Shared canonical latent representation & Target domain over-fitting; manifold rupture \\
+\textbf{Multitask Learning} & Improve generalized representations across $K$ concurrent tasks & Simultaneous joint optimization & Hard/soft layer sharing across heads & Gradient conflict; negative task transfer \\
+\textbf{Self-Supervised Learning} & Pre-train representations without human manual annotations & Sequential (Pretext $\to$ Downstream) & Entire encoder reused & Pretext task misalignment (shortcut learning) \\
+\textbf{Meta-Learning} & Learn optimal initialization for few-shot adaptation & Bi-level optimization across task distribution & Initialization $\boldsymbol{\theta}^*$ adapted per task & Meta-overfitting to task distribution \\ \bottomrule
+\end{tabularx}
+\caption{The representation learning continuum: comparative taxonomy of transfer learning, domain adaptation, multitask learning, self-supervised pre-training, and meta-learning (Bishop, 2024; Goodfellow et al., 2016; Prince, 2023; Caruana, 1997; Finn et al., 2017).}
+\label{tab:representation_learning_continuum}
+\end{table}
