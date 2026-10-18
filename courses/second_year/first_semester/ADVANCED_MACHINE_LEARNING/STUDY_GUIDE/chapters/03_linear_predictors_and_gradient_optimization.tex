@@ -1674,35 +1674,36 @@ In high-dimensional non-convex optimization, standard first-order gradient desce
 
 To overcome this fundamental limitation without incurring the prohibitive $\mathcal{O}(d^3)$ cost of explicit second-order Hessian inversion, statistical learning turns to the principles of classical mechanics. By imbuing the optimizer with \textbf{physical momentum}, the parameter vector is modeled not as a massless point, but as a heavy marble rolling down a frictioned potential well. Historical gradient vectors are accumulated into an internal velocity state, allowing persistent directional forces along the valley floor to build up constructive kinetic energy while high-frequency cross-ravine gradient oscillations cancel each other out destructively.
 
-This section systematically constructs the theory of first-order acceleration methods. We begin with Polyak's classical momentum formulation, detailing its physical velocity accumulation and oscillation-dampening mechanisms. We then derive the exact asymptotic terminal velocity on persistent slopes, proving the celebrated $1/(1-\lambda)$ acceleration factor. Next, we unroll the recursive optimization dynamics to expose standard gradient descent as uniform historical weighting and momentum as an exponentially decayed memory filter. Finally, we formulate the unified diagonal scaling matrix framework $\boldsymbol{\Gamma}_i^t$, revealing how AdaGrad, RMSprop, and Adam adaptively scale step sizes across individual coordinates to conquer disparate curvatures.
-
-\subsection{Classical momentum: Velocity accumulation and oscillation dampening}
+\subsection{Classical momentum: Physical mechanism and aligned gradient acceleration}
 \label{sec:classical_momentum}
+\label{sec:aligned_gradient_acceleration}
 
-The classical momentum method, formulated by Boris Polyak in 1964~\cite{polyak1964some}, draws direct inspiration from physical mechanics. Rather than treating the parameter vector as a massless particle whose velocity instantly matches the local negative gradient, the optimizer models a heavy marble rolling down a frictioned potential well.
+\paragraph{Learning rate influence on final convergence and the need for adaptive dynamics.}
+In standard first-order optimization, the choice of the scalar learning rate $\alpha$ governs an irreconcilable operational trade-off. As established by the second-order stability bound ($\alpha < 2/\lambda_{\max}$), preventing explosive cross-canyon divergence in an ill-conditioned ravine requires setting $\alpha$ small enough to accommodate the maximum curvature across steep walls. However, this microscopic step size severely penalizes progress along the gentle valley floor, where the longitudinal convergence rate is throttled by $\alpha \lambda_{\min} < 2/\kappa \ll 1$. Conversely, increasing $\alpha$ to accelerate longitudinal progress inevitably causes catastrophic overshooting and divergence across the ravine walls.
 
-The algorithm introduces an internal state vector $\mathbf{v}^{(t)} \in \R^d$, termed the \textbf{velocity}, and updates parameters according to the coupled recurrence:
+Because an isotropic, memoryless scalar step size cannot simultaneously satisfy these competing geometric demands, the effective learning rate must be varied dynamically. The optimizer requires a mechanism that dampens high-frequency transverse bouncing while accelerating progress along persistent descent directions.
+
+\paragraph{Physical mechanism in ill-conditioned valleys.}
+The classical momentum method, formulated by Boris Polyak in 1964~\cite{polyak1964some}, resolves this challenge by drawing direct inspiration from classical mechanics. The optimizer models the parameter vector not as a massless particle whose velocity instantly matches the local negative gradient, but as a heavy marble rolling down a frictioned potential well.
+
+The algorithm introduces an internal state vector $\mathbf{v}^{(t)} \in \mathbb{R}^d$, termed the \textbf{velocity}, and updates parameters according to the coupled recurrence:
 \begin{align}
 \mathbf{v}^{(t+1)} &= \lambda \mathbf{v}^{(t)} - \alpha \nabla f(\mathbf{x}^{(t)}), \label{eq:momentum_velocity_update} \\
 \mathbf{x}^{(t+1)} &= \mathbf{x}^{(t)} + \mathbf{v}^{(t+1)}, \label{eq:momentum_position_update}
 \end{align}
-where $\alpha > 0$ is the learning rate, and $\lambda \in [0, 1)$ is the \textbf{momentum coefficient} (or friction parameter, typically set to $\lambda = 0.9$ or $0.99$).
+where $\alpha > 0$ is the base learning rate, and $\lambda \in [0, 1)$ is the \textbf{momentum coefficient} (or friction parameter, typically set to $\lambda = 0.9$ or $0.99$).
 
-\paragraph{Physical mechanism in ill-conditioned valleys.}
-When $\lambda = 0$, the velocity simplifies to $\mathbf{v}^{(t+1)} = -\alpha \nabla f(\mathbf{x}^{(t)})$, collapsing immediately to standard gradient descent. 
-When $\lambda > 0$, the velocity retains an exponential moving average of historical gradient directions:
+When $\lambda = 0$, the velocity simplifies to $\mathbf{v}^{(t+1)} = -\alpha \nabla f(\mathbf{x}^{(t)})$, collapsing immediately to standard gradient descent. When $\lambda > 0$, the velocity retains an exponential moving average of historical gradient directions. Decomposing the optimization dynamics into the orthogonal eigenspaces of the local Hessian:
 \begin{itemize}[noitemsep]
-  \item \textbf{Transverse cross-ravine direction ($\mathbf{q}_1$)}: Because the optimizer repeatedly bounces back and forth across the opposing valley walls, the signs of consecutive partial derivatives alternate: $\nabla f(\mathbf{x}^{(t)})_{\mathbf{q}_1} \approx -\nabla f(\mathbf{x}^{(t-1)})_{\mathbf{q}_1}$. In the velocity accumulator of Equation~\eqref{eq:momentum_velocity_update}, these opposing vectors cancel out destructively:
+  \item \textbf{Transverse cross-ravine direction ($\mathbf{q}_1$, curvature $\lambda_{\max}$)}: Because the optimizer repeatedly bounces back and forth across opposing valley walls, the signs of consecutive partial derivatives alternate: $\nabla f(\mathbf{x}^{(t)})_{\mathbf{q}_1} \approx -\nabla f(\mathbf{x}^{(t-1)})_{\mathbf{q}_1}$. In the velocity accumulator of Equation~\eqref{eq:momentum_velocity_update}, these opposing vectors cancel out destructively:
   \begin{equation}
   \mathbf{v}^{(t+1)}_{\mathbf{q}_1} \approx \lambda \mathbf{v}^{(t)}_{\mathbf{q}_1} - \alpha \nabla f(\mathbf{x}^{(t)})_{\mathbf{q}_1} \approx \mathbf{0}.
   \end{equation}
   This destructive interference aggressively dampens high-frequency cross-ravine oscillations.
-  \item \textbf{Longitudinal base direction ($\mathbf{q}_2$)}: Along the gentle descent floor of the valley leading toward the minimizer, consecutive gradients point consistently in the same downhill direction: $\nabla f(\mathbf{x}^{(t)})_{\mathbf{q}_2} \approx \nabla f(\mathbf{x}^{(t-1)})_{\mathbf{q}_2}$. Here, the historical velocity terms add constructively, accumulating directional speed along the base.
+  \item \textbf{Longitudinal base direction ($\mathbf{q}_2$, curvature $\lambda_{\min}$)}: Along the gentle descent floor of the valley leading toward the minimizer, consecutive gradients point consistently in the same downhill direction: $\nabla f(\mathbf{x}^{(t)})_{\mathbf{q}_2} \approx \nabla f(\mathbf{x}^{(t-1)})_{\mathbf{q}_2}$. Here, the historical velocity terms add constructively, accumulating directional speed along the base.
 \end{itemize}
 
-\subsection{Effective terminal step length and aligned gradient acceleration}
-\label{sec:aligned_gradient_acceleration}
-
+\paragraph{Effective terminal step length and aligned gradient acceleration.}
 A central pedagogical result is quantifying the exact acceleration gain when gradients are persistently aligned.
 
 Suppose the optimizer traverses a uniform slope where the gradient remains constant over consecutive iterations: $\nabla f(\mathbf{x}^{(t)}) \approx \mathbf{g}$. Assuming initial velocity $\mathbf{v}^{(0)} = \mathbf{0}$, unrolling the recurrence in Equation~\eqref{eq:momentum_velocity_update} yields:
@@ -1731,10 +1732,10 @@ Equation~\eqref{eq:terminal_momentum_step} reveals the remarkable speedup factor
 \end{itemize}
 This dynamic amplification enables momentum to surge rapidly through flat regions and provides the kinetic energy required to carry parameter updates over shallow local barriers into deeper, more generalizing minima basins.
 
-\subsection{Mathematical unrolling: Standard gradient descent vs. momentum}
+\subsection{Unrolling optimization dynamics: Standard gradient descent vs. momentum}
 \label{sec:unrolling_gd_momentum}
 
-To understand how momentum transforms optimization trajectories over an entire training run, we analyze the concept of \textbf{unrolling the optimization recurrence}.
+To understand how momentum transforms optimization trajectories over an entire training run, we analyze the optimization recurrence in unrolled form.
 
 \paragraph{Unrolling standard gradient descent.}
 For standard gradient descent without momentum, parameter updates follow $\mathbf{x}^{(t+1)} = \mathbf{x}^{(t)} - \alpha \nabla f(\mathbf{x}^{(t)})$. Unrolling step by step from initialization $\mathbf{x}^{(0)}$:
@@ -1775,36 +1776,206 @@ Substituting this closed-form coefficient into the unrolled parameter position y
 \end{equation}
 For early gradients where $t - i \gg 0$, $\lambda^{t+1-i} \to 0$, so their cumulative weight saturates at $-\frac{\alpha}{1 - \lambda}$. For very recent gradients ($i \approx t$), the weight is approximately $-\alpha$. This provides a smooth, recency-weighted memory filter over the optimization trajectory.
 
-\subsection{Unified diagonal scaling matrix framework: Unifying AdaGrad, RMSprop, and Adam}
+\subsection{Adaptive learning rate optimizers and the unified diagonal scaling matrix}
 \label{sec:unified_diagonal_scaling}
 
+\paragraph{The unified diagonal scaling matrix framework.}
 The unrolled formulations of Equations~\eqref{eq:unrolled_gd} and~\eqref{eq:unrolled_momentum} represent special cases of a far more general algebraic structure. Any first-order optimization method can be expressed in the \textbf{unified unrolled form}:
 \begin{equation}
 \mathbf{x}^{(t+1)} = \mathbf{x}^{(0)} - \alpha \sum_{i=1}^t \boldsymbol{\Gamma}_i^t \nabla f(\mathbf{x}^{(i)}),
 \label{eq:unified_scaling_matrix}
 \end{equation}
-where $\boldsymbol{\Gamma}_i^t \in \R^{d \times d}$ is a time-varying \textbf{diagonal scaling matrix}:
+where $\boldsymbol{\Gamma}_i^t \in \mathbb{R}^{d \times d}$ is a time-varying \textbf{diagonal scaling matrix}:
 \begin{equation}
 \boldsymbol{\Gamma}_i^t = \operatorname{diag}\left( \gamma_{i, 1}^t, \, \gamma_{i, 2}^t, \, \dots, \, \gamma_{i, d}^t \right).
 \end{equation}
+This formulation highlights a profound limitation of classical momentum: it applies an identical scalar coefficient $\lambda$ to all $d$ coordinate axes simultaneously. However, in deep neural networks, parameters across different layers experience radically disparate gradient magnitudes and curvatures (e.g., infrequent word embeddings vs. dense output classification weights). The diagonal scaling matrix $\boldsymbol{\Gamma}_i^t$ enables the optimizer to assign coordinate-specific acceleration strengths and adaptive effective step sizes along each individual coordinate direction:
+\begin{equation}
+\alpha_{t, j}^{\text{eff}} = \alpha \cdot \gamma_{t, j}^t.
+\end{equation}
 
-This formulation highlights a profound architectural insight behind Equation~\eqref{eq:unified_scaling_matrix}: standard momentum applies a single scalar coefficient to all coordinates simultaneously. However, in complex high-dimensional architectures, different parameters experience drastically different gradient magnitudes and curvatures. The diagonal scaling matrix $\boldsymbol{\Gamma}_i^t$ enables the optimizer to assign coordinate-specific acceleration strengths and adaptive step sizes along each individual coordinate direction.
-
-This unified matrix formulation elegantly subsumes the entire lineage of modern deep learning optimizers:
+\paragraph{Complete taxonomy of optimizer variations.}
+This unified matrix framework elegantly subsumes the primary optimization algorithms studied in modern deep learning:
 \begin{enumerate}
-  \item \textbf{Standard Gradient Descent}: $\boldsymbol{\Gamma}_i^t = \mathbf{I}$, assigning uniform isotropic scalar weighting across all coordinates.
-  \item \textbf{Classical Momentum}: $\boldsymbol{\Gamma}_i^t = \left(\frac{1 - \lambda^{t+1-i}}{1 - \lambda}\right)\mathbf{I}$, assigning identical exponentially accumulated scalar weights to all coordinates.
-  \item \textbf{AdaGrad (Adaptive Gradient Algorithm)}~\cite{duchi2011adaptive}: Accumulates historical squared gradients per coordinate: $G_{t, jj} = \sum_{k=1}^t (\nabla f(\mathbf{x}^{(k)}))_j^2$. The scaling entries are set to:
-    \begin{equation}
-    \gamma_{i, j}^t \propto \frac{1}{\sqrt{G_{t, jj} + \epsilon}}.
-    \end{equation}
-    Coordinates with historically frequent or steep gradients are dampened, while coordinates with rare or small gradients receive larger relative steps.
-  \item \textbf{RMSprop (Root Mean Square Propagation)}~\cite{goodfellow2016deep}: Resolves AdaGrad's premature learning rate collapse by replacing monotonic sum $G_t$ with an exponentially decaying moving average of squared gradients:
-    \begin{equation}
-    v_{t, j} = \beta v_{t-1, j} + (1 - \beta) (\nabla f(\mathbf{x}^{(t)}))_j^2, \quad \gamma_{i, j}^t \propto \frac{1}{\sqrt{v_{t, j} + \epsilon}}.
-    \end{equation}
-  \item \textbf{Adam (Adaptive Moment Estimation)}~\cite{kingma2014adam}: Combines both principles simultaneously: it computes first-moment momentum tracking in the numerator (velocity accumulation) and second-moment uncentered variance tracking in the denominator (RMSprop scaling), with bias-correction factors to compensate for zero-initialization. In the unrolled view of Equation~\eqref{eq:unified_scaling_matrix}, Adam corresponds to a fully adaptive diagonal matrix $\boldsymbol{\Gamma}_i^t$ that dynamically re-scales each parameter coordinate based on its individual signal-to-noise ratio.
+  \item \textbf{Standard Gradient Descent (SGD)}:
+    \begin{itemize}[noitemsep]
+      \item \textit{General Idea}: Evaluates instantaneous local slopes with zero historical memory and isotropic uniform scaling.
+      \item \textit{Mathematical Formula}: $\mathbf{x}^{(t+1)} = \mathbf{x}^{(t)} - \alpha \nabla f(\mathbf{x}^{(t)})$.
+      \item \textit{Scaling Matrix}: $\boldsymbol{\Gamma}_i^t = \mathbf{I}_d$, assigning identical unit weight across all dimensions.
+    \end{itemize}
+
+  \item \textbf{Classical Polyak Momentum}:
+    \begin{itemize}[noitemsep]
+      \item \textit{General Idea}: Models physical inertia to cancel cross-ravine oscillations and accelerate along persistent valley base gradients.
+      \item \textit{Mathematical Formula}: $\mathbf{v}^{(t+1)} = \lambda \mathbf{v}^{(t)} - \alpha \nabla f(\mathbf{x}^{(t)})$, $\mathbf{x}^{(t+1)} = \mathbf{x}^{(t)} + \mathbf{v}^{(t+1)}$.
+      \item \textit{Scaling Matrix}: $\boldsymbol{\Gamma}_i^t = \left(\frac{1 - \lambda^{t+1-i}}{1 - \lambda}\right)\mathbf{I}_d$.
+    \end{itemize}
+
+  \item \textbf{Nesterov Accelerated Gradient (NAG)}:
+    \begin{itemize}[noitemsep]
+      \item \textit{General Idea}: Anticipatory "look-ahead" momentum. Rather than evaluating the gradient at the current parameter position $\mathbf{x}^{(t)}$, NAG evaluates the gradient at the predicted future point $\mathbf{x}^{(t)} + \lambda \mathbf{v}^{(t)}$. This provides an analytical braking mechanism that curbs overshooting when approaching a valley bottom.
+      \item \textit{Mathematical Formula}:
+        \begin{align}
+        \mathbf{v}^{(t+1)} &= \lambda \mathbf{v}^{(t)} - \alpha \nabla f\left(\mathbf{x}^{(t)} + \lambda \mathbf{v}^{(t)}\right), \\
+        \mathbf{x}^{(t+1)} &= \mathbf{x}^{(t)} + \mathbf{v}^{(t+1)}.
+        \end{align}
+      \item \textit{Scaling Matrix}: $\boldsymbol{\Gamma}_i^t = \left(\frac{1 - \lambda^{t+1-i}}{1 - \lambda}\right)\mathbf{I}_d$, applied to the look-ahead Jacobian-adjusted gradient trajectory.
+    \end{itemize}
+
+  \item \textbf{AdaGrad (Adaptive Gradient Algorithm)}~\cite{duchi2011adaptive}:
+    \begin{itemize}[noitemsep]
+      \item \textit{General Idea}: Adapts step sizes per coordinate inversely proportional to the cumulative historical gradient energy. Infrequently occurring features receive larger exploratory steps, while frequently occurring features are dampened.
+      \item \textit{Mathematical Formula}:
+        Accumulate historical squared gradients:
+        \begin{equation}
+        G_{t, j} = G_{t-1, j} + \left( \nabla f(\mathbf{x}^{(t)})_j \right)^2 = \sum_{k=1}^t \left( \nabla f(\mathbf{x}^{(k)})_j \right)^2.
+        \end{equation}
+        Coordinate parameter update:
+        \begin{equation}
+        x_j^{(t+1)} = x_j^{(t)} - \frac{\alpha}{\sqrt{G_{t, j} + \epsilon}} \nabla f(\mathbf{x}^{(t)})_j.
+        \end{equation}
+      \item \textit{Scaling Matrix}: $\boldsymbol{\Gamma}_t^t = \operatorname{diag}\left( \frac{1}{\sqrt{G_{t, 1} + \epsilon}}, \, \dots, \, \frac{1}{\sqrt{G_{t, d} + \epsilon}} \right)$.
+      \item \textit{Critical Drawback}: Because $G_{t, j}$ sums positive squared gradients monotonically, $G_{t, j} \to \infty$ as $t \to \infty$. Consequently, the effective learning rate $\alpha_{t, j}^{\text{eff}} \propto 1/\sqrt{t} \to 0$ collapses monotonically to zero, causing premature training freeze before convergence.
+    \end{itemize}
+
+  \item \textbf{RMSprop (Root Mean Square Propagation)}~\cite{goodfellow2016deep} \& \textbf{AdaDelta}:
+    \begin{itemize}[noitemsep]
+      \item \textit{General Idea}: Resolves AdaGrad's premature learning rate collapse by replacing the monotonic sum with an Exponential Moving Average (EMA) of squared gradients, introducing a forgetting factor (effective sliding window).
+      \item \textit{Mathematical Formula}:
+        Second moment accumulator ($\beta \approx 0.9$):
+        \begin{equation}
+        v_{t, j} = \beta v_{t-1, j} + (1 - \beta) \left( \nabla f(\mathbf{x}^{(t)})_j \right)^2.
+        \end{equation}
+        Coordinate parameter update:
+        \begin{equation}
+        x_j^{(t+1)} = x_j^{(t)} - \frac{\alpha}{\sqrt{v_{t, j} + \epsilon}} \nabla f(\mathbf{x}^{(t)})_j.
+        \end{equation}
+      \item \textit{Scaling Matrix}: $\boldsymbol{\Gamma}_t^t = \operatorname{diag}\left( \frac{1}{\sqrt{v_{t, 1} + \epsilon}}, \, \dots, \, \frac{1}{\sqrt{v_{t, d} + \epsilon}} \right)$.
+      \item \textit{Advantage}: The effective learning rate $\alpha / \sqrt{v_{t, j} + \epsilon}$ stabilizes at an active, responsive plateau rather than decaying to zero.
+    \end{itemize}
+
+  \item \textbf{Adam (Adaptive Moment Estimation)}~\cite{kingma2014adam}:
+    \begin{itemize}[noitemsep]
+      \item \textit{General Idea}: Combines first-moment momentum tracking in the numerator (velocity accumulation) and second-moment uncentered variance tracking in the denominator (RMSprop scaling), with analytical bias correction to fix initialization at zero.
+      \item \textit{Mathematical Formula}:
+        First raw moment ($\beta_1 = 0.9$):
+        \begin{equation}
+        m_{t, j} = \beta_1 m_{t-1, j} + (1 - \beta_1) \nabla f(\mathbf{x}^{(t)})_j.
+        \end{equation}
+        Second uncentered moment ($\beta_2 = 0.999$):
+        \begin{equation}
+        v_{t, j} = \beta_2 v_{t-1, j} + (1 - \beta_2) \left( \nabla f(\mathbf{x}^{(t)})_j \right)^2.
+        \end{equation}
+        Bias-corrected estimates:
+        \begin{equation}
+        \hat{m}_{t, j} = \frac{m_{t, j}}{1 - \beta_1^t}, \quad \hat{v}_{t, j} = \frac{v_{t, j}}{1 - \beta_2^t}.
+        \end{equation}
+        Parameter update rule:
+        \begin{equation}
+        x_j^{(t+1)} = x_j^{(t)} - \frac{\alpha}{\sqrt{\hat{v}_{t, j}} + \epsilon} \hat{m}_{t, j}.
+        \end{equation}
+      \item \textit{Scaling Matrix}: $\boldsymbol{\Gamma}_i^t = \operatorname{diag}\left( \frac{1}{\sqrt{\hat{v}_{t, 1}} + \epsilon}, \, \dots, \, \frac{1}{\sqrt{\hat{v}_{t, d}} + \epsilon} \right) \cdot \left(\frac{1 - \beta_1^{t+1-i}}{1 - \beta_1}\right)$.
+      \item \textit{Signal-to-Noise Ratio Interpretation}: The update scales parameters by $\frac{\hat{m}_{t, j}}{\sqrt{\hat{v}_{t, j}}} \approx \frac{\mathbb{E}[g_j]}{\sqrt{\mathbb{E}[g_j^2]}}$. Along directions with consistent gradient signs, the ratio approaches $\pm 1$, executing confident full steps; along noisy or oscillating directions, the ratio contracts toward zero, providing automatic coordinate regularization.
+    \end{itemize}
 \end{enumerate}
+
+\paragraph{Learning rate variation across training epochs.}
+To understand how these formulations alter learning rate dynamics over the course of training, Figure~\ref{fig:learning_rate_variations_epochs} compares deterministic decay schedules with adaptive coordinate-wise optimizer dynamics across 100 training epochs:
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.48\linewidth}
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[
+      width=\linewidth,
+      height=5.4cm,
+      xlabel={Training Epochs $t$},
+      ylabel={Scheduled Step Size $\alpha(t) / \alpha_0$},
+      title={\textbf{(a) Deterministic Decay Schedules}},
+      title style={font=\footnotesize\sffamily, text=politoNavy},
+      xmin=0, xmax=100,
+      ymin=0, ymax=1.18,
+      grid=both,
+      grid style={line width=.1pt, draw=gray!20},
+      major grid style={line width=.2pt, draw=gray!35},
+      tick label style={font=\tiny},
+      label style={font=\scriptsize},
+      legend style={font=\tiny, at={(0.98,0.98)}, anchor=north east, fill=white, fill opacity=0.88, draw=gray!40}
+    ]
+      % Constant
+      \addplot[thick, gray!70, dashed, domain=0:100, samples=2] {1.0};
+      \addlegendentry{Constant $\alpha_0$}
+
+      % Step Decay
+      \addplot[thick, examred, const plot] coordinates {
+        (0, 1.0) (30, 0.3) (60, 0.1) (80, 0.03) (100, 0.03)
+      };
+      \addlegendentry{Step Decay ($0.1\times$ / $0.3\times$)}
+
+      % Exponential Decay
+      \addplot[thick, deepdiveTeal, domain=0:100, samples=60] {exp(-0.035*x)};
+      \addlegendentry{Exponential ($e^{-\rho t}$)}
+
+      % Cosine Annealing
+      \addplot[very thick, politoNavy, domain=0:100, samples=80] {0.02 + 0.49*(1 + cos(deg(pi*x/100)))};
+      \addlegendentry{Cosine Annealing}
+    \end{axis}
+  \end{tikzpicture}
+\end{minipage}\hfill
+\begin{minipage}{0.48\linewidth}
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[
+      width=\linewidth,
+      height=5.4cm,
+      xlabel={Training Epochs $t$},
+      ylabel={Effective Coordinate Rate $\alpha_{\mathrm{eff}}(t) / \alpha_0$},
+      title={\textbf{(b) Adaptive Optimizer Dynamics}},
+      title style={font=\footnotesize\sffamily, text=politoNavy},
+      xmin=0, xmax=100,
+      ymin=0, ymax=1.45,
+      grid=both,
+      grid style={line width=.1pt, draw=gray!20},
+      major grid style={line width=.2pt, draw=gray!35},
+      tick label style={font=\tiny},
+      label style={font=\scriptsize},
+      legend style={font=\tiny, at={(0.98,0.98)}, anchor=north east, fill=white, fill opacity=0.88, draw=gray!40}
+    ]
+      % Standard SGD
+      \addplot[thick, gray!70, dashed, domain=0:100, samples=2] {1.0};
+      \addlegendentry{Standard SGD ($\mathbf{\Gamma} = \mathbf{I}$)}
+
+      % AdaGrad (collapsing)
+      \addplot[thick, examred, domain=0:100, samples=80] {1.0 / sqrt(1 + 0.28*x)};
+      \addlegendentry{AdaGrad ($\propto 1/\sqrt{\sum g^2}$)}
+
+      % RMSprop (stable plateau)
+      \addplot[thick, deepdiveTeal, domain=0:100, samples=80] {0.80 + 0.07*sin(deg(0.22*x))*exp(-0.015*x) + 0.04*cos(deg(0.35*x))};
+      \addlegendentry{RMSprop (EMA $\sqrt{v_t}$)}
+
+      % Adam (warm-up + plateau)
+      \addplot[very thick, intuitiongreen, domain=0:100, samples=80] {(1 - exp(-0.25*x)) * (0.98 + 0.05*cos(deg(0.18*x)))};
+      \addlegendentry{Adam (Bias-corrected)}
+
+      % Annotations
+      \node[font=\tiny\bfseries, text=examred] at (axis cs:60, 0.40) {AdaGrad Vanishing};
+      \draw[->, thin, examred] (axis cs:48, 0.36) -- (axis cs:35, 0.30);
+
+      \node[font=\tiny\bfseries, text=intuitiongreen] at (axis cs:50, 1.25) {Sustained Active Learning};
+      \draw[->, thin, intuitiongreen] (axis cs:50, 1.18) -- (axis cs:50, 1.05);
+    \end{axis}
+  \end{tikzpicture}
+\end{minipage}
+\caption{Learning rate variation across epochs under deterministic decay schedules versus adaptive coordinate-wise optimizer dynamics. (a) Deterministic schedules attenuate the global step size monotonically to guarantee fine asymptotic settling. (b) Adaptive optimizers rescale step sizes dynamically per coordinate: AdaGrad suffers from catastrophic learning rate decay toward zero ($\propto 1/\sqrt{t}$) due to monotonically growing gradient sums, while RMSprop and Adam stabilize at active, responsive step plateaus that prevent optimization stall.}
+\label{fig:learning_rate_variations_epochs}
+\end{figure}
+
+As visualized across both panels:
+\begin{itemize}
+  \item In \textbf{Panel (a)}, deterministic decay schedules enforce monotonic global dampening. Step decay executes discrete discrete drops at designated milestone epochs, exponential decay quenches updates continuously, and cosine annealing smoothly transitions from aggressive early exploration to delicate asymptotic fine-tuning.
+  \item In \textbf{Panel (b)}, adaptive optimizers dynamically recalibrate effective step sizes $\alpha_{\text{eff}}(t)$ based on gradient history. While standard SGD maintains a static multiplier, AdaGrad exhibits rapid, irreversible decay toward zero ($\approx 1/\sqrt{t}$) because historical squared gradients accumulate indefinitely, freezing parameters prematurely. In sharp contrast, RMSprop and Adam employ exponential moving averages to restrict memory to a recent horizon, allowing effective step sizes to dynamically fluctuate and stabilize around an active, healthy plateau that preserves learning capacity throughout training.
+\end{itemize}
 
 Although momentum and adaptive diagonal scaling provide powerful mechanisms for traversing ill-conditioned valleys and accelerating through flat regions, they were originally conceived within the paradigm of convex or locally unimodal optimization. Deep neural architectures, however, present a radically more complex challenge: the composition of multi-layer nonlinear transformations shatters convexity completely, creating high-dimensional loss landscapes populated by astronomically many critical points---including local minima, local maxima, and complex saddle surfaces. Furthermore, simply locating an empirical minimum does not ensure predictive success, as different minima exhibit wildly divergent generalization properties on unseen data. To optimize deep models effectively, we must therefore investigate the topology of critical points and the delicate interplay between curvature and generalization, as explored in Section~\ref{sec:critical_points_deep_learning}.
 
