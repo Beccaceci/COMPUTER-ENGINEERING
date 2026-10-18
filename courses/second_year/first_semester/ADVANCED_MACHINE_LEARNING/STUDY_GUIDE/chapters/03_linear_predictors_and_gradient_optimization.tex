@@ -259,11 +259,10 @@ Even when $N > D$, if two or more input features are strongly correlated, the co
 
 These computational bottlenecks and structural failure modes reveal that closed-form Ordinary Least Squares cannot suffice for high-dimensional or non-linear prediction. Even when $N > D$ and the Gram matrix is strictly invertible, an affine hyperplane cannot capture curved physical patterns without expanding the input feature representation. In the next subsection, we venture beyond linearity and uncover the delicate interplay between model capacity and generalization.
 
-\subsection{Beyond linearity: Basis expansions, capacity, and generalization}
+\subsection{Beyond linearity: Basis function expansion and polynomial regression}
 \label{sec:beyond_linearity_and_capacity}
 \label{sec:basis_expansion_polynomial}
 
-\paragraph{Basis function expansion and polynomial regression.}
 When the true data-generating distribution is non-linear, a simple affine hyperplane $h(\vx) = \vw^\top \vx + b$ produces severe systematic errors. We can extend the expressive power of linear models by transforming the input vector $\vx \in \R^D$ through a fixed non-linear feature mapping:
 \begin{equation}
 \vphi(\vx) = [\phi_0(\vx), \phi_1(\vx), \dots, \phi_M(\vx)]^\top \in \R^{M+1},
@@ -296,7 +295,7 @@ The corresponding feature matrix $\boldsymbol{\Phi}$ is the classical \textbf{Va
 \label{eq:vandermonde_matrix}
 \end{equation}
 
-\paragraph{Model capacity, inductive bias, and the underfitting--overfitting dilemma.}
+\subsection{Model capacity, inductive bias, and the underfitting--overfitting dilemma}
 \label{sec:capacity_underfitting_overfitting}
 
 The polynomial degree $M$ acts as a direct control dial for the \textbf{capacity} of the hypothesis class $\mathcal{H}_M = \{h(x) = \sum_{j=0}^M w_j x^j\}$. Capacity measures the richness or flexibility of the functional shapes that the model can represent. Every model class is constrained by its \textbf{inductive bias}---the structural assumptions that restrict its search space before observing data. For polynomial regression, the inductive bias is that the relationship between $x$ and $y$ can be faithfully approximated by a smooth polynomial of order $\le M$.
@@ -472,14 +471,12 @@ where $\hat{y}_i$ is the prediction of the model trained on the \textit{full} da
 
 Although basis function expansions enable linear models to approximate intricate non-linear phenomena, unconstrained capacity comes at a severe operational cost: when the basis dimension $M$ is large, the parameter vector experiences explosive weight oscillations ($|w_j| \to \infty$) that fit idiosyncratic sample noise and decimate test generalization. Furthermore, in high-dimensional or collinear regimes, the design matrix $\boldsymbol{\Phi}$ yields a singular or severely ill-conditioned Gram matrix $\boldsymbol{\Phi}^\top \boldsymbol{\Phi}$, causing ordinary least squares to lose its uniqueness and collapse into extreme numerical instability. Rather than crudely truncating candidate feature dimensions, statistical learning demands a principled framework that preserves expressive capacity while systematically penalizing excessive parameter magnitude. This motivates the regularization paradigm explored in Section~\ref{sec:regularization_linear_models}.
 
-\section{Regularization for linear models: Ridge ($L_2$) and Lasso ($L_1$)}
+\section{Regularization for linear models: Lasso ($L_1$) and Ridge ($L_2$)}
 \label{sec:regularization_linear_models}
 
 In high-dimensional learning, the core challenge is balancing model capacity against generalization error. When a linear predictor possesses more degrees of freedom than can be reliably constrained by available observations, the empirical risk minimizer naturally exploits these excess dimensions to achieve zero training error by driving parameter values to astronomical positive and negative extremes. These runaway weights cancel each other out over the training points, but oscillate wildly across unobserved regions of the input space. Regularization counteracts this failure mode by incorporating a structural inductive bias directly into the objective function, imposing a controlled penalty on parameter complexity.
 
 From an algebraic perspective, regularization addresses the fatal pathology of rank deficiency and ill-conditioning in ordinary least squares. When features are correlated or when the input dimensionality exceeds the dataset size ($D > N$), the sample covariance matrix possesses zero or near-zero eigenvalues, causing standard matrix inversion to fail or explode under floating-point arithmetic. By augmenting the empirical loss with a penalty on parameter norms, regularization reshapes the optimization landscape, dampening the variance of the estimator and restoring mathematical well-posedness to underdetermined systems.
-
-This section systematically develops the theory of regularized linear models. We begin by formalizing the general complexity-penalized empirical risk objective. We then investigate Ridge regression ($L_2$ Tikhonov regularization), demonstrating how diagonal eigenvalue loading guarantees strict positive definiteness and matrix invertibility even when $D \gg N$. Next, we explore Lasso regression ($L_1$ regularization), detailing its non-smooth subdifferential geometry and deriving the soft-thresholding operator that induces exact parameter sparsity for automated feature selection. Finally, we provide a unified Bayesian Maximum A Posteriori (MAP) interpretation linking $L_2$ and $L_1$ penalties to Gaussian and Laplace priors, and synthesize the operational trade-offs of all linear estimation paradigms.
 
 \subsection{The regularization paradigm and complexity penalization}
 \label{sec:regularization_paradigm}
@@ -500,112 +497,10 @@ where:
 By universal convention, the intercept (bias) $b$ is \textbf{strictly excluded} from the regularization penalty $\Omega(\vw)$. Regularizing the bias would make the model's predictions dependent on the choice of origin for the target variable $y$. For example, adding an arbitrary constant offset $+100$ to all targets $y_i$ would force $b$ to absorb $+100$, incurring an artificial regularization penalty. Therefore, the data matrix $\mX \in \R^{N \times D}$ is centered ($\sum_{i=1}^N x_{ij} = 0$), the targets are centered ($\bar{y} = 0 \implies b = 0$), and $\Omega(\vw)$ penalizes only the directional weight vector $\vw \in \R^D$.
 \end{remark}
 
-\subsection{Ridge regression ($L_2$ regularization) and guaranteed matrix invertibility}
-\label{sec:ridge_regression}
-
-When the penalty is the squared Euclidean ($L_2$) norm of the weight vector, the method is known as \textbf{Ridge regression} (or \textit{Tikhonov regularization}):
-\begin{equation}
-\Omega(\vw) = \frac{1}{2} \|\vw\|_2^2 = \frac{1}{2} \sum_{j=1}^D w_j^2 = \frac{1}{2} \vw^\top \vw.
-\label{eq:l2_penalty}
-\end{equation}
-The Ridge regression objective is:
-\begin{equation}
-\mathcal{L}_{\text{Ridge}}(\vw) = \frac{1}{2N} (\mX\vw - \vy)^\top (\mX\vw - \vy) + \frac{\lambda}{2} \vw^\top \vw.
-\label{eq:ridge_objective}
-\end{equation}
-
-Because the $L_2$ penalty is quadratic and smooth, we can derive its closed-form solution by differentiating with respect to $\vw$:
-\begin{equation}
-\nabla_{\vw} \mathcal{L}_{\text{Ridge}}(\vw) = \frac{1}{N} \mX^\top (\mX\vw - \vy) + \lambda \vw = \mathbf{0}.
-\label{eq:ridge_gradient}
-\end{equation}
-Multiplying by $N$ and collecting terms with respect to $\vw$:
-\begin{equation}
-\mX^\top \mX \vw - \mX^\top \vy + N\lambda \vw = \mathbf{0} \iff (\mX^\top \mX + N\lambda \mI_D)\vw = \mX^\top \vy.
-\label{eq:ridge_rearranged}
-\end{equation}
-Defining $\alpha \triangleq N\lambda$, the regularized normal equations yield:
-\begin{equation}
-\vw^*_{\text{Ridge}} = (\mX^\top \mX + \alpha \mI_D)^{-1} \mX^\top \vy.
-\label{eq:ridge_closed_form}
-\end{equation}
-
-\begin{theorem}[Guaranteed Invertibility and Well-Posedness of Ridge Regression]
-For any positive regularization parameter $\alpha > 0$, the regularized matrix $(\mX^\top \mX + \alpha \mI_D)$ is \textbf{strictly positive definite and unconditionally invertible}, even when $D > N$ or when the columns of $\mX$ are linearly dependent.
-\end{theorem}
-\begin{proof}
-The unregularized Gram matrix $\mA \triangleq \mX^\top \mX \in \R^{D \times D}$ is symmetric and positive semi-definite. By the Spectral Theorem, it admits an orthonormal eigenvalue decomposition $\mA = \mathbf{Q} \boldsymbol{\Lambda} \mathbf{Q}^\top$, where the eigenvalues satisfy $\mu_i \ge 0$ for all $i \in \{1, \dots, D\}$. 
-
-Adding the identity matrix scaled by $\alpha > 0$:
-\begin{equation}
-\mA + \alpha \mI_D = \mathbf{Q} \boldsymbol{\Lambda} \mathbf{Q}^\top + \alpha \mathbf{Q}\mathbf{Q}^\top = \mathbf{Q}(\boldsymbol{\Lambda} + \alpha \mI_D)\mathbf{Q}^\top.
-\label{eq:ridge_eigen_decomp}
-\end{equation}
-The eigenvalues of $(\mX^\top \mX + \alpha \mI_D)$ are simply shifted by $\alpha$:
-\begin{equation}
-\lambda_i(\mX^\top \mX + \alpha \mI_D) = \mu_i + \alpha \ge \alpha > 0 \quad \forall i \in \{1, \dots, D\}.
-\label{eq:eigenvalues_shifted}
-\end{equation}
-Because all eigenvalues are strictly bounded below by $\alpha > 0$, the determinant is strictly positive: $\det(\mX^\top \mX + \alpha \mI_D) = \prod_{i=1}^D (\mu_i + \alpha) \ge \alpha^D > 0$. Hence, the matrix is guaranteed to be non-singular and invertible under all conditions.
-\end{proof}
-
-This is a breathtaking theoretical result: Ridge regression completely cures the singular matrix breakdown that crippled ordinary least squares in high dimensions!
-
-\subsection{Spectral decomposition and principal component shrinkage}
-\label{sec:spectral_shrinkage_ridge}
-
-To uncover the precise geometric mechanism through which Ridge regression suppresses overfitting, we analyze the Singular Value Decomposition (SVD) of the centered design matrix:
-\begin{equation}
-\mX = \mathbf{U} \boldsymbol{\Sigma} \mV^\top,
-\label{eq:svd_design_matrix}
-\end{equation}
-where $\mathbf{U} \in \R^{N \times D}$ has orthonormal columns ($\mathbf{U}^\top \mathbf{U} = \mI_D$), $\mV \in \R^{D \times D}$ is an orthogonal matrix ($\mV^\top \mV = \mV \mV^\top = \mI_D$), and $\boldsymbol{\Sigma} = \operatorname{diag}(\sigma_1, \dots, \sigma_D)$ contains the singular values in descending order $\sigma_1 \ge \sigma_2 \ge \dots \ge \sigma_D \ge 0$.
-
-Substituting Eq.~\eqref{eq:svd_design_matrix} into the unconstrained least squares prediction:
-\begin{align}
-\hat{\vy}_{\text{OLS}} &= \mX(\mX^\top \mX)^{-1}\mX^\top \vy \nonumber \\
-&= (\mathbf{U} \boldsymbol{\Sigma} \mV^\top)(\mV \boldsymbol{\Sigma}^2 \mV^\top)^{-1}(\mV \boldsymbol{\Sigma} \mathbf{U}^\top)\vy \nonumber \\
-&= \mathbf{U} \boldsymbol{\Sigma} \mV^\top \mV \boldsymbol{\Sigma}^{-2} \mV^\top \mV \boldsymbol{\Sigma} \mathbf{U}^\top \vy = \mathbf{U} \mathbf{U}^\top \vy = \sum_{j=1}^D \mathbf{u}_j \mathbf{u}_j^\top \vy.
-\label{eq:ols_svd_prediction}
-\end{align}
-
-Now, consider the Ridge prediction $\hat{\vy}_{\text{Ridge}} = \mX\vw^*_{\text{Ridge}}$:
-\begin{align}
-\hat{\vy}_{\text{Ridge}} &= \mX(\mX^\top \mX + \alpha \mI)^{-1}\mX^\top \vy \nonumber \\
-&= (\mathbf{U} \boldsymbol{\Sigma} \mV^\top)(\mV (\boldsymbol{\Sigma}^2 + \alpha \mI) \mV^\top)^{-1}(\mV \boldsymbol{\Sigma} \mathbf{U}^\top)\vy \nonumber \\
-&= \mathbf{U} \boldsymbol{\Sigma} (\boldsymbol{\Sigma}^2 + \alpha \mI)^{-1} \boldsymbol{\Sigma} \mathbf{U}^\top \vy \nonumber \\
-&= \sum_{j=1}^D \mathbf{u}_j \left( \frac{\sigma_j^2}{\sigma_j^2 + \alpha} \right) \mathbf{u}_j^\top \vy.
-\label{eq:ridge_svd_prediction}
-\end{align}
-
-\begin{intuition}[Principal Component Shrinkage]
-Compare Eq.~\eqref{eq:ols_svd_prediction} with Eq.~\eqref{eq:ridge_svd_prediction}. In both cases, the target vector $\vy$ is projected onto the orthonormal basis vectors $\mathbf{u}_j$ (which correspond to the principal components of the data matrix $\mX$). 
-
-However, Ridge regression applies a coordinate-dependent \textbf{shrinkage factor}:
-\begin{equation}
-f_j \triangleq \frac{\sigma_j^2}{\sigma_j^2 + \alpha} \in (0, 1].
-\label{eq:shrinkage_factor}
-\end{equation}
-\begin{itemize}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
-  \item Along directions with \textbf{large singular values} ($\sigma_j^2 \gg \alpha$, dominant directions of high data variance), $f_j \approx 1$. The data signal is preserved almost intact.
-  \item Along directions with \textbf{small singular values} ($\sigma_j^2 \ll \alpha$, directions of low data variance, susceptible to noise alignment), $f_j \approx 0$. The prediction component is shrunk aggressively toward zero!
-\end{itemize}
-Because overfitting occurs when high-capacity models fit noise along low-variance directions, Ridge regression acts as an adaptive spectral filter: it dampens noise while leaving meaningful data structures untouched.
-\end{intuition}
-
-The total model complexity can be quantified by its \textbf{effective degrees of freedom}:
-\begin{equation}
-\operatorname{df}(\alpha) \triangleq \operatorname{tr}\left( \mX(\mX^\top \mX + \alpha \mI)^{-1}\mX^\top \right) = \sum_{j=1}^D \frac{\sigma_j^2}{\sigma_j^2 + \alpha}.
-\label{eq:effective_degrees_freedom}
-\end{equation}
-When $\alpha \to 0$, $\operatorname{df}(\alpha) \to D$ (unconstrained least squares degrees of freedom). As $\alpha \to \infty$, $\operatorname{df}(\alpha) \to 0$. By tuning $\alpha$ via cross-validation, the practitioner continuously calibrates the effective capacity of the model.
-
-\subsection{Lasso regression ($L_1$ regularization) and subgradient calculus}
+\subsection{Lasso regression ($L_1$ regularization) and parameter sparsity}
 \label{sec:lasso_regression}
 
-While Ridge regression effectively shrinks weight magnitudes, it suffers from a major practical drawback: \textbf{it never sets any weight identically to zero}. All $D$ features remain in the final model with non-zero coefficients. When $D$ is in the thousands, interpreting the model and identifying which features are truly informative is impossible.
-
-To achieve true parameter sparsity and automatic feature selection, Robert Tibshirani (1996) introduced the \textbf{Lasso} (\textit{Least Absolute Shrinkage and Selection Operator}), which replaces the $L_2$ norm with the $L_1$ norm:
+When dealing with high-dimensional input spaces ($D \gg 1$), many candidate features are redundant, noisy, or completely irrelevant to the underlying physical task. While penalizing weights smoothly can reduce overfitting, interpreting dense parameter vectors remains difficult when thousands of features retain non-zero coefficients. To achieve true parameter sparsity and automated feature selection, Robert Tibshirani (1996) introduced the \textbf{Lasso} (\textit{Least Absolute Shrinkage and Selection Operator}), which replaces the Euclidean norm with the $L_1$ norm penalty:
 \begin{equation}
 \Omega(\vw) = \|\vw\|_1 = \sum_{j=1}^D |w_j|.
 \label{eq:l1_penalty}
@@ -616,7 +511,8 @@ The Lasso objective function is:
 \label{eq:lasso_objective}
 \end{equation}
 
-Because the absolute value function $|w|$ is non-differentiable at $w = 0$, we cannot compute a standard gradient. We must utilize the apparatus of \textbf{subgradient calculus}:
+\paragraph{Subgradient calculus and non-smooth optimization.}
+Because the absolute value function $|w|$ possesses a sharp kink (a non-differentiable point) at $w = 0$, standard gradient calculus is inapplicable. Optimization must proceed through \textbf{subgradient calculus}:
 
 \begin{definition}[Subdifferential of the Absolute Value Function]
 The subdifferential $\partial |w|$ of the scalar absolute value function is the set of all valid subgradients satisfying the subgradient inequality:
@@ -626,21 +522,21 @@ The subdifferential $\partial |w|$ of the scalar absolute value function is the 
 \end{equation}
 \end{definition}
 
-To see how the $L_1$ penalty induces exact sparsity, consider the idealized case of an \textbf{orthonormal design matrix} where $\mX^\top \mX = \mI_D$ (or after whitening). In this decoupled setting, the loss splits into $D$ completely independent scalar optimization problems:
+\paragraph{Soft-thresholding operator under decoupled design.}
+To see how the $L_1$ penalty induces exact sparsity, consider the idealized setting of an \textbf{orthonormal design matrix} where $\mX^\top \mX = \mI_D$ (or after feature whitening). Under this decoupling, the loss function decomposes into $D$ completely independent scalar optimization problems:
 \begin{equation}
 \min_{w_j} \frac{1}{2} (w_j - \hat{w}_j^{\text{OLS}})^2 + \lambda |w_j|, \quad \text{where } \hat{w}_j^{\text{OLS}} = \vx_{*,j}^\top \vy.
 \label{eq:decoupled_lasso}
 \end{equation}
-The first-order optimality condition requires that the subdifferential contains zero:
+The first-order optimality condition requires that zero belongs to the subdifferential:
 \begin{equation}
 0 \in (w_j - \hat{w}_j^{\text{OLS}}) + \lambda \partial |w_j|.
 \label{eq:subgradient_optimality}
 \end{equation}
-
 Analyzing the three branches of the subdifferential:
 \begin{enumerate}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
-  \item If $w_j^* > 0$: $w_j^* - \hat{w}_j^{\text{OLS}} + \lambda = 0 \implies w_j^* = \hat{w}_j^{\text{OLS}} - \lambda$. This requires $\hat{w}_j^{\text{OLS}} > \lambda$.
-  \item If $w_j^* < 0$: $w_j^* - \hat{w}_j^{\text{OLS}} - \lambda = 0 \implies w_j^* = \hat{w}_j^{\text{OLS}} + \lambda$. This requires $\hat{w}_j^{\text{OLS}} < -\lambda$.
+  \item If $w_j^* > 0$: $w_j^* - \hat{w}_j^{\text{OLS}} + \lambda = 0 \implies w_j^* = \hat{w}_j^{\text{OLS}} - \lambda$. This branch requires $\hat{w}_j^{\text{OLS}} > \lambda$.
+  \item If $w_j^* < 0$: $w_j^* - \hat{w}_j^{\text{OLS}} - \lambda = 0 \implies w_j^* = \hat{w}_j^{\text{OLS}} + \lambda$. This branch requires $\hat{w}_j^{\text{OLS}} < -\lambda$.
   \item If $w_j^* = 0$: $0 - \hat{w}_j^{\text{OLS}} + \lambda s = 0$ for some $s \in [-1, +1]$, which implies $|\hat{w}_j^{\text{OLS}}| \le \lambda$.
 \end{enumerate}
 
@@ -690,151 +586,70 @@ As visually proved in Figure~\ref{fig:thresholding_operators_comparison}:
   \item Ridge, by contrast, shrinks coefficients proportionally: $w_j^* = \frac{1}{1 + \alpha} \hat{w}_j^{\text{OLS}}$, retaining all features in the active set.
 \end{itemize}
 
-\subsection{Geometric proof of sparsity: Diamond ball vs. circular ball}
-\label{sec:geometric_sparsity_proof}
+\paragraph{Operational trade-offs and limitations of Lasso.}
+Despite its remarkable capacity for exact feature selection, Lasso regression is subject to notable practical and algebraic limitations:
+\begin{enumerate}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
+  \item \textbf{Non-differentiability and computational complexity}: Because the $L_1$ penalty is non-smooth at the origin, the global optimum cannot be expressed as a linear closed-form matrix inverse. Solving Lasso requires iterative non-smooth convex optimization algorithms (such as coordinate descent or proximal gradient descent).
+  \item \textbf{Feature saturation in high dimensions}: When the feature dimensionality exceeds the sample size ($D > N$), Lasso can select at most $N$ features before saturating, ignoring any remaining relevant variables.
+  \item \textbf{Instability under collinearity}: When multiple features are strongly correlated, Lasso arbitrarily picks one feature from the group and drives the others to zero, displaying erratic sensitivity to small perturbations in training data.
+  \item \textbf{Lack of guaranteed matrix conditioning}: Lasso does not provide guaranteed diagonal eigenvalue loading to stabilize arbitrary ill-conditioned Gram matrices in closed form.
+\end{enumerate}
+These limitations motivate $L_2$ regularization, which restores smooth differentiability, provides an unconditional closed-form solution, and guarantees numerical invertibility even when $D > N$.
 
-To understand why Lasso produces exact zeros even in non-orthonormal, correlated feature spaces, we examine the problem through the lens of \textbf{constrained optimization} (the Karush-Kuhn-Tucker framework).
+\subsection{Ridge regression ($L_2$ regularization) and guaranteed matrix invertibility}
+\label{sec:ridge_regression}
 
-By Lagrange duality, minimizing the penalized loss in Eq.~\eqref{eq:regularized_objective_general} is mathematically equivalent to minimizing the unconstrained squared error subject to an explicit budget constraint:
+When the penalty is the squared Euclidean ($L_2$) norm of the weight vector, the method is known as \textbf{Ridge regression} (or \textit{Tikhonov regularization}):
 \begin{equation}
-\min_{\vw} \frac{1}{2N} \|\mX\vw - \vy\|_2^2 \quad \text{subject to } \Omega(\vw) \le t,
-\label{eq:kkt_constrained_formulation}
+\Omega(\vw) = \frac{1}{2} \|\vw\|_2^2 = \frac{1}{2} \sum_{j=1}^D w_j^2 = \frac{1}{2} \vw^\top \vw.
+\label{eq:l2_penalty}
 \end{equation}
-where the constraint radius $t > 0$ is in one-to-one inverse correspondence with the penalty coefficient $\lambda$.
-
-The contours of the squared error loss $\frac{1}{2N}\|\mX\vw - \vy\|_2^2$ are concentric ellipses centered at the unconstrained least squares solution $\hat{\vw}^{\text{OLS}}$. The regularized solution $\vw^*$ corresponds to the \textbf{first point of contact} where the expanding elliptical contour touches the constraint boundary $\Omega(\vw) \le t$.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[scale=0.92]
-  % Panel (a): Ridge L2
-  \begin{scope}[shift={(0,0)}]
-    \draw[-{Stealth[length=2mm]}, thick] (-2.4, 0) -- (3.8, 0) node[right, font=\scriptsize\sffamily] {$w_1$};
-    \draw[-{Stealth[length=2mm]}, thick] (0, -2.4) -- (0, 3.8) node[above, font=\scriptsize\sffamily] {$w_2$};
-    \node[font=\bfseries\sffamily, text=politoNavy] at (0.8, 4.1) {(a) Ridge ($L_2$): Smooth circular ball};
-
-    % L2 Ball: Circle of radius 1.5
-    \fill[skyBlue!20, draw=deepblue, thick] (0, 0) circle (1.5);
-    \node[font=\scriptsize\sffamily, text=deepblue] at (-0.8, -0.8) {$\|\vw\|_2^2 \le t$};
-
-    % OLS center
-    \coordinate (OLS) at (2.4, 2.2);
-    \fill[examred] (OLS) circle (2.2pt) node[above right, font=\scriptsize\bfseries\sffamily, text=examred] {$\hat{\vw}^{\text{OLS}}$};
-
-    % Elliptical loss contours centered at OLS
-    \draw[thick, examred!60, rotate around={35:(OLS)}] (OLS) ellipse (0.7 and 0.4);
-    \draw[thick, examred!75, rotate around={35:(OLS)}] (OLS) ellipse (1.3 and 0.8);
-    \draw[thick, examred, rotate around={35:(OLS)}] (OLS) ellipse (1.85 and 1.15);
-
-    % Tangency point (w1* > 0, w2* > 0)
-    \coordinate (RIDGE_STAR) at (1.05, 1.07);
-    \fill[intuitiongreen] (RIDGE_STAR) circle (2.6pt);
-    \node[below right=1mm, font=\scriptsize\bfseries\sffamily, text=intuitiongreen] at (RIDGE_STAR) {$\vw^*_{\text{Ridge}}$};
-    \draw[dotted, thick, gray] (RIDGE_STAR) -- (1.05, 0) node[below, font=\tiny\sffamily] {$w_1^* \ne 0$};
-    \draw[dotted, thick, gray] (RIDGE_STAR) -- (0, 1.07) node[left, font=\tiny\sffamily] {$w_2^* \ne 0$};
-    \node[font=\scriptsize\sffamily, fill=white, inner sep=1.5pt] at (0.8, -1.8) {Non-zero solution (no sparsity)};
-  \end{scope}
-
-  % Panel (b): Lasso L1
-  \begin{scope}[shift={(7.6,0)}]
-    \draw[-{Stealth[length=2mm]}, thick] (-2.4, 0) -- (3.8, 0) node[right, font=\scriptsize\sffamily] {$w_1$};
-    \draw[-{Stealth[length=2mm]}, thick] (0, -2.4) -- (0, 3.8) node[above, font=\scriptsize\sffamily] {$w_2$};
-    \node[font=\bfseries\sffamily, text=politoNavy] at (0.8, 4.1) {(b) Lasso ($L_1$): Sharp diamond ball};
-
-    % L1 Ball: Diamond with vertices at (+-1.5, 0) and (0, +-1.5)
-    \fill[examred!15, draw=examred, thick] (1.5, 0) -- (0, 1.5) -- (-1.5, 0) -- (0, -1.5) -- cycle;
-    \node[font=\scriptsize\sffamily, text=examred] at (-0.8, -0.8) {$\|\vw\|_1 \le t$};
-
-    % OLS center
-    \coordinate (OLS2) at (2.4, 2.2);
-    \fill[examred] (OLS2) circle (2.2pt) node[above right, font=\scriptsize\bfseries\sffamily, text=examred] {$\hat{\vw}^{\text{OLS}}$};
-
-    % Elliptical loss contours centered at OLS
-    \draw[thick, examred!60, rotate around={35:(OLS2)}] (OLS2) ellipse (0.7 and 0.4);
-    \draw[thick, examred!75, rotate around={35:(OLS2)}] (OLS2) ellipse (1.3 and 0.8);
-    \draw[thick, examred, rotate around={35:(OLS2)}] (OLS2) ellipse (1.75 and 1.1);
-
-    % Tangency point at exact corner (0, 1.5)
-    \coordinate (LASSO_STAR) at (0, 1.5);
-    \fill[intuitiongreen] (LASSO_STAR) circle (3pt);
-    \node[above left=1mm, font=\scriptsize\bfseries\sffamily, text=intuitiongreen] at (LASSO_STAR) {$\vw^*_{\text{Lasso}} = (0, w_2^*)$};
-    \node[font=\scriptsize\bfseries\sffamily, text=examred, fill=white, inner sep=1.5pt] at (0.8, -1.8) {Corner contact $\implies w_1^* = 0$ strictly!};
-  \end{scope}
-\end{tikzpicture}
-\caption{The geometric genesis of sparsity. (a) For Ridge regression, the $L_2$ constraint boundary is a smooth hypersphere (a circle in 2D). The expanding elliptical contour touches the circle at an off-axis point where both coordinates are non-zero ($w_1^* \ne 0, w_2^* \ne 0$). (b) For Lasso, the $L_1$ constraint boundary is a hyper-rhombus (a diamond in 2D) possessing sharp corners situated directly on the coordinate axes. As the elliptical error contour expands, it is statistically far more likely to make first contact at a sharp corner vertex, setting coordinate $w_1^*$ \textbf{strictly to zero} and yielding an intrinsically sparse model.}
-\label{fig:geometric_sparsity_proof}
-\end{figure}
-
-Figure~\ref{fig:geometric_sparsity_proof} illuminates this contrast:
-\begin{itemize}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
-  \item \textbf{Smooth $L_2$ Circle}: Because the circular constraint ball has a continuously rotating surface normal with zero singular corners, the tangency point between the ellipse and the circle almost surely occurs in the interior of a quadrant where both $w_1 \ne 0$ and $w_2 \ne 0$.
-  \item \textbf{Sharp $L_1$ Diamond}: The diamond constraint ball possesses sharp corners (vertices) situated precisely on the coordinate axes. Because these vertices ``protrude'' along the coordinate directions, an expanding elliptical contour is geometrically far more likely to intersect a corner than a flat edge. When contact occurs at a vertex on the $w_2$-axis, the $w_1$ coordinate is forced to be \textbf{identically zero}.
-\end{itemize}
-
-\subsection{Bayesian MAP interpretation: Gaussian vs. Laplace priors}
-\label{sec:bayesian_map_priors}
-
-In Chapter~2, we derived the Maximum A Posteriori (MAP) framework:
+The Ridge regression objective is:
 \begin{equation}
-\hat{\vw}_{\text{MAP}} = \argmax_{\vw} p(\vw \mid \mathcal{D}) = \argmax_{\vw} \left[ \log p(\vy \mid \mX, \vw) + \log p(\vw) \right].
-\label{eq:map_framework_review}
+\mathcal{L}_{\text{Ridge}}(\vw) = \frac{1}{2N} (\mX\vw - \vy)^\top (\mX\vw - \vy) + \frac{\lambda}{2} \vw^\top \vw.
+\label{eq:ridge_objective}
 \end{equation}
-Under conditional Gaussian noise, $\log p(\vy \mid \mX, \vw) = -\frac{1}{2\sigma^2}\|\mX\vw - \vy\|_2^2 + \text{const}$. The specific choice of prior distribution $p(\vw)$ over model parameters dictates the resulting regularizer:
 
-\paragraph{Gaussian prior yields Ridge regression.}
-Assume an isotropic zero-mean Gaussian prior with prior variance $\tau^2$:
+\paragraph{Closed-form analytical solution.}
+Because the $L_2$ penalty is quadratic and smooth, we can derive its closed-form solution by differentiating with respect to $\vw$:
 \begin{equation}
-p(\vw) = \prod_{j=1}^D \frac{1}{\sqrt{2\pi\tau^2}} \exp\left( -\frac{w_j^2}{2\tau^2} \right) \implies \log p(\vw) = -\frac{1}{2\tau^2} \|\vw\|_2^2 - \frac{D}{2}\log(2\pi\tau^2).
-\label{eq:gaussian_prior}
+\nabla_{\vw} \mathcal{L}_{\text{Ridge}}(\vw) = \frac{1}{N} \mX^\top (\mX\vw - \vy) + \lambda \vw = \mathbf{0}.
+\label{eq:ridge_gradient}
 \end{equation}
-Maximizing the log-posterior is equivalent to minimizing:
+Multiplying by $N$ and collecting terms with respect to $\vw$:
 \begin{equation}
-\frac{1}{2\sigma^2} \|\mX\vw - \vy\|_2^2 + \frac{1}{2\tau^2}\|\vw\|_2^2 \iff \frac{1}{2N}\|\mX\vw - \vy\|_2^2 + \frac{\lambda}{2}\|\vw\|_2^2, \quad \text{where } \lambda = \frac{\sigma^2}{N\tau^2}.
-\label{eq:ridge_as_map}
+\mX^\top \mX \vw - \mX^\top \vy + N\lambda \vw = \mathbf{0} \iff (\mX^\top \mX + N\lambda \mI_D)\vw = \mX^\top \vy.
+\label{eq:ridge_rearranged}
 \end{equation}
-The Gaussian prior density is smooth and flat around zero ($p'(0) = 0$). It exerts zero gradient at the origin, smoothly pulling weights toward zero without ever trapping them at exact zero.
-
-\paragraph{Laplace prior yields Lasso regression.}
-Assume an independent zero-mean Laplace (double exponential) prior with scale parameter $b$:
+Defining $\alpha \triangleq N\lambda$, the regularized normal equations yield:
 \begin{equation}
-p(\vw) = \prod_{j=1}^D \frac{1}{2b} \exp\left( -\frac{|w_j|}{b} \right) \implies \log p(\vw) = -\frac{1}{b} \|\vw\|_1 - D\log(2b).
-\label{eq:laplace_prior}
+\vw^*_{\text{Ridge}} = (\mX^\top \mX + \alpha \mI_D)^{-1} \mX^\top \vy.
+\label{eq:ridge_closed_form}
 \end{equation}
-Maximizing the log-posterior corresponds to minimizing:
+
+\begin{theorem}[Guaranteed Invertibility and Well-Posedness of Ridge Regression]
+For any positive regularization parameter $\alpha > 0$, the regularized matrix $(\mX^\top \mX + \alpha \mI_D)$ is \textbf{strictly positive definite and unconditionally invertible}, even when $D > N$ or when the columns of $\mX$ are linearly dependent.
+\end{theorem}
+\begin{proof}
+The unregularized Gram matrix $\mA \triangleq \mX^\top \mX \in \R^{D \times D}$ is symmetric and positive semi-definite. By the Spectral Theorem, it admits an orthonormal eigenvalue decomposition $\mA = \mathbf{Q} \boldsymbol{\Lambda} \mathbf{Q}^\top$, where the eigenvalues satisfy $\mu_i \ge 0$ for all $i \in \{1, \dots, D\}$. 
+
+Adding the identity matrix scaled by $\alpha > 0$:
 \begin{equation}
-\frac{1}{2\sigma^2}\|\mX\vw - \vy\|_2^2 + \frac{1}{b}\|\vw\|_1 \iff \frac{1}{2N}\|\mX\vw - \vy\|_2^2 + \lambda \|\vw\|_1, \quad \text{where } \lambda = \frac{\sigma^2}{N b}.
-\label{eq:lasso_as_map}
+\mA + \alpha \mI_D = \mathbf{Q} \boldsymbol{\Lambda} \mathbf{Q}^\top + \alpha \mathbf{Q}\mathbf{Q}^\top = \mathbf{Q}(\boldsymbol{\Lambda} + \alpha \mI_D)\mathbf{Q}^\top.
+\label{eq:ridge_eigen_decomp}
 \end{equation}
-Unlike the smooth Gaussian bell, the Laplace density has a sharp, non-differentiable \textbf{cusp} at zero ($p(w) \propto e^{-|w|/b}$). The derivative does not vanish as $w \to 0$; instead, it exerts a constant directional pulling force toward zero. This concentrated prior density at zero forces the posterior mode $\hat{\vw}_{\text{MAP}}$ to lock onto exact sparsity.
+The eigenvalues of $(\mX^\top \mX + \alpha \mI_D)$ are simply shifted by $\alpha$:
+\begin{equation}
+\lambda_i(\mX^\top \mX + \alpha \mI_D) = \mu_i + \alpha \ge \alpha > 0 \quad \forall i \in \{1, \dots, D\}.
+\label{eq:eigenvalues_shifted}
+\end{equation}
+Because all eigenvalues are strictly bounded below by $\alpha > 0$, the determinant is strictly positive: $\det(\mX^\top \mX + \alpha \mI_D) = \prod_{i=1}^D (\mu_i + \alpha) \ge \alpha^D > 0$. Hence, the matrix is guaranteed to be non-singular and invertible under all conditions.
+\end{proof}
 
-\subsection{Systematic comparison of linear estimation paradigms}
-\label{sec:systematic_linear_comparison}
+\paragraph{Operational trade-offs of Ridge regression.}
+While Ridge regression elegantly resolves singular matrix breakdown and admits a direct, non-iterative closed-form solution via Cholesky decomposition, it incurs a significant interpretability cost: because the $L_2$ penalty is isotropic and smooth everywhere with vanishing gradient at zero, it shrinks weights continuously but \textbf{never drives any parameter identically to zero}. Consequently, all $D$ features are retained in the final model, preserving full dense dimensionality.
 
-Table~\ref{tab:linear_models_comparison} synthesizes the foundational properties of Ordinary Least Squares, Ridge Regression, and Lasso.
-
-\begin{table}[H]
-\centering
-\small
-\renewcommand{\arraystretch}{0.92}
-\caption{Foundational comparison of linear parameter estimation paradigms.}
-\label{tab:linear_models_comparison}
-\begin{tabularx}{\textwidth}{lXXX}
-\toprule
-\textbf{Theoretical Property} & \textbf{Ordinary Least Squares} & \textbf{Ridge Regression ($L_2$)} & \textbf{Lasso Regression ($L_1$)} \\
-\midrule
-\textbf{Loss Objective} & $\frac{1}{2N}\|\mX\vw - \vy\|_2^2$ & $\frac{1}{2N}\|\mX\vw - \vy\|_2^2 + \frac{\lambda}{2}\|\vw\|_2^2$ & $\frac{1}{2N}\|\mX\vw - \vy\|_2^2 + \lambda\|\vw\|_1$ \\
-\textbf{Penalty Function} & None ($\lambda = 0$) & $\Omega(\vw) = \frac{1}{2}\sum_j w_j^2$ & $\Omega(\vw) = \sum_j |w_j|$ \\
-\textbf{Closed-Form Solution} & $(\mX^\top \mX)^{-1}\mX^\top \vy$ & $(\mX^\top \mX + \alpha \mI)^{-1}\mX^\top \vy$ & No (except orthogonal design) \\
-\textbf{Invertibility ($D > N$)} & Fails (singular matrix) & Guaranteed invertible & Handled via convex solvers \\
-\textbf{Sparsity ($w_j^* = 0$)} & No & No (shrinks proportionally) & \textbf{Yes (exact feature selection)} \\
-\textbf{Bayesian MAP Prior} & Uniform (flat improper) & Gaussian $\mathcal{N}(\mathbf{0}, \tau^2 \mI)$ & Laplace $\text{Laplace}(0, b)$ \\
-\textbf{Computational Solver} & Direct Cholesky / QR & Direct Cholesky ($\mathcal{O}(D^3)$) & Coordinate Descent / LARS \\
-\textbf{Interpretability} & Poor in high dimensions & Poor ($D$ dense weights) & High (sparse active subset) \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-While linear regression, Ridge, and Lasso establish the mathematical foundation for predicting continuous targets, real-world machine learning frequently requires classifying observations into discrete qualitative categories---such as diagnosing an ultrasound lesion as benign ($y=0$) versus malignant ($y=1$). A tempting initial instinct is to deploy this exact same regularized linear framework on binary indicator targets and apply a hard threshold to continuous predictions. However, as revealed in Section~\ref{sec:linear_to_logistic}, ordinary least squares encounters fundamental theoretical and geometrical failure modes when applied to discrete classification, necessitating the development of the probabilistic logistic model.
+While linear regression, Lasso, and Ridge establish the mathematical foundation for predicting continuous targets, real-world machine learning frequently requires classifying observations into discrete qualitative categories---such as diagnosing an ultrasound lesion as benign ($y=0$) versus malignant ($y=1$). A tempting initial instinct is to deploy this exact same regularized linear framework on binary indicator targets and apply a hard threshold to continuous predictions. However, as revealed in Section~\ref{sec:linear_to_logistic}, ordinary least squares encounters fundamental theoretical and geometrical failure modes when applied to discrete classification, necessitating the development of the probabilistic logistic model.
 
 \section{The limits of linear regression for classification and the logistic model}
 \label{sec:linear_to_logistic}
