@@ -18,12 +18,13 @@ To conquer these barriers, machine learning must abandon closed-form linear alge
 
 In the study of supervised learning, linear models occupy a foundational position as both an intuitive baseline and an analytically tractable laboratory for exploring core statistical principles. By modeling the relationship between input features and continuous targets as an affine transformation, linear regression provides an interpretable mapping whose parameters directly reflect feature importances. Under the classic squared error criterion, the parameter estimation problem achieves a rare and remarkable property in machine learning: it admits an exact, globally optimal analytical closed-form solution via the celebrated Normal Equations, bypassing the need for exploratory numerical search.
 
-However, the apparent mathematical simplicity of linear regression obscures profound operational and statistical challenges. In empirical settings, raw input features rarely exhibit purely linear dependencies with targets, tempting practitioners to expand the feature space through non-linear basis expansions. As the expressive capacity of the model grows, the risk of overfitting escalates dramatically, causing the hypothesis to memorize idiosyncratic noise in the training sample while losing all predictive validity on unseen data. Concurrently, in modern high-dimensional regimes where the number of features exceeds the sample size ($D > N$) or where predictors exhibit severe collinearity, the sample covariance matrix degenerates, causing closed-form matrix inversion to collapse into rank deficiency or severe numerical instability.
-
-This section systematically establishes the theoretical architecture of continuous linear prediction. We first formalize the linear hypothesis and derive the Ordinary Least Squares (OLS) objective from Maximum Likelihood principles under homoscedastic Gaussian observation noise. We then derive the Normal Equations via matrix calculus, elucidate their geometric meaning as an orthogonal projection onto the subspace spanned by the design matrix columns, and rigorously dissect the $\mathcal{O}(D^3)$ computational complexity and rank-deficiency failure modes of closed-form algebra. Finally, we venture beyond linearity via basis function expansions, examining the fundamental interplay between inductive bias, model capacity, and the bias-variance trade-off, formalizing rigorous validation protocols to control generalization error.
-
-\subsection{The linear predictor and problem formulation}
+\subsection{Ordinary least squares, normal equations, and orthogonal projection}
+\label{sec:ols_and_normal_equations}
 \label{sec:linear_predictor_formulation}
+\label{sec:ols_and_mle}
+\label{sec:normal_equations_derivation}
+\label{sec:geometric_projection_ols}
+\label{sec:ols_computational_complexity}
 
 Consider a supervised regression setting where each input instance is represented as a real-valued feature vector $\vx = [x_1, x_2, \dots, x_D]^\top \in \R^D$, and the associated target variable is continuous $y \in \R$. The \textbf{linear predictor} posits an affine relationship between inputs and targets:
 \begin{equation}
@@ -52,10 +53,7 @@ In this vectorized matrix notation, the predictions across all $N$ training samp
 \label{eq:vectorized_predictions}
 \end{equation}
 
-\subsection{The ordinary least squares (OLS) criterion and maximum likelihood}
-\label{sec:ols_and_mle}
-
-To determine the optimal parameter vector $\tilde{\vw}^*$, we must define a loss metric penalizing discrepancies between model predictions $\hat{y}_i$ and ground-truth targets $y_i$. Under the \textbf{Ordinary Least Squares (OLS)} framework, we adopt the squared error loss $\ell(h(\vx), y) = \frac{1}{2}(h(\vx) - y)^2$. The empirical risk (mean squared error objective) over the training set is:
+To determine the optimal parameter vector $\tilde{\vw}^*$, we define an empirical loss metric penalizing discrepancies between model predictions $\hat{y}_i$ and ground-truth targets $y_i$. Under the \textbf{Ordinary Least Squares (OLS)} framework, we adopt the squared error loss $\ell(h(\vx), y) = \frac{1}{2}(h(\vx) - y)^2$. The empirical risk (mean squared error objective) over the training set is:
 \begin{equation}
 J(\tilde{\vw}) \triangleq \frac{1}{2N} \sum_{i=1}^N \left( \tilde{\vx}_i^\top \tilde{\vw} - y_i \right)^2 = \frac{1}{2N} \|\tilde{\mX}\tilde{\vw} - \vy\|_2^2.
 \label{eq:ols_empirical_risk}
@@ -87,11 +85,9 @@ Because the first term is independent of $\tilde{\vw}$, maximizing the log-likel
 Thus, ordinary least squares is not merely an arbitrary heuristic: it is the optimal maximum likelihood estimator under homoscedastic Gaussian observation noise.
 \end{deepdive}
 
-\subsection{Analytical derivation of the Normal Equations via matrix calculus}
-\label{sec:normal_equations_derivation}
+Because the empirical risk $J(\tilde{\vw})$ is a quadratic function of $\tilde{\vw}$ and its Hessian $\nabla_{\tilde{\vw}}^2 J(\tilde{\vw}) = \frac{1}{N}\tilde{\mX}^\top \tilde{\mX}$ is positive semi-definite (strictly positive definite when $\tilde{\mX}$ has full column rank), the objective is convex and any stationary point is a global minimizer. We can therefore find its exact global minimum by expanding the objective in matrix form and setting its vector gradient to zero.
 
-Because the empirical risk $J(\tilde{\vw})$ is a quadratic function of $\tilde{\vw}$, it is strictly convex (provided $\tilde{\mX}^\top \tilde{\mX}$ is positive definite). We can therefore find its exact global minimum by expanding the objective in matrix form and setting its vector gradient to zero.
-
+\begin{proof}[Derivation of the Normal Equations]
 Expanding the squared $L_2$ norm:
 \begin{align}
 J(\tilde{\vw}) &= \frac{1}{2N} (\tilde{\mX}\tilde{\vw} - \vy)^\top (\tilde{\mX}\tilde{\vw} - \vy) \nonumber \\
@@ -104,7 +100,6 @@ Since $\tilde{\vw}^\top \tilde{\mX}^\top \vy$ is a scalar, it equals its transpo
 J(\tilde{\vw}) = \frac{1}{2N} \left( \tilde{\vw}^\top \tilde{\mX}^\top \tilde{\mX} \tilde{\vw} - 2 \vy^\top \tilde{\mX} \tilde{\vw} + \vy^\top \vy \right).
 \label{eq:ols_compact_expansion}
 \end{equation}
-
 We now take the vector derivative with respect to $\tilde{\vw}$. We invoke the two canonical matrix calculus identities:
 \begin{equation}
 \nabla_{\mathbf{z}} (\mathbf{z}^\top \mA \mathbf{z}) = (\mA + \mA^\top)\mathbf{z} = 2\mA\mathbf{z} \quad (\text{for symmetric } \mA), \qquad \nabla_{\mathbf{z}} (\mathbf{c}^\top \mathbf{z}) = \mathbf{c}.
@@ -115,23 +110,18 @@ Applying these identities to Eq.~\eqref{eq:ols_compact_expansion} (where $\tilde
 \nabla_{\tilde{\vw}} J(\tilde{\vw}) = \frac{1}{2N} \left( 2 \tilde{\mX}^\top \tilde{\mX} \tilde{\vw} - 2 \tilde{\mX}^\top \vy \right) = \frac{1}{N} \left( \tilde{\mX}^\top \tilde{\mX} \tilde{\vw} - \tilde{\mX}^\top \vy \right).
 \label{eq:ols_gradient}
 \end{equation}
-
 Setting the gradient to the zero vector $\nabla_{\tilde{\vw}} J(\tilde{\vw}) = \mathbf{0}$ yields the celebrated \textbf{Normal Equations}:
 \begin{equation}
 \tilde{\mX}^\top \tilde{\mX} \tilde{\vw} = \tilde{\mX}^\top \vy.
 \label{eq:normal_equations}
 \end{equation}
-
 If the $(D+1) \times (D+1)$ Gram matrix $\tilde{\mX}^\top \tilde{\mX}$ is invertible (non-singular), multiplying both sides by $(\tilde{\mX}^\top \tilde{\mX})^{-1}$ delivers the unique analytical closed-form solution:
 \begin{equation}
 \tilde{\vw}^* = (\tilde{\mX}^\top \tilde{\mX})^{-1} \tilde{\mX}^\top \vy.
 \label{eq:ols_solution}
 \end{equation}
-
 The matrix $(\tilde{\mX}^\top \tilde{\mX})^{-1} \tilde{\mX}^\top \triangleq \tilde{\mX}^\dagger \in \R^{(D+1) \times N}$ is the classical \textbf{Moore-Penrose pseudoinverse} of $\tilde{\mX}$ for full column-rank matrices.
-
-\subsection{Geometric interpretation: Orthogonal projection onto the column space}
-\label{sec:geometric_projection_ols}
+\end{proof}
 
 The Normal Equations possess an illuminating geometric interpretation in the $N$-dimensional sample space $\R^N$ (Bishop, 2024; Strang, 2016). 
 
@@ -142,9 +132,9 @@ The target vector $\vy = [y_1, \dots, y_N]^\top$ is an arbitrary point in $\R^N$
 \end{equation}
 where $\operatorname{col}(\tilde{\mX}) \subset \R^N$ is the $(D+1)$-dimensional subspace spanned by the column vectors of $\tilde{\mX}$. 
 
-Minimizing the squared Euclidean distance $\|\hat{\vy} - \vy\|_2^2$ means finding the point $\hat{\vy}$ within the subspace $\operatorname{col}(\tilde{\mX})$ that lies closest to the target vector $\vy$. By elementary Euclidean geometry, the shortest distance from an external point to a linear subspace is achieved when the error (residual) vector $\mathbf{e} \triangleq \hat{\vy} - \vy$ is strictly \textbf{orthogonal} to the subspace:
+Minimizing the squared Euclidean distance $\|\hat{\vy} - \vy\|_2^2$ means finding the point $\hat{\vy}$ within the subspace $\operatorname{col}(\tilde{\mX})$ that lies closest to the target vector $\vy$. By elementary Euclidean geometry, the shortest distance from an external point to a linear subspace is achieved when the error (residual) vector $\mathbf{e} \triangleq \vy - \hat{\vy}$ is strictly \textbf{orthogonal} to the subspace:
 \begin{equation}
-\mathbf{e} \perp \operatorname{col}(\tilde{\mX}) \iff \tilde{\vx}_{*,j}^\top \mathbf{e} = 0 \quad \forall j \in \{1, \dots, D+1\} \iff \tilde{\mX}^\top (\tilde{\mX}\tilde{\vw}^* - \vy) = \mathbf{0},
+\mathbf{e} \perp \operatorname{col}(\tilde{\mX}) \iff \tilde{\vx}_{*,j}^\top \mathbf{e} = 0 \quad \forall j \in \{1, \dots, D+1\} \iff \tilde{\mX}^\top (\vy - \tilde{\mX}\tilde{\vw}^*) = \mathbf{0},
 \label{eq:orthogonality_condition}
 \end{equation}
 which is precisely the Normal Equations $\tilde{\mX}^\top \tilde{\mX} \tilde{\vw}^* = \tilde{\mX}^\top \vy$!
@@ -160,10 +150,90 @@ where $\mathbf{P}_{\tilde{\mX}} \triangleq \tilde{\mX}(\tilde{\mX}^\top \tilde{\
   \item \textbf{Idempotency}: $\mathbf{P}_{\tilde{\mX}}^2 = \tilde{\mX}(\tilde{\mX}^\top \tilde{\mX})^{-1}\tilde{\mX}^\top \tilde{\mX}(\tilde{\mX}^\top \tilde{\mX})^{-1}\tilde{\mX}^\top = \tilde{\mX}(\tilde{\mX}^\top \tilde{\mX})^{-1}\tilde{\mX}^\top = \mathbf{P}_{\tilde{\mX}}$. Projecting an already-projected vector leaves it unchanged.
 \end{enumerate}
 
-\subsection{Computational complexity and failure modes of closed-form least squares}
-\label{sec:ols_computational_complexity}
+Figure~\ref{fig:ols_orthogonal_projection} visually demonstrates how Ordinary Least Squares computes the unique point $\hat{\vy}$ within the subspace $\operatorname{col}(\tilde{\mX})$ closest to $\vy$.
 
-Despite its mathematical closed-form beauty, deploying the Normal Equations in real-world machine learning encounters severe computational and theoretical limitations:
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=1.05]
+  % Subspace parallelogram (col(\tilde{X}))
+  \coordinate (A) at (0.4, 0.3);
+  \coordinate (B) at (8.6, 0.3);
+  \coordinate (C) at (11.0, 3.1);
+  \coordinate (D) at (2.8, 3.1);
+
+  \fill[deepdiveTeal!6] (A) -- (B) -- (C) -- (D) -- cycle;
+  \draw[politoNavy!70, thick] (A) -- (B) -- (C) -- (D) -- cycle;
+
+  % Subspace label inside the plane at top-right
+  \node[font=\bfseries\sffamily, text=politoNavy, anchor=north east] at (10.8, 2.95) {$\operatorname{col}(\tilde{\mathbf{X}}) \subset \mathbb{R}^N$};
+  \node[font=\scriptsize\sffamily, text=politoNavy!80, anchor=north east] at (10.8, 2.55) {$\operatorname{span}\{\tilde{\mathbf{x}}_{*,1}, \dots, \tilde{\mathbf{x}}_{*,D+1}\}$};
+
+  % Origin
+  \coordinate (O) at (1.8, 0.9);
+  \fill[politoNavy] (O) circle (2.2pt) node[below left=2pt, font=\small\bfseries\sffamily] {$\mathbf{0}$};
+
+  % Spanning column vectors
+  \coordinate (X1) at (4.8, 0.9); % along x-axis
+  \coordinate (X2) at (3.3, 2.2); % along depth
+
+  \draw[-{Stealth[length=2.5mm]}, thick, politoNavy] (O) -- (X1) 
+    node[below=2pt, font=\small\bfseries\sffamily] {$\tilde{\mathbf{x}}_{*,1}$};
+  \draw[-{Stealth[length=2.5mm]}, thick, politoNavy] (O) -- (X2) 
+    node[above left=1pt, font=\small\bfseries\sffamily] {$\tilde{\mathbf{x}}_{*,2}$};
+
+  % Prediction vector \hat{y} on the plane
+  \coordinate (V1) at (4.4, 0.9);
+  \coordinate (V2) at (2.9, 1.87);
+  \coordinate (P) at (5.5, 1.87);
+
+  % Dashed component lines on the subspace plane
+  \draw[densely dashed, politoNavy!45, thick] (V1) -- (P);
+  \draw[densely dashed, politoNavy!45, thick] (V2) -- (P);
+
+  % Vector \hat{y}
+  \draw[-{Stealth[length=3mm]}, line width=1.6pt, intuitiongreen!80!black] (O) -- (P)
+    node[midway, below right=1pt, font=\small\bfseries\sffamily, text=intuitiongreen!80!black] {$\hat{\mathbf{y}} = \tilde{\mathbf{X}}\tilde{\mathbf{w}}^*$};
+  \fill[intuitiongreen!80!black] (P) circle (2.2pt) node[below right=2pt, font=\scriptsize\bfseries\sffamily, text=intuitiongreen!80!black] {$\hat{\mathbf{y}}$ (Closest point in $\operatorname{col}(\tilde{\mathbf{X}})$)};
+
+  % Target vector y above the plane
+  \coordinate (Y) at (5.5, 5.5);
+  \draw[-{Stealth[length=3.2mm]}, line width=1.6pt, deepblue] (O) -- (Y);
+  \fill[deepblue] (Y) circle (2.2pt) node[above=3pt, font=\small\bfseries\sffamily, text=deepblue] {$\mathbf{y} \in \mathbb{R}^N$ (Observed target)};
+
+  % Residual vector e = y - \hat{y} (orthogonal to subspace)
+  \draw[-{Stealth[length=3.2mm]}, line width=1.6pt, examred] (P) -- (Y)
+    node[pos=0.55, right=5pt, font=\small\bfseries\sffamily, text=examred] {$\mathbf{e} = \mathbf{y} - \hat{\mathbf{y}} \perp \operatorname{col}(\tilde{\mathbf{X}})$};
+
+  % Right angle mark at P
+  \draw[thick, examred!90!black] ($(P) + (-0.35, 0)$) -- ($(P) + (-0.35, 0.35)$) -- ($(P) + (0, 0.35)$);
+  \draw[thick, examred!70!black] ($(P) + (-0.26, -0.22)$) -- ($(P) + (-0.26, 0.13)$) -- ($(P) + (0, 0.35)$);
+
+  % Projection formula callout badge (top left)
+  \node[draw=intuitiongreen!80!black, fill=white, rounded corners=3pt, font=\scriptsize\sffamily, align=center] at (1.6, 4.8) {
+    \textbf{Orthogonal Projection}\\[2pt]
+    $\hat{\mathbf{y}} = \mathbf{P}_{\tilde{\mathbf{X}}}\mathbf{y}$\\[2pt]
+    $\mathbf{P}_{\tilde{\mathbf{X}}} = \tilde{\mathbf{X}}(\tilde{\mathbf{X}}^\top\tilde{\mathbf{X}})^{-1}\tilde{\mathbf{X}}^\top$\\[2pt]
+    $\mathbf{P}_{\tilde{\mathbf{X}}}^\top = \mathbf{P}_{\tilde{\mathbf{X}}}, \;\; \mathbf{P}_{\tilde{\mathbf{X}}}^2 = \mathbf{P}_{\tilde{\mathbf{X}}}$
+  };
+
+  % Orthogonality badge (top right)
+  \node[draw=examred!80!black, fill=white, rounded corners=3pt, font=\scriptsize\sffamily, align=center] at (9.6, 4.8) {
+    \textbf{Orthogonality Condition}\\[2pt]
+    $\tilde{\mathbf{X}}^\top(\mathbf{y} - \hat{\mathbf{y}}) = \mathbf{0}$\\[2pt]
+    $\iff \tilde{\mathbf{X}}^\top\tilde{\mathbf{X}}\tilde{\mathbf{w}}^* = \tilde{\mathbf{X}}^\top\mathbf{y}$
+  };
+
+  % Minimum distance annotation (top center, well above Y)
+  \node[draw=deepblue!70, fill=white, rounded corners=3pt, font=\scriptsize\sffamily, align=center] at (5.5, 6.6) {
+    $\|\mathbf{y} - \hat{\mathbf{y}}\|_2 = \min_{\mathbf{u} \in \operatorname{col}(\tilde{\mathbf{X}})} \|\mathbf{y} - \mathbf{u}\|_2$
+  };
+
+\end{tikzpicture}
+\caption{Geometric interpretation of Ordinary Least Squares as an orthogonal projection onto the column space $\operatorname{col}(\tilde{\mathbf{X}}) \subset \mathbb{R}^N$. The target observation vector $\mathbf{y}$ lies in general position in the $N$-dimensional sample space. The linear predictor's feasible output space is restricted to the $(D+1)$-dimensional subspace $\operatorname{col}(\tilde{\mathbf{X}})$ spanned by the columns of the design matrix. The least squares solution $\hat{\mathbf{y}} = \tilde{\mathbf{X}}\tilde{\mathbf{w}}^*$ is the unique vector in $\operatorname{col}(\tilde{\mathbf{X}})$ closest to $\mathbf{y}$ in Euclidean norm, attained precisely when the residual error vector $\mathbf{e} = \mathbf{y} - \hat{\mathbf{y}}$ is perpendicular to the subspace.}
+\label{fig:ols_orthogonal_projection}
+\end{figure}
+
+Despite its mathematical closed-form elegance, deploying the Normal Equations in real-world machine learning encounters severe computational and theoretical limitations:
 
 \paragraph{Cubic computational complexity $\mathcal{O}(D^3)$.}
 To compute $\tilde{\vw}^* = (\tilde{\mX}^\top \tilde{\mX})^{-1}\tilde{\mX}^\top \vy$:
@@ -187,9 +257,13 @@ The Gram matrix is strictly \textbf{singular and non-invertible}. The Normal Equ
 \paragraph{Collinearity and numerical instability.}
 Even when $N > D$, if two or more input features are strongly correlated, the columns of $\tilde{\mX}$ become nearly linearly dependent. The smallest eigenvalue $\lambda_{\min}$ of $\tilde{\mX}^\top \tilde{\mX}$ approaches zero, causing the condition number $\kappa = \lambda_{\max}/\lambda_{\min}$ to explode. Matrix inversion in floating-point arithmetic amplifies minute measurement noise in $\vy$, leading to wild swings and explosive parameter variances.
 
-\subsection{Beyond linearity: Basis function expansion and polynomial regression}
+These computational bottlenecks and structural failure modes reveal that closed-form Ordinary Least Squares cannot suffice for high-dimensional or non-linear prediction. Even when $N > D$ and the Gram matrix is strictly invertible, an affine hyperplane cannot capture curved physical patterns without expanding the input feature representation. In the next subsection, we venture beyond linearity and uncover the delicate interplay between model capacity and generalization.
+
+\subsection{Beyond linearity: Basis expansions, capacity, and generalization}
+\label{sec:beyond_linearity_and_capacity}
 \label{sec:basis_expansion_polynomial}
 
+\paragraph{Basis function expansion and polynomial regression.}
 When the true data-generating distribution is non-linear, a simple affine hyperplane $h(\vx) = \vw^\top \vx + b$ produces severe systematic errors. We can extend the expressive power of linear models by transforming the input vector $\vx \in \R^D$ through a fixed non-linear feature mapping:
 \begin{equation}
 \vphi(\vx) = [\phi_0(\vx), \phi_1(\vx), \dots, \phi_M(\vx)]^\top \in \R^{M+1},
@@ -222,7 +296,7 @@ The corresponding feature matrix $\boldsymbol{\Phi}$ is the classical \textbf{Va
 \label{eq:vandermonde_matrix}
 \end{equation}
 
-\subsection{Model capacity, inductive bias, and the underfitting--overfitting dilemma}
+\paragraph{Model capacity, inductive bias, and the underfitting--overfitting dilemma.}
 \label{sec:capacity_underfitting_overfitting}
 
 The polynomial degree $M$ acts as a direct control dial for the \textbf{capacity} of the hypothesis class $\mathcal{H}_M = \{h(x) = \sum_{j=0}^M w_j x^j\}$. Capacity measures the richness or flexibility of the functional shapes that the model can represent. Every model class is constrained by its \textbf{inductive bias}---the structural assumptions that restrict its search space before observing data. For polynomial regression, the inductive bias is that the relationship between $x$ and $y$ can be faithfully approximated by a smooth polynomial of order $\le M$.
@@ -347,7 +421,7 @@ For $M=9$, the weights blow up into the hundreds of thousands, alternating wildl
 This profound empirical discovery establishes the cornerstone of modern regularization theory: \textbf{to prevent overfitting, we must constrain the magnitudes of the weight vector}.
 \end{examinsight}
 
-\subsection{Validation protocols, the generalization gap, and $k$-fold cross-validation}
+\paragraph{Validation protocols, the generalization gap, and $k$-fold cross-validation.}
 \label{sec:validation_protocols_crossval}
 
 Because empirical training error $\hat{R}_{\text{train}}(\vw)$ is an overly optimistic, biased estimator of model performance, we must implement rigorous statistical protocols to evaluate \textbf{generalization}:
