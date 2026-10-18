@@ -1166,11 +1166,13 @@ When analytical solutions are mathematically impossible or computationally prohi
 
 However, navigating high-dimensional loss landscapes is fraught with peril. An optimizer operating without global visibility can be likened to an explorer traversing an unfamiliar mountain shrouded in dense fog: one can only evaluate the local inclination directly beneath one's feet. If the step size is chosen too conservatively, optimization crawls at an agonizingly slow pace, stalling on shallow plateaus; if chosen too aggressively, updates overshoot valleys and oscillate wildly, driving loss values toward numerical overflow. Moreover, the presence of stationary points---where gradients vanish identically---poses constant risks of premature stagnation.
 
-This section establishes the formal foundations of first-order numerical optimization. We begin with the physical intuition of the mountain descent metaphor and explore multi-dimensional loss landscapes through synchronized 3D surfaces, 2D contour maps, and gradient vector fields. We then formalize the foundational conditions of multivariate differentiability and prove level curve orthogonality. Next, we rigorously derive Cauchy's theorem of steepest descent from first principles via directional derivatives and the Cauchy-Schwarz inequality. Finally, we dissect learning rate dynamics---contrasting under-stepping, overshooting, and exact line search---and analyze deterministic learning rate decay schedules (linear, inverse, and exponential) that stabilize convergence.
-
-\subsection{The optimization landscape and the mountain descent analogy}
+\subsection{Foundations of gradient descent: Topography, contours, and differentiability}
+\label{sec:gd_foundations_topography}
 \label{sec:skier_analogy_landscape}
+\label{sec:loss_surface_topology}
+\label{sec:differentiability_and_orthogonality}
 
+\paragraph{The optimization landscape and the mountain descent analogy.}
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[>=Stealth, scale=1.05, every node/.style={transform shape}]
@@ -1239,12 +1241,10 @@ This section establishes the formal foundations of first-order numerical optimiz
 
 The physical intuition underlying gradient-based optimization is captured by the classic mountain descent metaphor. Consider standing on a mountain enveloped in dense fog. You cannot perceive the global topography from above; all you can evaluate is the local inclination of the ground beneath your feet. To reach the bottom of the valley as quickly as possible, you assess the local tilt in every direction and step downhill along the path of steepest slope. 
 
-In machine learning, the foggy mountain terrain corresponds to the empirical loss landscape $f(\mathbf{w}) \equiv \hat{\risk}_N(\mathbf{w})$ over parameter space $\R^d$, and the local slope is quantified analytically by the negative gradient vector $-\nabla f(\mathbf{w})$.
+In machine learning, the foggy mountain terrain corresponds to the empirical loss landscape $f(\mathbf{w}) \equiv \hat{\mathcal{R}}_N(\mathbf{w})$ over parameter space $\mathbb{R}^d$, and the local slope is quantified analytically by the negative gradient vector $-\nabla f(\mathbf{w})$.
 
-\subsection{Loss surface topology: 3D surfaces, 2D contours, and vector fields}
-\label{sec:loss_surface_topology}
-
-To visualize multi-dimensional parameter spaces, optimization problems in $\R^2$ are examined through three synchronized representations:
+\paragraph{Loss surface topology: 3D surfaces, 2D contours, and vector fields.}
+To visualize multi-dimensional parameter spaces, optimization problems in $\mathbb{R}^2$ are examined through three synchronized representations:
 
 \begin{figure}[H]
 \centering
@@ -1260,28 +1260,21 @@ As displayed in Figure~\ref{fig:gd_landscape_3panels}:
   \item \textbf{2D Gradient Vector Field}: Maps every coordinate $(x, y)$ to its gradient vector $\nabla f(x, y) = [\frac{\partial f}{\partial x}, \frac{\partial f}{\partial y}]^\top$. The arrows point in the direction of maximum instantaneous ascent, and their lengths represent the magnitude of the slope $\|\nabla f\|$.
 \end{enumerate}
 
-\subsection{Mathematical foundations: Differentiability and level curve orthogonality}
-\label{sec:differentiability_and_orthogonality}
+\paragraph{Orthogonality of the gradient to level curves.}
+A foundational geometric theorem is that the gradient vector is strictly \textbf{orthogonal} to contour level curves (or level hypersurfaces in higher dimensions).
 
-Before executing gradient updates, we must formalize two foundational mathematical principles emphasized in the AML curriculum:
-
-\paragraph{The Differentiability Condition: Partial derivatives vs. true differentiability.}
-Gradient descent updates require the objective function $f: \R^d \to \R$ to be differentiable. A frequent trap in mathematical analysis and oral examinations is confusing the existence of partial derivatives with true differentiability:
-\begin{examinsight}[Oral Exam Pitfall: Differentiability vs. Partial Derivatives]
-\textbf{The existence of all partial derivatives (or even all directional derivatives) does NOT imply that a function is differentiable!}\\
-A multivariable function $f: \R^d \to \R$ is differentiable at $\mathbf{x}_0$ if and only if there exists a linear map (the gradient $\nabla f(\mathbf{x}_0)$) such that:
+Let $\mathcal{C}_c \triangleq \{ \mathbf{w} \in \mathbb{R}^d : f(\mathbf{w}) = c \}$ be an isocurve of constant value $c$. Let $\mathbf{r}(t)$ be an arbitrary smooth path lying entirely within the level set, such that $f(\mathbf{r}(t)) = c$ for all $t$. Differentiating both sides with respect to scalar parameter $t$ via the multivariate chain rule:
 \begin{equation}
-\lim_{\mathbf{h} \to \mathbf{0}} \frac{f(\mathbf{x}_0 + \mathbf{h}) - f(\mathbf{x}_0) - \nabla f(\mathbf{x}_0)^\top \mathbf{h}}{\|\mathbf{h}\|_2} = 0.
-\label{eq:frechet_differentiability}
+\frac{d}{dt} f(\mathbf{r}(t)) = \nabla f(\mathbf{r}(t))^\top \mathbf{r}'(t) = 0.
+\label{eq:level_curve_orthogonality_proof}
 \end{equation}
-By the Total Differential Theorem, a sufficient condition for differentiability is that all partial derivatives exist and are \textbf{continuous} ($f \in C^1$). If partial derivatives exist but are discontinuous, the function may fail to be differentiable, causing gradient descent to fail.
-\end{examinsight}
-
-To understand this distinction concretely, consider the classic counterexample:
+Here, $\mathbf{r}'(t) \equiv \mathbf{v}$ is the tangent velocity vector along the contour curve. Equation~\eqref{eq:level_curve_orthogonality_proof} proves that:
 \begin{equation}
-f(x, y) = \begin{cases} 0 & \text{at } (x, y) = (0, 0), \\ \dfrac{x^2 y}{x^2 + y^2} & \text{elsewhere}. \end{cases}
-\label{eq:differentiability_counterexample}
+\langle \nabla f(\mathbf{w}), \mathbf{v} \rangle = 0 \quad \text{for any tangent vector } \mathbf{v} \text{ to the isocurve}.
 \end{equation}
+Because the inner product vanishes, the directional derivative along the isocurve is zero: moving tangentially to a level set produces zero instantaneous change in loss. 
+
+Conversely, the direction perpendicular to the tangent space maximizes the inner product, proving that the gradient vector $\nabla f(\mathbf{w})$ is \textbf{perpendicular to the level curves}, pointing toward steepest ascent, while the negative gradient $-\nabla f(\mathbf{w})$ points perpendicular to the level curves toward steepest descent (as illustrated in Figure~\ref{fig:gradient_orthogonal_level_curves}).
 
 \begin{figure}[H]
 \centering
@@ -1352,6 +1345,25 @@ f(x, y) = \begin{cases} 0 & \text{at } (x, y) = (0, 0), \\ \dfrac{x^2 y}{x^2 + y
 \end{minipage}
 \end{figure}
 
+\paragraph{Postilla: Existence of all partial derivatives vs. true differentiability.}
+Gradient descent updates require the objective function $f: \mathbb{R}^d \to \mathbb{R}$ to be differentiable. A frequent trap in mathematical analysis and oral examinations is confusing the existence of partial derivatives with true differentiability:
+
+\begin{examinsight}[Oral Exam Pitfall: Differentiability vs. Partial Derivatives]
+\textbf{The existence of all partial derivatives (or even all directional derivatives) does NOT imply that a function is differentiable!}\\
+A multivariable function $f: \mathbb{R}^d \to \mathbb{R}$ is differentiable at $\mathbf{x}_0$ if and only if there exists a linear map (the gradient $\nabla f(\mathbf{x}_0)$) such that:
+\begin{equation}
+\lim_{\mathbf{h} \to \mathbf{0}} \frac{f(\mathbf{x}_0 + \mathbf{h}) - f(\mathbf{x}_0) - \nabla f(\mathbf{x}_0)^\top \mathbf{h}}{\|\mathbf{h}\|_2} = 0.
+\label{eq:frechet_differentiability}
+\end{equation}
+By the Total Differential Theorem, a sufficient condition for differentiability is that all partial derivatives exist and are \textbf{continuous} ($f \in C^1$). If partial derivatives exist but are discontinuous, the function may fail to be differentiable, causing gradient descent to fail.
+\end{examinsight}
+
+To understand this distinction concretely, consider the classic counterexample:
+\begin{equation}
+f(x, y) = \begin{cases} 0 & \text{at } (x, y) = (0, 0), \\ \dfrac{x^2 y}{x^2 + y^2} & \text{elsewhere}. \end{cases}
+\label{eq:differentiability_counterexample}
+\end{equation}
+
 Evaluating the partial derivatives of Equation~\eqref{eq:differentiability_counterexample} at the coordinate origin via the difference quotient:
 \begin{align}
 \frac{\partial f}{\partial x}(0, 0) &= \lim_{h \to 0} \frac{f(h, 0) - f(0, 0)}{h} = \lim_{h \to 0} \frac{0 - 0}{h} = 0, \\
@@ -1361,11 +1373,10 @@ Both partial derivatives exist and equal zero at the origin. However, computing 
 \begin{equation}
 \frac{\partial f}{\partial y}(x, 0) = \left. \frac{x^2(x^2 + y^2) - x^2 y(2y)}{(x^2 + y^2)^2} \right|_{y=0} = \frac{x^4}{x^4} = 1.
 \end{equation}
-Meanwhile, along the $y$-axis ($x = 0$): $\frac{\partial f}{\partial y}(0, y) = 0$. Therefore, $\lim_{(x, y) \to (0, 0)} \frac{\partial f}{\partial y}(x, y)$ does not exist! The partial derivative is \textbf{discontinuous at the origin}, proving that $f(x, y)$ is not differentiable at $(0, 0)$, despite all directional derivatives being well-defined.
+Meanwhile, along the $y$-axis ($x = 0$): $\frac{\partial f}{\partial y}(0, y) = 0$. Therefore, $\lim_{(x, y) \to (0, 0)} \frac{\partial f}{\partial y}(x, y)$ does not exist! The partial derivative is \textbf{discontinuous at the origin}, proving that $f(x, y)$ is not differentiable at $(0, 0)$, despite all directional derivatives being well-defined (Figure~\ref{fig:differentiability_counterexample_3d}).
 
-\paragraph{When differentiability fails: Subgradient calculus for non-smooth functions.}
+\paragraph{Postilla continued: Subgradient calculus for non-smooth functions.}
 \label{sec:subgradient_calculus}
-
 What occurs when an objective function or neural network activation is continuous and convex, but contains non-differentiable points where classical gradients cease to exist?
 \begin{itemize}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
   \item The \textbf{ReLU activation function} $f(z) = \max(0, z)$ has a sharp corner (non-differentiable kink) at $z = 0$.
@@ -1375,17 +1386,16 @@ What occurs when an objective function or neural network activation is continuou
 To optimize such objectives, classical differential calculus is generalized to convex analysis via the \textbf{subgradient} and \textbf{subdifferential}~\cite{bishop2024deep,goodfellow2016deep}:
 
 \begin{definition}[Subgradient and Subdifferential]
-Let $f: \R^d \to \R$ be a convex function. A vector $\mathbf{g} \in \R^d$ is defined as a \textbf{subgradient} of $f$ at point $\mathbf{w}$ if for all $\mathbf{v} \in \R^d$:
+Let $f: \mathbb{R}^d \to \mathbb{R}$ be a convex function. A vector $\mathbf{g} \in \mathbb{R}^d$ is defined as a \textbf{subgradient} of $f$ at point $\mathbf{w}$ if for all $\mathbf{v} \in \mathbb{R}^d$:
 \begin{equation}
 f(\mathbf{v}) \ge f(\mathbf{w}) + \mathbf{g}^\top (\mathbf{v} - \mathbf{w}).
 \label{eq:subgradient_inequality}
 \end{equation}
-Geometrically, Equation~\eqref{eq:subgradient_inequality} asserts that the affine hyperplane $L(\mathbf{v}) = f(\mathbf{w}) + \mathbf{g}^\top (\mathbf{v} - \mathbf{w})$ everywhere globally underestimates or touches the epigraph of $f$. The set of all valid subgradients at $\mathbf{w}$ is called the \textbf{subdifferential}, denoted $\partial f(\mathbf{w}) \subset \R^d$.
+Geometrically, Equation~\eqref{eq:subgradient_inequality} asserts that the affine hyperplane $L(\mathbf{v}) = f(\mathbf{w}) + \mathbf{g}^\top (\mathbf{v} - \mathbf{w})$ everywhere globally underestimates or touches the epigraph of $f$. The set of all valid subgradients at $\mathbf{w}$ is called the \textbf{subdifferential}, denoted $\partial f(\mathbf{w}) \subset \mathbb{R}^d$.
 \end{definition}
 
 If $f$ is continuously differentiable at $\mathbf{w}$, the subdifferential is a singleton containing only the standard gradient: $\partial f(\mathbf{w}) = \{\nabla f(\mathbf{w})\}$. At non-differentiable corners, $\partial f(\mathbf{w})$ forms a closed, convex set.
 
-\paragraph{Example: Subdifferential of the scalar ReLU.}
 For the rectified linear unit $f(z) = \max(0, z)$:
 \begin{equation}
 \partial f(z) = \begin{cases}
@@ -1397,7 +1407,6 @@ For the rectified linear unit $f(z) = \max(0, z)$:
 \end{equation}
 At the singular corner point $z = 0$, any scalar $g \in [0, 1]$ satisfies the subgradient inequality $f(v) \ge 0 + g \cdot v$. In deep learning frameworks such as PyTorch, the implementation adopts the convention $g = 0$ at $z = 0$.
 
-\paragraph{Subgradient descent update and convergence guarantees.}
 The subgradient descent algorithm updates parameters by selecting an arbitrary valid element $\mathbf{g}_t \in \partial f(\mathbf{w}_t)$:
 \begin{equation}
 \mathbf{w}_{t+1} = \mathbf{w}_t - \eta_t \mathbf{g}_t.
@@ -1410,26 +1419,10 @@ Unlike standard gradient descent on smooth functions, subgradient descent is not
 \end{equation}
 the distance to the optimal set $\|\mathbf{w}_t - \mathbf{w}^*\|_2$ contracts monotonically, guaranteeing asymptotic convergence to the global minimum.
 
-\paragraph{Orthogonality of the gradient to level curves.}
-A second foundational geometric theorem is that the gradient vector is strictly \textbf{orthogonal} to the contour level curves (or level hypersurfaces in higher dimensions).
-
-Let $\mathcal{C}_c \triangleq \{ \mathbf{w} \in \R^d : f(\mathbf{w}) = c \}$ be an isocurve of constant value $c$. Let $\mathbf{r}(t)$ be an arbitrary smooth path lying entirely within the level set, such that $f(\mathbf{r}(t)) = c$ for all $t$. Differentiating both sides with respect to scalar parameter $t$ via the multivariate chain rule:
-\begin{equation}
-\frac{d}{dt} f(\mathbf{r}(t)) = \nabla f(\mathbf{r}(t))^\top \mathbf{r}'(t) = 0.
-\label{eq:level_curve_orthogonality_proof}
-\end{equation}
-Here, $\mathbf{r}'(t) \equiv \mathbf{v}$ is the tangent velocity vector along the contour curve. Equation~\eqref{eq:level_curve_orthogonality_proof} proves that:
-\begin{equation}
-\langle \nabla f(\mathbf{w}), \mathbf{v} \rangle = 0 \quad \text{for any tangent vector } \mathbf{v} \text{ to the isocurve}.
-\end{equation}
-Because the inner product vanishes, the directional derivative along the isocurve is zero: moving tangentially to a level set produces zero instantaneous change in loss. 
-
-Conversely, the direction perpendicular to the tangent space maximizes the inner product, proving that the gradient vector $\nabla f(\mathbf{w})$ is \textbf{perpendicular to the level curves}, pointing toward steepest ascent, while the negative gradient $-\nabla f(\mathbf{w})$ points perpendicular to the level curves toward steepest descent (as illustrated in Figure~\ref{fig:gradient_orthogonal_level_curves}).
-
 \subsection{Stationary points and initialization sensitivity}
 \label{sec:stationary_points_initialization}
 
-A point $\mathbf{x}^* \in \R^d$ where the gradient vanishes identically is defined as a \textbf{stationary point} (or critical point):
+A point $\mathbf{x}^* \in \mathbb{R}^d$ where the gradient vanishes identically is defined as a \textbf{stationary point} (or critical point):
 \begin{equation}
 \nabla f(\mathbf{x}^*) = \mathbf{0}.
 \label{eq:stationary_point_def}
@@ -1455,54 +1448,10 @@ A stationary point can be a local minimum, a local maximum, or a saddle point.
 
 As visualized in Figure~\ref{fig:gd_trajectories_initialization}, which stationary point gradient descent reaches depends entirely on the initial parameter configuration $\mathbf{x}^{(0)}$. In complex non-convex landscapes, different initializations lead to vastly different local basins or saddle geometries.
 
-\subsection{Directional derivative and the proof of steepest descent}
-\label{sec:directional_derivative_proof}
-
-To formalize gradient descent from first principles, we analyze how a multivariate function changes along arbitrary spatial trajectories.
-
-Let $f: \R^d \to \R$ be continuously differentiable ($C^1$). Let $\mathbf{u} \in \R^d$ be an arbitrary unit direction vector ($\|\mathbf{u}\|_2 = 1$). The \textbf{directional derivative} of $f$ at point $\mathbf{w}$ along direction $\mathbf{u}$ is defined as the limit:
-\begin{equation}
-D_\mathbf{u} f(\mathbf{w}) = \lim_{\epsilon \to 0} \frac{f(\mathbf{w} + \epsilon \mathbf{u}) - f(\mathbf{w})}{\epsilon}.
-\label{eq:directional_derivative_def}
-\end{equation}
-By multivariable Taylor theorem, expanding $f(\mathbf{w} + \epsilon \mathbf{u})$ around $\mathbf{w}$:
-\begin{equation}
-f(\mathbf{w} + \epsilon \mathbf{u}) = f(\mathbf{w}) + \epsilon \nabla f(\mathbf{w})^\top \mathbf{u} + \mathcal{O}(\epsilon^2).
-\end{equation}
-Substituting this expansion into Equation~\eqref{eq:directional_derivative_def}:
-\begin{equation}
-D_\mathbf{u} f(\mathbf{w}) = \lim_{\epsilon \to 0} \frac{\epsilon \nabla f(\mathbf{w})^\top \mathbf{u} + \mathcal{O}(\epsilon^2)}{\epsilon} = \nabla f(\mathbf{w})^\top \mathbf{u}.
-\label{eq:directional_derivative_inner_product}
-\end{equation}
-The rate of change along direction $\mathbf{u}$ is given by the inner product of the gradient vector $\nabla f(\mathbf{w})$ with $\mathbf{u}$.
-
-To minimize $f(\mathbf{w})$, we seek the unit direction $\mathbf{u}^*$ that minimizes the directional derivative (i.e., maximizes the rate of instantaneous decrease):
-\begin{equation}
-\mathbf{u}^* = \arg\min_{\|\mathbf{u}\|_2 = 1} D_\mathbf{u} f(\mathbf{w}) = \arg\min_{\|\mathbf{u}\|_2 = 1} \nabla f(\mathbf{w})^\top \mathbf{u}.
-\label{eq:steepest_descent_problem}
-\end{equation}
-By the Cauchy-Schwarz inequality, for any two vectors $\mathbf{a}, \mathbf{b} \in \R^d$:
-\begin{equation}
-|\mathbf{a}^\top \mathbf{b}| \le \|\mathbf{a}\|_2 \|\mathbf{b}\|_2 \implies -\sum_{j=1}^d a_j b_j \ge -\|\mathbf{a}\|_2 \|\mathbf{b}\|_2.
-\end{equation}
-Applying this bound to Equation~\eqref{eq:steepest_descent_problem} with $\mathbf{a} = \nabla f(\mathbf{w})$ and $\mathbf{b} = \mathbf{u}$ (where $\|\mathbf{u}\|_2 = 1$):
-\begin{equation}
-\nabla f(\mathbf{w})^\top \mathbf{u} \ge -\|\nabla f(\mathbf{w})\|_2 \|\mathbf{u}\|_2 = -\|\nabla f(\mathbf{w})\|_2.
-\label{eq:cauchy_schwarz_lower_bound}
-\end{equation}
-Equality holds if and only if vector $\mathbf{u}$ is collinear with $\nabla f(\mathbf{w})$ and points in the opposite direction:
-\begin{equation}
-\mathbf{u}^* = -\frac{\nabla f(\mathbf{w})}{\|\nabla f(\mathbf{w})\|_2}.
-\label{eq:steepest_descent_direction}
-\end{equation}
-This rigorous derivation proves Cauchy's 1847 theorem~\cite{cauchy1847methode}: \textbf{the negative gradient direction $-\nabla f(\mathbf{w})$ is the direction of steepest instantaneous descent}.
-
-Geometrically, because $\nabla f(\mathbf{w})$ is strictly perpendicular to the level curves of a continuous surface, stepping along $-\nabla f(\mathbf{w})$ guarantees maximum loss reduction per unit distance moved in high-dimensional spaces.
-
-\subsection{First-order Taylor expansion and the gradient descent update}
+\subsection{First-order optimization: Linear approximation and the gradient descent update}
 \label{sec:first_order_taylor}
 
-We parameterize a finite step of length $\eta > 0$ along direction $\mathbf{u}^*$, yielding displacement $\Delta \mathbf{w} = -\eta \nabla f(\mathbf{w})$. The first-order Taylor series approximation around point $\mathbf{w}_t$ is:
+We parameterize a finite step of length $\eta > 0$ along the negative gradient direction, yielding displacement $\Delta \mathbf{w} = -\eta \nabla f(\mathbf{w})$. The first-order Taylor series approximation around point $\mathbf{w}_t$ is:
 \begin{equation}
 f(\mathbf{w}_t - \eta \nabla f(\mathbf{w}_t)) \approx f(\mathbf{w}_t) - \eta \|\nabla f(\mathbf{w}_t)\|_2^2 + \mathcal{O}(\eta^2).
 \label{eq:taylor_first_order}
@@ -1518,87 +1467,21 @@ This establishes the classical \textbf{Gradient Descent update rule}:
 \end{equation}
 where $\eta > 0$ is the \textbf{learning rate} (step size hyperparameter).
 
-\subsection{Learning rate dynamics: Under-stepping vs. divergence}
-\label{sec:learning_rate_dynamics}
+The foundational premise of first-order gradient descent is that the objective function can be effectively approximated by its flat tangent hyperplane. While this linear approximation is strictly valid in an infinitesimal local neighborhood, realistic loss surfaces possess curvature. If an update takes too large a step across a curved landscape, the first-order approximation breaks down, leading to instability. To formally characterize how curvature governs the admissible step size, we must turn to second-order analysis.
 
-The magnitude of the learning rate $\eta$ critically dictates optimization stability:
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{figures/learning_rate_dynamics_contours.pdf}
-\caption{Contour dynamics of gradient descent under varying step sizes $\alpha$: (Left) An excessively small learning rate causes crawling, agonizingly slow progress along the contour gradient; (Middle) An excessively large learning rate overshoots the minimum, oscillating across valley walls with increasing amplitude and ultimately diverging; (Right) An optimal step size determined via line search $\arg\min_\alpha f(\mathbf{x}^{(t)} - \alpha \nabla f(\mathbf{x}^{(t)}))$, where each update lands precisely where the descent direction is tangent to a contour isocurve.}
-\label{fig:slide_learning_rates}
-\end{figure}
-
-As illustrated across the contour landscapes in Figure~\ref{fig:slide_learning_rates}:
-\begin{itemize}
-  \item \textbf{Effective Step Length}: An essential mathematical nuance is that the geometric length of the parameter update is not simply the scalar learning rate $\alpha$, but rather the norm-scaled quantity $\alpha \|\nabla f(\mathbf{x}^{(t)})\|$. In regions where the gradient is steep, the parameter displacement is proportionally magnified; conversely, on shallow plateaus where $\|\nabla f\| \approx 0$, progress stalls regardless of $\alpha$.
-  \item \textbf{Under-stepping ($\alpha \to 0$)}: When $\alpha$ is excessively conservative, parameter updates $\Delta \mathbf{x}^{(t)}$ are microscopic. Iterations advance imperceptibly, requiring thousands of steps to cross moderate distances and rendering the optimizer vulnerable to premature convergence on deceptive plateaus.
-  \item \textbf{Overshooting and Divergence ($\alpha \gg \alpha_{\text{crit}}$)}: When $\alpha$ exceeds the critical threshold dictated by the maximum eigenvalue of the Hessian ($\alpha > 2/\lambda_{\max}$, proven in Section~\ref{sec:condition_number_ravines}), the first-order Taylor approximation breaks down completely. Updates violently oscillate back and forth between opposing valley walls with geometrically increasing amplitude, driving objective values toward infinity: $\lim_{t \to \infty} f(\mathbf{x}^{(t)}) = \infty$.
-  \item \textbf{Optimal Step Size via Exact Line Search}: In classical optimization, the optimal step size is determined adaptively by solving a one-dimensional sub-problem along the negative gradient ray:
-    \begin{equation}
-    \alpha^* = \arg\min_{\alpha > 0} f\left(\mathbf{x}^{(t)} - \alpha \nabla f(\mathbf{x}^{(t)})\right).
-    \label{eq:exact_line_search}
-    \end{equation}
-    Evaluating the optimality condition by differentiating with respect to $\alpha$ via the multivariate chain rule:
-    \begin{equation}
-    \frac{d}{d\alpha} f\left(\mathbf{x}^{(t)} - \alpha \nabla f(\mathbf{x}^{(t)})\right) = -\nabla f\left(\mathbf{x}^{(t+1)}\right)^\top \nabla f\left(\mathbf{x}^{(t)}\right) = 0.
-    \label{eq:line_search_orthogonality}
-    \end{equation}
-    Equation~\eqref{eq:line_search_orthogonality} reveals a fundamental geometric theorem: at the exact line-search minimizer, the new gradient $\nabla f(\mathbf{x}^{(t+1)})$ is strictly perpendicular to the previous search direction $-\nabla f(\mathbf{x}^{(t)})$. In terms of contour topology, this means the gradient direction at the landing point is \textbf{tangent to the local isocurve} (level set), producing the characteristic orthogonal zig-zag trajectory shown in the right panel of Figure~\ref{fig:slide_learning_rates}.
-\end{itemize}
-
-\subsection{Learning rate decay schedules: Linear, inverse, and exponential}
-\label{sec:learning_rate_decay_schedules}
-
-Fixing a constant scalar learning rate $\alpha$ forces an undesirable trade-off: a large learning rate enables rapid traversal of distant plateaus early in training but prevents convergence near the minimum due to endless cross-valley oscillations; conversely, a small learning rate ensures stable fine-grained convergence but crawls agonizingly slowly at initialization.
-
-To reconcile these competing objectives, the learning rate can be modulated dynamically over iterations according to a deterministic \textbf{decay schedule} parameterized by a decay factor $\rho > 0$:
-
-\paragraph{Linear decay schedule.}
-The linear decay schedule interpolates parameter updates uniformly from an initial step size $\alpha^{(0)}$ down to a designated final floor $\alpha^{(\rho)}$ over a budget of $\rho$ iterations:
-\begin{equation}
-\alpha^{(t+1)} = \left(1 - \frac{t}{\rho}\right)\alpha^{(0)} + \frac{t}{\rho}\alpha^{(\rho)}, \quad \text{for } 0 \le t \le \rho.
-\label{eq:linear_decay_schedule}
-\end{equation}
-At iteration $t = 0$, $\alpha^{(1)} = \alpha^{(0)}$. At the terminal horizon $t = \rho$, the learning rate contracts precisely to $\alpha^{(\rho)}$ (typically chosen orders of magnitude smaller than $\alpha^{(0)}$). For iterations $t > \rho$, the rate remains fixed at $\alpha^{(\rho)}$. This schedule provides predictable, constant-rate deceleration.
-
-\paragraph{Inverse decay schedule (Time-based decay).}
-The inverse decay schedule attenuates the step size inversely with the elapsed iteration count:
-\begin{equation}
-\alpha^{(t+1)} = \frac{\alpha^{(t)}}{1 + \rho t}.
-\label{eq:inverse_decay_schedule}
-\end{equation}
-In its direct non-recursive formulation, $\alpha^{(t)} = \frac{\alpha^{(0)}}{1 + \rho t}$. This schedule enforces an asymptotic decay rate of $\mathcal{O}(1/t)$, mirroring the classical Robbins-Monro stochastic convergence rate (detailed in Section~\ref{sec:robbins_monro}) while ensuring rapid initial dampening that smoothly transitions into a long-tailed fine-tuning regime.
-
-\paragraph{Exponential decay schedule.}
-The exponential decay schedule applies continuous geometric dampening scaled by decay rate $\rho > 0$:
-\begin{equation}
-\alpha^{(t+1)} = \alpha^{(0)} e^{-\rho t}.
-\label{eq:exponential_decay_schedule}
-\end{equation}
-Because the step size contracts by a constant multiplicative factor $e^{-\rho}$ at every iteration, exponential decay rapidly quenches parameter updates. In contemporary deep learning practice, this is frequently discretized into \emph{step decay} (e.g., decaying $\alpha$ by a factor of $0.1$ or $0.2$ every fixed number of epochs).
-
-Although first-order gradient descent guarantees monotonic cost reduction on smooth surfaces when the step size is sufficiently small, its foundational premise---that the objective function is well-approximated by a flat tangent hyperplane---breaks down on realistic optimization surfaces. When a loss landscape features high anisotropic curvature, such as elongated ravines where the slope across the walls is orders of magnitude steeper than along the floor, gradient descent exhibits pathological cross-valley bouncing and stalls completely. To diagnose and transcend these geometric limitations, we must incorporate second-order curvature information encoded by the Hessian matrix, as developed in Section~\ref{sec:second_order_curvature}.
-
-\section{Second-order curvature, the Hessian matrix, and ill-conditioned ravines}
+\subsection{Second-order curvature, the Hessian matrix, and ill-conditioned ravines}
 \label{sec:second_order_curvature}
-
-First-order optimization methods navigate loss landscapes solely on the basis of instantaneous slope, assuming that local descent directions remain reliable over finite distances. However, real-world objective surfaces are curved, undulating, and non-isotropic. The rate at which the gradient itself varies across parameter space---quantified by second-order partial derivatives---critically determines whether an update step successfully descends toward a minimum or violently overshoots into divergence.
-
-The most notorious impediment to first-order optimization is the geometry of \textbf{ill-conditioned ravines}: long, narrow valleys flanked by steep canyon walls and possessing a gently sloping floor. In such landscapes, the curvature across the valley walls dwarfs the curvature along the valley base. Because gradient descent updates are constrained by the maximum curvature to prevent explosive divergence across the walls, parameter updates along the gentle floor crawl at a glacial, near-imperceptible pace. The optimizer spends nearly all its computational effort oscillating perpendicularly between opposing walls rather than advancing toward the true minimizer.
-
-This section develops the mathematical framework of second-order optimization and curvature analysis. We begin by formulating the Hessian matrix and the second-order Taylor expansion, proving how its eigenvalues dictate directional curvature. We then contrast the isotropic quadratic surrogate minimized by first-order gradient descent with the true osculating quadratic model minimized by the Newton-Raphson method, illustrating their distinct step behaviors via native geometric schematics. Finally, we formalize the Hessian condition number $\kappa$, derive the exact upper bound on the stable learning rate $\eta < 2/\lambda_{\max}$, and demonstrate why extreme condition numbers induce catastrophic oscillations in standard gradient descent.
-
-\subsection{The Hessian matrix and second-order Taylor expansion}
 \label{sec:hessian_matrix}
+\label{sec:condition_number_ravines}
 
-Let $f: \R^d \to \R$ be twice continuously differentiable ($C^2$). The second-order Taylor series approximation of $f$ around point $\mathbf{w}$ for an arbitrary displacement $\Delta \mathbf{w} \in \R^d$ is:
+First-order optimization methods navigate loss landscapes solely on the basis of instantaneous slope, assuming that local descent directions remain reliable over finite distances. However, real-world objective surfaces are curved and non-isotropic. The rate at which the gradient itself varies across parameter space---quantified by second-order partial derivatives---critically determines whether an update step successfully descends toward a minimum or violently overshoots into divergence.
+
+Let $f: \mathbb{R}^d \to \mathbb{R}$ be twice continuously differentiable ($C^2$). The second-order Taylor series approximation of $f$ around point $\mathbf{w}$ for an arbitrary displacement $\Delta \mathbf{w} \in \mathbb{R}^d$ is:
 \begin{equation}
 f(\mathbf{w} + \Delta \mathbf{w}) \approx f(\mathbf{w}) + \nabla f(\mathbf{w})^\top \Delta \mathbf{w} + \frac{1}{2} \Delta \mathbf{w}^\top \mathbf{H}(\mathbf{w}) \Delta \mathbf{w},
 \label{eq:second_order_taylor}
 \end{equation}
-where $\mathbf{H}(\mathbf{w}) \in \R^{d \times d}$ is the \textbf{Hessian matrix} of second-order partial derivatives:
+where $\mathbf{H}(\mathbf{w}) \in \mathbb{R}^{d \times d}$ is the \textbf{Hessian matrix} of second-order partial derivatives:
 \begin{equation}
 \mathbf{H}_{jk}(\mathbf{w}) = \frac{\partial^2 f(\mathbf{w})}{\partial w_j \partial w_k}, \quad j, k \in \{1, \dots, d\}.
 \label{eq:hessian_def}
@@ -1610,9 +1493,9 @@ By the spectral theorem, the symmetric Hessian admits an orthogonal eigendecompo
 \mathbf{H} = \mathbf{Q} \mathbf{\Lambda} \mathbf{Q}^\top = \sum_{i=1}^d \lambda_i \mathbf{q}_i \mathbf{q}_i^\top,
 \label{eq:hessian_spectral}
 \end{equation}
-where $\mathbf{Q} = [\mathbf{q}_1, \dots, \mathbf{q}_d] \in \R^{d \times d}$ is an orthonormal matrix of eigenvectors ($\mathbf{q}_i^\top \mathbf{q}_j = \delta_{ij}$), and $\mathbf{\Lambda} = \operatorname{diag}(\lambda_1, \dots, \lambda_d)$ contains real eigenvalues ordered such that $\lambda_{\max} \equiv \lambda_1 \ge \lambda_2 \ge \dots \ge \lambda_d \equiv \lambda_{\min}$.
+where $\mathbf{Q} = [\mathbf{q}_1, \dots, \mathbf{q}_d] \in \mathbb{R}^{d \times d}$ is an orthonormal matrix of eigenvectors ($\mathbf{q}_i^\top \mathbf{q}_j = \delta_{ij}$), and $\mathbf{\Lambda} = \operatorname{diag}(\lambda_1, \dots, \lambda_d)$ contains real eigenvalues ordered such that $\lambda_{\max} \equiv \lambda_1 \ge \lambda_2 \ge \dots \ge \lambda_d \equiv \lambda_{\min}$.
 
-The quadratic term $\frac{1}{2} \Delta \mathbf{w}^\top \mathbf{H} \Delta \mathbf{w}$ characterizes directional curvature:
+The quadratic form $\frac{1}{2} \Delta \mathbf{w}^\top \mathbf{H} \Delta \mathbf{w}$ characterizes directional curvature:
 \begin{itemize}[noitemsep]
   \item If $\Delta \mathbf{w}$ aligns with eigenvector $\mathbf{q}_i$, the second-order change is $\frac{1}{2} \lambda_i \|\Delta \mathbf{w}\|_2^2$.
   \item A positive eigenvalue ($\lambda_i > 0$) signifies positive curvature (the function curves upward like a bowl).
@@ -1620,7 +1503,7 @@ The quadratic term $\frac{1}{2} \Delta \mathbf{w}^\top \mathbf{H} \Delta \mathbf
   \item A zero eigenvalue ($\lambda_i = 0$) signifies flat curvature (the function is locally linear along $\mathbf{q}_i$).
 \end{itemize}
 
-\paragraph{Optimal step size under second-order curvature.}
+\paragraph{Optimal step size and the stability bound.}
 Substituting the gradient descent step $\Delta \mathbf{w} = -\eta \mathbf{g}$ (where $\mathbf{g} = \nabla f(\mathbf{w})$) into Equation~\eqref{eq:second_order_taylor}:
 \begin{equation}
 f(\mathbf{w} - \eta \mathbf{g}) \approx f(\mathbf{w}) - \eta \mathbf{g}^\top \mathbf{g} + \frac{1}{2} \eta^2 \mathbf{g}^\top \mathbf{H} \mathbf{g}.
@@ -1631,132 +1514,14 @@ To find the step size $\eta^*$ that maximizes expected decrease, we differentiat
 \frac{d}{d\eta} \left[ f(\mathbf{w}) - \eta \|\mathbf{g}\|_2^2 + \frac{1}{2} \eta^2 \mathbf{g}^\top \mathbf{H} \mathbf{g} \right] = -\|\mathbf{g}\|_2^2 + \eta \mathbf{g}^\top \mathbf{H} \mathbf{g} = 0 \implies \eta^* = \frac{\mathbf{g}^\top \mathbf{g}}{\mathbf{g}^\top \mathbf{H} \mathbf{g}}.
 \label{eq:optimal_eta_hessian}
 \end{equation}
-If the gradient vector happens to align with the dominant eigenvector of the Hessian ($\mathbf{g} \approx \mathbf{q}_1$), the optimal learning rate contracts to $\eta^* = 1/\lambda_{\max}$. Moreover, convergence requires:
+If the gradient vector aligns with the dominant eigenvector of the Hessian ($\mathbf{g} \approx \mathbf{q}_1$), the optimal learning rate contracts to $\eta^* = 1/\lambda_{\max}$. Moreover, convergence strictly requires:
 \begin{equation}
 0 < \eta < \frac{2}{\lambda_{\max}(\mathbf{H})}.
 \label{eq:learning_rate_stability_bound}
 \end{equation}
 If $\eta \ge 2/\lambda_{\max}$, the quadratic term exceeds the linear decrease, and the iterates diverge.
 
-\subsection{Second-order optimization: Newton-Raphson vs. Gradient Descent surrogates}
-\label{sec:newton_vs_gd_surrogates}
-
-To comprehend the fundamental divergence between first-order and second-order optimization, we examine the implicit local surrogate models that guide their respective update steps.
-
-At each iteration $\vw$, first-order gradient descent with step size $\eta$ implicitly minimizes a first-order Taylor expansion regularized by an isotropic proximal penalty:
-\begin{equation}
-\Delta \vw_{\text{GD}} = \argmin_{\Delta \vw} \left[ f(\vw) + \nabla f(\vw)^\top \Delta \vw + \frac{1}{2\eta} \|\Delta \vw\|_2^2 \right] = -\eta \nabla f(\vw).
-\label{eq:gd_quadratic_surrogate}
-\end{equation}
-Geometrically, Equation~\eqref{eq:gd_quadratic_surrogate} models the loss landscape as an \textbf{isotropic spherical bowl} with uniform curvature $1/\eta$ along all spatial directions. The optimizer completely ignores directional variation in terrain steepness, stepping strictly in the direction of steepest instantaneous ascent without regard to whether the slope curves sharply upward or flattens out.
-
-In sharp contrast, the classical multivariate \textbf{Newton-Raphson method} minimizes the \textbf{true osculating second-order Taylor expansion}:
-\begin{equation}
-q_{\text{Newton}}(\Delta \vw) = f(\vw) + \nabla f(\vw)^\top \Delta \vw + \frac{1}{2} \Delta \vw^\top \mathbf{H}(\vw) \Delta \vw.
-\label{eq:newton_taylor_model}
-\end{equation}
-Assuming the Hessian $\mathbf{H}(\vw)$ is positive definite ($\mathbf{H} \succ 0$), setting the gradient of the surrogate to zero yields:
-\begin{equation}
-\nabla_{\Delta \vw} q_{\text{Newton}}(\Delta \vw) = \nabla f(\vw) + \mathbf{H}(\vw) \Delta \vw = \mathbf{0} \implies \Delta \vw_{\text{Newton}} = -[\mathbf{H}(\vw)]^{-1} \nabla f(\vw).
-\label{eq:newton_step_derivation}
-\end{equation}
-The Newton-Raphson parameter update is therefore:
-\begin{equation}
-\vw_{t+1} = \vw_t - [\mathbf{H}(\vw_t)]^{-1} \nabla f(\vw_t).
-\label{eq:newton_update_rule}
-\end{equation}
-
-\begin{figure}[H]
-\centering
-\begin{minipage}{0.48\linewidth}
-  \centering
-  \begin{tikzpicture}[scale=0.82]
-    % 1D Surrogate Comparison
-    \draw[-{Stealth[length=2mm]}, thick, gray!70] (-0.3, 0) -- (6.0, 0) node[right, font=\scriptsize] {$w$};
-    \draw[-{Stealth[length=2mm]}, thick, gray!70] (0, -0.3) -- (0, 4.5) node[above, font=\scriptsize] {Loss};
-    \node[font=\bfseries\sffamily, text=politoNavy] at (3.0, 4.3) {(a) 1D Local Quadratic Surrogates};
-
-    % True objective f(w) = 0.2*(x-3.8)^2 + 0.08*(x-3.8)^3 + 0.6
-    \draw[very thick, politoNavy, domain=0.4:5.4, samples=80] plot (\x, {0.2*(\x-3.8)^2 + 0.08*(\x-3.8)^3 + 0.6});
-    \node[font=\scriptsize\bfseries, text=politoNavy] at (5.2, 1.6) {$f(w)$};
-
-    % Current point w_t at x = 1.2
-    \coordinate (wt) at (1.2, {0.2*(1.2-3.8)^2 + 0.08*(1.2-3.8)^3 + 0.6});
-    \fill[black] (wt) circle (2.2pt);
-    \node[above left=1pt, font=\scriptsize\bfseries] at (wt) {$w_t$};
-
-    % First-order tangent line
-    \draw[thick, dashed, gray!60, domain=0.4:3.0] plot (\x, {1.8 + (-0.95)*(\x-1.2)});
-    \node[font=\tiny, text=gray!80, rotate=-42] at (2.2, 0.65) {Tangent Plane};
-
-    % GD surrogate (isotropic bowl with scalar step)
-    \draw[thick, dashed, examred, domain=0.5:3.2, samples=60] plot (\x, {1.8 - 0.95*(\x-1.2) + 0.9*(\x-1.2)^2});
-    \fill[examred] (1.73, 0) circle (1.8pt) node[below, font=\scriptsize\bfseries, text=examred] {$w_{\text{GD}}$};
-    \draw[dotted, examred] (1.73, 0) -- (1.73, 1.3);
-
-    % Newton surrogate (exact osculating quadratic)
-    \draw[thick, intuitiongreen, domain=0.8:5.2, samples=60] plot (\x, {1.8 - 0.95*(\x-1.2) + 0.18*(\x-1.2)^2});
-    \fill[intuitiongreen] (3.84, 0) circle (1.8pt) node[below, font=\scriptsize\bfseries, text=intuitiongreen] {$w_{\text{Newton}}$};
-    \draw[dotted, intuitiongreen] (3.84, 0) -- (3.84, 0.55);
-
-    \node[font=\tiny, align=left, text=examred] at (1.1, 3.2) {GD Surrogate $q_{\text{GD}}$\\(Isotropic bowl $\frac{1}{2\eta}(w-w_t)^2$)};
-    \node[font=\tiny, align=left, text=intuitiongreen] at (4.5, 3.2) {Newton Surrogate $q_{\text{Newton}}$\\(Osculating $\frac{1}{2}H(w-w_t)^2$)};
-  \end{tikzpicture}
-\end{minipage}\hfill
-\begin{minipage}{0.48\linewidth}
-  \centering
-  \begin{tikzpicture}[scale=0.82]
-    % 2D Step Direction on Anisotropic Contours
-    \draw[-{Stealth[length=2mm]}, thick, gray!60] (-3.4, 0) -- (3.6, 0) node[right, font=\scriptsize] {$w_1$ (Gentle base)};
-    \draw[-{Stealth[length=2mm]}, thick, gray!60] (0, -2.2) -- (0, 2.4) node[above, font=\scriptsize] {$w_2$ (Steep wall)};
-    \node[font=\bfseries\sffamily, text=politoNavy] at (0, 2.6) {(b) Anisotropic Elliptical Contours};
-
-    % Elliptical level curves centered at origin (0, 0)
-    \draw[politoNavy!30, thick] (0, 0) ellipse (3.1 and 1.5);
-    \draw[politoNavy!50, thick] (0, 0) ellipse (2.3 and 1.05);
-    \draw[politoNavy!70, thick] (0, 0) ellipse (1.5 and 0.65);
-    \draw[politoNavy!90, thick] (0, 0) ellipse (0.7 and 0.28);
-
-    % Optimum
-    \node[star, star points=5, star point ratio=2.2, fill=intuitiongreen, inner sep=1.8pt] at (0, 0) {};
-    \node[below left=1pt, font=\scriptsize\bfseries, text=intuitiongreen] at (0, 0) {$\mathbf{w}^*$};
-
-    % Starting point w_0
-    \coordinate (w0) at (2.4, 1.15);
-    \fill[black] (w0) circle (2.2pt);
-    \node[above right, font=\scriptsize\bfseries] at (w0) {$\mathbf{w}_0$};
-
-    % GD Step: perpendicular to level curve (steepest descent)
-    \draw[-{Stealth[length=2.5mm]}, very thick, examred] (w0) -- ($(w0) + (-0.6, -1.25)$) 
-      node[below right, font=\scriptsize\bfseries, text=examred, align=left] {GD Step $-\eta \nabla f$\\(Orthogonal to contour)};
-    \draw[dotted, thick, examred] ($(w0) + (-0.6, -1.25)$) -- ($(w0) + (-1.1, 0.1)$) -- ($(w0) + (-1.5, -0.7)$);
-
-    % Newton Step: directly to minimum!
-    \draw[-{Stealth[length=2.5mm]}, very thick, intuitiongreen] (w0) -- (0, 0)
-      node[pos=0.45, above right, font=\scriptsize\bfseries, text=intuitiongreen, align=left] {Newton Step $-\mathbf{H}^{-1}\nabla f$\\(Points straight to $\mathbf{w}^*$)};
-  \end{tikzpicture}
-\end{minipage}
-\caption{Geometric comparison between first-order Gradient Descent and second-order Newton-Raphson optimization. (a) In one dimension, gradient descent implicitly constructs an isotropic quadratic surrogate with fixed artificial curvature $1/\eta$, yielding small incremental steps; Newton-Raphson constructs the true osculating quadratic model matching local Hessian curvature, leaping directly to the surrogate minimum. (b) On anisotropic elliptical contours ($\kappa \gg 1$), the negative gradient $-\nabla f$ is strictly perpendicular to level curves, directing updates into steep valley walls and causing oscillatory zig-zags; the inverse Hessian $\mathbf{H}^{-1}$ rescales and rotates coordinates by inverse directional curvatures, guiding the Newton step straight to the global minimizer $\mathbf{w}^*$ in a single leap on quadratic surfaces.}
-\label{fig:newton_vs_gd_surrogates}
-\end{figure}
-
-\begin{intuition}[Spectral Action of the Inverse Hessian]
-To understand how Newton's method eliminates ill-conditioning, express the step in the orthonormal eigenbasis of the Hessian $\mathbf{H} = \mathbf{Q} \mathbf{\Lambda} \mathbf{Q}^\top$. Rotating coordinate displacements to $\Delta \tilde{\vw} = \mathbf{Q}^\top \Delta \vw$ and gradients to $\tilde{\mathbf{g}} = \mathbf{Q}^\top \nabla f(\vw)$:
-\begin{equation}
-\Delta \tilde{\vw}_{\text{Newton}} = -\mathbf{\Lambda}^{-1} \tilde{\mathbf{g}} = -\begin{bmatrix} \tilde{g}_1 / \lambda_1 \\ \tilde{g}_2 / \lambda_2 \\ \vdots \\ \tilde{g}_d / \lambda_d \end{bmatrix}.
-\label{eq:newton_eigenspace_action}
-\end{equation}
-Equation~\eqref{eq:newton_eigenspace_action} demonstrates the profound auto-adaptive scaling of second-order optimization:
-\begin{itemize}[noitemsep]
-  \item Along directions of high curvature ($\lambda_i = \lambda_{\max} \gg 0$), the step is aggressively dampened by $1/\lambda_{\max}$, eliminating cross-ravine overshooting.
-  \item Along directions of low curvature ($\lambda_i = \lambda_{\min} \approx 0$), the step is massively amplified by $1/\lambda_{\min}$, accelerating rapidly along the flat valley base.
-\end{itemize}
-If the objective function is purely quadratic, Newton's method reaches the exact minimizer in a \textbf{single step} ($\vw_1 = \vw^*$), rendering convergence speed completely invariant to the condition number $\kappa$!
-\end{intuition}
-
-\subsection{The condition number and ill-conditioned ravines}
-\label{sec:condition_number_ravines}
-
+\paragraph{The condition number and ill-conditioned ravines.}
 A fundamental computational bottleneck for first-order gradient descent is the phenomenon of \textbf{ill-conditioned ravines} (also known as valleys or canyons).
 
 \begin{definition}[Hessian condition number]
@@ -1832,7 +1597,75 @@ As visualized in Figure~\ref{fig:slide_ill_conditioned_ravine}:
 \end{itemize}
 Consequently, first-order gradient descent oscillates violently back and forth between the opposing walls of the ravine, making negligible forward progress toward the true minimizer.
 
-While Newton-Raphson optimization elegantly eliminates ill-conditioning by rotating and rescaling the descent trajectory via the inverse Hessian matrix, its practical application to modern neural networks is thwarted by an insurmountable computational barrier. Computing the full $d \times d$ Hessian requires evaluating second-order derivatives across millions to billions of parameters, demanding prohibitive memory storage ($\mathcal{O}(d^2)$) and an impossible cubic inversion cost ($\mathcal{O}(d^3)$ arithmetic operations per step). Machine learning practitioners are thus confronted with a critical imperative: how can an optimizer overcome cross-ravine oscillations and accelerate along the gentle base of ill-conditioned valleys using \textit{only first-order gradient evaluations}? This fundamental question leads directly to Polyak's classical momentum and the lineage of adaptive first-order optimizers developed in Section~\ref{sec:first_order_acceleration_methods}.
+\section{The learning rate: Dynamics, stability bounds, and decay schedules}
+\label{sec:learning_rate_dynamics_section}
+
+In first-order gradient optimization, the learning rate $\eta > 0$ represents the single most influential hyperparameter governing model training. Acting as the global step-size multiplier, it dictates how far parameters are displaced along the negative gradient vector at every discrete update. Selecting $\eta$ demands resolving a profound operational dilemma: an excessively small step size guarantees stable local descent but stalls optimization on shallow plateaus, while an excessively large step size risks catastrophic overshooting, bouncing violently across ravines and destabilizing parameter updates toward numerical overflow.
+
+Controlling this behavior requires a comprehensive understanding of step dynamics on contour landscapes, the theoretical stability bounds imposed by local curvature, and the deterministic decay schedules that modulate the step size throughout optimization.
+
+\subsection{Learning rate dynamics: Under-stepping, overshooting, and exact line search}
+\label{sec:learning_rate_dynamics}
+
+The magnitude of the learning rate $\eta$ critically dictates optimization stability:
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{figures/learning_rate_dynamics_contours.pdf}
+\caption{Contour dynamics of gradient descent under varying step sizes $\alpha$: (Left) An excessively small learning rate causes crawling, agonizingly slow progress along the contour gradient; (Middle) An excessively large learning rate overshoots the minimum, oscillating across valley walls with increasing amplitude and ultimately diverging; (Right) An optimal step size determined via line search $\arg\min_\alpha f(\mathbf{x}^{(t)} - \alpha \nabla f(\mathbf{x}^{(t)}))$, where each update lands precisely where the descent direction is tangent to a contour isocurve.}
+\label{fig:slide_learning_rates}
+\end{figure}
+
+As illustrated across the contour landscapes in Figure~\ref{fig:slide_learning_rates}:
+\begin{itemize}
+  \item \textbf{Effective Step Length}: An essential mathematical nuance is that the geometric length of the parameter update is not simply the scalar learning rate $\alpha$, but rather the norm-scaled quantity $\alpha \|\nabla f(\mathbf{x}^{(t)})\|$. In regions where the gradient is steep, the parameter displacement is proportionally magnified; conversely, on shallow plateaus where $\|\nabla f\| \approx 0$, progress stalls regardless of $\alpha$.
+  \item \textbf{Under-stepping ($\alpha \to 0$)}: When $\alpha$ is excessively conservative, parameter updates $\Delta \mathbf{x}^{(t)}$ are microscopic. Iterations advance imperceptibly, requiring thousands of steps to cross moderate distances and rendering the optimizer vulnerable to premature convergence on deceptive plateaus.
+  \item \textbf{Overshooting and Divergence ($\alpha \gg \alpha_{\text{crit}}$)}: When $\alpha$ exceeds the critical threshold dictated by the maximum eigenvalue of the Hessian ($\alpha > 2/\lambda_{\max}$, derived in Equation~\eqref{eq:learning_rate_stability_bound}), the first-order Taylor approximation breaks down completely. Updates violently oscillate back and forth between opposing valley walls with geometrically increasing amplitude, driving objective values toward infinity: $\lim_{t \to \infty} f(\mathbf{x}^{(t)}) = \infty$.
+  \item \textbf{Optimal Step Size via Exact Line Search}: In classical optimization, the optimal step size is determined adaptively by solving a one-dimensional sub-problem along the negative gradient ray:
+    \begin{equation}
+    \alpha^* = \arg\min_{\alpha > 0} f\left(\mathbf{x}^{(t)} - \alpha \nabla f(\mathbf{x}^{(t)})\right).
+    \label{eq:exact_line_search}
+    \end{equation}
+    Evaluating the optimality condition by differentiating with respect to $\alpha$ via the multivariate chain rule:
+    \begin{equation}
+    \frac{d}{d\alpha} f\left(\mathbf{x}^{(t)} - \alpha \nabla f(\mathbf{x}^{(t)})\right) = -\nabla f\left(\mathbf{x}^{(t+1)}\right)^\top \nabla f\left(\mathbf{x}^{(t)}\right) = 0.
+    \label{eq:line_search_orthogonality}
+    \end{equation}
+    Equation~\eqref{eq:line_search_orthogonality} reveals a fundamental geometric theorem: at the exact line-search minimizer, the new gradient $\nabla f(\mathbf{x}^{(t+1)})$ is strictly perpendicular to the previous search direction $-\nabla f(\mathbf{x}^{(t)})$. In terms of contour topology, this means the gradient direction at the landing point is \textbf{tangent to the local isocurve} (level set), producing the characteristic orthogonal zig-zag trajectory shown in the right panel of Figure~\ref{fig:slide_learning_rates}.
+\end{itemize}
+
+\subsection{Deterministic learning rate decay schedules: Linear, inverse, and exponential}
+\label{sec:learning_rate_decay_schedules}
+
+Fixing a constant scalar learning rate $\alpha$ forces an undesirable trade-off: a large learning rate enables rapid traversal of distant plateaus early in training but prevents convergence near the minimum due to endless cross-valley oscillations; conversely, a small learning rate ensures stable fine-grained convergence but crawls agonizingly slowly at initialization.
+
+To reconcile these competing objectives, the learning rate can be modulated dynamically over iterations according to a deterministic \textbf{decay schedule} parameterized by a decay factor $\rho > 0$:
+
+\paragraph{Linear decay schedule.}
+The linear decay schedule interpolates parameter updates uniformly from an initial step size $\alpha^{(0)}$ down to a designated final floor $\alpha^{(\rho)}$ over a budget of $\rho$ iterations:
+\begin{equation}
+\alpha^{(t+1)} = \left(1 - \frac{t}{\rho}\right)\alpha^{(0)} + \frac{t}{\rho}\alpha^{(\rho)}, \quad \text{for } 0 \le t \le \rho.
+\label{eq:linear_decay_schedule}
+\end{equation}
+At iteration $t = 0$, $\alpha^{(1)} = \alpha^{(0)}$. At the terminal horizon $t = \rho$, the learning rate contracts precisely to $\alpha^{(\rho)}$ (typically chosen orders of magnitude smaller than $\alpha^{(0)}$). For iterations $t > \rho$, the rate remains fixed at $\alpha^{(\rho)}$. This schedule provides predictable, constant-rate deceleration.
+
+\paragraph{Inverse decay schedule (Time-based decay).}
+The inverse decay schedule attenuates the step size inversely with the elapsed iteration count:
+\begin{equation}
+\alpha^{(t+1)} = \frac{\alpha^{(t)}}{1 + \rho t}.
+\label{eq:inverse_decay_schedule}
+\end{equation}
+In its direct non-recursive formulation, $\alpha^{(t)} = \frac{\alpha^{(0)}}{1 + \rho t}$. This schedule enforces an asymptotic decay rate of $\mathcal{O}(1/t)$, mirroring the classical Robbins-Monro stochastic convergence rate (detailed in Section~\ref{sec:robbins_monro}) while ensuring rapid initial dampening that smoothly transitions into a long-tailed fine-tuning regime.
+
+\paragraph{Exponential decay schedule.}
+The exponential decay schedule applies continuous geometric dampening scaled by decay rate $\rho > 0$:
+\begin{equation}
+\alpha^{(t+1)} = \alpha^{(0)} e^{-\rho t}.
+\label{eq:exponential_decay_schedule}
+\end{equation}
+Because the step size contracts by a constant multiplicative factor $e^{-\rho}$ at every iteration, exponential decay rapidly quenches parameter updates. In contemporary deep learning practice, this is frequently discretized into \emph{step decay} (e.g., decaying $\alpha$ by a factor of $0.1$ or $0.2$ every fixed number of epochs).
+
+Although learning rate decay schedules effectively dampen updates over time to stabilize asymptotic convergence, they apply an identical scalar multiplier uniformly across all spatial coordinates. Consequently, decay schedules are fundamentally incapable of resolving the directional anisotropy of ill-conditioned ravines ($\kappa \gg 1$), where optimization requires aggressive dampening across steep valley walls alongside massive acceleration along gentle valley floors. Furthermore, standard gradient descent operates as a purely reactive, memoryless physical system, resetting its step direction at every iteration solely from instantaneous slope. Overcoming these fundamental geometric bottlenecks requires imbuing the optimizer with physical momentum and developing adaptive coordinate-wise scaling algorithms, as established in Section~\ref{sec:first_order_acceleration_methods}.
 
 \section{First-order acceleration methods: Momentum and unified matrix scaling}
 \label{sec:first_order_acceleration_methods}
