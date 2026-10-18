@@ -1655,7 +1655,7 @@ The inverse decay schedule attenuates the step size inversely with the elapsed i
 \alpha^{(t+1)} = \frac{\alpha^{(t)}}{1 + \rho t}.
 \label{eq:inverse_decay_schedule}
 \end{equation}
-In its direct non-recursive formulation, $\alpha^{(t)} = \frac{\alpha^{(0)}}{1 + \rho t}$. This schedule enforces an asymptotic decay rate of $\mathcal{O}(1/t)$, mirroring the classical Robbins-Monro stochastic convergence rate (detailed in Section~\ref{sec:robbins_monro}) while ensuring rapid initial dampening that smoothly transitions into a long-tailed fine-tuning regime.
+In its direct non-recursive formulation, $\alpha^{(t)} = \frac{\alpha^{(0)}}{1 + \rho t}$. This schedule enforces an asymptotic decay rate of $\mathcal{O}(1/t)$, mirroring the classical Robbins-Monro stochastic convergence rate (detailed in Section~\ref{sec:minibatch_statistics}) while ensuring rapid initial dampening that smoothly transitions into a long-tailed fine-tuning regime.
 
 \paragraph{Exponential decay schedule.}
 The exponential decay schedule applies continuous geometric dampening scaled by decay rate $\rho > 0$:
@@ -1979,16 +1979,14 @@ As visualized across both panels:
 
 Although momentum and adaptive diagonal scaling provide powerful mechanisms for traversing ill-conditioned valleys and accelerating through flat regions, they were originally conceived within the paradigm of convex or locally unimodal optimization. Deep neural architectures, however, present a radically more complex challenge: the composition of multi-layer nonlinear transformations shatters convexity completely, creating high-dimensional loss landscapes populated by astronomically many critical points---including local minima, local maxima, and complex saddle surfaces. Furthermore, simply locating an empirical minimum does not ensure predictive success, as different minima exhibit wildly divergent generalization properties on unseen data. To optimize deep models effectively, we must therefore investigate the topology of critical points and the delicate interplay between curvature and generalization, as explored in Section~\ref{sec:critical_points_deep_learning}.
 
-\section{Critical points and optimization in deep learning: Generalization vs. global minima}
+\section{Critical points and generalization in deep learning}
 \label{sec:critical_points_deep_learning}
 
 In classical convex optimization, the landscape of the objective function is inherently benign: every stationary point where the gradient vanishes is guaranteed to be a global minimum, ensuring that local search trajectories converge to globally optimal parameters regardless of initialization. In deep neural networks, however, permutation symmetries among hidden units and the cascaded nesting of non-linear activations shatter convexity completely. The resulting parameter space is characterized by an intricate, non-convex terrain punctuated by an astronomical proliferation of critical points, flat plateaus, and treacherous ravines.
 
 For decades, the central fear in non-convex optimization was that gradient-based algorithms would become irrevocably trapped in suboptimal, high-loss local minima. However, modern high-dimensional probability and random matrix theory have revolutionized our understanding of deep loss surfaces: in millions of dimensions, the probability that all eigenvalues of the Hessian are simultaneously positive at a high loss elevation decays exponentially to zero. The primary obstacles that impede training are not isolated local minima, but rather high-index saddle points and vast degenerate plateaus. Crucially, the ultimate objective of machine learning is not to achieve the absolute lowest empirical training loss, but to identify parameter configurations that generalize robustly to unseen test distributions.
 
-This section investigates the topology of critical points in deep learning and formalizes the geometry of generalization. We first establish the spectral classification of critical points via Hessian eigenvalues, characterizing local minima, local maxima, and saddle points. We then unpack the modern consensus dispelling the local minima myth through the theoretical insights of Dauphin et al., showing how saddle points proliferate in high dimensions. Next, we analyze the geometry of generalization by contrasting sharp minima with flat minima under distribution shift, demonstrating why wide basins prevent catastrophic generalization gaps. Finally, we establish why iterative first-order optimization remains indispensable even on strictly convex problems due to computational and numerical stability constraints.
-
-\subsection{Classification of critical points via Hessian eigenvalues}
+\subsection{Classification of critical points}
 \label{sec:hessian_classification}
 
 At a critical point $\mathbf{w}^*$, the linear Taylor term in Equation~\eqref{eq:second_order_taylor} vanishes, leaving the local behavior entirely governed by the quadratic form $\frac{1}{2} \Delta \mathbf{w}^\top \mathbf{H}(\mathbf{w}^*) \Delta \mathbf{w}$:
@@ -2079,7 +2077,7 @@ Figures~\ref{fig:slide_saddle_point} and~\ref{fig:manim_saddle_point} illustrate
 \end{equation}
 yielding eigenvalues $\lambda_1 = +2 > 0$ (along the $w_1$ axis) and $\lambda_2 = -2 < 0$ (along the $w_2$ axis).
 
-\subsection{Proliferation of saddle points in high dimensions (Dauphin et al., 2014)}
+\subsection{Proliferation of saddle points in high dimensions}
 \label{sec:dauphin_saddle_points}
 
 In popular machine learning discourse, a persistent misconception is that training deep neural networks fails because first-order gradient descent gets trapped in poor local minima.
@@ -2096,25 +2094,23 @@ In a landmark paper presented at NeurIPS 2014, Dauphin, Bengio et al.~\cite{daup
   \item However, because $\|\nabla f(\mathbf{w})\| \approx 0$ in the vicinity of a saddle point, standard first-order gradient descent decelerates dramatically, spending exponential time navigating plateau-like saddle neighborhoods unless escaping noise is injected.
 \end{enumerate}
 
-\subsection{Why we are rarely interested in the global optimum}
+\subsection{The global optimum fallacy: Flat versus sharp minima}
 \label{sec:global_optimum_fallacy}
+\label{sec:flat_vs_sharp_minima}
 
 In modern statistical learning, a foundational insight overturns classical intuition:
 \begin{center}
 \textbf{\Large\color{politoNavy} ``We are rarely interested in the global optimum!''}
 \end{center}
 
-In classical convex optimization, the global minimum is the undisputed goal. In deep learning, however, searching for the absolute global minimum of the empirical risk $\hat{\risk}_N(\mathbf{w})$ is not merely unnecessary—it is actively hazardous:
+In classical convex optimization, the global minimum is the undisputed goal. In deep learning, however, searching for the absolute global minimum of the empirical risk $\hat{\mathcal{R}}_n(\mathbf{w})$ is not merely unnecessary---it is actively hazardous:
 \begin{enumerate}
-  \item \textbf{Overparameterization and Memorization}: Modern deep networks contain vastly more parameters than training samples ($d \gg N$). A network with millions of parameters possesses sufficient capacity to achieve zero empirical loss ($\hat{\risk}_N(\mathbf{w}^*) = 0$) by memorizing every arbitrary training sample, including mislabeled instances and random noise.
-  \item \textbf{Generalization Failure}: Reaching the absolute global minimum of empirical loss often drives parameters into extreme overfitted configurations. Because the training set $\mathcal{D}_N$ is merely a finite empirical sample from underlying distribution $P$, perfectly fitting $\mathcal{D}_N$ creates huge errors on unseen test data ($\risk(h_{\mathbf{w}^*}) \gg 0$).
+  \item \textbf{Overparameterization and Memorization}: Modern deep networks contain vastly more parameters than training samples ($d \gg n$). A network with millions of parameters possesses sufficient capacity to achieve zero empirical loss ($\hat{\mathcal{R}}_n(\mathbf{w}^*) = 0$) by memorizing every arbitrary training sample, including mislabeled instances and random noise.
+  \item \textbf{Generalization Failure}: Reaching the absolute global minimum of empirical loss often drives parameters into extreme overfitted configurations. Because the training set is merely a finite empirical sample from the underlying data distribution $P$, perfectly fitting the training sample creates large errors on unseen test data ($\mathcal{R}(h_{\mathbf{w}^*}) \gg 0$).
   \item \textbf{Sub-optimal Local Basins Generalize Better}: Any reasonable local minimum that achieves low (but non-zero) loss and resides in a broad, well-behaved basin yields vastly superior generalization compared to the degenerate empirical global optimum.
 \end{enumerate}
 
-\subsection{Flat vs. sharp minima: Hessian spectrum and test distribution generalization}
-\label{sec:flat_vs_sharp_minima}
-
-To formalize why certain local minima generalize while others overfit, optimization theory examines the \textbf{spectral flatness} of the loss basin (Hochreiter \& Schmidhuber~\cite{hochreiter1997flat}; Keskar et al.~\cite{keskar2017large}):
+To formalize why certain local minima generalize while others overfit, optimization theory examines the \textbf{spectral flatness} of the loss basin (Hochreiter \& Schmidhuber~\cite{hochreiter1997flat}; Keskar et al.~\cite{keskar2017large}), characterized by the eigenvalues of the local Hessian matrix.
 
 \begin{figure}[H]
 \centering
@@ -2136,7 +2132,7 @@ To formalize why certain local minima generalize while others overfit, optimizat
     % Train loss
     \addplot[very thick, politoNavy, domain=1.0:6.5, samples=150] 
       {1.8 + 0.05*(x-4.0)^2 - 1.5*exp(-(x-2.0)^2 / 0.10) - 1.2*exp(-(x-5.2)^2 / 1.5)}
-      node[pos=1.0, right, font=\scriptsize\bfseries, text=politoNavy] {Train $\hat{\mathcal{R}}_N$};
+      node[pos=1.0, right, font=\scriptsize\bfseries, text=politoNavy] {Train $\hat{\mathcal{R}}_n$};
 
     % Test loss (shifted by Delta w = 0.4)
     \addplot[very thick, examred, dashed, domain=1.0:6.5, samples=150] 
@@ -2224,40 +2220,23 @@ To formalize why certain local minima generalize while others overfit, optimizat
 As demonstrated in Figure~\ref{fig:flat_vs_sharp_minima}:
 \begin{itemize}
   \item \textbf{Sharp Minima ($\lambda_{\max} \gg 0$)}: Characterized by narrow, steep ravines. Because the empirical training distribution $\hat{P}$ differs slightly from the true underlying distribution $P$, the test loss landscape is shifted horizontally by some small displacement $\Delta \mathbf{w}$. In a sharp well, moving $\mathbf{w}^*_{\text{sharp}} + \Delta \mathbf{w}$ catapults the loss value up the steep canyon wall, causing a catastrophic generalization gap.
-  \item \textbf{Flat Minima ($\lambda_{\max} \approx 0$)}: Characterized by wide, gentle valleys. Under the exact same parameter displacement $\Delta \mathbf{w}$, the test loss remains virtually unchanged: $\mathcal{R}_{\text{test}}(\mathbf{w}^*_{\text{flat}} + \Delta \mathbf{w}) \approx \hat{\mathcal{R}}_N(\mathbf{w}^*_{\text{flat}})$. Flat minima are inherently robust to distribution shift and parameter quantization.
+  \item \textbf{Flat Minima ($\lambda_{\max} \approx 0$)}: Characterized by wide, gentle valleys. Under the exact same parameter displacement $\Delta \mathbf{w}$, the test loss remains virtually unchanged: $\mathcal{R}_{\text{test}}(\mathbf{w}^*_{\text{flat}} + \Delta \mathbf{w}) \approx \hat{\mathcal{R}}_n(\mathbf{w}^*_{\text{flat}})$. Flat minima are inherently robust to distribution shift and parameter quantization.
   \item \textbf{Kinetic Escape}: While standard batch gradient descent easily gets trapped in steep, non-generalizing local basins, momentum velocity $\mathbf{v}$ and stochastic mini-batch noise $\boldsymbol{\xi}_t$ act as dynamic perturbations that kick parameters over low barriers, naturally filtering out sharp wells in favor of expansive flat basins.
 \end{itemize}
 
-\subsection{The imperative for numerical optimization even on convex problems}
-\label{sec:convex_problems_numerical_optimization}
-
-This raises an essential theoretical question: \emph{if a machine learning problem is convex and possesses an exact analytical solution, why do we still use iterative gradient descent?}
-
-\begin{enumerate}
-  \item \textbf{Computational Complexity and Memory Scaling in OLS}:
-    For linear regression, the closed-form normal equations yield $\mathbf{w}^* = (\mathbf{X}^\top \mathbf{X})^{-1}\mathbf{X}^\top \mathbf{y}$. 
-    Forming the Gram matrix $\mathbf{X}^\top \mathbf{X}$ requires $\mathcal{O}(N d^2)$ operations, and inverting it via Cholesky or LU decomposition requires $\mathcal{O}(d^3)$ arithmetic operations and $\mathcal{O}(d^2)$ memory storage.
-    When $d = 10^5$ (common in text, genomic, or computer vision representations), storing $d \times d$ floating-point matrices requires $40\text{ GB}$ of RAM, and computing $d^3 = 10^{15}$ operations is intractable.
-    In contrast, first-order gradient descent scales as $\mathcal{O}(Nd)$ per iteration and requires only $\mathcal{O}(d)$ memory, enabling optimization on commodity hardware.
-  \item \textbf{Numerical Stability and Ill-Conditioning}:
-    When features are collinear, the condition number $\kappa(\mathbf{X}^\top \mathbf{X}) = (\kappa(\mathbf{X}))^2$ is squared! Direct matrix inversion suffers from catastrophic floating-point cancellation. Iterative gradient descent (especially when regularized via weight decay or early stopping) provides vastly superior numerical stability.
-  \item \textbf{Non-Existence of Closed Forms in Generalized Linear Models}:
-    As proven in Section~\ref{sec:no_closed_form_solution}, composing linear predictors with non-linear sigmoid or softmax links destroys linear algebra solvability. For logistic regression, closed-form inversion is mathematically impossible, leaving iterative optimization as the sole viable path.
-\end{enumerate}
-
 Although first-order gradient descent equipped with momentum and adaptive scaling provides a robust framework for navigating non-convex landscapes toward flat minima, its full-batch formulation suffers from a crushing operational bottleneck in modern data-rich environments: computing the exact gradient requires evaluating forward and backward passes across every single training observation in the dataset. When training sets scale to millions or billions of examples, evaluating a single full-batch parameter update becomes prohibitively sluggish, requiring hours or days of compute. Moreover, deterministic full-batch trajectories lack any exploratory stochasticity to jump over low energetic barriers separating sharp, overfitted wells from wide, generalizing valleys. To unlock efficient learning on massive datasets while harnessing beneficial stochastic perturbation, we must transition from deterministic batch optimization to stochastic gradient descent and mini-batch dynamics in Section~\ref{sec:sgd_and_minibatch}.
 
-\section{Stochastic gradient descent (SGD), mini-batch dynamics, and large-scale learning bounds}
+\section{Stochastic gradient descent and mini-batch optimization}
 \label{sec:sgd_and_minibatch}
 
 The empirical risk objective in supervised learning is structured as an arithmetic average of loss terms computed across individual training samples. By linearity of differentiation, computing the exact full-batch gradient requires summing the loss gradients evaluated over the entire dataset. In an era where benchmark datasets encompass millions of high-resolution images, billions of web documents, or continuous streaming logs, executing this exhaustive summation for every parameter update creates a paralyzing computational bottleneck that brings optimization to a virtual standstill.
 
 Stochastic gradient descent (SGD) resolves this computational crisis through a profound statistical principle: an average computed over a small, randomly sampled subset of observations serves as an unbiased estimator of the true population expectation. While this subsampling injects high-frequency variance into parameter updates, this stochastic noise is far from a mere nuisance: it acts as a beneficial thermal agitation---an implicit Langevin regularizer that actively prevents parameters from settling into narrow, sharp overfitted minima, nudging the optimization trajectory toward wide, flat basins with superior generalization capabilities.
 
-This section develops the complete theoretical and empirical foundations of stochastic and mini-batch optimization. We begin by dissecting the two computational bottlenecks of full-batch gradient descent (dataset size $n$ and parameter dimension $d$) and evaluate batch vs. stochastic vs. mini-batch estimators through concrete benchmark speedup calculations on MNIST. We then formalize the algorithmic epoch cycle, derive the statistical unbiasedness and $\mathcal{O}(1/m)$ variance reduction of mini-batch gradients, and explain why SGD does not halt at the minimum but fluctuates within a steady-state covariance cloud. Next, we establish the Robbins-Monro conditions governing almost-sure convergence, synthesize the asymptotic learning bounds of Bousquet and Bottou, and contrast all gradient estimation paradigms in an exhaustive comparative matrix. Finally, we conclude with a grand synthesis bridging linear optimization to deep representation learning.
-
-\subsection{The two computational bottlenecks of gradient descent}
+\subsection{Computational bottlenecks and mini-batch gradient descent}
 \label{sec:two_bottlenecks_gd}
+\label{sec:gradient_estimators_taxonomy}
+\label{sec:algorithmic_cycle_epochs}
 
 Formally, the empirical risk objective $\hat{\mathcal{R}}_n(\boldsymbol{\theta})$ is defined as the arithmetic mean of loss functions evaluated over $n$ training observations:
 \begin{equation}
@@ -2275,9 +2254,6 @@ Equation~\eqref{eq:full_batch_gradient} exposes the \textbf{two fundamental bott
   \item \textbf{Bottleneck 1: Number of examples $n$}. In modern datasets (ImageNet, web corpora), $n$ ranges from $10^6$ to $10^{12}$. Evaluating all $n$ forward-backward passes to execute a single parameter step takes hours or days, stalling progress completely.
   \item \textbf{Bottleneck 2: Number of parameters $d$}. Neural networks contain millions to billions of parameters ($d \sim 10^7$--$10^{11}$). Storing, communicating, and computing gradients across $d$ dimensions per sample magnifies computational overhead.
 \end{enumerate}
-
-\subsection{Batch vs. stochastic vs. mini-batch estimators and the MNIST speedup}
-\label{sec:gradient_estimators_taxonomy}
 
 To break the dataset size bottleneck $n$, we approximate the full summation over training set $\mathcal{T}$ ($|\mathcal{T}| = n$) by evaluating the gradient over a small, representative, uniformly drawn subset $\mathcal{B} \subset \mathcal{T}$ of cardinality $m \ll n$ (termed a \textbf{mini-batch}):
 \begin{equation}
@@ -2297,27 +2273,39 @@ To appreciate the computational advantage concretely, consider the canonical MNI
 \end{itemize}
 In the time full-batch GD takes to evaluate a single update, mini-batch SGD executes 6,000 parameter updates, making massive progress across the loss terrain.
 
-\subsection{Algorithmic cycle and epoch progression}
-\label{sec:algorithmic_cycle_epochs}
+\paragraph{Algorithmic cycle and epoch progression.}
+The procedural execution of mini-batch stochastic gradient descent proceeds cyclically as formalized in Algorithm~\ref{alg:minibatch_sgd}.
 
-The procedural execution of mini-batch stochastic gradient descent proceeds cyclically:
-\begin{enumerate}
-  \item \textbf{Initialization}: Initialize parameter vector $\boldsymbol{\theta}^{(0)} \in \R^d$ (e.g., via He or Xavier initialization).
-  \item \textbf{Mini-Batch Sampling}: Uniformly sample a mini-batch $\mathcal{B} \subset \mathcal{T}$ of size $m$.
-  \item \textbf{Downhill Parameter Step}: Update parameters in the negative gradient direction (optionally incorporating momentum velocity):
-    \begin{equation}
-    \boldsymbol{\theta} \leftarrow \boldsymbol{\theta} - \alpha \nabla \ell_{\boldsymbol{\theta}}(\mathcal{B}).
-    \label{eq:minibatch_algorithmic_step}
-    \end{equation}
-  \item \textbf{Recurrence and Epoch Completion}: Repeat steps 2--3. When accumulated mini-batches exhaustively cover the entire training set $\mathcal{T}$, one \textbf{epoch} is completed. Training iterates across multiple epochs until validation performance plateaus.
-\end{enumerate}
+\begin{algorithm}[H]
+\caption{Mini-Batch Stochastic Gradient Descent (SGD)}
+\label{alg:minibatch_sgd}
+\begin{algorithmic}[1]
+\Require Training dataset $\mathcal{T} = \{(\mathbf{x}_i, y_i)\}_{i=1}^n$, loss function $\ell$, learning rate schedule $\{\alpha_t\}$, mini-batch size $m$, total epochs $E$.
+\Ensure Optimized parameter vector $\boldsymbol{\theta}^*$.
+\State Initialize parameter vector $\boldsymbol{\theta}^{(0)} \in \R^d$ (e.g., via He or Xavier initialization)
+\State Initialize global step counter $t \gets 0$
+\For{$\mathrm{epoch} = 1 \text{ to } E$}
+    \State Randomly shuffle training dataset $\mathcal{T}$
+    \State Partition $\mathcal{T}$ into $K = \lceil n / m \rceil$ contiguous mini-batches $\{\mathcal{B}_1, \mathcal{B}_2, \dots, \mathcal{B}_K\}$
+    \For{$k = 1 \text{ to } K$}
+        \State Compute mini-batch stochastic gradient estimator:
+        \Statex \qquad\qquad $\mathbf{g}_t \gets \frac{1}{|\mathcal{B}_k|} \sum_{i \in \mathcal{B}_k} \nabla_{\boldsymbol{\theta}} \ell(f_{\boldsymbol{\theta}^{(t)}}(\mathbf{x}_i), y_i)$
+        \State Execute parameter update step:
+        \Statex \qquad\qquad $\boldsymbol{\theta}^{(t+1)} \gets \boldsymbol{\theta}^{(t)} - \alpha_t \mathbf{g}_t$
+        \State Advance step counter: $t \gets t + 1$
+    \EndFor
+\EndFor
+\State \Return $\boldsymbol{\theta}^{(t)}$
+\end{algorithmic}
+\end{algorithm}
 
 \begin{remark}[Constant Update Cost]
 A crucial property is that the update cost per iteration is $\mathcal{O}(m \cdot d)$, which is \textbf{strictly constant regardless of the total size of dataset $\mathcal{T}$}. This invariance enables deep learning algorithms to scale gracefully to virtually infinite streaming datasets.
 \end{remark}
 
-\subsection{Statistical properties: Unbiasedness, variance scaling, and steady-state oscillations}
+\subsection{Statistical properties of stochastic gradients}
 \label{sec:minibatch_statistics}
+\label{sec:robbins_monro}
 
 We formalize the statistical properties of the stochastic gradient estimator:
 
@@ -2351,72 +2339,18 @@ As illustrated in Figure~\ref{fig:slide_minibatch_dynamics}, a defining hallmark
 \end{equation}
 Even when the true gradient vanishes at the minimizer ($\nabla \ell(\boldsymbol{\theta}^*) = \mathbf{0}$), individual sample gradients $\nabla \hat{\ell}_i(\boldsymbol{\theta}^*)$ do not vanish! Consequently, mini-batch gradients retain stochastic noise, causing parameters to wander indefinitely in a steady-state covariance cloud around $\boldsymbol{\theta}^*$.
 
-\subsection{Robbins-Monro convergence conditions for stochastic optimization}
-\label{sec:robbins_monro}
-
-To extinguish persistent stochastic oscillations and guarantee almost sure convergence to a stationary point ($\lim_{t \to \infty} \boldsymbol{\theta}_t = \boldsymbol{\theta}^*$), the learning rate sequence $\{\alpha_t\}_{t=1}^\infty$ must be decayed.
-
-In their foundational 1951 paper on stochastic approximation, Herbert Robbins and Sutton Monro~\cite{robbins1951stochastic} established the necessary and sufficient conditions:
+\paragraph{Asymptotic variance extinction and the Robbins-Monro condition.}
+To extinguish persistent stochastic fluctuations and guarantee almost-sure convergence to a stationary point ($\lim_{t \to \infty} \boldsymbol{\theta}_t = \boldsymbol{\theta}^*$), the learning rate sequence $\{\alpha_t\}_{t=1}^\infty$ must satisfy the classical Robbins-Monro conditions~\cite{robbins1951stochastic}:
 \begin{equation}
 \sum_{t=1}^\infty \alpha_t = \infty \quad \text{and} \quad \sum_{t=1}^\infty \alpha_t^2 < \infty.
 \label{eq:robbins_monro_conditions}
 \end{equation}
-\begin{itemize}[noitemsep]
-  \item \textbf{Condition 1 ($\sum \alpha_t = \infty$)}: Guarantees infinite exploration horizon. The cumulative distance parameters can travel is unbounded, ensuring the optimizer never stalls before reaching the minimum basin.
-  \item \textbf{Condition 2 ($\sum \alpha_t^2 < \infty$)}: Guarantees variance extinction. Because cumulative error variance accumulates as $\sum \alpha_t^2 \sigma^2 < \infty$, stochastic fluctuations vanish asymptotically at $\boldsymbol{\theta}^*$.
-\end{itemize}
+The first condition ensures an infinite exploration horizon so the optimizer never stalls prematurely, while the second guarantees that cumulative variance contracts to zero asymptotically.
 
-\subsection{Asymptotic upper bounds for large-scale learning (Bottou \& Bousquet, 2008)}
-\label{sec:bottou_bousquet_bounds}
-
-The seminal theoretical framework of Léon Bottou and Olivier Bousquet~\cite{bottou2008tradeoffs} (NeurIPS 2008, \emph{``The Tradeoffs of Large Scale Learning''}) rigorously demonstrates why SGD achieves superior generalization compared to full-batch GD under bounded computational budgets.
-
-Consider a convex learning problem with training set size $n$, parameter dimension $d$, and objective condition number $\kappa$. We seek to achieve target accuracy $\rho > 0$ on excess true risk:
-\begin{equation}
-\left| \ell(h_{\boldsymbol{\theta}}) - \ell(f^*) \right| < \rho,
-\label{eq:excess_risk_target}
-\end{equation}
-where $\ell(h_{\boldsymbol{\theta}})$ is the expected risk of the learned hypothesis, and $\ell(f^*)$ is the Bayes optimal risk.
-
-\begin{table}[H]
-\centering
-\caption{Asymptotic upper bounds for reaching excess risk $\rho$ on convex problems (Bottou \& Bousquet, NeurIPS 2008). Here $\kappa$ and $\nu$ are constants governing objective conditioning and gradient variance.}
-\label{tab:bottou_bousquet_bounds}
-\begin{tabularx}{0.92\textwidth}{lXX}
-\toprule
-\textbf{Optimization Algorithm} & \textbf{Computational Cost per Iteration} & \textbf{Iterations to Reach Target Error $\rho$} \\
-\midrule
-Full Batch Gradient Descent (GD) & $\mathcal{O}(n \cdot d)$ & $\mathcal{O}\left(\kappa \log \frac{1}{\rho}\right)$ \\
-\addlinespace
-Stochastic Gradient Descent (SGD) & $\mathcal{O}(d)$ & $\frac{\nu \kappa^2}{\rho} + o\left(\frac{1}{\rho}\right)$ \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\paragraph{The profound theoretical implication: Total computational cost.}
-Evaluating the total computational work required to reach accuracy $\rho$:
-\begin{align}
-\text{Total Work}_{\text{GD}} &= \mathcal{O}(nd) \times \mathcal{O}\left(\kappa \log \frac{1}{\rho}\right) = \mathcal{O}\left( n \cdot d \cdot \kappa \log \frac{1}{\rho} \right), \label{eq:total_work_gd} \\
-\text{Total Work}_{\text{SGD}} &= \mathcal{O}(d) \times \left( \frac{\nu \kappa^2}{\rho} + o\left(\frac{1}{\rho}\right) \right) = \mathcal{O}\left( \frac{d \cdot \nu \kappa^2}{\rho} \right). \label{eq:total_work_sgd}
-\end{align}
-
-\begin{examinsight}[Oral Exam Milestone: Why SGD Generalizes Better]
-Observe the fundamental distinction between Equations~\eqref{eq:total_work_gd} and~\eqref{eq:total_work_sgd}:
-\begin{center}
-\textbf{The total computational cost of SGD does NOT depend on the number of training examples $n$!}
-\end{center}
-In large-scale machine learning where computation time is limited:
-\begin{itemize}[noitemsep]
-  \item \textbf{Full Batch GD} spends vast computational resources computing ultra-precise gradients over a fixed, finite dataset $\mathcal{D}_n$, driving empirical training error to zero but over-fitting sample noise.
-  \item \textbf{SGD} takes cheap, noisy steps that each touch new, unvisited samples. For a fixed computational budget of floating-point operations (FLOPs), SGD processes orders of magnitude more distinct data samples from distribution $P$.
-\end{itemize}
-Because statistical generalization error is bounded by the total amount of unique data processed rather than optimization precision on a small set, \textbf{SGD achieves strictly superior generalization error (true risk)}!
-\end{examinsight}
-
-\subsection{Practical considerations in modern deep learning SGD}
+\subsection{Practical considerations for stochastic optimization}
 \label{sec:practical_sgd_deep_learning}
 
-To conclude the optimization framework, we synthesize five foundational practical principles for deploying SGD in contemporary neural networks:
+To deploy SGD effectively in contemporary deep neural networks, five foundational practical principles govern implementation and training stability:
 
 \begin{enumerate}
   \item \textbf{Data Shuffling to Eliminate Ordering Bias}:
@@ -2434,54 +2368,3 @@ To conclude the optimization framework, we synthesize five foundational practica
     \end{center}
     In real-world engineering, achieving an exact stationary point ($\nabla \ell = \mathbf{0}$) is neither required nor desirable. Finding a robust, flat basin with low empirical loss within practical time constraints delivers state-of-the-art generalization.
 \end{enumerate}
-
-\clearpage
-\enlargethispage{\baselineskip}
-\subsection{Systematic comparison of gradient descent paradigms}
-\label{sec:systematic_comparison}
-
-Table~\ref{tab:gradient_comparison} synthesizes the mathematical, computational, and algorithmic trade-offs across the gradient descent family.
-
-\begin{table}[H]
-\centering
-\small
-\renewcommand{\arraystretch}{0.90}
-\caption{Systematic comparison of Batch Gradient Descent, Stochastic Gradient Descent (SGD), and Mini-Batch SGD.}
-\label{tab:gradient_comparison}
-\begin{tabularx}{\textwidth}{lXXX}
-\toprule
-\textbf{Property} & \textbf{Batch Gradient Descent} & \textbf{Stochastic GD (SGD)} & \textbf{Mini-Batch SGD} \\
-
-\midrule
-\textbf{Batch Size $B$} & $B = n$ (full dataset) & $B = 1$ (single sample) & $1 < B < n$ (typically $32$--$512$) \\
-\textbf{Cost per Step} & $\mathcal{O}(n \cdot d)$ & $\mathcal{O}(d)$ & $\mathcal{O}(B \cdot d)$ \\
-\textbf{Gradient Variance} & Zero (deterministic) & High ($\sigma^2$) & Controlled ($\sigma^2 / B$) \\
-\textbf{Convergence Path} & Monotonic \& smooth & Erratic \& oscillatory & Controlled variance cloud \\
-\textbf{Hardware Affinity} & Memory bound on large $n$ & Poor GPU SIMD usage & Highly optimized for GPU BLAS \\
-\textbf{Saddle Point Escape} & Vulnerable to stall & High escape ability & Strong escape via noise \\
-\textbf{Scaling with $n$} & Total work scales with $n$ & Total work independent of $n$ & Total work independent of $n$ \\
-\textbf{Generalization} & Prone to sharp traps & Excellent (flat basins) & Optimal (balanced noise) \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\subsection{Chapter synthesis and roadmap to representation learning}
-\label{sec:chapter3_synthesis}
-
-Across Chapters~1 through~3, we have traversed the foundational triad of statistical machine learning:
-\begin{enumerate}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
-  \item \textbf{Statistical foundations (Chapter~1)}: Defining learning paradigms, hypothesis spaces, and the fundamental trade-off between empirical risk and true risk.
-  \item \textbf{Decision-theoretic limits (Chapter~2)}: Formulating the Bayes optimal predictor, irreducible noise, and the estimation/approximation trade-off governing model capacity.
-  \item \textbf{Loss geometry and optimization (Chapter~3)}: Moving from the non-convex pathologies of squared error in classification to cross-entropy, and replacing intractable analytical matrix inversions with first-order iterative methods (GD, Momentum, and Mini-batch SGD).
-\end{enumerate}
-
-The decisive realization uniting this theoretical arc is that \textbf{optimization in machine learning is subservient to generalization}. Unlike classical numerical analysis, where reaching an exact critical point ($\nabla \ell = \mathbf{0}$) is paramount, deep learning exploits stochastic gradient noise, momentum dynamics, and early stopping as implicit regularizers that bias trajectories away from sharp overfitted traps and toward wide, flat basins with superior test performance.
-
-However, all models examined thus far have relied on \textbf{fixed linear representations} $\mathbf{w}^\top \mathbf{x} + b$. Even when paired with cross-entropy and trained via mini-batch SGD, a linear hyperplane cannot separate nonlinearly distributed data (such as the classical XOR problem or complex perceptual manifolds). To transcend this expressivity bottleneck, machine learning diverges into two great paradigms:
-\begin{itemize}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
-  \item \textbf{Implicit feature spaces (Kernel Methods and SVMs)}: Projecting inputs into high- (or infinite-) dimensional Hilbert spaces via the kernel trick while retaining convex dual optimization.
-  \item \textbf{Explicit hierarchical representations (Deep Neural Networks)}: Learning parameterized feature transformations end-to-end via composite nonlinear layers, where optimization gradients are propagated through intermediate representations using the chain rule (Backpropagation).
-\end{itemize}
-These representation learning paradigms form the core of the upcoming chapters.
-
-
