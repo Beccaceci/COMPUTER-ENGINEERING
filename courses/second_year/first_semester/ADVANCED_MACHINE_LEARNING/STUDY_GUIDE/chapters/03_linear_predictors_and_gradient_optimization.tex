@@ -911,12 +911,39 @@ The choice of loss function is the central design decision that governs both the
 
 To make progress, statistical learning replaces the intractable 0-1 step loss with smooth, continuous surrogate functions defined over the classification margin. Yet, choosing an ill-suited surrogate can have disastrous consequences: as proven in Section~\ref{sec:squared_error_sigmoid_failure}, squared error penalizes over-confident correct classifications while destroying convexity and inducing vanishing gradients. In contrast, cross-entropy loss---derived from Maximum Likelihood Estimation on Bernoulli and Multinomial distributions---possesses a remarkably benign geometry: it is strictly convex, penalizes confident mistakes with severe logarithmic penalties, and algebraically cancels the vanishing derivative of sigmoidal and softmax links.
 
-This section conducts an exhaustive investigation into loss function geometry and the limits of closed-form algebra. We first review the margin geometry of canonical classification losses (0-1, hinge, squared error, and logistic loss). We then rigorously derive binary and multiclass cross-entropy from maximum likelihood principles and analyze their gradient dynamics. Next, we expose a foundational mathematical threshold: setting the cross-entropy gradient to zero yields a coupled system of transcendental equations that admits \textbf{no closed-form algebraic solution}, rendering matrix inversion impossible. Finally, we formulate the subgradient calculus required to optimize non-smooth objectives like hinge loss and ReLU activations.
-
-\subsection{Revisiting loss designs: 0-1 loss, squared error, and SVM hinge loss}
+\subsection{The role of loss functions: Downstream alignment and surrogate geometry}
 \label{sec:loss_comparison_review}
 
-In classification, candidate loss functions evaluate the agreement between prediction $h(\mathbf{x})$ and target $y$. When labels are parameterized symmetrically as $y \in \{-1, +1\}$, performance is governed by the \textbf{functional margin} $z \triangleq y \cdot h(\mathbf{x})$. A positive margin ($z > 0$) signifies correct classification, while a negative margin ($z < 0$) indicates an error.
+In supervised learning, the loss function $\ell(h(\mathbf{x}), y)$ serves as the mathematical objective that steers the parameter vector $\mathbf{w}$ across the parameter space. Optimization algorithms possess no intrinsic semantic understanding of the downstream application---whether diagnosing medical lesions, detecting credit card fraud, or forecasting physical temperatures; they simply follow the local descent trajectory dictated by the gradients of the chosen loss surface. Consequently, defining a mathematically sound and task-aligned loss function is the single most critical modeling decision in machine learning.
+
+\paragraph{Aligning loss functions with downstream task objectives.}
+The loss function must faithfully reflect the statistical nature and operational requirements of the downstream task:
+\begin{itemize}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
+  \item \textbf{Continuous regression tasks}: When predicting continuous physical quantities ($y \in \R$), discrepancies between predictions and targets represent quantitative deviations. Standard $L_2$ squared error penalizes errors symmetrically and quadratically, estimating the conditional expectation $\E[y \mid \mathbf{x}]$, whereas $L_1$ absolute error penalizes deviations linearly, estimating the conditional median and conferring robust resistance against extreme anomalies.
+  \item \textbf{Discrete classification tasks}: When assigning samples to qualitative categories ($y \in \{0, 1\}$ or $y \in \{1, \dots, K\}$), the primary objective is correct discrete decision-making. Outputs must be interpreted as well-calibrated posterior probabilities $P(y = k \mid \mathbf{x})$ rather than unconstrained physical magnitudes. The loss function must enforce probabilistic consistency and provide non-vanishing restorative signals when classifications are wrong.
+\end{itemize}
+
+\paragraph{The pathology of Mean Squared Error for classification.}
+To appreciate why loss function design is so critical, recall the catastrophic failure modes uncovered in Section~\ref{sec:linear_to_logistic} when Mean Squared Error (MSE) is misapplied to classification tasks:
+\begin{enumerate}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
+  \item \textbf{Outlier distortion via penalization of correct predictions}: When binary labels are encoded symmetrically as $y \in \{-1, +1\}$, performance is naturally evaluated over the \textbf{functional margin} $z \triangleq y \cdot h(\mathbf{x})$. A positive margin ($z > 0$) signifies correct classification, while a negative margin ($z < 0$) indicates an error. Under this formulation, squared error becomes:
+  \begin{equation}
+  \ell_{\text{SE}}(z) = (1 - z)^2.
+  \label{eq:squared_error_margin}
+  \end{equation}
+  Notice the severe flaw: if a test sample is classified correctly with substantial confidence (for instance, $z = +4$), squared error does not assign zero penalty! Instead, it penalizes the point quadratically with $(1 - 4)^2 = 9$. Extremely confident, easily separable observations dominate the empirical risk gradient, forcefully tilting and rotating the decision hyperplane away from clean cluster separation.
+  \item \textbf{Non-convexity and vanishing gradient plateaus}: When squared error is paired with a non-linear link function such as the sigmoid $\hat{y} = \sigma(\mathbf{w}^\top \mathbf{x} + b)$ to restrict outputs to $[0, 1]$, the loss landscape becomes non-convex. For egregious prediction errors (e.g., $y = 1$ but $\hat{y} \to 0$), the gradient contains the derivative factor $\sigma'(z) = \hat{y}(1 - \hat{y}) \to 0$. The learning signal vanishes precisely when the prediction is most severely wrong, trapping gradient-based optimizers in high-loss, flat plateaus.
+\end{enumerate}
+
+\paragraph{The discrete ideal vs. continuous surrogate losses.}
+The ideal, direct measure of classification error is the discrete \textbf{0-1 loss}:
+\begin{equation}
+\ell_{0\text{-}1}(z) = \mathbb{I}\{z \le 0\} = \begin{cases} 0 & \text{if } z > 0 \text{ (correct classification)}, \\ 1 & \text{if } z \le 0 \text{ (misclassification)}. \end{cases}
+\label{eq:0_1_loss_def}
+\end{equation}
+Direct empirical risk minimization under $\ell_{0\text{-}1}(z)$ counts the exact number of mistakes. However, $\ell_{0\text{-}1}$ is a non-convex, piecewise-constant step function whose derivative is zero everywhere ($z \ne 0$) and undefined at $z = 0$. Because $\nabla_\mathbf{w} \ell_{0\text{-}1} = \mathbf{0}$ almost everywhere, gradient-based learning receives zero directional guidance. In fact, minimizing 0-1 loss over arbitrary training sets is known to be an NP-hard combinatorial problem.
+
+Statistical machine learning overcomes this hurdle by replacing the intractable 0-1 step loss with continuous, smooth, convex \textbf{surrogate losses} defined over the functional margin $z = y \cdot h(\mathbf{x})$:
 
 \begin{figure}[H]
 \centering
@@ -954,206 +981,183 @@ In classification, candidate loss functions evaluate the agreement between predi
     \addlegendentry{Squared Error $(1 - z)^2$}
   \end{axis}
 \end{tikzpicture}
-\caption{Analytical geometry of classification loss functions plotted against the margin $z = y \cdot h(\mathbf{x})$. While the discrete 0-1 step loss has zero derivative almost everywhere, continuous convex surrogates—such as the SVM hinge loss $\max(0, 1-z)$, squared error $(1-z)^2$, and logistic cross-entropy loss $\log_2(1 + e^{-z})$—provide informative learning signals. Notice how squared error penalizes points with margin $z > 1$, explaining why it fails on classification.}
+\caption{Analytical geometry of classification loss functions plotted against the margin $z = y \cdot h(\mathbf{x})$. While the discrete 0-1 step loss has zero derivative almost everywhere, continuous convex surrogates---such as the SVM hinge loss $\max(0, 1-z)$, squared error $(1-z)^2$, and logistic cross-entropy loss $\log_2(1 + e^{-z})$---provide informative learning signals. Notice how squared error penalizes points with margin $z > 1$, explaining why it fails on classification.}
 \label{fig:slide_loss_functions}
 \end{figure}
 
-As summarized in Figure~\ref{fig:slide_loss_functions}:
-\begin{enumerate}
-  \item \textbf{0-1 Loss}: $\ell_{0\text{-}1}(z) = \mathbb{I}\{z \le 0\}$. Directly penalizes misclassification. However, it is a non-convex step function whose derivative is zero everywhere except at $z=0$ (where it is undefined). Gradient-based optimizers receive zero directional signal ($\nabla_\mathbf{w} \hat{\risk} = \mathbf{0}$).
-  \item \textbf{Squared Error Loss}: $\ell_{\text{SE}}(z) = (1 - z)^2$. Smooth and convex, but penalizes samples with $z \gg 1$. As established in Section~\ref{sec:least_squares_failure}, this distorts the decision boundary when confident outliers are present.
-  \item \textbf{SVM Hinge Loss}: $\ell_{\text{hinge}}(z) = \max(0, 1 - z)$. The Support Vector Machine (SVM) objective adopts the hinge loss:
+As visually summarized in Figure~\ref{fig:slide_loss_functions}:
+\begin{enumerate}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
+  \item \textbf{0-1 Loss}: $\ell_{0\text{-}1}(z) = \mathbb{I}\{z \le 0\}$. Directly penalizes misclassifications, but yields zero gradient almost everywhere.
+  \item \textbf{Squared Error Loss}: $\ell_{\text{SE}}(z) = (1 - z)^2$. Convex and differentiable, but penalizes confident correct classifications ($z > 1$), corrupting the decision boundary.
+  \item \textbf{SVM Hinge Loss}: $\ell_{\text{hinge}}(z) = \max(0, 1 - z)$. Adopted in the primal Support Vector Machine (SVM) formulation:
     \begin{equation}
     \min_{\mathbf{w}, b} \frac{1}{N} \sum_{i=1}^N \max\left(0, \, 1 - y_i(\mathbf{w}^\top \mathbf{x}_i + b)\right) + \frac{\lambda}{2} \|\mathbf{w}\|_2^2.
     \label{eq:svm_primal_objective}
     \end{equation}
-    When a sample is classified correctly with sufficient confidence ($y_i(\mathbf{w}^\top \mathbf{x}_i + b) \ge 1$), the hinge loss is \textbf{strictly zero}. The model incurs zero penalty for confident correct predictions, avoiding the outlier distortion of squared error. When the margin is violated ($z < 1$), the loss increases linearly.
-  \item \textbf{Logistic Loss (Cross-Entropy)}: $\ell_{\text{log}}(z) = \ln(1 + e^{-z})$. Infinitely differentiable, strictly convex, and asymptotically approaches zero as $z \to +\infty$.
+    When a sample is classified correctly with sufficient safety margin ($z \ge 1$), the loss is \textbf{identically zero}, completely avoiding outlier distortion. When the margin is violated ($z < 1$), the penalty grows linearly.
+  \item \textbf{Logistic Loss (Cross-Entropy)}: $\ell_{\text{log}}(z) = \ln(1 + e^{-z})$. Infinitely smooth, strictly convex, upper-bounds the 0-1 loss, and approaches zero asymptotically as $z \to +\infty$.
 \end{enumerate}
 
-\subsection{Maximum likelihood estimation and binary cross-entropy}
+\subsection{Maximum likelihood estimation as a principled loss generator}
 \label{sec:maximum_likelihood_logistic}
-
-To derive the loss function for logistic regression from foundational statistical principles, we formulate parameter estimation under the framework of \textbf{Maximum Likelihood Estimation (MLE)}.
-
-For binary targets $y \in \{0, 1\}$, given input $\mathbf{x}$, the conditional distribution of $y$ follows a Bernoulli distribution parameterized by $p(\mathbf{x}) = \sigma(\mathbf{w}^\top \mathbf{x} + b)$:
-\begin{equation}
-P(y \mid \mathbf{x}; \mathbf{w}, b) = p(\mathbf{x})^y (1 - p(\mathbf{x}))^{1 - y}.
-\label{eq:bernoulli_pmf}
-\end{equation}
-Assuming the $N$ observations in $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^N$ are drawn independently and identically distributed (i.i.d.), the total dataset \textbf{Likelihood} is the product of individual conditional probabilities:
-\begin{equation}
-L(\mathbf{w}, b) = \prod_{i=1}^N P(y_i \mid \mathbf{x}_i; \mathbf{w}, b) = \prod_{i=1}^N \sigma(\mathbf{w}^\top \mathbf{x}_i + b)^{y_i} \left( 1 - \sigma(\mathbf{w}^\top \mathbf{x}_i + b) \right)^{1 - y_i}.
-\label{eq:dataset_likelihood}
-\end{equation}
-
-Because maximizing a product of small probabilities causes arithmetic underflow, we take the natural logarithm, converting the product into a sum of \textbf{Log-Likelihood}:
-\begin{align}
-\ell(\mathbf{w}, b) &\triangleq \ln L(\mathbf{w}, b) \nonumber \\
-&= \sum_{i=1}^N \left[ y_i \ln \sigma(\mathbf{w}^\top \mathbf{x}_i + b) + (1 - y_i) \ln\left(1 - \sigma(\mathbf{w}^\top \mathbf{x}_i + b)\right) \right].
-\label{eq:dataset_log_likelihood}
-\end{align}
-
-In machine learning optimization, conventions favor minimization over maximization. We therefore define the objective cost function as the \textbf{Negative Log-Likelihood (NLL)}, normalized by $N$, universally known as the \textbf{Binary Cross-Entropy (BCE) Loss}:
-\begin{equation}
-J(\mathbf{w}, b) \triangleq -\frac{1}{N} \ell(\mathbf{w}, b) = -\frac{1}{N} \sum_{i=1}^N \left[ y_i \ln \hat{y}_i + (1 - y_i) \ln(1 - \hat{y}_i) \right],
-\label{eq:binary_cross_entropy_cost}
-\end{equation}
-where $\hat{y}_i \equiv \sigma(z_i) = \sigma(\mathbf{w}^\top \mathbf{x}_i + b)$.
-
-\paragraph{Pedagogical intuition of cross-entropy penalties.}
-The structure of Equation~\eqref{eq:binary_cross_entropy_cost} exhibits ideal optimization characteristics:
-\begin{itemize}
-  \item \textbf{When ground truth is $y_i = 1$}: The second term $(1 - y_i)\ln(1 - \hat{y}_i)$ vanishes. The cost reduces to $-\ln(\hat{y}_i)$. If the model predicts $\hat{y}_i = 1$, the cost is $-\ln(1) = 0$ (zero penalty for correct certainty). If the model predicts $\hat{y}_i \to 0$, the cost $-\ln(\hat{y}_i) \to +\infty$ (infinite penalty for confident mistakes).
-  \item \textbf{When ground truth is $y_i = 0$}: The first term $y_i \ln(\hat{y}_i)$ vanishes. The cost reduces to $-\ln(1 - \hat{y}_i)$. If $\hat{y}_i = 0$, the cost is $-\ln(1) = 0$. If $\hat{y}_i \to 1$, the cost $-\ln(1 - \hat{y}_i) \to +\infty$.
-\end{itemize}
-Combining both cases into a single algebraic expression avoids discontinuous branching and yields a smooth, convex loss surface across all parameter values.
-
-\subsection{Analytical gradient derivations for common losses}
 \label{sec:analytical_gradients}
 
-To perform gradient-based parameter updates, we derive the exact vector gradients for both foundational paradigms:
+Rather than hand-crafting heuristic loss formulas, statistical machine learning relies on the principled foundation of \textbf{Maximum Likelihood Estimation (MLE)}. Under this paradigm, candidate loss functions are derived directly by adopting explicit probabilistic models for the conditional distribution $p(y \mid \mathbf{x}; \boldsymbol{\theta})$ of targets given inputs.
 
-\paragraph{Gradient of Mean Squared Error (MSE) linear regression.}
-Let $\mathbf{X} \in \R^{N \times d}$ denote the design matrix whose $i$-th row is $\mathbf{x}_i^\top$, and let $\mathbf{y} \in \R^N$ denote the target vector. The empirical mean squared error is:
+For an independently and identically distributed (i.i.d.) dataset $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^N$, the joint dataset likelihood is the product of individual conditional probabilities:
 \begin{equation}
-f(\mathbf{w}) = \frac{1}{2N} \|\mathbf{X}\mathbf{w} - \mathbf{y}\|_2^2 = \frac{1}{2N} (\mathbf{X}\mathbf{w} - \mathbf{y})^\top (\mathbf{X}\mathbf{w} - \mathbf{y}).
+L(\boldsymbol{\theta}) = \prod_{i=1}^N p(y_i \mid \mathbf{x}_i; \boldsymbol{\theta}).
+\label{eq:dataset_likelihood_mle}
+\end{equation}
+Because maximizing a product of minute probabilities is numerically unstable and induces arithmetic underflow, we take the natural logarithm, converting the product into a sum of log-probabilities:
+\begin{equation}
+\ell(\boldsymbol{\theta}) \triangleq \ln L(\boldsymbol{\theta}) = \sum_{i=1}^N \ln p(y_i \mid \mathbf{x}_i; \boldsymbol{\theta}).
+\label{eq:dataset_log_likelihood_mle}
+\end{equation}
+Because optimization routines universally minimize cost functions, we define the objective as the \textbf{Negative Log-Likelihood (NLL)}, normalized by sample size $N$:
+\begin{equation}
+J(\boldsymbol{\theta}) \triangleq -\frac{1}{N} \ell(\boldsymbol{\theta}) = -\frac{1}{N} \sum_{i=1}^N \ln p(y_i \mid \mathbf{x}_i; \boldsymbol{\theta}).
+\label{eq:nll_objective_definition}
+\end{equation}
+Different distributional assumptions for $p(y \mid \mathbf{x}; \boldsymbol{\theta})$ directly generate the most foundational loss functions in machine learning:
+
+\paragraph{1. Gaussian noise assumption $\implies$ Mean Squared Error ($L_2$ Loss).}
+Assume a continuous regression setting $y \in \R$ where targets are corrupted by zero-mean additive Gaussian noise: $y = h_{\mathbf{w}}(\mathbf{x}) + \epsilon$, with $\epsilon \sim \mathcal{N}(0, \sigma^2)$. The conditional density is:
+\begin{equation}
+p(y \mid \mathbf{x}; \mathbf{w}) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left( -\frac{(y - h_{\mathbf{w}}(\mathbf{x}))^2}{2\sigma^2} \right).
+\label{eq:gaussian_density_mle}
+\end{equation}
+Substituting Equation~\eqref{eq:gaussian_density_mle} into the Negative Log-Likelihood:
+\begin{equation}
+J(\mathbf{w}) = -\frac{1}{N} \sum_{i=1}^N \left[ -\frac{1}{2\sigma^2}(y_i - h_{\mathbf{w}}(\mathbf{x}_i))^2 - \frac{1}{2}\ln(2\pi\sigma^2) \right] = \frac{1}{2N\sigma^2} \|\mathbf{X}\mathbf{w} - \mathbf{y}\|_2^2 + \text{const}.
 \label{eq:mse_matrix_form}
 \end{equation}
-Expanding the quadratic matrix product:
-\begin{equation}
-f(\mathbf{w}) = \frac{1}{2N} \left[ \mathbf{w}^\top \mathbf{X}^\top \mathbf{X} \mathbf{w} - 2 \mathbf{y}^\top \mathbf{X} \mathbf{w} + \mathbf{y}^\top \mathbf{y} \right].
-\end{equation}
-Differentiating with respect to parameter vector $\mathbf{w} \in \R^d$ using vector calculus identities $\nabla_\mathbf{w} (\mathbf{w}^\top \mathbf{A} \mathbf{w}) = 2\mathbf{A}\mathbf{w}$ (for symmetric $\mathbf{A} = \mathbf{X}^\top \mathbf{X}$) and $\nabla_\mathbf{w} (\mathbf{b}^\top \mathbf{w}) = \mathbf{b}$:
-\begin{equation}
-\nabla_\mathbf{w} f(\mathbf{w}) = \frac{1}{2N} \left[ 2 \mathbf{X}^\top \mathbf{X} \mathbf{w} - 2 \mathbf{X}^\top \mathbf{y} \right] = \frac{1}{N} \mathbf{X}^\top (\mathbf{X}\mathbf{w} - \mathbf{y}) = \frac{1}{N} \sum_{i=1}^N (\mathbf{w}^\top \mathbf{x}_i - y_i) \mathbf{x}_i.
-\label{eq:mse_gradient_exact}
-\end{equation}
-The gradient $\nabla_\mathbf{w} f(\mathbf{w}) \in \R^d$ is an error-weighted linear combination of the input feature vectors $\mathbf{x}_i \in \R^d$.
+Minimizing the NLL under Gaussian noise is mathematically equivalent to minimizing \textbf{Mean Squared Error (MSE)}. The resulting estimator recovers the conditional expectation $\E[y \mid \mathbf{x}]$.
 
-\paragraph{Step-by-step gradient of Binary Cross-Entropy via the chain rule.}
-Now consider the cross-entropy objective $J(\mathbf{w}, b)$ in Equation~\eqref{eq:binary_cross_entropy_cost}. Computing the partial derivatives requires applying the multivariate chain rule across three nested functional layers:
+\paragraph{2. Laplace noise assumption $\implies$ Mean Absolute Error ($L_1$ Loss).}
+If errors follow a Laplace distribution $p(\epsilon) = \frac{1}{2b}\exp(-|\epsilon|/b)$ with scale parameter $b$, the negative log-likelihood becomes:
+\begin{equation}
+J(\mathbf{w}) = \frac{1}{N b} \sum_{i=1}^N |y_i - h_{\mathbf{w}}(\mathbf{x}_i)| + \ln(2b) \propto \frac{1}{N} \sum_{i=1}^N |y_i - h_{\mathbf{w}}(\mathbf{x}_i)|.
+\label{eq:mae_mle_derivation}
+\end{equation}
+This recovers the \textbf{Mean Absolute Error (MAE)}. Because the Laplace density has heavier tails than the Gaussian, MAE estimates the conditional median and exhibits robust insensitivity to outliers.
+
+\paragraph{3. Bernoulli likelihood assumption $\implies$ Binary Cross-Entropy (BCE).}
+For binary classification $y \in \{0, 1\}$, given input $\mathbf{x}$, the target follows a Bernoulli distribution parameterized by the posterior probability $p(\mathbf{x}) = \sigma(\mathbf{w}^\top \mathbf{x} + b) = \hat{y}$:
+\begin{equation}
+P(y \mid \mathbf{x}; \mathbf{w}, b) = \hat{y}^y (1 - \hat{y})^{1 - y}.
+\label{eq:bernoulli_pmf}
+\end{equation}
+Taking the Negative Log-Likelihood normalized by $N$ yields the \textbf{Binary Cross-Entropy (BCE)} loss:
+\begin{equation}
+J(\mathbf{w}, b) = -\frac{1}{N} \sum_{i=1}^N \left[ y_i \ln \hat{y}_i + (1 - y_i) \ln(1 - \hat{y}_i) \right], \quad \text{where } \hat{y}_i = \sigma(\mathbf{w}^\top \mathbf{x}_i + b).
+\label{eq:binary_cross_entropy_cost}
+\end{equation}
+Notice its pedagogical behavior:
+\begin{itemize}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
+  \item When ground truth is $y_i = 1$, the loss reduces to $-\ln(\hat{y}_i)$. If $\hat{y}_i = 1$, cost is $0$; if $\hat{y}_i \to 0$, cost $-\ln(\hat{y}_i) \to +\infty$ (infinite penalty for confident false negatives).
+  \item When ground truth is $y_i = 0$, the loss reduces to $-\ln(1 - \hat{y}_i)$. If $\hat{y}_i = 0$, cost is $0$; if $\hat{y}_i \to 1$, cost $-\ln(1 - \hat{y}_i) \to +\infty$ (infinite penalty for confident false positives).
+\end{itemize}
+
+\paragraph{4. Multinomial/Categorical likelihood $\implies$ Categorical Cross-Entropy.}
+For multiclass classification with $K$ classes, one-hot encoded targets $\mathbf{y}_i \in \{0, 1\}^K$, and softmax probabilities $\hat{y}_{ik} = \frac{\exp(z_{ik})}{\sum_{j=1}^K \exp(z_{ij})}$, the likelihood is Categorical:
+\begin{equation}
+P(\mathbf{y}_i \mid \mathbf{x}_i) = \prod_{k=1}^K \hat{y}_{ik}^{y_{ik}} \implies \mathcal{L}_{\text{CE}}(\boldsymbol{\theta}) = -\frac{1}{N} \sum_{i=1}^N \sum_{k=1}^K y_{ik} \ln \hat{y}_{ik}.
+\label{eq:categorical_cross_entropy_ch3}
+\end{equation}
+
+\paragraph{Analytical gradient of Binary Cross-Entropy via the chain rule.}
+To compute parameter updates for logistic regression, we evaluate the gradient of the cross-entropy objective $J(\mathbf{w}, b)$ with respect to $\mathbf{w}$ using the multivariate chain rule across three nested layers:
 \begin{equation}
 f(g(h(\mathbf{w}))), \quad \text{where} \quad \begin{cases}
-h(\mathbf{w}) = z_i = \mathbf{w}^\top \mathbf{x}_i + b & \text{(linear affine part)}, \\
-g(z_i) = \hat{y}_i = \sigma(z_i) = \frac{1}{1 + e^{-z_i}} & \text{(non-linear sigmoid activation)}, \\
+h(\mathbf{w}) = z_i = \mathbf{w}^\top \mathbf{x}_i + b & \text{(affine pre-activation)}, \\
+g(z_i) = \hat{y}_i = \sigma(z_i) = \frac{1}{1 + e^{-z_i}} & \text{(sigmoid link)}, \\
 f(\hat{y}_i) = -\left[ y_i \ln \hat{y}_i + (1 - y_i) \ln(1 - \hat{y}_i) \right] & \text{(cross-entropy loss)}.
 \end{cases}
 \end{equation}
-
 By the chain rule:
 \begin{equation}
-\frac{\partial f}{\partial \mathbf{w}} = \frac{\partial f}{\partial g} \cdot \frac{\partial g}{\partial z_i} \cdot \frac{\partial z_i}{\partial \mathbf{w}}.
+\frac{\partial f}{\partial \mathbf{w}} = \frac{\partial f}{\partial \hat{y}_i} \cdot \frac{\partial \hat{y}_i}{\partial z_i} \cdot \frac{\partial z_i}{\partial \mathbf{w}}.
 \label{eq:chain_rule_decomposition}
 \end{equation}
-We evaluate each component individually:
-\begin{enumerate}
-  \item \textbf{Derivative of linear layer}:
+Evaluating the three individual components:
+\begin{enumerate}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
+  \item \textbf{Derivative of affine pre-activation}: $\frac{\partial z_i}{\partial \mathbf{w}} = \mathbf{x}_i$, $\frac{\partial z_i}{\partial b} = 1$.
+  \item \textbf{Derivative of sigmoid link}: $\frac{\partial \hat{y}_i}{\partial z_i} = \sigma(z_i)(1 - \sigma(z_i)) = \hat{y}_i(1 - \hat{y}_i)$.
+  \item \textbf{Derivative of loss with respect to prediction}:
     \begin{equation}
-    \frac{\partial z_i}{\partial \mathbf{w}} = \mathbf{x}_i, \quad \frac{\partial z_i}{\partial b} = 1.
-    \end{equation}
-  \item \textbf{Derivative of sigmoid activation}:
-    Using Equation~\eqref{eq:sigmoid_derivative_proof}:
-    \begin{equation}
-    \frac{\partial g}{\partial z_i} = \frac{d\sigma(z_i)}{dz_i} = \sigma(z_i)(1 - \sigma(z_i)) = \hat{y}_i(1 - \hat{y}_i).
-    \end{equation}
-  \item \textbf{Derivative of loss with respect to activation}:
-    \begin{equation}
-    \frac{\partial f}{\partial g} = -\left[ \frac{y_i}{\hat{y}_i} - \frac{1 - y_i}{1 - \hat{y}_i} \right] = -\left[ \frac{y_i(1 - \hat{y}_i) - (1 - y_i)\hat{y}_i}{\hat{y}_i(1 - \hat{y}_i)} \right] = -\left[ \frac{y_i - \hat{y}_i}{\hat{y}_i(1 - \hat{y}_i)} \right] = \frac{\hat{y}_i - y_i}{\hat{y}_i(1 - \hat{y}_i)}.
+    \frac{\partial f}{\partial \hat{y}_i} = -\left[ \frac{y_i}{\hat{y}_i} - \frac{1 - y_i}{1 - \hat{y}_i} \right] = \frac{\hat{y}_i - y_i}{\hat{y}_i(1 - \hat{y}_i)}.
     \end{equation}
 \end{enumerate}
-
-Multiplying these three partial derivatives together yields an extraordinary cancellation:
+Multiplying these terms together reveals an extraordinary algebraic cancellation:
 \begin{equation}
 \frac{\partial f}{\partial \mathbf{w}} = \left( \frac{\hat{y}_i - y_i}{\hat{y}_i(1 - \hat{y}_i)} \right) \cdot \left( \hat{y}_i(1 - \hat{y}_i) \right) \cdot \mathbf{x}_i = (\hat{y}_i - y_i) \mathbf{x}_i.
 \label{eq:bce_single_sample_gradient}
 \end{equation}
-Averaging over all $N$ training samples, we obtain the full gradients of the binary cross-entropy objective:
+The term $\hat{y}_i(1 - \hat{y}_i)$ in the denominator of the loss derivative perfectly cancels the vanishing derivative of the sigmoid! Averaging over all $N$ training samples yields the full vector gradients:
 \begin{align}
 \nabla_{\mathbf{w}} J(\mathbf{w}, b) &= \frac{1}{N} \sum_{i=1}^N \left( \sigma(\mathbf{w}^\top \mathbf{x}_i + b) - y_i \right) \mathbf{x}_i, \label{eq:bce_gradient_w} \\
 \frac{\partial J(\mathbf{w}, b)}{\partial b} &= \frac{1}{N} \sum_{i=1}^N \left( \sigma(\mathbf{w}^\top \mathbf{x}_i + b) - y_i \right). \label{eq:bce_gradient_b}
 \end{align}
+Notice the striking structural parallel with the gradient of Mean Squared Error:
+\begin{equation}
+\nabla_\mathbf{w} f(\mathbf{w}) = \frac{1}{N} \mathbf{X}^\top (\mathbf{X}\mathbf{w} - \mathbf{y}) = \frac{1}{N} \sum_{i=1}^N (\mathbf{w}^\top \mathbf{x}_i - y_i) \mathbf{x}_i.
+\label{eq:mse_gradient_exact}
+\end{equation}
+In both foundational estimation paradigms, the gradient is an error-weighted linear combination of input feature vectors $\mathbf{x}_i$, where each sample contributes proportionally to its prediction residual $(\hat{y}_i - y_i)$.
 
-\paragraph{The striking structural parallel.}
-Remarkably, Equation~\eqref{eq:bce_gradient_w} shares the exact algebraic form of Equation~\eqref{eq:mse_gradient_exact}: in both cases, the parameter gradient is an error-weighted linear combination of the input vectors $\mathbf{x}_i$, where each sample contributes proportionally to its prediction residual $(\hat{y}_i - y_i)$.
-
-\subsection{The fundamental obstacle: Non-existence of a closed-form solution}
+\subsection{Why iterative optimization is necessary: Computational bottlenecks and transcendental equations}
 \label{sec:no_closed_form_solution}
 
-Now comes the pivotal theoretical question: \textit{can we set $\nabla_\mathbf{w} J(\mathbf{w}, b) = \mathbf{0}$ and solve for the optimal parameters analytically?}
+Equipped with the analytical gradients for both linear regression and logistic cross-entropy, a fundamental question arises: \textit{why can we not simply set the gradient to zero ($\nabla_\mathbf{w} J(\mathbf{w}) = \mathbf{0}$) and solve for the optimal parameter vector in a single exact closed-form step?}
 
-\paragraph{Recall the OLS Linear Regression solution.}
-In linear regression, setting the gradient $\nabla_\mathbf{w} f(\mathbf{w}) = \mathbf{0}$ in Equation~\eqref{eq:mse_gradient_exact} produces:
+To answer this question, we examine two contrasting mathematical scenarios: one where an analytical closed form exists but collapses under computational scaling, and one where closed-form solutions are mathematically impossible due to transcendental equations.
+
+\paragraph{Example 1: Linear Regression --- When a closed form exists, but matrix inversion fails in practice.}
+In Ordinary Least Squares regression, setting the gradient $\nabla_\mathbf{w} f(\mathbf{w}) = \mathbf{0}$ from Equation~\eqref{eq:mse_gradient_exact} produces:
 \begin{equation}
-\frac{1}{N} \mathbf{X}^\top (\mathbf{X}\mathbf{w} - \mathbf{y}) = \mathbf{0} \implies \mathbf{X}^\top \mathbf{X} \mathbf{w} = \mathbf{X}^\top \mathbf{y}.
+\frac{1}{N} \mathbf{X}^\top (\mathbf{X}\mathbf{w} - \mathbf{y}) = \mathbf{0} \iff \mathbf{X}^\top \mathbf{X} \mathbf{w} = \mathbf{X}^\top \mathbf{y}.
+\label{eq:normal_equations_ols_repeat}
 \end{equation}
-Because the prediction $\mathbf{X}\mathbf{w}$ is linear in $\mathbf{w}$, the stationary condition is a linear matrix equation. Provided $\mathbf{X}^\top \mathbf{X}$ is non-singular, we invert the Gram matrix to obtain the unique, closed-form analytical solution:
+Because the prediction $\mathbf{X}\mathbf{w}$ is affine in $\mathbf{w}$, the stationary condition is a linear system. Assuming the $d \times d$ Gram matrix $\mathbf{X}^\top \mathbf{X}$ is non-singular, inverting it yields the celebrated closed-form Normal Equations solution:
 \begin{equation}
 \mathbf{w}^* = (\mathbf{X}^\top \mathbf{X})^{-1} \mathbf{X}^\top \mathbf{y}.
+\label{eq:ols_closed_form_repeat}
 \end{equation}
+While algebraically elegant, computing this exact closed-form solution directly via matrix inversion is crippled by severe operational and numerical drawbacks in real-world applications:
+\begin{enumerate}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
+  \item \textbf{Cubic computational complexity $\mathcal{O}(d^3)$}:
+    Forming the Gram matrix $\mathbf{X}^\top \mathbf{X}$ requires $\mathcal{O}(N d^2)$ operations, and inverting it (via Gaussian elimination, LU decomposition, or Cholesky factorization) requires $\mathcal{O}(d^3)$ floating-point operations. In modern statistical learning and deep learning, parameter dimensionality easily reaches $d \approx 10^5$ to $10^7$ (and up to $d \ge 10^{11}$ in large foundation models). For $d = 10^6$, an $\mathcal{O}(d^3)$ operation demands $10^{18}$ floating-point operations---an intractable compute burden even for supercomputing clusters.
+  \item \textbf{Quadratic memory footprint $\mathcal{O}(d^2)$}:
+    Storing the $d \times d$ Gram matrix requires $\mathcal{O}(d^2)$ contiguous memory. For $d = 10^6$, storing $(\mathbf{X}^\top \mathbf{X})$ in 32-bit single precision demands $10^{12} \times 4\text{ bytes} = 4\text{ Terabytes}$ of memory, far exceeding GPU and host RAM capacities.
+  \item \textbf{Singularity, rank deficiency, and numerical instability}:
+    When features are collinear or when the input dimensionality exceeds the dataset size ($d > N$), the Gram matrix satisfies $\operatorname{rank}(\mathbf{X}^\top \mathbf{X}) \le N < d$. The matrix is strictly singular and non-invertible. Even when $d \le N$, strong feature correlations cause the condition number $\kappa(\mathbf{X}^\top \mathbf{X}) = \lambda_{\max} / \lambda_{\min}$ to explode, where minute floating-point rounding errors are amplified catastrophically, destroying numerical accuracy.
+  \item \textbf{Incompatibility with streaming, online, and distributed data}:
+    The closed-form formula requires the entire design matrix $\mathbf{X} \in \R^{N \times d}$ to reside in memory at once. It cannot update parameters incrementally as new streaming data arrives, nor can it process massive datasets partitioned across distributed clusters without recomputing the entire matrix product and inversion from scratch.
+\end{enumerate}
 
-\paragraph{The mathematical impossibility in Logistic Regression.}
-In logistic regression, setting the gradient $\nabla_\mathbf{w} J(\mathbf{w}, b) = \mathbf{0}$ produces:
+\paragraph{Example 2: Logistic Regression --- When setting the gradient to zero yields transcendental equations.}
+In logistic regression, setting the Binary Cross-Entropy gradient $\nabla_\mathbf{w} J(\mathbf{w}, b) = \mathbf{0}$ from Equation~\eqref{eq:bce_gradient_w} produces:
 \begin{equation}
-\frac{1}{N} \sum_{i=1}^N \left( \frac{1}{1 + e^{-(\mathbf{w}^\top \mathbf{x}_i + b)}} - y_i \right) \mathbf{x}_i = \mathbf{0}.
-\label{eq:logistic_stationary_condition}
+\frac{1}{N} \sum_{i=1}^N \left( \sigma(\mathbf{w}^\top \mathbf{x}_i + b) - y_i \right) \mathbf{x}_i = \mathbf{0}.
+\label{eq:bce_stationary_first_order}
 \end{equation}
-
-Observe the structure of Equation~\eqref{eq:logistic_stationary_condition}. The unknown parameter vector $\mathbf{w}$ is entangled inside the non-linear denominator of an exponential function:
+Expanding the non-linear sigmoid activation function reveals the exact algebraic structure:
 \begin{equation}
 \sum_{i=1}^N \frac{\mathbf{x}_i}{1 + \exp\left(-\sum_{j=1}^d w_j x_{ij} - b\right)} = \sum_{i=1}^N y_i \mathbf{x}_i.
+\label{eq:transcendental_system_logistic}
 \end{equation}
-This is a system of $d$ coupled, transcendental, non-linear algebraic equations. There is \textbf{no matrix factorization, algebraic manipulation, or matrix inversion that can isolate $\mathbf{w}$ analytically}!
+Examine Equation~\eqref{eq:transcendental_system_logistic} closely. The unknown parameter vector $\mathbf{w}$ is entangled inside the non-linear denominator of an exponential function across a summation of $N$ heterogeneous terms. This constitutes a coupled system of $d$ non-linear \textbf{transcendental equations}.
+
+Unlike polynomial algebraic equations, transcendental equations involving exponential and logarithmic functions cannot be solved, uncoupled, or inverted using a finite sequence of elementary algebraic operations (addition, multiplication, roots, or matrix inversions). There is \textbf{no closed-form algebraic formula} that can express the optimal parameter vector $\mathbf{w}^*$.
 
 \paragraph{The causal bridge to numerical optimization.}
-This mathematical barrier marks a profound turning point in machine learning theory. For linear regression, statistical estimation could rely on closed-form linear algebra. But for logistic regression—and for virtually every modern neural network architecture that follows—\textbf{analytical closed-form solutions do not exist}.
-
-We are therefore forced to step away from closed-form algebra and enter the domain of \textbf{Iterative Numerical Optimization}: starting with an initial guess $\mathbf{w}_0$ and iteratively taking small, local downhill steps guided by gradient vectors until convergence: \textbf{Gradient Descent}.
-
-\subsection{Subgradient calculus for non-smooth loss functions}
-\label{sec:subgradient_calculus}
-
-Before delving into first-order gradient dynamics, we address an important theoretical extension: what occurs when the objective function is continuous and convex, but contains non-differentiable points?
-\begin{itemize}[noitemsep]
-  \item The \textbf{ReLU activation function} $f(z) = \max(0, z)$ has a sharp corner at $z = 0$.
-  \item The \textbf{SVM Hinge loss} $\loss(z) = \max(0, 1 - z)$ has a kink at $z = 1$.
-  \item \textbf{$L_1$ Lasso regularization} $\Omega(\mathbf{w}) = \|\mathbf{w}\|_1 = \sum_{j=1}^d |w_j|$ is non-differentiable at $w_j = 0$.
+These two contrasting examples reveal a profound theoretical truth:
+\begin{itemize}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
+  \item In linear models where closed forms exist, matrix inversion is computationally intractable ($\mathcal{O}(d^3)$) and memory-prohibitive ($\mathcal{O}(d^2)$) in high dimensions.
+  \item In probabilistic classification (logistic regression) and all deep neural architectures, closed-form algebraic solutions are mathematically impossible due to non-linear transcendental couplings.
 \end{itemize}
-
-To optimize such objectives, classical differential calculus is generalized to convex analysis via the \textbf{subgradient} and \textbf{subdifferential}~\cite{bishop2024deep,goodfellow2016deep}.
-
-\begin{definition}[Subgradient and subdifferential]
-Let $f: \R^d \to \R$ be a convex function. A vector $\mathbf{g} \in \R^d$ is defined as a \textbf{subgradient} of $f$ at point $\mathbf{w}$ if for all $\mathbf{v} \in \R^d$:
-\begin{equation}
-f(\mathbf{v}) \ge f(\mathbf{w}) + \mathbf{g}^\top (\mathbf{v} - \mathbf{w}).
-\label{eq:subgradient_inequality}
-\end{equation}
-Geometrically, Equation~\eqref{eq:subgradient_inequality} asserts that the affine hyperplane $L(\mathbf{v}) = f(\mathbf{w}) + \mathbf{g}^\top (\mathbf{v} - \mathbf{w})$ everywhere globally underestimates or touches the epigraph of $f$. The set of all valid subgradients at $\mathbf{w}$ is called the \textbf{subdifferential}, denoted $\partial f(\mathbf{w}) \subset \R^d$.
-\end{definition}
-
-If $f$ is continuously differentiable at $\mathbf{w}$, the subdifferential is a singleton containing only the standard gradient: $\partial f(\mathbf{w}) = \{\nabla f(\mathbf{w})\}$. At non-differentiable corners, $\partial f(\mathbf{w})$ forms a closed, convex set.
-
-\paragraph{Example: Subdifferential of the scalar ReLU.}
-For $f(z) = \max(0, z)$:
-\begin{equation}
-\partial f(z) = \begin{cases}
-\{0\} & \text{if } z < 0, \\
-[0, 1] & \text{if } z = 0, \\
-\{1\} & \text{if } z > 0.
-\end{cases}
-\label{eq:relu_subdiff}
-\end{equation}
-At the singular point $z = 0$, any scalar $g \in [0, 1]$ satisfies the subgradient inequality $f(v) \ge 0 + g \cdot v$. In deep learning frameworks such as PyTorch, the implementation adopts the convention $g = 0$ at $z = 0$.
-
-\paragraph{Subgradient descent update.}
-The subgradient descent algorithm updates parameters by selecting an arbitrary element $\mathbf{g}_t \in \partial f(\mathbf{w}_t)$:
-\begin{equation}
-\mathbf{w}_{t+1} = \mathbf{w}_t - \eta_t \mathbf{g}_t.
-\label{eq:subgradient_update}
-\end{equation}
-Unlike standard gradient descent on smooth functions, subgradient descent is not guaranteed to decrease the objective at every individual step ($f(\mathbf{w}_{t+1})$ may momentarily exceed $f(\mathbf{w}_t)$). However, if step sizes satisfy the harmonic conditions $\sum \eta_t = \infty$ and $\sum \eta_t^2 < \infty$, the distance to the optimal set $\|\mathbf{w}_t - \mathbf{w}^*\|_2$ contracts, guaranteeing asymptotic convergence to the minimum.
-
-The mathematical impossibility of obtaining a closed-form analytical solution for logistic regression marks a defining transition in statistical machine learning. While ordinary least squares allows practitioners to invert matrices in a single algebraic stroke, minimizing cross-entropy---and virtually all objective functions encountered in modern deep learning---forces us to abandon closed-form linear algebra entirely. To find optimal parameter vectors, we must resort to iterative, algorithmic exploration of high-dimensional parameter spaces. This motivates the study of first-order numerical optimization, loss landscapes, and gradient descent in Section~\ref{sec:first_order_optimization}.
+Therefore, modern machine learning must abandon closed-form linear algebra and rely entirely on \textbf{Iterative Numerical Optimization}: initializing parameters with a guess $\mathbf{w}_0$ and executing small, localized downhill steps guided by gradient vectors until convergence. This motivates the formal study of first-order numerical optimization, loss landscapes, and gradient descent in Section~\ref{sec:first_order_optimization}.
 
 \section{First-order numerical optimization: Loss landscapes and gradient descent}
 \label{sec:first_order_optimization}
@@ -1358,6 +1362,53 @@ Both partial derivatives exist and equal zero at the origin. However, computing 
 \frac{\partial f}{\partial y}(x, 0) = \left. \frac{x^2(x^2 + y^2) - x^2 y(2y)}{(x^2 + y^2)^2} \right|_{y=0} = \frac{x^4}{x^4} = 1.
 \end{equation}
 Meanwhile, along the $y$-axis ($x = 0$): $\frac{\partial f}{\partial y}(0, y) = 0$. Therefore, $\lim_{(x, y) \to (0, 0)} \frac{\partial f}{\partial y}(x, y)$ does not exist! The partial derivative is \textbf{discontinuous at the origin}, proving that $f(x, y)$ is not differentiable at $(0, 0)$, despite all directional derivatives being well-defined.
+
+\paragraph{When differentiability fails: Subgradient calculus for non-smooth functions.}
+\label{sec:subgradient_calculus}
+
+What occurs when an objective function or neural network activation is continuous and convex, but contains non-differentiable points where classical gradients cease to exist?
+\begin{itemize}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
+  \item The \textbf{ReLU activation function} $f(z) = \max(0, z)$ has a sharp corner (non-differentiable kink) at $z = 0$.
+  \item The \textbf{SVM Hinge loss} $\ell(z) = \max(0, 1 - z)$ has a kink at $z = 1$.
+  \item \textbf{$L_1$ Lasso regularization} $\Omega(\mathbf{w}) = \|\mathbf{w}\|_1 = \sum_{j=1}^d |w_j|$ is non-differentiable at $w_j = 0$.
+\end{itemize}
+To optimize such objectives, classical differential calculus is generalized to convex analysis via the \textbf{subgradient} and \textbf{subdifferential}~\cite{bishop2024deep,goodfellow2016deep}:
+
+\begin{definition}[Subgradient and Subdifferential]
+Let $f: \R^d \to \R$ be a convex function. A vector $\mathbf{g} \in \R^d$ is defined as a \textbf{subgradient} of $f$ at point $\mathbf{w}$ if for all $\mathbf{v} \in \R^d$:
+\begin{equation}
+f(\mathbf{v}) \ge f(\mathbf{w}) + \mathbf{g}^\top (\mathbf{v} - \mathbf{w}).
+\label{eq:subgradient_inequality}
+\end{equation}
+Geometrically, Equation~\eqref{eq:subgradient_inequality} asserts that the affine hyperplane $L(\mathbf{v}) = f(\mathbf{w}) + \mathbf{g}^\top (\mathbf{v} - \mathbf{w})$ everywhere globally underestimates or touches the epigraph of $f$. The set of all valid subgradients at $\mathbf{w}$ is called the \textbf{subdifferential}, denoted $\partial f(\mathbf{w}) \subset \R^d$.
+\end{definition}
+
+If $f$ is continuously differentiable at $\mathbf{w}$, the subdifferential is a singleton containing only the standard gradient: $\partial f(\mathbf{w}) = \{\nabla f(\mathbf{w})\}$. At non-differentiable corners, $\partial f(\mathbf{w})$ forms a closed, convex set.
+
+\paragraph{Example: Subdifferential of the scalar ReLU.}
+For the rectified linear unit $f(z) = \max(0, z)$:
+\begin{equation}
+\partial f(z) = \begin{cases}
+\{0\} & \text{if } z < 0, \\
+[0, 1] & \text{if } z = 0, \\
+\{1\} & \text{if } z > 0.
+\end{cases}
+\label{eq:relu_subdiff}
+\end{equation}
+At the singular corner point $z = 0$, any scalar $g \in [0, 1]$ satisfies the subgradient inequality $f(v) \ge 0 + g \cdot v$. In deep learning frameworks such as PyTorch, the implementation adopts the convention $g = 0$ at $z = 0$.
+
+\paragraph{Subgradient descent update and convergence guarantees.}
+The subgradient descent algorithm updates parameters by selecting an arbitrary valid element $\mathbf{g}_t \in \partial f(\mathbf{w}_t)$:
+\begin{equation}
+\mathbf{w}_{t+1} = \mathbf{w}_t - \eta_t \mathbf{g}_t.
+\label{eq:subgradient_update}
+\end{equation}
+Unlike standard gradient descent on smooth functions, subgradient descent is not guaranteed to decrease the objective at every individual step ($f(\mathbf{w}_{t+1})$ may momentarily exceed $f(\mathbf{w}_t)$). However, if the learning rate sequence satisfies the diminishing harmonic step-size conditions:
+\begin{equation}
+\sum_{t=1}^\infty \eta_t = \infty \quad \text{and} \quad \sum_{t=1}^\infty \eta_t^2 < \infty,
+\label{eq:harmonic_step_sizes}
+\end{equation}
+the distance to the optimal set $\|\mathbf{w}_t - \mathbf{w}^*\|_2$ contracts monotonically, guaranteeing asymptotic convergence to the global minimum.
 
 \paragraph{Orthogonality of the gradient to level curves.}
 A second foundational geometric theorem is that the gradient vector is strictly \textbf{orthogonal} to the contour level curves (or level hypersurfaces in higher dimensions).
