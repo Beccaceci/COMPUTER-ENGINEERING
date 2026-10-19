@@ -565,38 +565,33 @@ While the mechanics and geometry of convolution explain how multi-channel tensor
 \section{CNN priors and structural design}
 \label{sec:cnns_as_infinitely_strong_prior}
 
-In the mathematical analysis of deep learning, a pervasive misconception treats convolutional networks as merely an empirical engineering heuristic—a clever computational shortcut designed to reduce parameter counts on GPUs. As Yoshua Bengio, Ian Goodfellow, and Aaron Courville established in their foundational work, convolutional networks are deeply grounded in Bayesian probability theory: a CNN is an unconstrained fully connected network upon which an \textbf{infinitely strong spatial prior} has been imposed. This prior assigns absolute zero probability mass to any linear transformation that violates spatial locality or translation equivariance, permanently restricting parameter search to a low-dimensional manifold of shared local weights.
+In the mathematical analysis of deep learning, a pervasive misconception treats convolutional networks as merely an empirical engineering heuristic---a clever computational shortcut designed to reduce parameter counts on GPUs. As Yoshua Bengio, Ian Goodfellow, and Aaron Courville established in their foundational work, convolutional networks are deeply grounded in Bayesian probability theory: a CNN is an unconstrained fully connected network upon which an \emph{infinitely strong spatial prior} has been imposed. This prior assigns absolute zero probability mass to any linear transformation that violates spatial locality or translation equivariance, permanently restricting parameter search to a low-dimensional manifold of shared local weights.
 
-Understanding convolutional networks through this Bayesian lens clarifies both their immense empirical power and their theoretical sample complexity. In the absence of an inductive prior, an unconstrained Multi-Layer Perceptron must observe every visual object at every possible spatial coordinate on the canvas to learn translation invariance, scaling sample complexity with image resolution $\Omega(H \cdot W \cdot N_0)$. By hardcoding spatial locality and shift equivariance into the network topology, the convolutional prior slashes sample complexity to $\mathcal{O}(N_0)$. Furthermore, this mathematical prior is not an arbitrary human contrivance: it mirrors the evolutionary architecture of the mammalian primary visual cortex discovered by David Hubel and Torsten Wiesel, explaining why unguided gradient descent on natural scenes autonomously rediscovers the Gabor wavelets and color-opponent cells of biological vision.
-
-This section develops the theoretical, biological, and Bayesian foundations of convolutional representations: we first formalize the three foundational motivations—sparse interactions, parameter sharing, and equivariant representations—deriving their computational and sample-complexity consequences; next, we trace the neurobiological discoveries of simple and complex cells in Area V1, mathematically modeling cortical receptive fields via 2D Gabor wavelets and proving why standard backpropagation spontaneously replicates mammalian visual tuning; finally, we formalize Bengio's infinitely strong prior, evaluate its bias-variance trade-offs, and examine the permutation-invariance diagnostic benchmark that distinguishes spatial architectures from tabular classifiers.
+Understanding convolutional networks through this Bayesian lens clarifies both their immense empirical power and their theoretical sample complexity. In the absence of an inductive prior, an unconstrained Multi-Layer Perceptron must observe every visual object at every possible spatial coordinate on the canvas to learn translation invariance, scaling sample complexity with image resolution $\Omega(H \cdot W \cdot N_0)$. By hardcoding spatial locality and shift equivariance into the network topology, the convolutional prior slashes sample complexity to $\mathcal{O}(N_0)$.
 
 \subsection{Sparsity, parameter sharing, and equivariance}
 \label{sec:translation_equivariance_sample_complexity}
 
-In their foundational treatise \textit{Deep Learning}, Ian Goodfellow, Yoshua Bengio, and Aaron Courville~\cite{goodfellow2016deep} establish that convolutional networks improve upon traditional dense feedforward neural architectures by operationalizing three fundamental mathematical ideas: \textbf{sparse interactions} (sparse connectivity), \textbf{parameter sharing} (tied weights), and \textbf{equivariant representations}. We analyze each principle in depth, examine how convolutional architectures algebraically guarantee it, evaluate its practical computational and statistical utility, and formalize why dense Multi-Layer Perceptrons (MLPs) suffer from catastrophic sample complexity on visual data~\cite{goodfellow2016deep,prince2023understanding}.
+In their foundational treatise \textit{Deep Learning}, Ian Goodfellow, Yoshua Bengio, and Aaron Courville~\cite{goodfellow2016deep} establish that convolutional networks improve upon traditional dense feedforward neural architectures by operationalizing three fundamental mathematical ideas: sparse interactions (sparse connectivity), parameter sharing (tied weights), and equivariant representations.
 
-\paragraph{Sparse interactions and computational efficiency.}
+\paragraph{Sparse interactions.}
 Traditional feedforward neural network layers compute representations using unconstrained matrix multiplication:
 \begin{equation}
 \mathbf{y} = \sigma(\mathbf{W} \mathbf{x} + \mathbf{b}),
 \end{equation}
 where every individual output unit interacts with every single input unit via an independent weight parameter $W_{i, j}$. If the input has $m$ units and the output has $n$ units, the transformation requires computing and storing an $n \times m$ matrix, with computational runtime scaling as $\mathcal{O}(m \times n)$.
 
+In stark contrast, Convolutional Neural Networks guarantee sparse interactions by restricting the filter kernel size $F$ to be orders of magnitude smaller than the input spatial dimensions ($F \ll H, W$). Rather than connecting an output unit to all $H \times W$ input pixels, each output unit connects exclusively to a local contiguous receptive field of $F \times F$ pixels (or $F$ taps in 1D), strictly restricting non-zero linear interactions to a localized band of width $F$.
 
-In stark contrast, Convolutional Neural Networks guarantee \textbf{sparse interactions} (also referred to as \textit{sparse connectivity} or \textit{sparse weights}) by restricting the filter kernel size $F$ to be orders of magnitude smaller than the input spatial dimensions ($F \ll H, W$). Rather than connecting an output unit to all $H \times W$ input pixels, each output unit connects exclusively to a local contiguous receptive field of $F \times F$ pixels (or $F$ taps in 1D), strictly restricting non-zero linear interactions to a localized band of width $F$.
-
-\subparagraph{Receptive Field Deepening.}
-Crucially, although direct connections at each individual convolutional layer are strictly sparse, units in deeper layers of a multi-layer CNN interact indirectly with a much larger portion of the input visual grid. As illustrated in Figure~\ref{fig:receptive_field_expansion} later in this chapter, if each layer uses a $1\text{D}$ filter of width $F=3$, a unit in layer $l=1$ observes $3$ input units, a unit in layer $l=2$ observes $5$ input units, and a unit in layer $l$ observes:
+Crucially, although direct connections at each individual convolutional layer are strictly sparse, units in deeper layers of a multi-layer CNN interact indirectly with a much larger portion of the input visual grid. If each layer uses a $1\text{D}$ filter of width $F$, a unit in layer $l$ observes an effective receptive field:
 \begin{equation}
 \text{ERF}_l = l(F - 1) + 1
 \end{equation}
 input units. By stacking multiple sparsely connected convolutional layers, a deep network allows high-level neurons to synthesize complex, non-local semantic relationships across the entire image canvas while keeping every individual layer's computation strictly localized and memory-efficient.
 
-\subparagraph{Bengio's Edge-Detection Computational Comparison.}
-To demonstrate the profound computational advantage of sparse interactions, Goodfellow, Bengio, and Courville~\cite{goodfellow2016deep} provide a canonical quantitative benchmark: detecting edges in a modest digital image of size $320 \times 280$ pixels ($m = 320$, $n = 280$), totaling $D = 320 \times 280 = 89,600$ pixels. Suppose we wish to compute an output feature map of equivalent spatial dimensions ($89,600$ output units).
+To demonstrate the profound computational advantage of sparse interactions, Goodfellow, Bengio, and Courville~\cite{goodfellow2016deep} provide a canonical quantitative benchmark: detecting edges in a digital image of size $320 \times 280$ pixels, totaling $D = 320 \times 280 = 89,600$ pixels, to produce an output feature map of equivalent dimensions ($89,600$ units).
 \begin{itemize}[leftmargin=*]
-  \item \textbf{Dense Fully Connected Layer}:
+  \item \textit{Dense Fully Connected Layer}:
     An unconstrained dense weight matrix $\mathbf{W} \in \R^{89,600 \times 89,600}$ requires storing:
     \begin{equation}
     |\mathbf{W}| = (320 \times 280) \times (320 \times 280) \approx 8.028 \times 10^9 \text{ parameters } (>8 \text{ billion entries}).
@@ -605,13 +600,13 @@ To demonstrate the profound computational advantage of sparse interactions, Good
     \begin{equation}
     8.028 \times 10^9 \times 4\text{ bytes} \approx 32.11 \times 10^9\text{ bytes} \approx 32.1\text{ GB of RAM},
     \end{equation}
-    just to store the parameters of a \textit{single} layer, far exceeding the memory bandwidth of high-performance GPUs. Furthermore, evaluating the matrix-vector multiplication requires:
+    just to store the parameters of a single layer, far exceeding the memory bandwidth of high-performance GPUs. Evaluating the matrix-vector multiplication requires:
     \begin{equation}
     2 \times (89,600)^2 \approx 1.606 \times 10^{10} \text{ FLOPs } (\approx 16 \text{ billion operations}).
     \end{equation}
   
-  \item \textbf{Convolutional Kernel Layer}:
-    Now consider performing edge detection using a compact 2-element difference kernel $\mathbf{k} = [-1, 1]^\top$ (or a $2 \times 2$ discrete Sobel-like kernel). The number of parameters to store is strictly:
+  \item \textit{Convolutional Kernel Layer}:
+    Performing edge detection with a compact 2-element difference kernel $\mathbf{k} = [-1, 1]^\top$ requires storing strictly:
     \begin{equation}
     |\mathbf{k}| = 2 \text{ parameters } (8\text{ bytes}).
     \end{equation}
@@ -620,60 +615,48 @@ To demonstrate the profound computational advantage of sparse interactions, Good
     89,320 \times 2 \approx 1.786 \times 10^5 \text{ FLOPs } (\approx 2.68 \times 10^5 \text{ FLOPs including bias additions}).
     \end{equation}
 \end{itemize}
-Comparing the two implementations reveals that the convolutional approach is over \textbf{$60,000$ times faster} computationally and requires over \textbf{$4$ billion times less parameter storage}!
+Comparing the two implementations reveals that the convolutional approach is over $60,000$ times faster computationally and requires over $4$ billion times less parameter storage.
 
-\paragraph{Parameter sharing (tied weights).}
-The second foundational principle articulated by Bengio is \textbf{parameter sharing} (also known as \textit{tied weights}): using the exact same parameter value across multiple spatial positions in a network. In a conventional dense MLP, each element $W_{i, j}$ of the weight matrix is used exactly once when multiplying the $j$-th input unit to compute the $i$-th output unit. In a CNN, each element of the filter kernel $\mathbf{K} \in \R^{F \times F}$ is applied across \textit{every single receptive field} throughout the entire input grid.
+\paragraph{Parameter sharing.}
+The second foundational principle articulated by Bengio is parameter sharing (also known as tied weights): using the exact same parameter value across multiple spatial positions in a network. In a conventional dense MLP, each element $W_{i, j}$ of the weight matrix is used exactly once when multiplying the $j$-th input unit to compute the $i$-th output unit. In a CNN, each element of the filter kernel $\mathbf{K} \in \R^{F \times F}$ is applied across every single receptive field throughout the entire input grid.
 
-\subparagraph{Memory and Statistical Efficiency.}
-While parameter sharing does not change the runtime scaling of forward propagation ($\mathcal{O}(k \times n)$ operations are still performed across the spatial grid), it dramatically reduces the number of unique parameters that must be stored in memory to $O(F^2)$ per input-output channel pair. 
+While parameter sharing does not change the runtime scaling of forward propagation ($\mathcal{O}(k \times n)$ operations are still performed across the spatial grid), it dramatically reduces the number of unique parameters that must be stored in memory to $\mathcal{O}(F^2 C_{\text{in}} C_{\text{out}})$, which is completely independent of the input image dimensions $H \times W$. 
 
-Crucially, parameter sharing provides an enormous boost in \textbf{statistical efficiency}. In a dense MLP, a weight connecting to pixel $(10, 10)$ only learns from patterns presented at pixel $(10, 10)$ during training. If a visual feature (such as a feline eye or a vertical edge) appears at coordinate $(200, 200)$, the weights at $(10, 10)$ receive identically zero gradient feedback. In a CNN, because the filter $\mathbf{K}$ is shared across all spatial coordinates, every pixel patch across every training image contributes a gradient update to the exact same parameter tensor. If an input image contains $100 \times 100 = 10,000$ receptive fields, a single image provides $10,000$ distinct gradient signals to update $\mathbf{K}$, dramatically slashing the number of training samples required to learn robust feature detectors.
+Crucially, parameter sharing provides an enormous boost in statistical efficiency. In a dense MLP, a weight connecting to pixel $(10, 10)$ only learns from patterns presented at pixel $(10, 10)$ during training. If a visual feature appears at coordinate $(200, 200)$, the weights at $(10, 10)$ receive identically zero gradient feedback. In a CNN, because the filter $\mathbf{K}$ is shared across all spatial coordinates, every pixel patch across every training image contributes a gradient update to the exact same parameter tensor. If an input image contains $100 \times 100 = 10,000$ receptive fields, a single image provides $10,000$ distinct gradient signals to update $\mathbf{K}$, dramatically slashing the number of training samples required to learn robust feature detectors.
 
-\paragraph{Equivariant representations and transformation symmetries.}
-The third foundational motivation of CNNs is the emergence of \textbf{equivariant representations}. Formally, a mathematical mapping $f$ is said to be \textbf{equivariant} to a transformation $g$ if:
+\paragraph{Equivariant representations.}
+The third foundational motivation of CNNs is the emergence of equivariant representations. Formally, a mathematical mapping $f$ is equivariant to a transformation $g$ if:
 \begin{equation}
 f(g(x)) = g(f(x)).
 \label{eq:equivariance_general_definition}
 \end{equation}
-That is, applying the transformation $g$ to the input $x$ and then evaluating $f$ produces the identical result as evaluating $f$ first and then applying $g$ to the representation.
+Applying the transformation $g$ to the input $x$ and then evaluating $f$ produces the identical result as evaluating $f$ first and then applying $g$ to the representation.
 
-\subparagraph{Invariance vs. Equivariance.}
-As formalized by Prince~\cite{prince2023understanding}, visual perception imposes two distinct transformation symmetries that must not be conflated:
+Visual perception imposes two distinct transformation symmetries that must not be conflated:
 \begin{enumerate}[leftmargin=*]
-  \item \textbf{Translation Invariance}: A mapping $f: \mathcal{X} \to \mathcal{Y}$ is translation-invariant under spatial shift $\mathcal{T}_{\boldsymbol{\delta}}$ if:
+  \item \textit{Translation Invariance}: A mapping $f: \mathcal{X} \to \mathcal{Y}$ is translation-invariant under spatial shift $\mathcal{T}_{\boldsymbol{\delta}}$ if:
     \begin{equation}
     f\left( \mathcal{T}_{\boldsymbol{\delta}} \mathbf{X} \right) = f(\mathbf{X}), \quad \forall \boldsymbol{\delta} = (\Delta x, \Delta y) \in \mathbb{Z}^2.
     \label{eq:translation_invariance_math}
     \end{equation}
     Translation invariance is the mathematically required property for whole-image categorical classification: whether an object sits in the top-left or bottom-right corner of the canvas, its semantic category label (\textit{``Cat''}) must remain unchanged.
   
-  \item \textbf{Translation Equivariance (Covariance)}: A mapping $f: \mathcal{X} \to \mathcal{Z}$ is translation-equivariant under spatial shift $\mathcal{T}_{\boldsymbol{\delta}}$ if:
+  \item \textit{Translation Equivariance (Covariance)}: A mapping $f: \mathcal{X} \to \mathcal{Z}$ is translation-equivariant under spatial shift $\mathcal{T}_{\boldsymbol{\delta}}$ if:
     \begin{equation}
     f\left( \mathcal{T}_{\boldsymbol{\delta}} \mathbf{X} \right) = \mathcal{T}_{\boldsymbol{\delta}} \big[ f(\mathbf{X}) \big], \quad \forall \boldsymbol{\delta} \in \mathbb{Z}^2.
     \label{eq:translation_equivariance_math}
     \end{equation}
-    Translation equivariance is the indispensable property for internal feature representations, dense localization, and semantic segmentation: if an object moves three pixels to the right in the visual field, all extracted feature activations in the convolutional feature map must shift by exactly three pixels to preserve physical spatial geometry.
+    Translation equivariance is indispensable for internal feature representations, dense localization, and semantic segmentation: if an object moves three pixels to the right in the visual field, all extracted feature activations in the convolutional feature map must shift by exactly three pixels to preserve physical spatial geometry.
 \end{enumerate}
 
-\subparagraph{Bengio's Caveat: When NOT to Share Parameters.}
-Goodfellow, Bengio, and Courville~\cite{goodfellow2016deep} highlight a critical architectural caveat: \textit{parameter sharing across space is beneficial if and only if the underlying data-generating distribution is spatially stationary}---that is, when features useful at one location are equally useful at all other locations. While this assumption holds universally for unconstrained natural images, it is \textbf{fundamentally suboptimal} when images possess a fixed, canonical spatial composition.
-\begin{itemize}[leftmargin=*]
-  \item \textbf{The Canonical Example of Aligned Faces}:
-    Consider a biometric dataset of tightly cropped, pre-aligned human faces (e.g., LFW or CelebA). In these images, eyes are consistently positioned in the upper quadrant, noses reside in the center, and mouths are located in the lower quadrant. There is zero reason to search for an eye in the bottom corner or a mouth at the top of the canvas!
-  \item \textbf{The Unshared Locally Connected Solution}:
-    Forced weight sharing across the entire grid forces the network to compromise between detecting eyes and detecting mouths using the same shared filters. In such canonically framed domains, \textbf{unshared locally connected layers} (also known as tiled convolutions without weight sharing) are theoretically and empirically superior: connections remain spatially localized to $F \times F$ patches (preserving sparse interactions), but different spatial positions $(i, j)$ learn completely separate, decoupled weight matrices $\mathbf{K}_{(i, j)}$.
-\end{itemize}
-
-\paragraph{The Catastrophic Sample Complexity of Dense MLPs.}
 To understand why parameter sharing and translation equivariance cannot simply be learned by dense MLPs, consider an MLP processing a flattened image vector $\mathbf{x} = \operatorname{vec}(\mathbf{X}) \in \R^{D}$ with $D = H \cdot W$. A fully connected layer computes hidden activations via an unconstrained dense weight matrix $\mathbf{W} \in \R^{D_{\text{out}} \times D}$:
 \begin{equation}
 h_p = \sigma\left( \sum_{i=1}^H \sum_{j=1}^W W_{p, (i, j)} X_{i, j} + b_p \right).
 \label{eq:mlp_dense_coordinate_dot}
 \end{equation}
-Notice that in Equation~\eqref{eq:mlp_dense_coordinate_dot}, every input coordinate $(i, j)$ is governed by a completely independent, decoupled parameter $W_{p, (i, j)}$.
+Notice that every input coordinate $(i, j)$ is governed by a completely independent, decoupled parameter $W_{p, (i, j)}$.
 
-Suppose a visual pattern $\mathcal{P}$ (e.g., an eye or a sharp vertical edge) is presented at spatial coordinate $(i_1, j_1)$ during training. Backpropagation calculates the gradient of the objective $\mathcal{L}$ with respect to the weights connected to that specific coordinate:
+Suppose a visual pattern $\mathcal{P}$ (such as an eye or a sharp vertical edge) is presented at spatial coordinate $(i_1, j_1)$ during training. Backpropagation calculates the gradient of the objective $\mathcal{L}$ with respect to the weights connected to that specific coordinate:
 \begin{equation}
 \frac{\partial \mathcal{L}}{\partial W_{p, (i_1, j_1)}} = \delta_p X_{i_1, j_1} \neq 0.
 \end{equation}
@@ -681,14 +664,29 @@ However, for any other spatial coordinate $(i_2, j_2) \neq (i_1, j_1)$ where the
 \begin{equation}
 \frac{\partial \mathcal{L}}{\partial W_{p, (i_2, j_2)}} = 0.
 \end{equation}
-The weights connected to coordinate $(i_2, j_2)$ receive \textbf{identically zero gradient updates}! Consequently, if the object appears at position $(i_2, j_2)$ at test time, the MLP possesses zero ability to recognize it.
+The weights connected to coordinate $(i_2, j_2)$ receive identically zero gradient updates. Consequently, if the object appears at position $(i_2, j_2)$ at test time, the MLP possesses zero ability to recognize it.
 
 To learn translation equivariance empirically, the MLP must observe every visual concept $\mathcal{P}$ instantiated at every coordinate in the spatial translation group $\mathcal{T} = \{(\Delta x, \Delta y) \mid 0 \le \Delta x < W, \, 0 \le \Delta y < H\}$. Because the cardinality of this group is $|\mathcal{T}| = H \times W$, the required training sample complexity scales as:
 \begin{equation}
 N_{\text{MLP}} = \Omega\left( |\mathcal{T}| \cdot N_0 \right) = \Omega\left( H \cdot W \cdot N_0 \right),
 \label{eq:sample_complexity_mlp}
 \end{equation}
-where $N_0$ is the sample complexity required to learn the pattern at a single fixed location. For a standard $256 \times 256$ input image, $|\mathcal{T}| = 65,536$: an MLP requires up to a \textbf{$65,000\times$ larger dataset} purely to brute-force learn translation invariance through exhaustive spatial data augmentation!
+where $N_0$ is the sample complexity required to learn the pattern at a single fixed location. For a standard $256 \times 256$ input image, $|\mathcal{T}| = 65,536$: an MLP requires up to a $65,000\times$ larger dataset purely to brute-force learn translation invariance through exhaustive spatial data augmentation.
+
+In contrast, a Convolutional Neural Network resolves this dilemma by hardcoding translation equivariance directly into its algebraic structure through parameter sharing. Convolving input $\mathbf{X}$ with shared kernel $\mathbf{K} \in \R^{F \times F}$ guarantees commutativity with translation by algebraic identity:
+\begin{equation}
+\begin{aligned}
+\big[ (\mathcal{T}_{\boldsymbol{\delta}} \mathbf{X}) * \mathbf{K} \big](i, j) &= \sum_{m=0}^{F-1} \sum_{n=0}^{F-1} (\mathcal{T}_{\boldsymbol{\delta}} \mathbf{X})(i+m, \, j+n) \, K_{m, n} \\
+&= \sum_{m=0}^{F-1} \sum_{n=0}^{F-1} \mathbf{X}(i - \Delta x + m, \, j - \Delta y + n) \, K_{m, n} \\
+&= (\mathbf{X} * \mathbf{K})(i - \Delta x, \, j - \Delta y) = \mathcal{T}_{\boldsymbol{\delta}} \big[ (\mathbf{X} * \mathbf{K}) \big](i, j).
+\end{aligned}
+\label{eq:equivariance_proof}
+\end{equation}
+Because Equation~\eqref{eq:equivariance_proof} holds for any kernel values $\mathbf{K}$, translation equivariance is strictly hardcoded prior to observing any training data. Observing a visual feature at a single location $(i_1, j_1)$ produces a gradient that updates the shared kernel $\mathbf{K}$; this single parameter update immediately generalizes detection across all $H \times W$ locations simultaneously:
+\begin{equation}
+N_{\text{CNN}} = \mathcal{O}(N_0).
+\label{eq:sample_complexity_cnn}
+\end{equation}
 
 \begin{figure}[H]
 \centering
@@ -739,7 +737,7 @@ where $N_0$ is the sample complexity required to learn the pattern at a single f
   % -------------------------------------------------------------
   \node[font=\footnotesize\bfseries, text=intuitiongreen, align=center] at (9.4, 3.6) {
     (b) Convolutional Neural Network\\[2pt]
-    {\scriptsize\normalfont\color{intuitiongreen!90!black}Shift Equivariance: $O(N_0)$ samples}
+    {\scriptsize\normalfont\color{intuitiongreen!90!black}Shift Equivariance: $\mathcal{O}(N_0)$ samples}
   };
 
   % Conv input with pattern at Top-Left
@@ -775,92 +773,29 @@ where $N_0$ is the sample complexity required to learn the pattern at a single f
   % Panel (b) Consequence Callout Box (Narrower with ample margins)
   \node[draw=intuitiongreen!50, fill=intuitionback, rounded corners=2pt, inner sep=3.5pt, align=center, font=\tiny, text=intuitiongreen!90!black] at (9.4, -1.95) {
     $\implies$ Exact translation equivariance: $f(\mathcal{T}_{\boldsymbol{\delta}}\mathbf{X}) = \mathcal{T}_{\boldsymbol{\delta}}[f(\mathbf{X})]$\\
-    Sample complexity $O(N_0)$ independent of grid size
+    Sample complexity $\mathcal{O}(N_0)$ independent of grid size
   };
 \end{tikzpicture}
 \caption{Sample complexity contrast between dense MLPs and Convolutional Networks under 2D spatial translation. (a) In an MLP, disjoint weights connect to each spatial pixel; learning a visual concept at position $(i_1, j_1)$ fails to generalize to position $(i_2, j_2)$. (b) In a CNN, parameter sharing ties all spatial positions to identical kernel weights $\mathbf{K}$, guaranteeing exact translation equivariance and sample complexity scaling independent of grid resolution.}
 \label{fig:mlp_vs_cnn_sample_complexity}
 \end{figure}
 
-\paragraph{The CNN Algebraic Inductive Bias.}
-As illustrated in Figure~\ref{fig:mlp_vs_cnn_sample_complexity}, a Convolutional Neural Network resolves this dilemma by hardcoding translation equivariance directly into its algebraic structure through \textbf{parameter sharing (tied weights)}. Convolving input $\mathbf{X}$ with shared kernel $\mathbf{K} \in \R^{F \times F}$ guarantees commutativity with translation by algebraic identity:
-\begin{equation}
-\begin{aligned}
-\big[ (\mathcal{T}_{\boldsymbol{\delta}} \mathbf{X}) * \mathbf{K} \big](i, j) &= \sum_{m=0}^{F-1} \sum_{n=0}^{F-1} (\mathcal{T}_{\boldsymbol{\delta}} \mathbf{X})(i+m, \, j+n) \, K_{m, n} \\
-&= \sum_{m=0}^{F-1} \sum_{n=0}^{F-1} \mathbf{X}(i - \Delta x + m, \, j - \Delta y + n) \, K_{m, n} \\
-&= (\mathbf{X} * \mathbf{K})(i - \Delta x, \, j - \Delta y) = \mathcal{T}_{\boldsymbol{\delta}} \big[ (\mathbf{X} * \mathbf{K}) \big](i, j).
-\end{aligned}
-\label{eq:equivariance_proof}
-\end{equation}
-Because Equation~\eqref{eq:equivariance_proof} holds for \textit{any} kernel values $\mathbf{K}$, translation equivariance is strictly hardcoded prior to observing any training data. Observing a visual feature at a single location $(i_1, j_1)$ produces a gradient that updates the shared kernel $\mathbf{K}$; this single parameter update immediately generalizes detection across all $H \times W$ locations simultaneously:
-\begin{equation}
-N_{\text{CNN}} = O(N_0).
-\label{eq:sample_complexity_cnn}
-\end{equation}
-As Simon Prince highlights~\cite{prince2023understanding}, weight sharing acts as an \textbf{infinite Bayesian prior} (or Dirac delta regularization) that penalizes all non-translation-equivariant linear mappings to infinity, slashing hypothesis complexity without sacrificing expressive power.
-
-\subsection{Biological foundations and Gabor filters}
-\label{sec:biological_visual_cortex_and_gabor_emergence}
-
-The hierarchical design of Convolutional Neural Networks is deeply rooted in 20th-century neurobiology, reflecting profound mathematical parallels between mammalian visual processing and statistical gradient optimization~\cite{bishop2024deep}.
-
-\paragraph{The Hubel \& Wiesel cortical hierarchy discovery (1959, 1962).}
-In their Nobel-Prize-winning electrophysiological investigations, David Hubel and Torsten Wiesel recorded action potentials from individual cortical neurons in the feline striate cortex (primary visual cortex, Area 17 / V1) under controlled visual illumination~\cite{hubel1959receptive,hubel1962receptive}. They established that cortical neurons do not respond to uniform, diffuse illumination. Instead, V1 visual processing is organized hierarchically:
-\begin{enumerate}[leftmargin=*]
-  \item \textbf{Simple Cells}: Simple cells possess spatially localized receptive fields partitioned into antagonistic excitatory (ON) and inhibitory (OFF) sub-regions. They fire vigorously only in response to oriented visual stimuli (slits, bars, or sharp edges) oriented at a specific angle $\theta$ and situated at a precise spatial location $(x_0, y_0)$ in the visual field.
-  \item \textbf{Complex Cells}: Deeper within the cortical lamina, complex cells receive convergent inputs from groups of simple cells sharing identical orientation preferences $\theta$ across adjacent spatial positions. Complex cells respond to oriented edges anywhere within a broader receptive field, displaying \textbf{local translation invariance} to small spatial shifts.
-\end{enumerate}
-This functional division---simple cells detecting localized oriented features followed by complex cells pooling across space---provided the direct biological archetype for Fukushima's \textit{Neocognitron} (1980)~\cite{fukushima1980neocognitron} and LeCun's \textit{LeNet} (1989, 1998)~\cite{lecun1989backpropagation,lecun1998gradient}: \textbf{convolutional layers computationally embody simple cells, while pooling layers embody complex cells}.
-
-\paragraph{Mathematical modeling via 2D Gabor wavelets.}
-Subsequent neurophysiological mapping (Daugman, 1985; Jones \& Palmer, 1987) demonstrated that the spatial receptive field response profile of a V1 simple cell is modeled with exceptional mathematical precision by a \textbf{2D Gabor filter}~\cite{bishop2024deep}: a 2D sinusoidal plane wave modulated by an anisotropic Gaussian decay envelope.
-
-Following Bishop~\cite{bishop2024deep}, the continuous 2D Gabor function $G: \R^2 \to \R$ is defined by:
-\begin{equation}
-G(x, y) = A \exp\left( -\alpha \tilde{x}^2 - \beta \tilde{y}^2 \right) \sin(\omega \tilde{x} + \phi),
-\label{eq:bishop_gabor_formula}
-\end{equation}
-where $(\tilde{x}, \tilde{y})$ represent coordinates rotated by orientation angle $\theta$ and translated to receptive field center $(x_0, y_0)$:
-\begin{align}
-\tilde{x} &= (x - x_0) \cos\theta + (y - y_0) \sin\theta, \label{eq:gabor_xtilde} \\
-\tilde{y} &= -(x - x_0) \sin\theta + (y - y_0) \cos\theta. \label{eq:gabor_ytilde}
-\end{align}
-The analytical parameters in Equations~\eqref{eq:bishop_gabor_formula}--\eqref{eq:gabor_ytilde} govern physical feature tuning:
-\begin{itemize}[noitemsep]
-  \item $\theta \in [0, \pi)$: The preferred orientation angle of the edge detector.
-  \item $\omega \in \R_+$: The spatial frequency of the sinusoidal oscillation, tuning the detector to specific edge scales.
-  \item $\phi \in [0, 2\pi)$: The phase angle ($\phi = 0$ corresponds to an odd-symmetric, anti-phase edge detector; $\phi = \pi/2$ corresponds to an even-symmetric bar detector).
-  \item $\alpha, \beta > 0$: Spatial decay constants determining the Gaussian standard deviations $\sigma_x = 1/\sqrt{2\alpha}$ (across stripes) and $\sigma_y = 1/\sqrt{2\beta}$ (along stripes).
-\end{itemize}
-In harmonic analysis, 2D Gabor functions possess a remarkable property: they uniquely attain the theoretical lower bound of the \textbf{Heisenberg-Gabor joint uncertainty relation} in space and spatial frequency:
-\begin{equation}
-\Delta x \cdot \Delta u \ge \frac{1}{4\pi}, \quad \Delta y \cdot \Delta v \ge \frac{1}{4\pi}.
-\label{eq:heisenberg_gabor_uncertainty}
-\end{equation}
-They are the optimal mathematical operators for simultaneously localizing spatial position $(x, y)$ and orientation/frequency $(u, v)$.
-
-\paragraph{Spontaneous Gabor emergence via backpropagation on natural images.}
-When a deep convolutional network (such as AlexNet~\cite{krizhevsky2012imagenet} or VGG~\cite{simonyan2014very}) is trained on large-scale datasets (ImageNet) using standard stochastic gradient descent to minimize cross-entropy loss:
-\begin{equation}
-\min_{\mathbf{W}} \frac{1}{N} \sum_{i=1}^N \mathcal{L}_{\text{CE}}\big( f(\mathbf{X}_i; \mathbf{W}), y_i \big),
-\end{equation}
-a remarkable phenomenon emerges: \textbf{the first-layer convolutional filters spontaneously organize into oriented Gabor-like wavelets and color-opponent blob filters}~\cite{krizhevsky2012imagenet,bishop2024deep}.
-
-Crucially, \textbf{no biological priors or Gabor templates were engineered into the network or the loss function}. Why does pure gradient descent autonomously rediscover mammalian visual cortex receptive fields?
+\paragraph{Bengio's caveat and locally connected layers.}
+Goodfellow, Bengio, and Courville~\cite{goodfellow2016deep} highlight a critical architectural caveat: parameter sharing across space is beneficial if and only if the underlying data-generating distribution is spatially stationary---that is, when features useful at one location are equally useful at all other locations. While this assumption holds universally for unconstrained natural images, it is fundamentally suboptimal when images possess a fixed, canonical spatial composition.
 \begin{itemize}[leftmargin=*]
-  \item \textbf{Natural Image Statistics}: As established by Olshausen \& Field (1996)~\cite{olshausen1996emergence} and Bell \& Sejnowski (1997), natural images are not random Gaussian noise; their power spectra follow a universal scale-invariant power law $P(f) \propto 1/f^{2-\eta}$ governed by sharp physical occlusion boundaries. Seeking an optimal, non-redundant sparse code for natural image patches mathematically forces basis functions to converge to localized, oriented bandpass wavelets.
-  \item \textbf{Color Opponency}: On 3-channel RGB imagery, early filters spontaneously split into achromatic (luminance) edge detectors and chromatic color-opponent filters: Red vs. Green ($R - G$) and Blue vs. Yellow ($B - (R+G)/2$). Gradient descent spontaneously rediscovers Hering's 1878 \textbf{opponent-process theory of biological color vision}.
+  \item \textit{The Canonical Example of Aligned Faces}:
+    Consider a biometric dataset of tightly cropped, pre-aligned human faces (such as LFW or CelebA). In these images, eyes are consistently positioned in the upper quadrant, noses reside in the center, and mouths are located in the lower quadrant. There is no reason to search for an eye in the bottom corner or a mouth at the top of the canvas.
+  \item \textit{The Unshared Locally Connected Solution}:
+    Forced weight sharing across the entire grid forces the network to compromise between detecting eyes and detecting mouths using the same shared filters. In such canonically framed domains, unshared locally connected layers (also known as tiled convolutions without weight sharing) are theoretically and empirically superior: connections remain spatially localized to $F \times F$ patches (preserving sparse interactions), but different spatial positions $(i, j)$ learn completely separate, decoupled weight matrices $\mathbf{K}_{(i, j)}$.
 \end{itemize}
-
-As Christopher Bishop cautions~\cite{bishop2024deep}, this convergence does not prove that CNNs function as biophysical models of the mammalian brain; rather, it demonstrates that \textbf{Gabor-like filtering and color opponency are universal mathematical solutions dictated by the statistical physics of natural imagery}. Both biological evolution and artificial backpropagation independently discover the exact same optimal representations.
 
 \subsection{Convolution as an infinitely strong prior}
 \label{sec:infinitely_strong_prior_bengio}
 
-To attain the deepest theoretical understanding of why Convolutional Neural Networks succeed---and precisely when they fail---we must examine their architecture through the lens of Bayesian probability theory and statistical learning theory. In Chapter~9.4 of their foundational treatise \textit{Deep Learning}, Ian Goodfellow, Yoshua Bengio, and Aaron Courville~\cite{goodfellow2016deep} introduce a profound, unifying perspective: \textbf{convolution and pooling can be understood as an infinitely strong prior on the weights of a fully connected layer}.
+To attain the deepest theoretical understanding of why Convolutional Neural Networks succeed---and precisely when they fail---we must examine their architecture through the lens of Bayesian probability theory and statistical learning theory. In Chapter~9.4 of \textit{Deep Learning}, Ian Goodfellow, Yoshua Bengio, and Aaron Courville~\cite{goodfellow2016deep} introduce a unifying perspective: convolution and pooling can be understood as an infinitely strong prior on the weights of an unconstrained fully connected layer.
 
 \paragraph{Prior probability distributions in Bayesian learning.}
-In Bayesian parameter estimation, a \textbf{prior probability distribution} $p(\boldsymbol{\theta})$ over the model parameters $\boldsymbol{\theta}$ encodes our subjective beliefs or domain assumptions about which parameter values are plausible \textit{before} observing any empirical training data $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^N$~\cite{bishop2024deep,goodfellow2016deep}. Through Bayes' rule, the posterior distribution over parameters is proportional to the product of the likelihood and the prior:
+In Bayesian parameter estimation, a prior probability distribution $p(\boldsymbol{\theta})$ over the model parameters $\boldsymbol{\theta}$ encodes domain assumptions about parameter values before observing training data $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^N$~\cite{bishop2024deep,goodfellow2016deep}. Through Bayes' rule, the posterior distribution over parameters is:
 \begin{equation}
 p(\boldsymbol{\theta} \mid \mathcal{D}) \propto p(\mathcal{D} \mid \boldsymbol{\theta}) \, p(\boldsymbol{\theta}) = \left[ \prod_{i=1}^N p(y_i \mid \mathbf{x}_i, \boldsymbol{\theta}) \right] p(\boldsymbol{\theta}).
 \label{eq:bayesian_posterior_weights}
@@ -872,9 +807,9 @@ In Maximum A Posteriori (MAP) estimation, the optimal parameter vector maximizes
 \end{equation}
 Priors exist along a continuum of strength determined by their probability entropy:
 \begin{itemize}[leftmargin=*]
-  \item \textbf{Weak Prior}: A prior with high variance and high entropy (such as a Gaussian prior $\mathcal{N}(\mathbf{0}, \sigma^2 \mathbf{I})$ with large $\sigma^2$). A weak prior exerts minimal regularization on the objective function, allowing empirical training data to drive the parameter values with wide freedom.
-  \item \textbf{Strong Prior}: A prior with low variance and low entropy (such as a Gaussian prior with small $\sigma^2$). A strong prior heavily penalizes parameters that deviate from the prior mean, requiring substantial empirical evidence from training data to steer parameters away from the prior expectation.
-  \item \textbf{Infinitely Strong Prior}: An \textbf{infinitely strong prior} places \textbf{zero probability} ($p(\boldsymbol{\theta}) = 0$) on certain parameter configurations, mathematically forbidding them regardless of the quantity or clarity of evidence provided by training data! An infinitely strong prior restricts the support of the parameter space strictly to a lower-dimensional submanifold $\mathcal{M} \subset \R^P$:
+  \item \textit{Weak Prior}: High variance and high entropy (such as a Gaussian prior $\mathcal{N}(\mathbf{0}, \sigma^2 \mathbf{I})$ with large $\sigma^2$), exerting minimal regularization and allowing empirical data to drive parameter values freely.
+  \item \textit{Strong Prior}: Low variance and low entropy (such as a Gaussian prior with small $\sigma^2$), heavily penalizing parameters that deviate from the prior mean.
+  \item \textit{Infinitely Strong Prior}: Places zero probability mass ($p(\boldsymbol{\theta}) = 0$) on certain parameter configurations, permanently forbidding them regardless of empirical evidence. It restricts the parameter space strictly to a lower-dimensional submanifold $\mathcal{M} \subset \R^P$:
     \begin{equation}
     p(\boldsymbol{\theta}) = 
     \begin{cases}
@@ -883,101 +818,52 @@ Priors exist along a continuum of strength determined by their probability entro
     \end{cases}
     \label{eq:infinitely_strong_prior_support}
     \end{equation}
-    If a parameter configuration $\boldsymbol{\theta}$ lies outside $\mathcal{M}$, its prior probability is zero, which means its posterior probability $p(\boldsymbol{\theta} \mid \mathcal{D})$ remains identically zero for \textit{any} dataset $\mathcal{D}$, even in the asymptotic limit $N \to \infty$.
+    If $\boldsymbol{\theta} \notin \mathcal{M}$, its posterior probability $p(\boldsymbol{\theta} \mid \mathcal{D})$ remains identically zero for any dataset, even as $N \to \infty$.
 \end{itemize}
 
-\paragraph{Convolution as an infinitely strong prior on a dense layer.}
-Under Bengio's formulation, we can conceptualize a convolutional layer not as a fundamentally different mathematical entity, but as a standard \textbf{unconstrained fully connected layer} $\mathbf{y} = \mathbf{W}\mathbf{x}$ (governed by an unconstrained dense weight matrix $\mathbf{W} \in \R^{D_{\text{out}} \times D_{\text{in}}}$) upon which an \textbf{infinitely strong prior} has been imposed~\cite{goodfellow2016deep}.
-
-Specifically, the convolutional prior asserts with absolute mathematical certainty that:
+\paragraph{Convolution and pooling as infinitely strong priors.}
+Under Bengio's formulation, a convolutional layer can be conceptualized as a standard unconstrained fully connected layer $\mathbf{y} = \mathbf{W}\mathbf{x}$ upon which an infinitely strong spatial prior is imposed~\cite{goodfellow2016deep}. This prior asserts two structural constraints with absolute mathematical certainty:
 \begin{enumerate}[leftmargin=*]
-  \item \textbf{Hard Receptive Field Sparsity}: The prior asserts that a unit at spatial coordinate $(i, j)$ in layer $l$ can only interact with units in layer $l-1$ that reside within its immediate spatial neighborhood $\Omega(i, j)$. For all connections outside this local receptive field, the prior assigns a Dirac delta distribution centered at zero:
+  \item \textit{Hard Receptive Field Sparsity}: A unit at spatial coordinate $(i, j)$ in layer $l$ can only interact with units in layer $l-1$ within its local spatial neighborhood $\Omega(i, j)$. For all connections outside this receptive field, the prior assigns a Dirac delta distribution centered at zero:
     \begin{equation}
-    p(W_{(i, j), (i', j')}) = \delta\big( W_{(i, j), (i', j')} \big), \quad \forall (i', j') \notin \Omega(i, j).
+    p(W_{(i, j), (i', j')}) = \delta\big( W_{(i, j), (i', j')} \big), \quad \forall (i', j') \notin \Omega(i, j),
     \label{eq:prior_sparsity_delta}
     \end{equation}
-    This hard constraint forces $W_{(i, j), (i', j')} \equiv 0$ strictly and irreversibly, completely eliminating all long-range direct connections.
+    forcing $W_{(i, j), (i', j')} \equiv 0$ strictly and eliminating all direct long-range connections.
   
-  \item \textbf{Strict Spatial Parameter Sharing (Weight Tying)}: The prior asserts that the weights connecting an output unit to its receptive field must be strictly invariant to spatial translation across the canvas. Defining coordinates $\mathbf{u}_1 = (i_1, j_1)$, $\mathbf{u}_2 = (i_2, j_2)$ and displacement $\boldsymbol{\Delta} = (\Delta x, \Delta y)$, the weights connecting to identical relative offsets within their respective receptive fields must be strictly identical:
+  \item \textit{Strict Spatial Parameter Sharing}: The weights connecting an output unit to its receptive field must be strictly invariant to spatial translation. Defining coordinates $\mathbf{u}_1 = (i_1, j_1)$, $\mathbf{u}_2 = (i_2, j_2)$ and displacement $\boldsymbol{\Delta} = (\Delta x, \Delta y)$, weights at identical relative offsets must be identical:
     \begin{equation}
     p\big( W_{\mathbf{u}_1, \, \mathbf{u}_1 + \boldsymbol{\Delta}} - W_{\mathbf{u}_2, \, \mathbf{u}_2 + \boldsymbol{\Delta}} \big) = \delta\big( W_{\mathbf{u}_1, \, \mathbf{u}_1 + \boldsymbol{\Delta}} - W_{\mathbf{u}_2, \, \mathbf{u}_2 + \boldsymbol{\Delta}} \big).
     \label{eq:prior_weight_tying_delta}
     \end{equation}
 \end{enumerate}
-Together, Equations~\eqref{eq:prior_sparsity_delta} and \eqref{eq:prior_weight_tying_delta} collapse the hypothesis space from an unconstrained $D_{\text{out}} \times D_{\text{in}}$ matrix manifold down to a banded, constant-diagonal Toeplitz subspace of dimension $F \times F \times C_{\text{in}} \times C_{\text{out}}$. No amount of gradient updates or training data can ever cause a CNN to learn non-zero connections outside the kernel window or differentiate weights across space.
+Together, Equations~\eqref{eq:prior_sparsity_delta} and \eqref{eq:prior_weight_tying_delta} collapse the hypothesis space from an unconstrained $D_{\text{out}} \times D_{\text{in}}$ matrix manifold down to a banded subspace of dimension $F \times F \times C_{\text{in}} \times C_{\text{out}}$.
 
-\paragraph{Pooling as an infinitely strong prior on local translation invariance.}
-In the same Bayesian spirit, spatial pooling (such as max pooling or average pooling over a window of radius $R$) can be viewed as an \textbf{infinitely strong prior} asserting that the learned representation must be strictly invariant to small local translations:
+Similarly, spatial pooling (such as max or average pooling over a window of radius $R$) acts as an infinitely strong prior asserting that the representation must be strictly invariant to small local translations:
 \begin{equation}
 f\left( \mathcal{T}_{\boldsymbol{\epsilon}} \mathbf{X} \right) = f(\mathbf{X}), \quad \forall \|\boldsymbol{\epsilon}\| \le R.
 \label{eq:prior_pooling_invariance}
 \end{equation}
-This prior encodes the domain belief that the precise spatial coordinate where a feature occurs within a localized window is irrelevant; what matters exclusively is whether the feature is present.
+This prior encodes the domain belief that the exact sub-window spatial coordinate where a feature occurs is irrelevant, prioritizing feature presence over exact coordinate localization.
 
-\paragraph{The underfitting risk and the bias-variance dilemma.}
-As Bengio, Goodfellow, and Courville caution~\cite{goodfellow2016deep}, an infinitely strong prior is fundamentally a double-edged sword:
+\paragraph{Underfitting risk and bias-variance trade-offs.}
+An infinitely strong prior is fundamentally a double-edged sword:
 \begin{itemize}[leftmargin=*]
-  \item \textbf{When the Prior is Correct (Stationary Natural Images)}:
-    If the assumptions encoded by the prior reflect the true physical data-generating distribution $p_{\text{data}}$---as is the case with natural images, where local spatial correlation is near $1.0$ and objects undergo continuous rigid translations---the infinitely strong prior drastically reduces the variance of the estimator, completely eliminates the $\mathcal{O}(HW)$ sample complexity overhead, and prevents overfitting without introducing any harmful bias.
+  \item \textit{When the Prior Holds (Stationary Natural Images)}:
+    If the data adheres to the prior assumptions—as natural images do, with high local spatial correlations and continuous rigid translation symmetries—the prior drastically reduces estimator variance, eliminates the $\mathcal{O}(HW)$ sample complexity overhead, and prevents overfitting without introducing harmful bias.
   
-  \item \textbf{When the Prior is Incorrect or Violated (Underfitting and Bias)}:
-    However, if the assumptions encoded by the prior are \textbf{false}, an infinitely strong prior results in severe, irreversible \textbf{underfitting} due to permanent, uncorrectable inductive bias! Because the prior assigns zero probability to functions outside $\mathcal{M}$, the model can never recover the true data-generating function, regardless of how many billions of training samples are provided ($N \to \infty$).
+  \item \textit{When the Prior Fails (Underfitting and Bias)}:
+    If the true data distribution violates the prior assumptions, an infinitely strong prior results in severe, permanent underfitting due to uncorrectable inductive bias. Because the prior assigns zero probability to functions outside $\mathcal{M}$, the true data-generating function cannot be recovered even with infinite training data ($N \to \infty$).
 \end{itemize}
 
-\subparagraph{Concrete Failure Modes of the Convolutional and Pooling Prior.}
-In advanced machine learning, several critical domains violate the convolutional/pooling inductive prior:
+\paragraph{Concrete failure modes.}
+Several practical vision domains expose the limitations of the convolutional and pooling prior:
 \begin{enumerate}[leftmargin=*]
-  \item \textbf{Exact Spatial Coordinate Regression}: In geometric tasks requiring precise pixel coordinate prediction (such as facial landmark keypoint localization, bounding-box corner regression, or robotic visual servoing), spatial pooling actively degrades performance because it forcibly discards the exact sub-window spatial coordinates that the task requires.
-  \item \textbf{Non-Local, Long-Range Interactions}: Convolution assumes that all direct interactions are strictly local ($F \times F$). If a visual reasoning task requires correlating two distant visual patterns at opposite corners of an image without spatial blurring, a CNN must stack dozens of layers to build sufficient effective receptive field depth. Each successive layer of filtering and downsampling introduces geometric distortion and loses high-frequency details.
-  \item \textbf{The Emergence of Vision Transformers (ViTs)}:
-    This limitation motivated the development of \textbf{Vision Transformers (ViTs)}~\cite{dosovitskiy2020image,vaswani2017attention}. ViTs replace the localized, shift-invariant prior of convolution with unconstrained \textbf{multi-head self-attention} across non-overlapping image patches ($16 \times 16$). Because self-attention has a much weaker inductive prior (it does not hardcode local 2D grid adjacency or translation equivariance), ViTs underfit when trained on small datasets (such as CIFAR-10 or ImageNet-1K without pre-training). However, when trained on colossal web-scale datasets (such as JFT-300M with over $300\text{ million}$ images), the weaker prior of ViTs allows them to learn flexible, global semantic dependencies that surpass the asymptotic performance ceiling of rigid convolutional networks!
-  \item \textbf{Architectural Mitigations in Deep CNNs}:
-    To mitigate the rigidity of the convolutional prior while retaining its sample efficiency, deep vision architects engineered specialized operations:
-    \begin{itemize}
-      \item \textbf{Dilated (Atrous) Convolutions}~\cite{yu2015multi}: Expands the receptive field exponentially across spatial dimensions without introducing additional parameters or reducing feature map resolution by inserting spaces (dilation factor $d$) between kernel taps.
-      \item \textbf{Parallel Multi-Branch Modules (Inception)}~\cite{szegedy2015going}: Evaluates $1 \times 1$, $3 \times 3$, $5 \times 5$ convolutions and $3 \times 3$ max-pooling in parallel within each layer, allowing gradient optimization to dynamically determine the optimal blend between local detail, broad context, and translation invariance.
-    \end{itemize}
+  \item \textit{Exact Coordinate Regression}: Tasks requiring precise pixel coordinate prediction (such as facial landmark keypoint localization, bounding-box corner regression, or robotic visual servoing) are hindered by spatial pooling, which deliberately discards fine-grained spatial offsets.
+  \item \textit{Non-Local Long-Range Interactions}: Convolution restricts direct connections to local $F \times F$ windows. Capturing correlations across distant corners of an image requires stacking dozens of layers to build receptive field depth, progressively diluting high-frequency details.
+  \item \textit{Vision Transformers (ViTs)}: By replacing localized convolutional priors with unconstrained multi-head self-attention, ViTs impose much weaker inductive biases. While requiring substantially more training data to converge from scratch, ViTs learn flexible global dependencies that surpass the asymptotic performance ceiling of rigid local priors on web-scale datasets.
+  \item \textit{Architectural Mitigations}: Convolutional architectures address these rigidities via dilated convolutions (which expand receptive fields exponentially without adding parameters or downsampling) and multi-branch modules (such as Inception, which compute multiple kernel scales in parallel).
 \end{enumerate}
-
-\paragraph{Bengio's litmus test: The permutation invariance benchmark.}
-To vividly illustrate the difference between an unconstrained dense network and a convolutional network governed by an infinitely strong prior, Goodfellow and Bengio~\cite{goodfellow2016deep} propose a striking diagnostic thought experiment:
-\begin{quote}
-\textit{``Suppose we generate a synthetic dataset by taking a standard image classification dataset (such as MNIST or CIFAR-10) and applying a single, fixed random permutation $\pi$ to the pixels of every single image: $\mathbf{x}_{\text{perm}} = \pi(\mathbf{x})$. How do MLPs and CNNs behave when trained on this scrambled dataset?''}
-\end{quote}
-The contrast is profound:
-\begin{itemize}[leftmargin=*]
-  \item \textbf{Dense Multi-Layer Perceptrons (MLPs) are Permutation Invariant}:
-    A dense fully connected network is fundamentally \textbf{permutation invariant across its input features}. Because an unconstrained weight matrix $\mathbf{W}$ connects every input coordinate to every hidden neuron independently, permuting the input features simply permutes the rows of the first weight matrix:
-    \begin{equation}
-    \mathbf{W} \mathbf{x} = (\mathbf{W} \mathbf{\Pi}^{-1}) (\mathbf{\Pi} \mathbf{x}),
-    \end{equation}
-    where $\mathbf{\Pi}$ is the permutation matrix representing $\pi$. An MLP trained on the scrambled dataset will achieve the \textbf{exact same training loss, exact same test accuracy, and exact same convergence rate} as an MLP trained on the original, spatially coherent images! The MLP makes zero prior assumption that pixel $(10, 10)$ has any topological relationship to pixel $(10, 11)$.
-  
-  \item \textbf{Convolutional Neural Networks (CNNs) Suffer Complete Collapse}:
-    In dramatic contrast, if a CNN is trained on the pixel-scrambled dataset $\pi(\mathbf{x})$, its performance \textbf{completely collapses}! The network will underfit catastrophically and achieve near-random accuracy. Why? Because the spatial permutation completely destroys the 2D spatial Euclidean grid topology, rendering local receptive fields ($3 \times 3$) and sliding weight sharing completely nonsensical.
-\end{itemize}
-This diagnostic benchmark proves conclusively that CNNs are not universal learning algorithms for arbitrary tabular data; their phenomenal sample efficiency on images is purchased entirely through an \textbf{infinitely strong prior that hardcodes 2D local spatial translation symmetry into the algebraic architecture}.
-
-\begin{table}[H]
-\centering
-\small
-\renewcommand{\arraystretch}{1.25}
-\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
-\toprule
-\textbf{Architectural Dimension} & \textbf{Dense Multi-Layer Perceptron} & \textbf{Convolutional Neural Network} & \textbf{Vision Transformer (ViT)} \\
-\midrule
-\textbf{Bayesian Prior Strength} & Extremely Weak (Isotropic Gaussian / $L_2$ Decay) & \textbf{Infinitely Strong Prior} (Dirac delta on non-local weights \& shifts) & Moderate Prior (Permutation equivariant self-attention + learned pos-enc) \\
-\textbf{Spatial Topology Bias} & Zero 2D spatial awareness; treats pixels as arbitrary tabular features & \textbf{Strict 2D Euclidean Grid Topology}; hardcodes locality \& shift equivariance & Weak 2D bias; learns spatial relationships dynamically from patch tokens \\
-\textbf{Parameter Scaling} & Catastrophic: $\mathcal{O}(H W \cdot D_{\text{out}})$ per layer & \textbf{Resolution-Independent}: $\mathcal{O}(F^2 \cdot C_{\text{in}} C_{\text{out}})$ per layer & Quadratic in tokens: $\mathcal{O}(N_{\text{patches}}^2 \cdot D + D^2)$ \\
-\textbf{Sample Complexity} & Very High: $\Omega(H \cdot W \cdot N_0)$ & \textbf{Extremely Low}: $\mathcal{O}(N_0)$ due to full parameter reuse & High on small data; dominant on massive web-scale pre-training ($>10^8$) \\
-\textbf{Pixel Permutation $\pi(\mathbf{x})$} & \textbf{Completely Unaffected} (identically learns permuted weights) & \textbf{Catastrophic Collapse} (violates the infinitely strong prior) & Degrades without position embeddings; recovers via learned embeddings \\
-\bottomrule
-\end{tabularx}
-\caption{Systematic comparison of architectural priors, spatial inductive biases, sample complexities, and permutation sensitivity across MLPs, CNNs, and Vision Transformers.}
-\label{tab:priors_mlp_cnn_vit}
-\end{table}
-
-While the infinitely strong spatial prior explains the sample efficiency of local convolutional operators, constructing deep visual networks by naively scaling kernel sizes ($11 \times 11, 7 \times 7$) leads to an intolerable explosion in parameters and arithmetic FLOPs. To build practical deep vision backbones, machine learning requires disciplined architectural design principles: cascading small $3\times 3$ kernels to expand the effective receptive field, deploying $1\times 1$ cross-channel projections as computational bottlenecks, and utilizing spatial pooling to synthesize global semantic decisions.
 
 
 \section[Architectural design principles: Stacking kernels, 1x1 convolutions, and pooling]{Architectural design principles: Stacking kernels, $1 \times 1$ convolutions, and pooling}
