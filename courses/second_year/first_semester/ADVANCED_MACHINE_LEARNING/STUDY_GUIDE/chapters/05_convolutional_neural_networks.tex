@@ -14,12 +14,160 @@ This chapter provides an exhaustive theoretical and mathematical treatment of co
 
 In biological vision and modern artificial intelligence, visual sensory inputs are fundamentally distinct from tabular database entries or isolated acoustic waveforms: an image is a continuous, high-dimensional projection of a structured three-dimensional physical environment onto a two-dimensional sensor plane. In Chapter~\ref{sec:deep_feedforward_and_backpropagation}, we proved the Universal Approximation Theorem, establishing that Multi-Layer Perceptrons (MLPs) equipped with non-linear activation functions can approximate any continuous compact mapping to arbitrary precision. However, when machine learning practitioners attempt to deploy unconstrained fully connected architectures directly onto raw visual sensory grids, the models suffer an immediate, catastrophic empirical failure.
 
-The root cause of this breakdown lies in the profound dimensional and topological mismatch between dense matrix multiplication and the physical structure of photographic scenes. Flattening an image into an unrolled coordinate vector irrevocably shatters two-dimensional spatial topology, severs the metric distance between adjacent pixels, and triggers an explosive parameter scaling that demands hundreds of millions of weights for the very first hidden layer. Crucially, as emphasized during lectures, natural images exhibit universal statistical self-similarity: photographic scenes are dominated by smooth physical surfaces, scale-invariant structures, and repetitive textural motifs. An inpainting algorithm can seamlessly reconstruct an occluded or corrupted image patch simply by copying coherent texture samples from other regions of the visual field. Unconstrained dense networks are completely blind to this self-similarity: by assigning unique, independent weights to every absolute coordinate $(i, j)$, an MLP fails to share knowledge across space and possesses zero translation equivariance, requiring an exponential number of training examples to learn that an object retains its identity regardless of where it appears on the canvas.
+\subsection{Image patterns and visual regularities}
+\label{sec:natural_image_statistics}
 
-To resolve this empirical crisis, we must analyze the structural mechanisms that render dense networks inadequate for computer vision. This section establishes the theoretical failure modes of fully connected layers on images: we first formalize the vectorization requirement, the metric disruption of pixel coordinates, and the unconstrained parameter explosion under VC generalization theory; next, we analyze natural image statistics, examining high local autocorrelation, the $1/f^2$ scale-invariant power spectrum, and the universality of low-level edge primitives; finally, we trace the neurobiological discoveries of Hubel and Wiesel in the mammalian visual cortex that directly motivated the architectural shift toward convolutional neural networks.
+To understand why dense networks fail and how we can construct architectures tailored for vision, we must first examine the nature of visual data itself. Why do photographic images possess an inherent internal structure, and why do virtually all natural images share identical low-level statistical patterns?
 
-\subsection{Dense MLP limitations on images}
+\paragraph{Natural images versus white noise.}
+Consider an arbitrary $256 \times 256$ RGB image with 8-bit color channels. The space of all possible pixel configurations contains:
+\begin{equation}
+(256)^{256 \times 256 \times 3} = 256^{196,608} \approx 10^{473,000} \text{ configurations}.
+\end{equation}
+If pixel intensities were drawn independently from a uniform or Gaussian distribution, the resulting image would be pure white noise: an unstructured, static television hiss containing zero discernible semantic information. In contrast, the set of all possible \textbf{natural images} occupies an infinitesimal, low-dimensional manifold embedded within this unimaginably vast space. 
+
+Natural images are non-random because they are optical projections of a \textbf{structured 3D physical universe}:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Continuous Physical Matter}: Solid physical objects consist of contiguous materials with uniform surface reflectance, mass, and texture.
+  \item \textbf{Smooth Optical Illumination}: Environmental light sources cast smooth illumination gradients across physical surfaces rather than fluctuating arbitrarily from millimeter to millimeter.
+  \item \textbf{Localized Discontinuities}: Significant variations in pixel values occur predominantly at physical object boundaries, material transitions, and occlusion silhouettes, creating sharp, localized step edges.
+  \item \textbf{Perspective Projection}: The 3D geometry of space induces regular perspective transformations, straight lines, vanishing points, and depth planes onto the 2D sensor grid.
+\end{itemize}
+
+\paragraph{Inherent self-similarity and the inpainting proof.}
+Because images project continuous physical scenes, they exhibit profound \textbf{statistical self-similarity}: local visual motifs, textures, and color distributions repeat continuously across the canvas. For example, a single photograph contains repeated rectangular patterns on the spokes of a wheel, rows of nearly identical windows across an architectural facade, or consistent skin tones and textural shading between a person's forehead, cheeks, and adjacent visual regions.
+
+A decisive qualitative demonstration of this universal self-similarity is the mechanism of \textbf{patch-based inpainting} (as utilized in digital image editing and patch synthesis algorithms). If an object is excised from a scene---such as removing an eagle soaring against a sky and mountain backdrop---the resulting empty hole can be seamlessly reconstructed without relying on external databases. An algorithm can fill the void by simply sampling, copying, and blending coherent texture patches already present in other regions of the exact same image. The fact that an occluded region can be faithfully synthesized from distant patches of the same canvas proves that natural scenes possess immense internal redundancy and spatial self-similarity.
+
+\paragraph{Universal statistical regularities of natural scenes.}
+Empirical investigations into natural image statistics reveal four universal mathematical properties shared across all natural scenes:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{High Local Autocorrelation}: The statistical correlation between two pixels $\mathbf{I}(\mathbf{x})$ and $\mathbf{I}(\mathbf{x} + \Delta \mathbf{x})$ approaches unity as the spatial displacement $\|\Delta \mathbf{x}\|_2 \to 0$. Adjacent pixels almost always share identical color and luminance; meaningful variation is concentrated at localized boundaries.
+  \item \textbf{Scale Invariance and the $1/f^2$ Power Spectrum}: Across diverse natural landscapes, the Fourier power spectral density $S(f)$ universally follows a power law:
+    \begin{equation}
+    S(f) \propto \frac{1}{f^{2 - \eta}}, \quad \text{with } \eta \approx 0.2.
+    \label{eq:power_spectrum_law}
+    \end{equation}
+    This scale invariance indicates that the visual world exhibits identical statistical structure across zoom levels: low spatial frequencies (smooth surfaces) dominate the overall energy, while high spatial frequencies (edges and fine textures) form a sparse, highly informative component.
+  \item \textbf{Universality of Low-Level Edge Primitives}: Across entirely unrelated visual domains---whether inspecting facial portraits, satellite topography, medical histopathology, or urban streetscapes---images are universally constructed from the same elementary visual primitives: \textbf{oriented edges, localized color transitions, and corner junctions}.
+  \item \textbf{Hierarchical Compositionality and Semantic Translation Tolerance}: Natural visual semantics are formed compositionally: local pixels combine into oriented edges, edges aggregate into textures and geometric motifs, motifs assemble into object parts (such as eyes or wheels), and parts assemble into complete semantic objects. Furthermore, the semantic identity of an object is translation-tolerant: a cat remains a cat regardless of whether it appears in the upper-left corner, the center, or the lower-right corner of the canvas.
+\end{enumerate}
+
+\paragraph{Neurobiological evidence: Hubel and Wiesel.}
+This hierarchical organization is not merely an engineering convenience; it mirrors biological vision. In 1959, neurophysiologists David Hubel and Torsten Wiesel~\cite{hubel1959receptive,hubel1962receptive} discovered that the mammalian primary visual cortex (area V1) is organized into a hierarchy of specialized cells:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Simple Cells}: Possess small, localized receptive fields that activate selectively to oriented light bars and edges at specific angles and spatial positions.
+  \item \textbf{Complex Cells}: Pool the responses of multiple simple cells across a local neighborhood, maintaining orientation selectivity while achieving invariance to small spatial shifts.
+\end{itemize}
+This biological discovery inspired Kunihiko Fukushima's \textbf{Neocognitron} (1980)~\cite{fukushima1980neocognitron} and Yann LeCun's \textbf{LeNet} (1989)~\cite{lecun1989backpropagation}, establishing the foundation for hierarchical representation learning in artificial vision.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.95]
+  % Stage 1: Pixels
+  \node[rectangle, draw=gray!80, fill=gray!10, thick, inner sep=6pt, font=\footnotesize, align=center] (s1) at (0, 0) {
+    \textbf{Level 1: Raw Pixels}\\
+    Coordinate grid $\mathbf{I}(i, j) \in [0, 255]^3$
+  };
+
+  % Stage 2: Edges & Contours
+  \node[rectangle, draw=deepblue, fill=deepblue!15, thick, inner sep=6pt, font=\footnotesize, align=center] (s2) at (3.5, 0) {
+    \textbf{Level 2: Low-Level Primitives}\\
+    Oriented edges, bars, Gabor wavelets
+  };
+
+  % Stage 3: Motifs & Textures
+  \node[rectangle, draw=intuitiongreen, fill=intuitiongreen!15, thick, inner sep=6pt, font=\footnotesize, align=center] (s3) at (7.2, 0) {
+    \textbf{Level 3: Mid-Level Motifs}\\
+    Corners, junctions, textures, shapes
+  };
+
+  % Stage 4: Parts & Objects
+  \node[rectangle, draw=politoNavy, fill=politoNavy!20, thick, inner sep=6pt, font=\footnotesize, align=center] (s4) at (11.0, 0) {
+    \textbf{Level 4: High-Level Semantics}\\
+    Object parts (eyes, wheels) $\to$ Full objects
+  };
+
+  % Directed Arrows between stages
+  \draw[-{Stealth}, very thick, politoNavy] (s1) -- (s2);
+  \draw[-{Stealth}, very thick, politoNavy] (s2) -- (s3);
+  \draw[-{Stealth}, very thick, politoNavy] (s3) -- (s4);
+
+  % Receptive Field expansion annotation below
+  \draw[thick, deepdiveTeal, {Stealth}-{Stealth}] (0, -0.9) -- (11.0, -0.9);
+  \node[font=\scriptsize\bfseries\color{deepdiveTeal}, below=2pt] at (5.5, -0.9) {Increasing Receptive Field \& Semantic Abstraction $\longrightarrow$};
+\end{tikzpicture}
+\caption{The hierarchical compositionality of visual representations. Natural images are formed compositionally: local pixels combine into oriented edges, edges aggregate into textures and geometric motifs, which assemble into object parts, and ultimately into semantic categories. Convolutional networks emulate this visual hierarchy across cascading layers.}
+\label{fig:visual_feature_hierarchy}
+\end{figure}
+
+\subsection{Vectorization and parameter sharing failure}
 \label{sec:why_mlps_fail_images}
+
+Despite the universal regularities governing natural images, standard Multi-Layer Perceptrons fail catastrophically when applied to raw visual grids. This breakdown is driven by two foundational structural limitations: the mandatory vectorization of multidimensional inputs and the complete absence of parameter sharing.
+
+\paragraph{The vectorization requirement and destruction of 2D spatial topology.}
+To process sensory data in an MLP, each artificial neuron computes an affine inner product followed by an element-wise activation:
+\begin{equation}
+z = \mathbf{w}^\top \mathbf{x} + b = \sum_{k=1}^d w_k x_k + b.
+\end{equation}
+Because the canonical Euclidean inner product and matrix multiplication $\mathbf{W}\mathbf{x}$ are defined exclusively over one-dimensional coordinate vectors $\mathbf{x} \in \R^d$, a dense layer \textbf{cannot natively ingest multidimensional array grids}.
+
+Consequently, any multi-channel image tensor $\mathbf{X} \in \R^{H \times W \times C}$ must undergo mandatory \textbf{vectorization (flattening)} into an unrolled 1D column vector:
+\begin{equation}
+\mathbf{x} = \operatorname{vec}(\mathbf{X}) \in \R^{d}, \quad \text{where } d = H \cdot W \cdot C,
+\label{eq:flattening_transformation}
+\end{equation}
+under which each spatial coordinate $(i, j)$ in channel $c$ is mapped to a serialized linear index $k(i, j, c) = c \cdot (HW) + i \cdot W + j$.
+
+This flattening operation irrevocably dismantles the spatial geometry of the image:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Metric Space Disruption}: In the native 2D continuous image plane, distance is measured by standard Euclidean distance between coordinate pairs $\mathbf{p}_1 = (i_1, j_1)$ and $\mathbf{p}_2 = (i_2, j_2)$:
+    \begin{equation}
+    d_{\text{spatial}}(\mathbf{p}_1, \mathbf{p}_2) = \|\mathbf{p}_1 - \mathbf{p}_2\|_2 = \sqrt{(i_1 - i_2)^2 + (j_1 - j_2)^2}.
+    \end{equation}
+    Pixels that are immediate vertical neighbors, such as $(i, j)$ and $(i+1, j)$, have a physical spatial distance of $1$. However, in the flattened vector $\mathbf{x}$, their serialized indices are separated by an entire row of $W$ elements: $|k_1 - k_2| = W$. Conversely, pixels at the end of one row $(i, W)$ and the beginning of the next row $(i+1, 1)$ appear adjacent in 1D index space ($|k_1 - k_2| = 1$), despite residing on opposite physical edges of the visual canvas!
+  \item \textbf{Loss of Locality and Spatial Adjacency}: Natural visual semantics emerge entirely from local spatial coherence: adjacent pixels share illumination and material properties. By discarding the 2D grid, an MLP eliminates the concept of a spatial neighborhood $\mathcal{N}(i, j)$, treating a pixel's relationship with its adjacent neighbor identically to its relationship with a distant pixel hundreds of scanlines away.
+  \item \textbf{The Permutation Invariance Flaw}: Because a dense weight matrix $\mathbf{W} \in \R^{M \times d}$ assigns an unconstrained independent parameter $W_{m, k}$ to every coordinate $k$, an MLP possesses \textbf{zero spatial inductive bias}. To demonstrate this formally, let $\mathbf{P}_\pi \in \{0, 1\}^{d \times d}$ be an arbitrary fixed permutation matrix that randomly shuffles the $d$ pixel indices, transforming every image into humanly unrecognizable white noise static. If we simultaneously permute the columns of the weight matrix by $\mathbf{W}' = \mathbf{W}\mathbf{P}_\pi^\top$, then for any scrambled input $\mathbf{x}' = \mathbf{P}_\pi \mathbf{x}$:
+    \begin{equation}
+    \mathbf{W}' \mathbf{x}' = (\mathbf{W}\mathbf{P}_\pi^\top)(\mathbf{P}_\pi \mathbf{x}) = \mathbf{W}(\mathbf{P}_\pi^\top \mathbf{P}_\pi)\mathbf{x} = \mathbf{W}\mathbf{x}.
+    \end{equation}
+    The MLP produces the \textit{exact same forward pre-activations, the exact same backpropagated gradients, and the exact same loss trajectory} on scrambled white noise as it does on structured natural images! An unconstrained dense network is mathematically incapable of distinguishing a photographic scene from scrambled tabular numbers.
+\end{itemize}
+
+\paragraph{Zero parameter sharing and lack of translation equivariance.}
+In an unconstrained dense layer, every hidden neuron $m$ connects to every input coordinate $k = (i, j, c)$ via a dedicated weight parameter $W_{m, (i, j, c)}$:
+\begin{equation}
+z_m = \sum_{c=1}^C \sum_{i=1}^H \sum_{j=1}^W W_{m, (i, j, c)} X_{i, j, c} + b_m.
+\label{eq:dense_coordinate_binding}
+\end{equation}
+This formulation introduces two fatal limitations:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Coordinate-Specific Parameter Binding (Zero Weight Sharing)}: In Equation~\eqref{eq:dense_coordinate_binding}, the weight $W_{m, (i, j, c)}$ is bound to the absolute spatial coordinate $(i, j)$ on the canvas. There is \textbf{zero parameter sharing}: the weight that examines coordinate $(10, 10)$ shares no algebraic relationship with the weight examining coordinate $(150, 150)$. To share parameters across spatial locations, the matrix $\mathbf{W}$ would have to be constrained to have a doubly block-circulant (or Toeplitz) structure---which unconstrained MLPs lack entirely.
+  \item \textbf{Breakdown of Translation Equivariance}: Physical objects satisfy translational symmetry: an object retains its identity regardless of where it appears on the canvas. Mathematically, a representation mapping $f: \mathcal{X} \to \mathcal{H}$ is \textbf{translation-equivariant} with respect to spatial shift $T_{\mathbf{v}}$ if:
+    \begin{equation}
+    f(T_{\mathbf{v}}(\mathbf{X})) = T_{\mathbf{v}}(f(\mathbf{X})), \quad \forall \mathbf{v} \in \mathbb{Z}^2.
+    \end{equation}
+    In an MLP, because weights are rigidly tied to absolute pixel coordinates, $f(T_{\mathbf{v}}(\mathbf{x})) \ne T_{\mathbf{v}}(f(\mathbf{x}))$. If a hidden neuron learns a set of weights that detects an eye at coordinates $(10, 10)$, and in a new test image the face shifts so the eye appears at $(150, 150)$, the neuron at $(10, 10)$ fails to activate, and the neuron at $(150, 150)$ has never observed an eye during training! The network possesses zero ability to transfer learned patterns across spatial coordinates.
+  \item \textbf{Exponential Sample Complexity}: Because an MLP cannot share parameters across space, it cannot generalize across translations. To learn that an object can appear anywhere on the canvas, the MLP must observe that object at \textbf{every possible spatial coordinate $(i, j)$ during training}. This multiplies the required training dataset size by a factor proportional to the spatial resolution $H \times W$, making sample-efficient visual learning impossible.
+\end{itemize}
+
+\paragraph{Catastrophic parameter explosion and generalization failure.}
+The combination of all-to-all dense connectivity and zero parameter sharing inevitably triggers a catastrophic parameter explosion:
+\begin{equation}
+N_{\text{weights}} = d_{\text{in}} \times d_{\text{out}} = (H \cdot W \cdot C) \times M,
+\end{equation}
+where $M$ is the number of neurons in the first hidden layer.
+\begin{itemize}[noitemsep]
+  \item \textbf{Small Resolution (CIFAR-10)}: For a tiny $32 \times 32 \times 3$ thumbnail ($d = 3,072$), connecting to a hidden layer of $M = 1,024$ neurons requires $3,072 \times 1,024 \approx 3.15 \times 10^6$ parameters.
+  \item \textbf{Medium Resolution ($256 \times 256 \times 3$)}: Here, $d = 196,608$. Connecting to a modest hidden layer of $M = 2,048$ neurons requires:
+    \begin{equation}
+    196,608 \times 2,048 = 402,653,184 \text{ parameters (over } 402 \text{ million weights!)}
+    \end{equation}
+    for the \textbf{first layer alone}! Storing this single weight matrix in 32-bit floating point precision consumes over $1.61\text{ GB}$ of VRAM.
+  \item \textbf{High Resolution (Full HD $1080 \times 1920 \times 3$)}: $d \approx 6.22 \times 10^6$. A single hidden layer of $2,048$ neurons would require over $1.27 \times 10^{10}$ parameters (12.7 billion weights, $\sim 50\text{ GB}$ of memory).
+\end{itemize}
+By Vapnik-Chervonenkis (VC) generalization theory (Chapter~\ref{sec:pac_learning_theory}), the sample complexity required to prevent overfitting scales linearly with the number of free parameters ($N \propto \mathcal{O}(|\boldsymbol{\theta}|)$). Training an unconstrained model with hundreds of millions of parameters on typical dataset sizes ($N \sim 10^4$--$10^6$) guarantees catastrophic overfitting and failure to generalize.
 
 \begin{figure}[H]
 \centering
@@ -83,143 +231,6 @@ To resolve this empirical crisis, we must analyze the structural mechanisms that
 \caption{The structural contrast between dense and convolutional representations. (a) A dense fully connected layer flattens an image into an unrolled 1D vector, destroying all 2D spatial adjacency and requiring an independent weight for every pixel-neuron pair. (b) A convolutional layer preserves the native 3D tensor volume, sliding localized spatial filters across coordinates with shared parameters.}
 \label{fig:dense_vs_conv_geometry}
 \end{figure}
-
-As illustrated in Figure~\ref{fig:dense_vs_conv_geometry}, standard fully connected networks suffer from three crippling structural flaws when applied to visual data:
-
-\paragraph{The vectorization requirement and destruction of 2D spatial topology.}
-To ingest visual sensory data into a Multi-Layer Perceptron, one must reconcile a fundamental dimensional mismatch. An artificial neuron computes an affine inner product followed by an element-wise activation:
-\begin{equation}
-z = \mathbf{w}^\top \mathbf{x} + b = \sum_{k=1}^d w_k x_k + b.
-\end{equation}
-Because the canonical Euclidean inner product and standard matrix-vector multiplication $\mathbf{W}\mathbf{x}$ are defined exclusively over one-dimensional coordinate vectors $\mathbf{x} \in \R^d$, a dense layer \textbf{cannot natively ingest multidimensional array grids}. 
-
-Consequently, any multi-channel visual input tensor $\mathbf{X} \in \R^{H \times W \times C}$ must undergo mandatory \textbf{vectorization (flattening)} into an unrolled 1D column vector:
-\begin{equation}
-\mathbf{x} = \operatorname{vec}(\mathbf{X}) \in \R^{d}, \quad \text{where } d = H \cdot W \cdot C,
-\label{eq:flattening_transformation}
-\end{equation}
-under which each spatial coordinate $(i, j)$ in channel $c$ is mapped to a serialized linear index $k(i, j, c) = c \cdot (HW) + i \cdot W + j$.
-
-This flattening operation fundamentally shatters the geometrical structure of the image:
-\begin{itemize}[leftmargin=*]
-  \item \textbf{Metric Space Disruption}: In the native continuous 2D image plane, geometry is governed by the standard Euclidean distance metric between pixel coordinates:
-  \begin{equation}
-  d_{\text{spatial}}(\mathbf{p}_1, \mathbf{p}_2) = \|\mathbf{p}_1 - \mathbf{p}_2\|_2 = \sqrt{(i_1 - i_2)^2 + (j_1 - j_2)^2}.
-  \end{equation}
-  Pixels that are immediate vertical neighbors, such as $(i, j)$ and $(i+1, j)$, have a spatial distance of $1$. However, in the flattened vector $\mathbf{x}$, their serialized indices are separated by an entire row of $W$ elements: $|k_1 - k_2| = W$. Conversely, pixels at the end of one row $(i, W)$ and the start of the next row $(i+1, 1)$ appear adjacent in 1D index space ($|k_1 - k_2| = 1$), despite residing on opposite physical edges of the image!
-  \item \textbf{Loss of Locality and Spatial Adjacency}: Natural visual semantics (edges, textures, object contours) emerge entirely from \textbf{local spatial coherence}: adjacent pixels share physical illumination, surface reflectance, and material properties. By discarding the 2D grid, an MLP discards the concept of a neighborhood $\mathcal{N}(i, j)$, treating a pixel's relationship with its immediate neighbor identically to its relationship with a distant pixel hundreds of scanlines away.
-  \item \textbf{The Permutation Invariance Flaw}: Because a dense weight matrix $\mathbf{W} \in \R^{M \times d}$ assigns an unconstrained independent parameter $W_{m, k}$ to every coordinate $k$, an MLP possesses \textbf{zero spatial inductive bias}. To demonstrate this formally, let $\mathbf{P}_\pi \in \{0, 1\}^{d \times d}$ be an arbitrary fixed permutation matrix that randomly shuffles the $d$ pixel indices, transforming every image into humanly unrecognizable white noise static. If we simultaneously permute the columns of the weight matrix by $\mathbf{W}' = \mathbf{W}\mathbf{P}_\pi^\top$, then for any scrambled input $\mathbf{x}' = \mathbf{P}_\pi \mathbf{x}$:
-  \begin{equation}
-  \mathbf{W}' \mathbf{x}' = (\mathbf{W}\mathbf{P}_\pi^\top)(\mathbf{P}_\pi \mathbf{x}) = \mathbf{W}(\mathbf{P}_\pi^\top \mathbf{P}_\pi)\mathbf{x} = \mathbf{W}\mathbf{x}.
-  \end{equation}
-  The MLP produces the \textit{exact same forward pre-activations, the exact same backpropagated gradients, and the exact same loss trajectory} on scrambled white noise as it does on structured natural images! An MLP cannot tell whether its input was a photographic scene or a scrambled column of tabular database numbers.
-\end{itemize}
-
-\paragraph{Zero weight sharing and total lack of translation equivariance.}
-In an unconstrained dense layer, every hidden neuron $m$ connects to every input coordinate $k = (i, j, c)$ via a unique, dedicated weight parameter $W_{m, (i, j, c)}$:
-\begin{equation}
-z_m = \sum_{c=1}^C \sum_{i=1}^H \sum_{j=1}^W W_{m, (i, j, c)} X_{i, j, c} + b_m.
-\label{eq:dense_coordinate_binding}
-\end{equation}
-This formulation has two catastrophic consequences:
-\begin{itemize}[leftmargin=*]
-  \item \textbf{Coordinate-Specific Parameter Binding (Zero Weight Sharing)}: In Equation~\eqref{eq:dense_coordinate_binding}, the weight $W_{m, (i, j, c)}$ is bound to the absolute spatial coordinate $(i, j)$ on the canvas. There is \textbf{zero parameter sharing}: the weight that examines coordinate $(10, 10)$ shares no algebraic relationship with the weight examining coordinate $(150, 150)$. To share parameters across spatial locations, the matrix $\mathbf{W}$ would have to be constrained to have a doubly block-circulant (or Toeplitz) structure---which is precisely the mathematical definition of a discrete convolution! Unconstrained MLPs lack this structure entirely.
-  \item \textbf{Breakdown of Translation Equivariance}: Physical objects satisfy \textbf{translational symmetry}: a cat, a pedestrian, or a traffic sign retains identical identity, scale, and visual features regardless of whether it appears in the upper-left corner, the center, or the lower-right corner of the visual field. Mathematically, a representation mapping $f: \mathcal{X} \to \mathcal{H}$ is \textbf{translation-equivariant} with respect to spatial shift $T_{\mathbf{v}}$ if:
-  \begin{equation}
-  f(T_{\mathbf{v}}(\mathbf{X})) = T_{\mathbf{v}}(f(\mathbf{X})), \quad \forall \mathbf{v} \in \mathbb{Z}^2.
-  \end{equation}
-  In an MLP, because weights are rigidly tied to absolute pixel coordinates, $f(T_{\mathbf{v}}(\mathbf{x})) \ne T_{\mathbf{v}}(f(\mathbf{x}))$. If a hidden neuron learns a set of weights that successfully detects an eye at coordinates $(10, 10)$, and in a new test image the subject is shifted so the eye appears at $(150, 150)$, the neuron at $(10, 10)$ fails to activate, and the neuron at $(150, 150)$ has never seen an eye during training! The network possesses zero ability to transfer learned patterns across spatial coordinates.
-  \item \textbf{Exponential Sample Complexity}: Because an MLP cannot share parameters across space, it cannot generalize across translations. To learn that an object can appear anywhere on the canvas, the MLP must observe that object at \textbf{every possible spatial coordinate $(i, j)$ during training}. This multiplies the required training dataset size by a factor proportional to the spatial resolution $H \times W$, making sample-efficient visual learning impossible.
-\end{itemize}
-
-\paragraph{Catastrophic parameter explosion and overfitting.}
-The combination of all-to-all dense connectivity and zero parameter sharing inevitably triggers a catastrophic parameter explosion:
-\begin{equation}
-N_{\text{weights}} = d_{\text{in}} \times d_{\text{out}} = (H \cdot W \cdot C) \times M,
-\end{equation}
-where $M$ is the number of neurons in the first hidden layer.
-\begin{itemize}[noitemsep]
-  \item \textbf{Small Resolution (CIFAR-10)}: For a tiny $32 \times 32 \times 3$ thumbnail ($d = 3,072$), connecting to a hidden layer of $M = 1,024$ neurons requires $3,072 \times 1,024 \approx 3.15 \times 10^6$ parameters.
-  \item \textbf{Medium Resolution ($256 \times 256 \times 3$)}: Here, $d = 196,608$. Connecting to a modest hidden layer of $M = 2,048$ neurons requires:
-    \begin{equation}
-    196,608 \times 2,048 = 402,653,184 \text{ parameters (over } 402 \text{ million weights!)}
-    \end{equation}
-    for the \textbf{first layer alone}! Storing this single weight matrix in 32-bit floating point precision consumes over $1.61\text{ GB}$ of VRAM.
-  \item \textbf{High Resolution (Full HD $1080 \times 1920 \times 3$)}: $d \approx 6.22 \times 10^6$. A single hidden layer of $2,048$ neurons would require over $1.27 \times 10^{10}$ parameters (12.7 billion weights, $\sim 50\text{ GB}$ of memory).
-\end{itemize}
-By Vapnik-Chervonenkis (VC) generalization theory (Chapter~\ref{sec:pac_learning_theory}), the sample complexity required to prevent overfitting scales linearly with the number of free parameters ($N \propto \mathcal{O}(|\boldsymbol{\theta}|)$). Training an unconstrained model with hundreds of millions of parameters on typical dataset sizes ($N \sim 10^4$--$10^6$) guarantees catastrophic overfitting and failure to generalize.
-
-\subsection{Natural image statistics}
-\label{sec:natural_image_statistics}
-
-Why are dense networks structurally mismatched to images, and why can we design a far more compact, universal visual architecture? As emphasized during lectures, the answer lies in the fundamental statistical physics of natural scenes.
-
-\paragraph{Natural images versus white noise.}
-An arbitrary $256 \times 256$ RGB image can take $(256)^{256 \times 256 \times 3} \approx 10^{473,000}$ possible configurations. However, the set of \textbf{natural images} occupies an infinitesimal sub-manifold within this immense space. If pixels were drawn independently from a Gaussian white noise distribution, images would resemble uniform television static, containing zero discernible structures.
-
-Natural images are profoundly non-random because they are optical projections of a \textbf{physical 3D universe}:
-\begin{itemize}[noitemsep]
-  \item Solid physical objects consist of continuous matter with uniform surface reflectance.
-  \item Optical illumination casts smooth gradients across surfaces.
-  \item Object occlusions and material boundaries produce sharp, localized step discontinuities.
-\end{itemize}
-
-\paragraph{Universal statistical symmetries of natural scenes.}
-Empirical investigations into natural image statistics (Ruderman, Simoncelli, Olshausen \& Field) reveal that virtually all natural images share identical mathematical regularities:
-\begin{enumerate}
-  \item \textbf{High Local Autocorrelation}: The correlation between two pixels $\mathbf{I}(\mathbf{x})$ and $\mathbf{I}(\mathbf{x} + \Delta \mathbf{x})$ approaches $1$ as $\|\Delta \mathbf{x}\|_2 \to 0$. Adjacent pixels almost always possess identical color and luminance; significant differences occur only at boundaries.
-  \item \textbf{Scale Invariance and the $1/f^2$ Power Spectrum}: The power spectral density $S(f)$ of natural scenes universally follows a power law:
-    \begin{equation}
-    S(f) \propto \frac{1}{f^{2 - \eta}}, \quad \text{with } \eta \approx 0.2.
-    \label{eq:power_spectrum_law}
-    \end{equation}
-    This scale-invariant property implies that natural images exhibit identical statistical structure at all spatial scales: low spatial frequencies (broad smooth areas) dominate the energy budget, while high spatial frequencies (edges and fine textures) represent a sparse, highly informative fraction.
-  \item \textbf{Universality of Edge Primitives}: Across entirely unrelated domains—whether analyzing portraits, satellite topography, medical histology, or urban streetscapes—the visual world is universally built from the same primitive visual tokens: \textbf{oriented edges, localized step transitions, and corner junctions}.
-\end{enumerate}
-
-Because all natural images share these identical low-level statistical regularities, an optimal visual machine learning model should not learn arbitrary, unconstrained dense weights. Instead, it must embody inductive biases that exploit locality, stationarity, and hierarchical compositionality!
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[scale=0.95]
-  % Stage 1: Pixels
-  \node[rectangle, draw=gray!80, fill=gray!10, thick, inner sep=6pt, font=\footnotesize, align=center] (s1) at (0, 0) {
-    \textbf{Level 1: Raw Pixels}\\
-    Coordinate grid $\mathbf{I}(i, j) \in [0, 255]^3$
-  };
-
-  % Stage 2: Edges & Contours
-  \node[rectangle, draw=deepblue, fill=deepblue!15, thick, inner sep=6pt, font=\footnotesize, align=center] (s2) at (3.5, 0) {
-    \textbf{Level 2: Low-Level Primitives}\\
-    Oriented edges, bars, Gabor wavelets
-  };
-
-  % Stage 3: Motifs & Textures
-  \node[rectangle, draw=intuitiongreen, fill=intuitiongreen!15, thick, inner sep=6pt, font=\footnotesize, align=center] (s3) at (7.2, 0) {
-    \textbf{Level 3: Mid-Level Motifs}\\
-    Corners, junctions, textures, shapes
-  };
-
-  % Stage 4: Parts & Objects
-  \node[rectangle, draw=politoNavy, fill=politoNavy!20, thick, inner sep=6pt, font=\footnotesize, align=center] (s4) at (11.0, 0) {
-    \textbf{Level 4: High-Level Semantics}\\
-    Object parts (eyes, wheels) $\to$ Full objects
-  };
-
-  % Directed Arrows between stages
-  \draw[-{Stealth}, very thick, politoNavy] (s1) -- (s2);
-  \draw[-{Stealth}, very thick, politoNavy] (s2) -- (s3);
-  \draw[-{Stealth}, very thick, politoNavy] (s3) -- (s4);
-
-  % Receptive Field expansion annotation below
-  \draw[thick, deepdiveTeal, {Stealth}-{Stealth}] (0, -0.9) -- (11.0, -0.9);
-  \node[font=\scriptsize\bfseries\color{deepdiveTeal}, below=2pt] at (5.5, -0.9) {Increasing Receptive Field \& Semantic Abstraction $\longrightarrow$};
-\end{tikzpicture}
-\caption{The hierarchical compositionality of visual representations. Natural images are formed compositionally: local pixels combine into oriented edges, edges aggregate into textures and geometric motifs, which assemble into object parts, and ultimately into semantic categories. Convolutional networks emulate this visual hierarchy across cascading layers.}
-\label{fig:visual_feature_hierarchy}
-\end{figure}
-
-As depicted in Figure~\ref{fig:visual_feature_hierarchy}, neurophysiologists David Hubel and Torsten Wiesel~\cite{hubel1959receptive,hubel1962receptive} discovered in 1959 that the mammalian visual cortex (area V1) is organized precisely according to this compositional principle: \textbf{Simple Cells} respond to localized oriented bars within small receptive fields, while \textbf{Complex Cells} pool over simple cells to achieve local translation tolerance. This biological architecture inspired Kunihiko Fukushima's \textbf{Neocognitron} (1980)~\cite{fukushima1980neocognitron} and Yann LeCun's \textbf{LeNet} (1989)~\cite{lecun1989backpropagation}, establishing the mathematical paradigm of \textbf{Convolutional Neural Networks}.
 
 The catastrophic failure of dense MLPs on images demonstrates an inescapable structural truth: when unconstrained models ignore 2D spatial geometry, parameter explosions and lack of translation equivariance render sample-efficient generalization impossible. This failure motivates the mathematical construction of operators that inherently preserve 2D grid topology while drastically constraining free parameters via local receptive fields and weight tying: \textbf{discrete 2D convolution and cross-correlation}.
 
