@@ -1150,23 +1150,3 @@ Despite its foundational role, the backpropagation algorithm incurs two signific
   \end{itemize}
   In ultra-deep networks (such as 152-layer ResNets or deep Transformers), activation memory vastly exceeds parameter memory, forming the primary physical bottleneck on training batch size and model depth. To mitigate this VRAM wall, modern systems implement \textbf{Activation Checkpointing}~\cite{chen2016training}, which discards activations during the forward pass and selectively recomputes them during the backward sweep, trading a $30\%$ increase in compute FLOPs for an $\mathcal{O}(\sqrt{L})$ reduction in memory footprint.
 \end{enumerate}
-
-\section{Summary and bridge to CNNs}
-\label{sec:chapter4_synthesis}
-
-Across this chapter, we have analyzed the foundational evolutionary trajectory of deep neural networks:
-\begin{enumerate}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
-  \item \textbf{The Perceptron barrier}: Rosenblatt's single-layer perceptron was bounded by linear separability, failing catastrophically on the elementary XOR function.
-  \item \textbf{Representation learning}: By introducing non-linear activation functions and hidden layers, Multilayer Perceptrons warp coordinate space, folding hyperplanes to make non-linear manifolds linearly separable.
-  \item \textbf{Universal approximation}: The Hornik-Cybenko theorem guarantees that shallow networks can approximate any continuous function, while deep architectures achieve exponential parameter efficiency through hierarchical representation reuse.
-  \item \textbf{Exact gradient computation}: Reverse-mode automatic differentiation (Backpropagation) computes gradients across arbitrary deep computational DAGs in $\mathcal{O}(W)$ time, enabling large-scale gradient descent.
-\end{enumerate}
-
-\paragraph{Janus-Faced Bridge to Chapter~\ref{sec:convolutional_neural_networks}.}
-In theory, fully connected Multilayer Perceptrons are universal function approximators. In practice, however, when applied to high-dimensional structured signals---specifically \textbf{visual images}---dense MLPs suffer a total structural breakdown:
-\begin{itemize}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
-  \item \textbf{Catastrophic parameter explosion}: Flattening a modest $256 \times 256 \times 3$ RGB image produces an input vector of $196{,}608$ dimensions. Connecting this to a modest hidden layer of $1{,}000$ neurons requires $\approx 200$ million parameters for a single layer, exceeding memory capacities and guaranteeing severe overfitting.
-  \item \textbf{Destruction of 2D spatial topology}: Flattening a 2D matrix into a 1D vector treats adjacent pixels $(i, j)$ and $(i+1, j)$ with the same disconnected indifference as pixels on opposite sides of the image.
-  \item \textbf{Zero translation equivariance}: Dense MLPs possess zero weight sharing. An object detector trained on the top-left corner cannot recognize the exact same object if it shifts five pixels to the right without retraining all corresponding weights.
-\end{itemize}
-To conquer visual perception, we must inject prior knowledge regarding the physical structure of the visual world into the network architecture itself. In Chapter~\ref{sec:convolutional_neural_networks}, we show how Convolutional Neural Networks accomplish this by acting as an \textbf{infinitely strong spatial prior}.
