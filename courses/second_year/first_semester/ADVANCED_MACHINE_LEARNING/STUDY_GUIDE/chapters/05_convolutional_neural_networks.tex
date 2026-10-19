@@ -240,55 +240,62 @@ The catastrophic failure of dense MLPs on images demonstrates an inescapable str
 
 To overcome the structural collapse of dense Multi-Layer Perceptrons on visual data, machine learning must operationalize the spatial physics of natural photographic scenes. The foundational mathematical engine for this task is the convolution operator. Tracing its lineage from functional analysis and continuous differential systems to discrete tensor mechanics, convolution transforms spatial filtering into a localized, sliding affine transformation that respects the spatial metric of continuous physical space.
 
-Unlike unconstrained matrix multiplication—which binds an independent parameter to every absolute coordinate on the canvas—a convolutional filter slides uniformly across the pixel lattice, evaluating inner products over compact receptive fields while sharing an identical kernel tensor across every spatial position. By decoupling filter parameters from image resolution, convolution guarantees translation equivariance while slashing model complexity. Furthermore, the geometric interaction between kernel size, stride, boundary zero-padding modes (valid versus same), and dilation factors dictates the spatial downsampling trajectory and governs boundary information loss across cascading layers.
-
-This section provides an exhaustive derivation of the mechanics, linear algebra, and geometry of convolutional layers: we first trace the continuous convolution integral and explain why modern deep learning frameworks operationalize discrete 2D cross-correlation rather than true commutative convolution; we then formalize the volumetric geometry of multi-channel convolutional layers, establish the universal spatial dimension formula, and analyze the linear algebraic equivalence between convolution and banded Toeplitz and circulant matrix operators.
+Unlike unconstrained matrix multiplication---which binds an independent parameter to every absolute coordinate on the canvas---a convolutional filter slides uniformly across the pixel lattice, evaluating inner products over compact receptive fields while sharing an identical kernel tensor across every spatial position. By decoupling filter parameters from image resolution, convolution guarantees translation equivariance while slashing model complexity. Furthermore, the geometric interaction between kernel size, stride, boundary zero-padding modes (valid versus same), and dilation factors dictates the spatial downsampling trajectory and governs boundary information loss across cascading layers.
 
 \subsection{Continuous and discrete convolution}
 \label{sec:convolution_mathematical_definition}
 
-To establish the theoretical foundations of convolutional neural networks, we must first examine the convolution operation from a rigorous mathematical and physical perspective, tracing its formulation from functional analysis to modern tensor computation~\cite{goodfellow2016deep,bishop2024deep}.
+To establish the theoretical foundations of convolutional neural networks, we examine the convolution operation from a physical and mathematical perspective, tracking how its formulation adapts across dimensions and transitions from continuous functional analysis to discrete computation~\cite{goodfellow2016deep,bishop2024deep}.
 
-\paragraph{Continuous 1D convolution and the spaceship laser tracking analogy.}
-In functional analysis, the \textbf{continuous convolution} of two real-valued integrable functions $x, w: \R \to \R$ is defined by the integral:
-\begin{equation}
-s(t) = (x * w)(t) \triangleq \int_{-\infty}^{\infty} x(\tau) w(t - \tau) \, d\tau.
-\label{eq:continuous_convolution}
-\end{equation}
-In the deep learning terminology established by Goodfellow, Bengio, and Courville~\cite{goodfellow2016deep}, the first function $x(t)$ is referred to as the \textbf{input}, the second function $w(t)$ is known as the \textbf{kernel} (or weighting function), and the resulting output $s(t)$ is referred to as the \textbf{feature map}.
+\paragraph{The general concept of convolution.}
+At its core, convolution is a mathematical operator that expresses the degree of overlap between two functions as one slides across the other, computing a localized, weighted moving average. To understand its physical intuition, consider tracking the position of a spacecraft using an onboard rangefinder~\cite{goodfellow2016deep}. At continuous time $t$, the sensor emits a noisy measurement $x(t)$. To obtain an accurate trajectory estimate $s(t)$, we take a running weighted average of historical readings. Because recent measurements are more reliable than older ones, we apply a weighting kernel $w(a)$, where $a \ge 0$ represents the age of the measurement. Since a measurement acquired at time $\tau \le t$ has age $a = t - \tau$, weighting each reading $x(\tau)$ by $w(t - \tau)$ and integrating over all history yields the smoothed trajectory $s(t) = \int x(\tau) w(t - \tau) \, d\tau$.
 
-To intuitively grasp why Equation~\eqref{eq:continuous_convolution} possesses this precise functional form, consider Bengio's canonical physical analogy~\cite{goodfellow2016deep}: suppose we are tracking the 1D position of a spaceship across space using an onboard laser rangefinder. At any continuous time $t$, the laser sensor outputs a scalar position measurement $x(t)$. Because laser sensor electronics are inherently subject to high-frequency stochastic noise, any instantaneous measurement $x(t)$ is noisy. To obtain an accurate, stabilized trajectory estimate $s(t)$, we compute a running weighted average of recent sensor readings. 
+\paragraph{Continuous formulations across dimensions.}
+The continuous convolution operator generalizes across spatial dimensions by extending the domain of integration:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{One-Dimensional (1D) Convolution}: For continuous time-series or 1D signals $x, w: \R \to \R$:
+    \begin{equation}
+    s(t) = (x * w)(t) \triangleq \int_{-\infty}^{\infty} x(\tau) w(t - \tau) \, d\tau.
+    \label{eq:continuous_1d_convolution}
+    \end{equation}
+    Mechanically, this operation consists of four steps: reflecting the kernel $w(-\tau)$, translating it by offset $t$ to obtain $w(t - \tau)$, computing the pointwise product $x(\tau) w(t - \tau)$, and integrating across the real line.
+  \item \textbf{Two-Dimensional (2D) Convolution}: For continuous 2D planar signals (such as continuous optical wavefields or continuous image planes) $I, K: \R^2 \to \R$, integration extends across both spatial axes:
+    \begin{equation}
+    S(x, y) = (I * K)(x, y) \triangleq \int_{-\infty}^{\infty} \int_{-\infty}^{\infty} I(\tau_x, \tau_y) K(x - \tau_x, \, y - \tau_y) \, d\tau_x \, d\tau_y.
+    \label{eq:continuous_2d_convolution}
+    \end{equation}
+  \item \textbf{Three-Dimensional (3D) Convolution}: For continuous volumetric signals $I, K: \R^3 \to \R$, integration extends across three continuous coordinates:
+    \begin{equation}
+    S(x, y, z) = (I * K)(x, y, z) \triangleq \iiint I(\tau_x, \tau_y, \tau_z) K(x - \tau_x, \, y - \tau_y, \, z - \tau_z) \, d\tau_x \, d\tau_y \, d\tau_z.
+    \label{eq:continuous_3d_convolution}
+    \end{equation}
+    This formulation governs volumetric physical domains, such as 3D medical tomography (MRI, CT scans), volumetric point-cloud grids, or spatio-temporal video volumes where the third axis represents time.
+\end{itemize}
 
-Naturally, sensor measurements taken recently are far more informative about the spaceship's current location than measurements recorded long ago. Thus, we define a weighting kernel $w(a)$, where $a$ denotes the \textbf{age of the measurement} ($a \ge 0$), designed such that $w(a)$ is large when $a \to 0$ and decays rapidly toward zero as $a \to \infty$. If the current time is $t$ and a past measurement was acquired at timestamp $\tau \le t$, the elapsed age of that specific measurement is precisely:
-\begin{equation}
-a = t - \tau.
-\end{equation}
-Weighting each historical observation $x(\tau)$ by the credibility of its age $w(t - \tau)$ and continuously integrating over all history yields the smoothed spaceship position:
-\begin{equation}
-s(t) = \int_{-\infty}^{\infty} x(\tau) w(t - \tau) \, d\tau = (x * w)(t).
-\end{equation}
-
-\paragraph{The four mechanical operations of convolution.}
-Mechanically, evaluating the continuous convolution integral $(f * g)(t)$ at an arbitrary evaluation timestamp $t$ requires four sequential mathematical operations:
-\begin{enumerate}[leftmargin=*]
-  \item \textbf{Reflection (Time Reversal / Kernel Flip)}: We reflect the kernel function across the vertical axis:
+\paragraph{The discrete formulation and deep learning cross-correlation.}
+When processing digital signals on computers, continuous functions are sampled onto discrete coordinate lattices, and continuous integrals are replaced by discrete summations:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Discrete 1D Convolution}: For sampled 1D arrays $x, w: \mathbb{Z} \to \R$:
     \begin{equation}
-    g(\tau) \mapsto g(-\tau).
+    s[n] = (x * w)[n] \triangleq \sum_{\tau=-\infty}^{\infty} x[\tau] w[n - \tau].
+    \label{eq:discrete_1d_convolution}
     \end{equation}
-    This reflection is mathematically fundamental: it ensures that older historical events (smaller $\tau$) are multiplied by weights corresponding to larger elapsed ages ($t - \tau$).
-  \item \textbf{Translation (Temporal Displacement)}: We shift the reflected kernel along the time axis by offset $t$:
+  \item \textbf{Discrete 2D Convolution}: For sampled 2D matrices $\mathbf{I} \in \R^{H \times W}$ and discrete filter kernels $\mathbf{K} \in \R^{F \times F}$:
     \begin{equation}
-    g(-\tau) \mapsto g(-(\tau - t)) = g(t - \tau).
+    S(i, j) = (\mathbf{I} * \mathbf{K})(i, j) \triangleq \sum_{m=-\infty}^{\infty} \sum_{n=-\infty}^{\infty} \mathbf{I}(m, n) \mathbf{K}(i - m, \, j - n).
+    \label{eq:discrete_2d_convolution}
     \end{equation}
-  \item \textbf{Pointwise Multiplication}: We evaluate the instantaneous pointwise product of the original signal $f(\tau)$ and the shifted, reflected kernel $g(t - \tau)$ across all $\tau$:
+  \item \textbf{Discrete 2D Cross-Correlation in Deep Learning}: While formal mathematical convolution requires reflecting the kernel indices ($i - m, j - n$), modern deep learning libraries (PyTorch, TensorFlow, JAX) omit the reflection step and compute \textbf{discrete cross-correlation}:
     \begin{equation}
-    h_t(\tau) = f(\tau) \cdot g(t - \tau).
+    S(i, j) = (\mathbf{I} \star \mathbf{K})(i, j) \triangleq \sum_{m=0}^{F-1} \sum_{n=0}^{F-1} \mathbf{I}(i + m, \, j + n) \mathbf{K}(m, n).
+    \label{eq:discrete_cross_correlation}
     \end{equation}
-  \item \textbf{Integration (Area Accumulation)}: We compute the total definite integral (the net area under the product curve $h_t(\tau)$) over the entire real line:
+    In classical signal processing with fixed handcrafted filters, kernel reflection is necessary to satisfy commutativity. In deep learning, however, the kernel weights $\mathbf{K}(m, n)$ are free learnable parameters initialized randomly and optimized via backpropagation. If a task requires a reflected filter, gradient descent simply learns the reflected parameter values directly:
     \begin{equation}
-    (f * g)(t) = \int_{-\infty}^{\infty} h_t(\tau) \, d\tau.
+    \min_{\mathbf{K}} \mathcal{L}(\mathbf{I} * \mathbf{K}) \equiv \min_{\mathbf{K}'} \mathcal{L}(\mathbf{I} \star \mathbf{K}'), \quad \text{where } \mathbf{K}'(m, n) = \mathbf{K}(-m, -n).
     \end{equation}
-\end{enumerate}
+    Omitting kernel reflection eliminates unnecessary array index flips on GPUs with zero impact on expressive capacity. Throughout machine learning, Equation~\eqref{eq:discrete_cross_correlation} is referred to interchangeably as convolution.
+\end{itemize}
 
 \begin{figure}[H]
 \centering
@@ -361,288 +368,197 @@ Mechanically, evaluating the continuous convolution integral $(f * g)(t)$ at an 
 \label{fig:discrete_cross_correlation_mechanics}
 \end{figure}
 
-
-\paragraph{Continuous 2D Convolution and Algebraic Properties.}
-Extending this formulation to continuous 2D functional spaces (such as continuous optical wavefields $\R^2 \to \R$), continuous 2D convolution integrates over both spatial dimensions:
-\begin{equation}
-S(x, y) = (I * K)(x, y) \triangleq \int_{-\infty}^{\infty} \int_{-\infty}^{\infty} I(\tau_x, \tau_y) K(x - \tau_x, \, y - \tau_y) \, d\tau_x \, d\tau_y.
-\label{eq:continuous_2d_convolution}
-\end{equation}
-Continuous convolution satisfies three foundational algebraic properties:
-\begin{itemize}[leftmargin=*]
-  \item \textbf{Commutativity}: $f * g = g * f$. By performing the change of variables $u = t - \tau$ (hence $du = -d\tau$):
-    \begin{equation}
-    (f * g)(t) = \int_{-\infty}^{\infty} f(\tau) g(t - \tau) \, d\tau = \int_{\infty}^{-\infty} f(t - u) g(u) (-du) = \int_{-\infty}^{\infty} g(u) f(t - u) \, du = (g * f)(t).
-    \label{eq:convolution_commutativity_proof}
-    \end{equation}
-  \item \textbf{Associativity}: $f * (g * h) = (f * g) * h$. Cascading linear time-invariant filters can be collapsed into a single equivalent filter $k = g * h$.
-  \item \textbf{Distributivity}: $f * (g + h) = (f * g) + (f * h)$.
-\end{itemize}
-
-\paragraph{Discrete 2D Cross-Correlation in Deep Learning.}
-In computer vision, digital images are discrete 2D matrices of sampled pixel intensities $\mathbf{I} \in \R^{H \times W}$, and filters are discrete 2D tensors $\mathbf{K} \in \R^{F \times F}$. Replacing the continuous integrals with discrete summations, the formal mathematical discrete convolution is:
-\begin{equation}
-S(i, j) = (\mathbf{I} * \mathbf{K})(i, j) \triangleq \sum_{m=-\infty}^{\infty} \sum_{n=-\infty}^{\infty} \mathbf{I}(m, n) \, \mathbf{K}(i - m, \, j - n).
-\label{eq:discrete_convolution_true}
-\end{equation}
-Because the sum is commutative, Equation~\eqref{eq:discrete_convolution_true} can be equivalently evaluated by flipping the kernel indices:
-\begin{equation}
-S(i, j) = (\mathbf{K} * \mathbf{I})(i, j) = \sum_{m} \sum_{n} \mathbf{I}(i - m, \, j - n) \, \mathbf{K}(m, n).
-\end{equation}
-However, modern deep learning libraries (PyTorch, TensorFlow, JAX) do \textbf{not} flip the kernel prior to shifting. Instead, they implement \textbf{discrete 2D cross-correlation}~\cite{bishop2024deep,goodfellow2016deep}:
-\begin{equation}
-S(i, j) = (\mathbf{I} \star \mathbf{K})(i, j) \triangleq \sum_{m=0}^{F-1} \sum_{n=0}^{F-1} \mathbf{I}(i + m, \, j + n) \, \mathbf{K}(m, n).
-\label{eq:discrete_cross_correlation}
-\end{equation}
-Why do deep learning practitioners universally call cross-correlation ``convolution''? In classical signal processing, filters (such as Sobel or Gaussian filters) are fixed handcrafted mathematical formulas derived in the frequency domain, where commutativity is required for mathematical proofs. In deep learning, however, the kernel weights $\mathbf{K}(m, n)$ are \textbf{free learnable parameters} initialized randomly and updated via backpropagation. If the network needs a flipped filter to minimize the loss $\mathcal{L}$, the optimization algorithm (SGD, Adam) simply learns the reflected parameter values directly! Mathematically:
-\begin{equation}
-\min_{\mathbf{K}} \mathcal{L}(\mathbf{I} * \mathbf{K}) \equiv \min_{\mathbf{K}'} \mathcal{L}(\mathbf{I} \star \mathbf{K}'), \quad \text{where } \mathbf{K}'(m, n) = \mathbf{K}(-m, -n).
-\end{equation}
-Omitting the reflection operation saves valuable memory index-shuffling operations on GPUs with exactly zero loss in representational capacity. By convention throughout deep learning, Equation~\eqref{eq:discrete_cross_correlation} is referred to as convolution.
-
-\paragraph{Toeplitz and Circulant Matrix Formulation.}
-To reveal the linear algebraic equivalence between convolution and dense layers, consider a 1D discrete input signal $\mathbf{x} = [x_1, x_2, \dots, x_N]^\top \in \R^N$ convolved with a 1D kernel $\mathbf{k} = [k_1, k_2, k_3]^\top \in \R^3$ with zero padding. The 1D convolution can be written strictly as a matrix-vector product $\mathbf{y} = \mathbf{T} \mathbf{x}$, where $\mathbf{T}$ is a \textbf{banded Toeplitz matrix}:
-\begin{equation}
-\begin{bmatrix}
-y_1 \\ y_2 \\ y_3 \\ \vdots \\ y_N
-\end{bmatrix}
-=
-\begin{bmatrix}
-k_2 & k_3 & 0 & \dots & 0 \\
-k_1 & k_2 & k_3 & \dots & 0 \\
-0 & k_1 & k_2 & \ddots & 0 \\
-\vdots & \vdots & \ddots & \ddots & k_3 \\
-0 & 0 & \dots & k_1 & k_2
-\end{bmatrix}
-\begin{bmatrix}
-x_1 \\ x_2 \\ x_3 \\ \vdots \\ x_N
-\end{bmatrix}.
-\label{eq:toeplitz_convolution_matrix}
-\end{equation}
-A Toeplitz matrix has the defining property that each descending diagonal from left to right is constant: $T_{i, j} = T_{i+1, j+1}$. If circular boundary conditions (periodic padding) are imposed, $\mathbf{T}$ becomes a \textbf{Circulant matrix}. Every circulant matrix is fundamentally diagonalized by the Discrete Fourier Transform (DFT) basis matrix $\mathbf{F}$, which provides the algebraic proof of the \textbf{Convolution Theorem}:
-\begin{equation}
-\mathbf{y} = \mathbf{T} \mathbf{x} \iff \mathcal{F}(\mathbf{y}) = \mathcal{F}(\mathbf{k}) \odot \mathcal{F}(\mathbf{x}),
-\label{eq:convolution_theorem}
-\end{equation}
-where $\odot$ denotes element-wise Hadamard multiplication. This matrix view exposes convolution as a highly structured, constrained linear operator whose weight matrix possesses two defining properties: extreme sparsity and constant diagonals (tied weights).
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[scale=0.92]
-  % Top: Dense Connectivity
-  \begin{scope}[shift={(0,3.6)}]
-    \node[font=\footnotesize\bfseries\color{politoNavy}] at (2.5, 1.2) {(a) Dense Connectivity (Independent Weights: $5 \times 5 = 25$)};
-    \foreach \i in {1,...,5} {
-      \node[circle, draw=deepblue, fill=deepblue!15, inner sep=2pt, font=\scriptsize] (in_\i) at (\i, 0) {$x_\i$};
-      \node[circle, draw=politoNavy, fill=politoNavy!15, inner sep=2pt, font=\scriptsize] (out_\i) at (\i, -1.5) {$y_\i$};
-    }
-    \foreach \i in {1,...,5} {
-      \foreach \j in {1,...,5} {
-        \draw[gray!30, thin] (in_\i) -- (out_\j);
-      }
-    }
-  \end{scope}
-
-  % Bottom: Convolutional Sparse Interactions & Tied Weights
-  \begin{scope}[shift={(0,0)}]
-    \node[font=\footnotesize\bfseries\color{intuitiongreen}] at (2.5, 0.9) {(b) Convolutional Sparse Interactions (Kernel Size $F=3$, Tied Weights: $3$)};
-    \foreach \i in {1,...,5} {
-      \node[circle, draw=deepblue, fill=deepblue!15, inner sep=2pt, font=\scriptsize] (cin_\i) at (\i, 0) {$x_\i$};
-    }
-    \foreach \j in {2,3,4} {
-      \node[circle, draw=intuitiongreen, fill=intuitiongreen!20, very thick, inner sep=2pt, font=\scriptsize] (cout_\j) at (\j, -1.5) {$y_\j$};
-    }
-
-    % Shared weights color coded
-    % Kernel: k_1 (red), k_2 (green), k_3 (blue)
-    \foreach \j in {2,3,4} {
-      \pgfmathtruncatemacro{\leftin}{\j-1}
-      \pgfmathtruncatemacro{\midin}{\j}
-      \pgfmathtruncatemacro{\rightin}{\j+1}
-      \draw[-{Stealth}, very thick, examred] (cin_\leftin) -- (cout_\j);
-      \draw[-{Stealth}, very thick, intuitiongreen] (cin_\midin) -- (cout_\j);
-      \draw[-{Stealth}, very thick, politoNavy] (cin_\rightin) -- (cout_\j);
-    }
-
-    \node[font=\scriptsize, align=center] at (6.8, -0.7) {
-      \textcolor{examred}{$\mathbf{w}_1$ (Left Tap)}\\
-      \textcolor{intuitiongreen}{$\mathbf{w}_2$ (Center Tap)}\\
-      \textcolor{politoNavy}{$\mathbf{w}_3$ (Right Tap)}
-    };
-  \end{scope}
-\end{tikzpicture}
-\caption{Sparse interactions and parameter sharing in convolutional layers compared to dense layers. (a) A dense layer connects every input unit to every output unit with $25$ independent weights. (b) A convolutional layer connects each output unit only to a local spatial receptive field of size $F=3$. The identical weights (color-coded red, green, blue) are reused across all spatial positions.}
-\label{fig:sparse_vs_dense_connectivity}
-\end{figure}
-
-As shown in Figure~\ref{fig:sparse_vs_dense_connectivity}, discrete convolution mathematically enforces sparse connectivity and parameter sharing. The number of parameters is \textbf{completely independent of image resolution}, determined strictly by kernel size $F \times F \times C$.
-
 \subsection{Stride, padding, and layer geometry}
 \label{sec:conv_layer_anatomy}
 
 We now formalize the full multi-channel convolutional layer as deployed in modern deep networks.
 
 \paragraph{Input and filter tensor volumes.}
-\begin{itemize}
-  \item The input is a 3D tensor volume $\mathbf{X} \in \R^{H_{\text{in}} \times W_{\text{in}} \times C_{\text{in}}}$, where $H_{\text{in}}, W_{\text{in}}$ denote spatial height and width, and $C_{\text{in}}$ denotes channel depth (e.g., $C_{\text{in}} = 3$ for RGB color images).
+In deep neural networks, activations are represented as multi-dimensional tensor volumes:
+\begin{itemize}[leftmargin=*]
+  \item The input is a 3D tensor volume $\mathbf{X} \in \R^{H_{\text{in}} \times W_{\text{in}} \times C_{\text{in}}}$, where $H_{\text{in}}$ and $W_{\text{in}}$ denote spatial height and width, and $C_{\text{in}}$ denotes the channel depth (e.g., $C_{\text{in}} = 3$ for RGB color images).
   \item The layer contains a bank of $C_{\text{out}}$ distinct convolutional filters.
-  \item \textbf{Fundamental Depth Rule}: \textbf{Each filter kernel must span the ENTIRE depth $C_{\text{in}}$ of the input volume!} A filter has spatial dimensions $F \times F$, but volumetric dimensions:
+  \item \textbf{Fundamental Depth Rule}: \textbf{Each filter kernel must span the ENTIRE depth $C_{\text{in}}$ of the input volume!} While a filter has a local spatial receptive field of size $F \times F$, its volumetric shape is:
     \begin{equation}
     \mathbf{K}^{(k)} \in \R^{F \times F \times C_{\text{in}}}, \quad \forall k \in \{1, \dots, C_{\text{out}}\}.
     \end{equation}
 \end{itemize}
-
-Each filter kernel $\mathbf{K}^{(k)}$ computes an element-wise dot product across all $C_{\text{in}}$ channels simultaneously over a local spatial window, adds a scalar bias $b_k \in \R$, and emits a single 2D spatial slice $\mathbf{Y}_{:,:,k} \in \R^{H_{\text{out}} \times W_{\text{out}}}$:
+Each filter $\mathbf{K}^{(k)}$ computes an element-wise dot product across all $C_{\text{in}}$ channels simultaneously over a local spatial window, adds a scalar bias $b_k \in \R$, and emits a single 2D spatial activation slice $\mathbf{Y}_{:,:,k} \in \R^{H_{\text{out}} \times W_{\text{out}}}$:
 \begin{equation}
 \mathbf{Y}_{i, j, k} = \sum_{c=1}^{C_{\text{in}}} \sum_{m=0}^{F-1} \sum_{n=0}^{F-1} \mathbf{X}_{i+m, \, j+n, \, c} \, \mathbf{K}^{(k)}_{m, n, c} + b_k.
 \label{eq:multichannel_convolution}
 \end{equation}
-Stacking the resulting $C_{\text{out}}$ 2D feature maps produces the output volume $\mathbf{Y} \in \R^{H_{\text{out}} \times W_{\text{out}} \times C_{\text{out}}}$.
+Stacking the resulting $C_{\text{out}}$ feature slices along the depth axis yields the complete output tensor volume $\mathbf{Y} \in \R^{H_{\text{out}} \times W_{\text{out}} \times C_{\text{out}}}$.
 
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[scale=0.95]
-  % 3D Input Volume: 32x32x3
+  % 3D Input Volume: Hin x Win x Cin
   \draw[fill=deepblue!15, draw=deepblue, thick] (0, 0) -- (2.0, 0) -- (2.0, 2.0) -- (0, 2.0) -- cycle;
   \draw[fill=deepblue!25, draw=deepblue, thick] (2.0, 0) -- (2.6, 0.6) -- (2.6, 2.6) -- (2.0, 2.0) -- cycle;
   \draw[fill=deepblue!10, draw=deepblue, thick] (0, 2.0) -- (0.6, 2.6) -- (2.6, 2.6) -- (2.0, 2.0) -- cycle;
-  \node[font=\footnotesize\bfseries\color{politoNavy}, align=center] at (1.0, 1.0) {Input Volume\\$32 \times 32 \times 3$};
+  \node[font=\footnotesize\bfseries\color{politoNavy}, align=center] at (1.0, 1.0) {Input Volume $\mathbf{X}$};
+
+  % Input dimension annotations
+  \draw[{Stealth}-{Stealth}, thick, deepblue] (0, -0.35) -- (2.0, -0.35) node[midway, below, font=\scriptsize\bfseries] {$W_{\text{in}} = 32$};
+  \draw[{Stealth}-{Stealth}, thick, deepblue] (-0.35, 0) -- (-0.35, 2.0) node[midway, left, font=\scriptsize\bfseries] {$H_{\text{in}} = 32$};
+  \draw[{Stealth}-{Stealth}, thick, deepblue] (2.15, -0.05) -- (2.75, 0.55) node[midway, below right, font=\scriptsize\bfseries] {$C_{\text{in}} = 3$};
 
   % Local filter spanning full depth
   \draw[fill=examred!30, draw=examred, thick] (0.5, 0.7) -- (1.1, 0.7) -- (1.1, 1.3) -- (0.5, 1.3) -- cycle;
   \draw[fill=examred!40, draw=examred, thick] (1.1, 0.7) -- (1.7, 1.3) -- (1.7, 1.9) -- (1.1, 1.3) -- cycle;
   \draw[fill=examred!20, draw=examred, thick] (0.5, 1.3) -- (1.1, 1.9) -- (1.7, 1.9) -- (1.1, 1.3) -- cycle;
-  \node[font=\tiny\color{examred}, align=center] at (1.1, 1.3) {$5 \times 5$\\$\times 3$};
+  \node[font=\tiny\color{examred}, align=center] at (1.1, 1.3) {$F \times F$\\$\times C_{\text{in}}$};
 
   % Filter bank arrow
-  \draw[-{Stealth}, very thick, examred] (2.8, 1.3) -- (4.2, 1.3) node[midway, above, font=\scriptsize, align=center] {$6$ Filters\\$5 \times 5 \times 3$};
+  \draw[-{Stealth}, very thick, examred] (2.9, 1.3) -- (4.4, 1.3) 
+    node[midway, above, font=\scriptsize\bfseries\color{examred}, align=center] {$C_{\text{out}} = 6$ Filters\\$F \times F \times C_{\text{in}}$\\($5 \times 5 \times 3$)};
 
-  % Output Volume: 28x28x6
-  \draw[fill=intuitiongreen!15, draw=intuitiongreen, thick] (4.5, 0.2) -- (6.3, 0.2) -- (6.3, 2.0) -- (4.5, 2.0) -- cycle;
-  \draw[fill=intuitiongreen!25, draw=intuitiongreen, thick] (6.3, 0.2) -- (7.5, 1.4) -- (7.5, 3.2) -- (6.3, 2.0) -- cycle;
-  \draw[fill=intuitiongreen!10, draw=intuitiongreen, thick] (4.5, 2.0) -- (5.7, 3.2) -- (7.5, 3.2) -- (6.3, 2.0) -- cycle;
-  \node[font=\footnotesize\bfseries\color{intuitiongreen}, align=center] at (5.4, 1.1) {Output Volume\\$28 \times 28 \times 6$};
+  % Output Volume: Hout x Wout x Cout
+  \draw[fill=intuitiongreen!15, draw=intuitiongreen, thick] (4.8, 0.2) -- (6.6, 0.2) -- (6.6, 2.0) -- (4.8, 2.0) -- cycle;
+  \draw[fill=intuitiongreen!25, draw=intuitiongreen, thick] (6.6, 0.2) -- (7.8, 1.4) -- (7.8, 3.2) -- (6.6, 2.0) -- cycle;
+  \draw[fill=intuitiongreen!10, draw=intuitiongreen, thick] (4.8, 2.0) -- (6.0, 3.2) -- (7.8, 3.2) -- (6.6, 2.0) -- cycle;
+  \node[font=\footnotesize\bfseries\color{intuitiongreen}, align=center] at (5.7, 1.1) {Output Volume $\mathbf{Y}$};
+
+  % Output dimension annotations
+  \draw[{Stealth}-{Stealth}, thick, intuitiongreen] (4.8, -0.15) -- (6.6, -0.15) node[midway, below, font=\scriptsize\bfseries] {$W_{\text{out}} = 28$};
+  \draw[{Stealth}-{Stealth}, thick, intuitiongreen] (4.45, 0.2) -- (4.45, 2.0) node[midway, left, font=\scriptsize\bfseries] {$H_{\text{out}} = 28$};
+  \draw[{Stealth}-{Stealth}, thick, intuitiongreen] (6.85, 0.1) -- (8.05, 1.3) node[midway, below right, font=\scriptsize\bfseries] {$C_{\text{out}} = 6$};
 \end{tikzpicture}
-\caption{The volumetric geometry of multi-channel convolution. An input volume of $32 \times 32 \times 3$ is convolved by $C_{\text{out}} = 6$ distinct filters. Each individual filter spans the complete depth of the input volume ($5 \times 5 \times 3$), emitting a single 2D feature map ($28 \times 28$). Stacking the 6 resulting activation maps produces the output volume of size $28 \times 28 \times 6$.}
+\caption{The volumetric geometry of multi-channel convolution. An input tensor volume $\mathbf{X} \in \R^{H_{\text{in}} \times W_{\text{in}} \times C_{\text{in}}}$ ($32 \times 32 \times 3$) is convolved by a bank of $C_{\text{out}} = 6$ distinct filters. Each individual filter spans the complete depth of the input volume with shape $F \times F \times C_{\text{in}}$ ($5 \times 5 \times 3$), emitting a single 2D feature slice. Stacking the $C_{\text{out}}$ activation slices yields the output volume $\mathbf{Y} \in \R^{H_{\text{out}} \times W_{\text{out}} \times C_{\text{out}}}$ ($28 \times 28 \times 6$).}
 \label{fig:volumetric_convolution}
 \end{figure}
 
-\paragraph{Hyperparameters: Stride and padding.}
-The spatial dimensions $H_{\text{out}}, W_{\text{out}}$ are governed by three hyperparameters:
-\begin{itemize}
-  \item \textbf{Filter Size ($F$)}: The spatial extent of the kernel (typically $F \in \{3, 5, 7\}$).
-  \item \textbf{Stride ($S$)}: The step size (in pixels) by which the filter shifts across the input grid. A stride of $S = 1$ shifts pixel-by-pixel; a stride of $S = 2$ skips every second pixel, downsampling spatial resolution by a factor of 2.
-  \item \textbf{Zero-Padding ($P$)}: The number of zero-valued pixels appended to the perimeter of the input feature map.
+\paragraph{Hyperparameters: Filter size, stride, and padding.}
+The spatial dimensions $H_{\text{out}}$ and $W_{\text{out}}$ of the output volume are governed by three primary geometric hyperparameters:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Filter Size ($F$)}: The spatial extent (height and width) of the local kernel window $F \times F$ (typically odd integers: $F \in \{3, 5, 7\}$).
+  \item \textbf{Stride ($S$)}: The step displacement in pixels by which the kernel advances across the input lattice. Unit stride $S = 1$ evaluates all adjacent positions; stride $S = 2$ shifts by two pixels, skipping every second position and halving spatial resolution.
+  \item \textbf{Zero-Padding ($P$)}: The width of the symmetrical border of zero-valued pixels appended around the perimeter of the input feature map, controlling spatial downsampling and preventing boundary information loss.
 \end{itemize}
 
-\begin{theorem}[Universal Spatial Dimension Formula]
-Given an input spatial dimension $N_{\text{in}}$ (height or width), filter size $F$, zero-padding $P$, and stride $S$, the output spatial dimension $N_{\text{out}}$ is given by:
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.85]
+  \def\s{0.7}
+  
+  % Padded grid: 7x7 with P=1 around 5x5 input
+  \foreach \x in {0,...,6} {
+    \foreach \y in {0,...,6} {
+      \ifnum\x=0
+        \draw[fill=gray!15, draw=gray!60, dashed, thin] (\x*\s, \y*\s) rectangle ++(\s, \s);
+        \node[font=\tiny\color{gray!70}] at (\x*\s + 0.5*\s, \y*\s + 0.5*\s) {$0$};
+      \else\ifnum\x=6
+        \draw[fill=gray!15, draw=gray!60, dashed, thin] (\x*\s, \y*\s) rectangle ++(\s, \s);
+        \node[font=\tiny\color{gray!70}] at (\x*\s + 0.5*\s, \y*\s + 0.5*\s) {$0$};
+      \else\ifnum\y=0
+        \draw[fill=gray!15, draw=gray!60, dashed, thin] (\x*\s, \y*\s) rectangle ++(\s, \s);
+        \node[font=\tiny\color{gray!70}] at (\x*\s + 0.5*\s, \y*\s + 0.5*\s) {$0$};
+      \else\ifnum\y=6
+        \draw[fill=gray!15, draw=gray!60, dashed, thin] (\x*\s, \y*\s) rectangle ++(\s, \s);
+        \node[font=\tiny\color{gray!70}] at (\x*\s + 0.5*\s, \y*\s + 0.5*\s) {$0$};
+      \else
+        \draw[fill=deepblue!10, draw=deepblue!60, thin] (\x*\s, \y*\s) rectangle ++(\s, \s);
+      \fi\fi\fi\fi
+    }
+  }
+
+  % Annotate Input Grid (5x5)
+  \draw[{Stealth}-{Stealth}, thick, deepblue] (1*\s, -0.4) -- (6*\s, -0.4)
+    node[midway, below, font=\scriptsize\bfseries\color{deepblue}] {Input Width $N_{\text{in}} = 5$};
+
+  % Annotate Padding P
+  \draw[{Stealth}-{Stealth}, thick, gray!80] (0, -0.4) -- (1*\s, -0.4)
+    node[midway, below, font=\scriptsize\bfseries\color{gray!80}] {$P = 1$};
+  \draw[{Stealth}-{Stealth}, thick, gray!80] (6*\s, -0.4) -- (7*\s, -0.4)
+    node[midway, below, font=\scriptsize\bfseries\color{gray!80}] {$P = 1$};
+  \draw[{Stealth}-{Stealth}, thick, gray!80] (-0.4, 0) -- (-0.4, 1*\s)
+    node[midway, left, font=\scriptsize\bfseries\color{gray!80}] {$P = 1$};
+
+  % Filter 1 (Position 1: top-left, x=0 to 3, y=4 to 7)
+  \draw[draw=examred, ultra thick, fill=examred!25, fill opacity=0.45] (0, 4*\s) rectangle (3*\s, 7*\s);
+  
+  % Annotate Filter Size F
+  \draw[{Stealth}-{Stealth}, very thick, examred] (0, 7*\s + 0.3) -- (3*\s, 7*\s + 0.3)
+    node[midway, above, font=\scriptsize\bfseries\color{examred}] {Filter Size $F = 3$};
+  \draw[{Stealth}-{Stealth}, very thick, examred] (-0.3, 4*\s) -- (-0.3, 7*\s)
+    node[midway, left, font=\scriptsize\bfseries\color{examred}] {$F = 3$};
+
+  % Filter 2 (Position 2: shifted by Stride S=2 to x=2 to 5, y=4 to 7)
+  \draw[draw=intuitiongreen, very thick, dashed, fill=intuitiongreen!20, fill opacity=0.4] (2*\s, 4*\s) rectangle (5*\s, 7*\s);
+
+  % Annotate Stride S
+  \draw[-{Stealth}, ultra thick, politoNavy] (1.5*\s, 5.5*\s) -- (3.5*\s, 5.5*\s)
+    node[midway, above, font=\scriptsize\bfseries\color{politoNavy}] {Stride $S = 2$};
+
+  % Legend callout
+  \node[draw=politoNavy!50, fill=white, rounded corners=4pt, inner sep=6pt, anchor=west] at (7.8*\s, 3.5*\s) {
+    \begin{minipage}{5.2cm}
+      \footnotesize\bfseries\color{politoNavy}Geometric Hyperparameters:\\[3pt]
+      \normalfont\scriptsize
+      \textbf{\textcolor{examred}{Filter Size ($F$)}}: Spatial width/height of the receptive field ($F \times F$).\\[2pt]
+      \textbf{\textcolor{politoNavy}{Stride ($S$)}}: Step displacement in pixels between successive filter positions.\\[2pt]
+      \textbf{\textcolor{gray!80}{Zero-Padding ($P$)}}: Symmetrical border of zeros appended to preserve boundaries.
+    \end{minipage}
+  };
+\end{tikzpicture}
+\caption{Visual illustration of convolutional spatial hyperparameters: filter size $F$, stride $S$, and zero-padding $P$. The kernel of spatial size $F \times F$ (red solid box) traverses the zero-padded input grid (dashed border of width $P$), advancing by step displacement $S$ (green dashed box) at each convolution step.}
+\label{fig:conv_hyperparameters_f_s_p}
+\end{figure}
+
+\begin{theorem}[Universal spatial dimension formula]
+Given an input spatial dimension $N_{\text{in}}$ (height or width), filter spatial size $F$, zero-padding $P$, and stride $S$, the output spatial dimension $N_{\text{out}}$ is given by:
 \begin{equation}
 N_{\text{out}} = \left\lfloor \frac{N_{\text{in}} - F + 2P}{S} \right\rfloor + 1.
 \label{eq:spatial_dimension_formula}
 \end{equation}
 \end{theorem}
 
-\paragraph{Walkthrough of slide examples: How each hyperparameter governs output size.}
-To understand how each hyperparameter component in Equation~\eqref{eq:spatial_dimension_formula} governs the output, consider the visual decomposition in Figure~\ref{fig:conv_hyperparameter_walkthrough}.
+\noindent\textit{Example 1 (Unit stride with valid padding)}: Consider an input feature map of size $N_{\text{in}} = 7$, convolved by a filter of size $F = 3$ with unit stride $S = 1$ and no padding ($P = 0$). Evaluating Equation~\eqref{eq:spatial_dimension_formula} gives:
+\begin{equation}
+N_{\text{out}} = \frac{7 - 3 + 2(0)}{1} + 1 = \frac{4}{1} + 1 = 5 \implies \text{Output is } 5 \times 5.
+\end{equation}
 
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[scale=0.88]
-  % Case 1: N_in = 7, F = 3, P = 0, S = 1 => N_out = 5
-  \begin{scope}[shift={(0,3.6)}]
-    \node[font=\footnotesize\bfseries\color{politoNavy}] at (3.5, 1.2) {Case 1: $N_{\text{in}}=7, F=3, P=0, S=1 \implies N_{\text{out}} = \frac{7-3+0}{1} + 1 = 5$};
-    \foreach \x in {0,...,6} {
-      \draw[fill=deepblue!15, draw=deepblue, thick] (\x, 0) rectangle (\x+0.8, 0.8);
-      \node[font=\tiny] at (\x+0.4, 0.4) {$\x$};
-    }
-    % Filter highlight
-    \draw[draw=examred, ultra thick, fill=examred!20, opacity=0.6] (0, 0) rectangle (2.8, 0.8);
-    \draw[-{Stealth}, thick, examred] (0.4, -0.3) -- (1.4, -0.3) node[midway, below, font=\tiny] {$S=1$};
-  \end{scope}
+\noindent\textit{Example 2 (Spatial downsampling via strided convolution)}: Setting stride $S = 2$ on the same input ($N_{\text{in}} = 7, F = 3, P = 0$) shifts the kernel by two pixels at each step, skipping alternate coordinates:
+\begin{equation}
+N_{\text{out}} = \frac{7 - 3 + 2(0)}{2} + 1 = \frac{4}{2} + 1 = 3 \implies \text{Output is } 3 \times 3.
+\end{equation}
 
-  % Case 2: N_in = 7, F = 3, P = 0, S = 2 => N_out = 3
-  \begin{scope}[shift={(0,1.8)}]
-    \node[font=\footnotesize\bfseries\color{politoNavy}] at (3.5, 1.2) {Case 2: $N_{\text{in}}=7, F=3, P=0, S=2 \implies N_{\text{out}} = \frac{7-3+0}{2} + 1 = 3$};
-    \foreach \x in {0,...,6} {
-      \draw[fill=deepblue!15, draw=deepblue, thick] (\x, 0) rectangle (\x+0.8, 0.8);
-      \node[font=\tiny] at (\x+0.4, 0.4) {$\x$};
-    }
-    % Filter highlight step 1
-    \draw[draw=examred, ultra thick, fill=examred!20, opacity=0.6] (0, 0) rectangle (2.8, 0.8);
-    \draw[-{Stealth}, thick, examred] (0.4, -0.3) -- (2.4, -0.3) node[midway, below, font=\tiny] {$S=2$ (Skips 1 pixel)};
-  \end{scope}
+\noindent\textit{Example 3 (Hyperparameter stride compatibility condition)}: If we select stride $S = 3$ with $N_{\text{in}} = 7, F = 3, P = 0$:
+\begin{equation}
+\frac{7 - 3 + 0}{3} + 1 = \frac{4}{3} + 1 \approx 2.33 \implies \text{Fractional! The filter does NOT tile the grid uniformly without clipping!}
+\end{equation}
+In well-formed convolutional designs, hyperparameters must strictly satisfy the integer divisibility condition $(N_{\text{in}} - F + 2P) \pmod S = 0$.
 
-  % Case 3: N_in = 7, F = 3, P = 1, S = 1 => "Same" Padding => N_out = 7
-  \begin{scope}[shift={(0,0)}]
-    \node[font=\footnotesize\bfseries\color{intuitiongreen}] at (3.5, 1.2) {Case 3: $N_{\text{in}}=7, F=3, P=1, S=1 \implies N_{\text{out}} = \frac{7-3+2(1)}{1} + 1 = 7$ ("Same" Padding)};
-    % Padding cells (dashed)
-    \draw[fill=gray!20, draw=gray!70, dashed, thick] (-1.0, 0) rectangle (-0.2, 0.8);
-    \node[font=\tiny\color{gray!70}] at (-0.6, 0.4) {$0$};
-    \foreach \x in {0,...,6} {
-      \draw[fill=deepblue!15, draw=deepblue, thick] (\x, 0) rectangle (\x+0.8, 0.8);
-      \node[font=\tiny] at (\x+0.4, 0.4) {$\x$};
-    }
-    \draw[fill=gray!20, draw=gray!70, dashed, thick] (7.0, 0) rectangle (7.8, 0.8);
-    \node[font=\tiny\color{gray!70}] at (7.4, 0.4) {$0$};
-
-    % Filter over padded border
-    \draw[draw=intuitiongreen, ultra thick, fill=intuitiongreen!20, opacity=0.6] (-1.0, 0) rectangle (1.8, 0.8);
-  \end{scope}
-\end{tikzpicture}
-\caption{Visual walkthrough of convolutional spatial dimension mechanics. Top: A $7 \times 7$ grid with $3 \times 3$ filter and stride 1 produces $5 \times 5$. Middle: Stride 2 shifts the kernel by two pixels at a time, skipping every second location to yield $3 \times 3$. Bottom: Adding zero-padding $P = (F-1)/2 = 1$ appends a boundary of zeros, perfectly preserving the original spatial dimension $7 \times 7$ ("Same" padding).}
-\label{fig:conv_hyperparameter_walkthrough}
-\end{figure}
-
-The mathematical walkthroughs presented during lectures demonstrate:
-\begin{enumerate}
-  \item \textbf{Input $7 \times 7$, Filter $3 \times 3$, Stride $S=1$, Padding $P=0$}:
-    \begin{equation}
-    N_{\text{out}} = \frac{7 - 3 + 2(0)}{1} + 1 = \frac{4}{1} + 1 = 5 \implies \text{Output is } 5 \times 5.
-    \end{equation}
-  \item \textbf{Input $7 \times 7$, Filter $3 \times 3$, Stride $S=2$, Padding $P=0$}:
-    \begin{equation}
-    N_{\text{out}} = \frac{7 - 3 + 2(0)}{2} + 1 = \frac{4}{2} + 1 = 3 \implies \text{Output is } 3 \times 3.
-    \end{equation}
-  \item \textbf{Input $7 \times 7$, Filter $3 \times 3$, Stride $S=3$, Padding $P=0$}:
-    \begin{equation}
-    \frac{7 - 3 + 0}{3} + 1 = \frac{4}{3} + 1 = 2.33 \implies \text{Fractional! The filter does NOT fit without clipping!}
-    \end{equation}
-    In valid convolutional designs, hyperparameters must satisfy $(N_{\text{in}} - F + 2P) \pmod S = 0$.
-  \item \textbf{Zero-Padding: "Same" vs. "Valid" Padding}:
-    Without padding ($P = 0$, "valid" padding), applying an $F \times F$ convolution inevitably shrinks the spatial resolution by $(F - 1)$ pixels at each layer. In deep networks with dozens of layers, the feature map would collapse to $1 \times 1$ within a few layers, destroying spatial context.
-    To preserve spatial resolution ($N_{\text{out}} = N_{\text{in}}$ with stride $S = 1$, known as \textbf{"Same" padding}), we set:
-    \begin{equation}
-    N_{\text{in}} = \frac{N_{\text{in}} - F + 2P}{1} + 1 \implies 2P = F - 1 \implies P = \frac{F - 1}{2}.
-    \label{eq:same_padding_formula}
-    \end{equation}
-    For standard $3 \times 3$ filters ($F = 3$), setting $P = (3-1)/2 = 1$ perfectly maintains spatial dimensions. For $5 \times 5$ filters ($F = 5$), setting $P = 2$ preserves dimensions.
-\end{enumerate}
+\noindent\textit{Example 4 (Preserving spatial dimensions via same padding)}: Without zero-padding ($P = 0$, valid padding), each convolutional layer shrinks the spatial grid by $F - 1$ pixels, causing rapid spatial collapse in deep architectures. To maintain identical input and output dimensions ($N_{\text{out}} = N_{\text{in}}$) under unit stride $S = 1$, we enforce:
+\begin{equation}
+N_{\text{in}} = \frac{N_{\text{in}} - F + 2P}{1} + 1 \implies 2P = F - 1 \implies P = \frac{F - 1}{2}.
+\label{eq:same_padding_formula}
+\end{equation}
+For standard $3 \times 3$ filters ($F = 3$), setting $P = (3-1)/2 = 1$ perfectly preserves spatial resolution (``Same'' padding). For $5 \times 5$ filters ($F = 5$), setting $P = 2$ achieves the same dimensional preservation.
 
 \paragraph{Parameter and FLOP counting.}
-Let a convolutional layer process input $\mathbf{X} \in \R^{H \times W \times C_{\text{in}}}$ with $C_{\text{out}}$ filters of size $F \times F \times C_{\text{in}}$, stride $S$, and padding $P$:
-\begin{itemize}
+Let a convolutional layer process input $\mathbf{X} \in \R^{H_{\text{in}} \times W_{\text{in}} \times C_{\text{in}}}$ with $C_{\text{out}}$ filters of size $F \times F \times C_{\text{in}}$, stride $S$, and padding $P$:
+\begin{itemize}[leftmargin=*]
   \item \textbf{Total Learnable Parameters}: Each filter contains $F \times F \times C_{\text{in}}$ kernel weights plus 1 scalar bias. For $C_{\text{out}}$ filters:
     \begin{equation}
     N_{\text{params}} = \left( F \times F \times C_{\text{in}} + 1 \right) \times C_{\text{out}}.
     \label{eq:conv_param_count}
     \end{equation}
-    Notice that $N_{\text{params}}$ is completely independent of the spatial size $H, W$!
-  \item \textbf{Total Floating-Point Multiply-Accumulate Operations (FLOPs)}: Computing each scalar output activation requires $(F \times F \times C_{\text{in}})$ multiplications and additions. Emitting the full volume $H_{\text{out}} \times W_{\text{out}} \times C_{\text{out}}$ requires:
+    Notice that $N_{\text{params}}$ is completely independent of the input spatial resolution $H_{\text{in}}, W_{\text{in}}$.
+  \item \textbf{Total Floating-Point Multiply-Accumulate Operations (FLOPs)}: Computing each scalar output activation requires $(F \times F \times C_{\text{in}})$ multiplications and additions. Emitting the full output volume $H_{\text{out}} \times W_{\text{out}} \times C_{\text{out}}$ requires:
     \begin{equation}
     N_{\text{FLOPs}} = 2 \times H_{\text{out}} \times W_{\text{out}} \times \left( F \times F \times C_{\text{in}} \right) \times C_{\text{out}}.
     \label{eq:conv_flops_count}
     \end{equation}
 \end{itemize}
 
-\begin{example}[Slide Parameter Walkthrough]
-Let input volume be $32 \times 32 \times 3$. We apply $C_{\text{out}} = 10$ filters of size $5 \times 5$, with stride $S = 1$ and padding $P = 2$:
+\noindent\textit{Example 5 (Parameter and FLOP calculation)}: Consider an input volume of size $32 \times 32 \times 3$ convolved by $C_{\text{out}} = 10$ filters of size $5 \times 5$, with stride $S = 1$ and padding $P = 2$:
 \begin{itemize}[noitemsep]
-  \item Spatial Output: $H_{\text{out}} = \frac{32 - 5 + 2(2)}{1} + 1 = 32 \implies \text{Output volume is } 32 \times 32 \times 10$.
+  \item Spatial Output: $H_{\text{out}} = W_{\text{out}} = \frac{32 - 5 + 2(2)}{1} + 1 = 32 \implies \text{Output volume is } 32 \times 32 \times 10$.
   \item Parameters: $(5 \times 5 \times 3 + 1) \times 10 = (75 + 1) \times 10 = 760 \text{ parameters}$.
 \end{itemize}
-An MLP performing the identical mapping from $3,072$ inputs to $32 \times 32 \times 10 = 10,240$ outputs would require $3,072 \times 10,240 \approx 31.4 \text{ million parameters}$! Convolution achieves a \textbf{$41,000\times$ reduction in parameters} while achieving vastly superior visual generalization.
-\end{example}
+An MLP performing the identical mapping from $3,072$ inputs to $32 \times 32 \times 10 = 10,240$ outputs would require $3,072 \times 10,240 \approx 31.4 \text{ million parameters}$! Convolution achieves a \textbf{$41,000\times$ reduction in parameters} while maintaining exact translation equivariance.
 
 While the mechanics and geometry of convolution explain how multi-channel tensors are transformed with spatial parameter sharing, a fundamental theoretical question remains: why does this specific architectural constraint succeed so profoundly in empirical vision, and how can we understand it through Bayesian and biological principles? This question motivates examining convolutional neural networks as an infinitely strong spatial prior rooted in the functional architecture of the mammalian visual cortex.
 
@@ -668,7 +584,7 @@ Traditional feedforward neural network layers compute representations using unco
 where every individual output unit interacts with every single input unit via an independent weight parameter $W_{i, j}$. If the input has $m$ units and the output has $n$ units, the transformation requires computing and storing an $n \times m$ matrix, with computational runtime scaling as $\mathcal{O}(m \times n)$.
 
 
-In stark contrast, Convolutional Neural Networks guarantee \textbf{sparse interactions} (also referred to as \textit{sparse connectivity} or \textit{sparse weights}) by restricting the filter kernel size $F$ to be orders of magnitude smaller than the input spatial dimensions ($F \ll H, W$). Rather than connecting an output unit to all $H \times W$ input pixels, each output unit connects exclusively to a local contiguous receptive field of $F \times F$ pixels (or $F$ taps in 1D). As formalized in the Toeplitz matrix formulation (Equation~\eqref{eq:toeplitz_convolution_matrix}), this restricts non-zero entries in the equivalent transformation matrix strictly to a narrow band of width $F$.
+In stark contrast, Convolutional Neural Networks guarantee \textbf{sparse interactions} (also referred to as \textit{sparse connectivity} or \textit{sparse weights}) by restricting the filter kernel size $F$ to be orders of magnitude smaller than the input spatial dimensions ($F \ll H, W$). Rather than connecting an output unit to all $H \times W$ input pixels, each output unit connects exclusively to a local contiguous receptive field of $F \times F$ pixels (or $F$ taps in 1D), strictly restricting non-zero linear interactions to a localized band of width $F$.
 
 \subparagraph{Receptive Field Deepening.}
 Crucially, although direct connections at each individual convolutional layer are strictly sparse, units in deeper layers of a multi-layer CNN interact indirectly with a much larger portion of the input visual grid. As illustrated in Figure~\ref{fig:receptive_field_expansion} later in this chapter, if each layer uses a $1\text{D}$ filter of width $F=3$, a unit in layer $l=1$ observes $3$ input units, a unit in layer $l=2$ observes $5$ input units, and a unit in layer $l$ observes:
