@@ -423,76 +423,78 @@ Because the gradient is identically zero almost everywhere, \textbf{gradient-bas
 
 The perceptron's inability to provide smooth gradient signals, coupled with its linear separability barrier on problems like XOR, established the definitive conclusion of the classical era: single-layer linear architectures cannot serve as universal intelligent learners. To break through this barrier, machine learning had to transition to layered compositions of continuous, differentiable units---leading directly to the Multi-Layer Perceptron in Section~\ref{sec:mlp_and_representation_learning}.
 
-\section{Multilayer perceptrons, representation learning, and universal approximation}
+\section{Multilayer perceptrons and universal approximation}
 \label{sec:mlp_and_representation_learning}
 
 To liberate neural computing from the linear separability impasse, the architecture of the artificial neuron must be fundamentally reconceived. The failure on XOR and the non-differentiability of step functions revealed that a single hyperplane cutting through raw input space cannot capture complex decision geometries. A learner must be capable of transforming the geometry of the input space itself.
 
 However, resolving this challenge is not as straightforward as simply stacking multiple linear perceptrons into a cascading sequence. As linear algebra dictates, any sequence of cascaded affine transformations collapses into a single affine transformation, offering zero representational advantage over a single-layer model. To unlock true hierarchical expressiveness, two simultaneous transformations are mathematically mandatory: (1) interleaving linear matrix projections with continuous, non-linear activation functions that break affine subspace closure, and (2) organizing neurons into intermediate \textbf{hidden layers} that execute automated \textbf{representation learning}.
 
-This section explores how Multi-Layer Perceptrons (MLPs) construct non-linear decision manifolds. We prove the Compositional Collapse Theorem of purely linear networks, derive task-dependent probabilistic squashing functions (Sigmoid and Softmax), demonstrate how hidden layers geometrically fold coordinate space to resolve the XOR dilemma, formalize the full topology of deep Fully Connected Networks (FCNs), and synthesize the celebrated Universal Approximation Theorem across shallow and deep regimes.
-
-\subsection{Why we need activation functions and task-dependent probability squashing}
+\subsection{Going beyond linearity and representation learning}
 \label{sec:continuous_probabilities_softmax}
-
-Before examining specific non-linearities, we must formally address the fundamental theoretical question: \textit{why can we not construct expressive deep networks simply by stacking multiple linear layers?}
-
-\paragraph{The Compositional Collapse Theorem of Linear Networks.}
-Suppose we cascade $L$ layers where each layer computes a pure affine transformation without non-linear activations:
-\begin{align}
-\mathbf{h}^{(1)} &= \mathbf{W}_1 \mathbf{x} + \mathbf{b}_1, \\
-\mathbf{h}^{(2)} &= \mathbf{W}_2 \mathbf{h}^{(1)} + \mathbf{b}_2 = \mathbf{W}_2 (\mathbf{W}_1 \mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2 = (\mathbf{W}_2 \mathbf{W}_1)\mathbf{x} + (\mathbf{W}_2 \mathbf{b}_1 + \mathbf{b}_2), \\
-&\;\,\vdots \nonumber \\
-\hat{\mathbf{y}} &= \mathbf{W}_L \mathbf{h}^{(L-1)} + \mathbf{b}_L = \left( \prod_{l=L}^1 \mathbf{W}_l \right) \mathbf{x} + \mathbf{b}_{\text{eff}} = \mathbf{W}_{\text{eff}} \mathbf{x} + \mathbf{b}_{\text{eff}}.
-\end{align}
-Because matrix multiplication is associative and affine transformations are closed under composition, \textbf{any multi-layer linear network collapses mathematically into a single linear transformation}! Stacking 100 linear layers provides zero additional representational capacity over a simple single-layer linear model. 
-
-Non-linear activation functions are the sole mathematical mechanism that breaks affine subspace closure, enabling the network to bend, warp, and fold coordinate space to carve complex, non-linear decision boundaries.
-
-\paragraph{Task-Dependent Activation Selection: Sigmoid vs. Softmax.}
-Once non-linearity is introduced, the mathematical form of the output activation function must be chosen strictly according to the probabilistic structure of the target task:
-\begin{enumerate}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
-  \item \textbf{Binary Classification ($y \in \{0, 1\}$ or $\{-1, +1\}$)}:
-    The output is a single scalar probability modeling a Bernoulli likelihood $P(y = 1 \mid \mathbf{x})$. We apply the smooth \textbf{Logistic Sigmoid activation}:
-    \begin{equation}
-    \sigma(z) \triangleq \frac{1}{1 + e^{-z}} \in (0, 1), \quad \text{with } P(y = 1 \mid \mathbf{x}) = \sigma(\mathbf{w}^\top \mathbf{x} + b).
-    \label{eq:sigmoid_formula}
-    \end{equation}
-    Sigmoid maps unconstrained real-valued logits $z \in (-\infty, +\infty)$ monotonically into the valid probability interval $(0, 1)$, with derivative $\sigma'(z) = \sigma(z)(1 - \sigma(z))$.
-  \item \textbf{Multiclass Categorical Classification ($y \in \{1, \dots, K\}$ with $K > 2$)}:
-    When classes are mutually exclusive, the output must be a probability vector residing on the $(K-1)$-dimensional probability simplex $\Delta^{K-1} = \{\mathbf{p} \in \R^K : p_k \ge 0, \, \sum_k p_k = 1\}$. We compute a vector of $K$ unconstrained logits:
-    \begin{equation}
-    \mathbf{z} = \mathbf{W}\mathbf{x} + \mathbf{b} \in \R^K,
-    \end{equation}
-    and apply the \textbf{Softmax activation function}:
-    \begin{equation}
-    \hat{y}_k \triangleq P(y = k \mid \mathbf{x}) = \operatorname{Softmax}(\mathbf{z})_k = \frac{\exp(z_k)}{\sum_{j=1}^K \exp(z_j)}, \quad \forall k \in \{1, \dots, K\}.
-    \label{eq:softmax_definition}
-    \end{equation}
-\end{enumerate}
-
-Softmax satisfies three essential analytical properties:
-\begin{itemize}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
-  \item \textbf{Strict Positivity}: $\hat{y}_k > 0$ for all finite logits $z_k$.
-  \item \textbf{Unit Normalization}: $\sum_{k=1}^K \hat{y}_k = 1$.
-  \item \textbf{Shift Invariance}: For any constant $c \in \R$, $\operatorname{Softmax}(\mathbf{z} + c \mathbf{1}) = \operatorname{Softmax}(\mathbf{z})$. Subtracting $\max_k z_k$ prevents numerical floating-point overflow.
-\end{itemize}
-
-Representing the ground truth label via a one-hot indicator vector $\mathbf{y} \in \{0, 1\}^K$, the corresponding loss is the \textbf{Categorical Cross-Entropy}:
-\begin{equation}
-\mathcal{L}_{\text{CE}}(\mathbf{y}, \hat{\mathbf{y}}) \triangleq -\sum_{k=1}^K y_k \ln \hat{y}_k = -\ln \hat{y}_{\text{true class}}.
-\label{eq:categorical_cross_entropy}
-\end{equation}
-Differentiating with respect to logit $z_i$ reveals that the pre-activation gradient is simply the residual prediction error:
-\begin{equation}
-\frac{\partial \mathcal{L}_{\text{CE}}}{\partial z_i} = \hat{y}_i - y_i.
-\label{eq:softmax_cross_entropy_gradient}
-\end{equation}
-
-\subsection{Resolving the XOR dilemma via hidden representation warping}
 \label{sec:resolving_xor_hidden_representations}
 
-Having established differentiable activations, we now resolve Minsky and Papert's XOR impasse by introducing an intermediate \textbf{hidden layer}.
+\paragraph{Why we must go beyond linearity.}
+In classical linear models, decision boundaries are strictly constrained to $(D-1)$-dimensional affine hyperplanes of the form $\mathbf{w}^\top \mathbf{x} + b = 0$. While computationally tractable and admitting closed-form solutions in regression tasks, linear decision boundaries are fundamentally incapable of modeling complex real-world data distributions. Perceptual data---such as natural images, acoustic speech signals, and semantic text---invariably lie on highly curved, non-linear sub-manifolds embedded within high-dimensional ambient space. 
+
+When class distributions exhibit topological complexity, non-convex geometry, or inter-class interleaving---as exemplified by the classic Exclusive-OR (XOR) logic function---a linear boundary cannot isolate the classes without incurring catastrophic classification error. To build expressive learning machines, we must endow models with the mathematical capacity to construct non-linear decision boundaries.
+
+\paragraph{The compositional collapse of purely linear networks.}
+A naive intuition might suggest that multi-layer expressiveness could be attained simply by cascading multiple linear layers, feeding the output of one linear perceptron as input to the next. Consider an $L$-layer network where each intermediate layer computes an affine transformation without activation functions:
+\begin{align}
+\mathbf{h}^{(1)} &= \mathbf{W}_1 \mathbf{x} + \mathbf{b}_1, \nonumber \\
+\mathbf{h}^{(2)} &= \mathbf{W}_2 \mathbf{h}^{(1)} + \mathbf{b}_2 = \mathbf{W}_2 (\mathbf{W}_1 \mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2 = (\mathbf{W}_2 \mathbf{W}_1)\mathbf{x} + (\mathbf{W}_2 \mathbf{b}_1 + \mathbf{b}_2), \nonumber \\
+&\;\;\vdots \nonumber \\
+\hat{\mathbf{y}} &= \mathbf{W}_L \mathbf{h}^{(L-1)} + \mathbf{b}_L.
+\label{eq:linear_network_cascade}
+\end{align}
+
+\begin{proof}
+We prove by mathematical induction on the layer depth $L$ that any cascading sequence of affine maps collapses to a single affine transformation.
+
+\textit{Base Case ($L=1$):} For a single layer, $\hat{\mathbf{y}} = \mathbf{W}_1 \mathbf{x} + \mathbf{b}_1$, which is trivially affine with effective weight matrix $\mathbf{W}_{\text{eff}}^{(1)} = \mathbf{W}_1$ and bias $\mathbf{b}_{\text{eff}}^{(1)} = \mathbf{b}_1$.
+
+\textit{Inductive Hypothesis:} Assume that for any layer $k \ge 1$, the representation $\mathbf{h}^{(k)}$ is an affine function of the input $\mathbf{x}$:
+\begin{equation}
+\mathbf{h}^{(k)} = \mathbf{W}_{\text{eff}}^{(k)} \mathbf{x} + \mathbf{b}_{\text{eff}}^{(k)}, \quad \text{with } \mathbf{W}_{\text{eff}}^{(k)} \in \R^{d_k \times d_0}, \; \mathbf{b}_{\text{eff}}^{(k)} \in \R^{d_k}.
+\end{equation}
+
+\textit{Inductive Step:} Applying the affine transformation of layer $k+1$ yields:
+\begin{align}
+\mathbf{h}^{(k+1)} &= \mathbf{W}_{k+1} \mathbf{h}^{(k)} + \mathbf{b}_{k+1} \nonumber \\
+&= \mathbf{W}_{k+1} \left( \mathbf{W}_{\text{eff}}^{(k)} \mathbf{x} + \mathbf{b}_{\text{eff}}^{(k)} \right) + \mathbf{b}_{k+1} \nonumber \\
+&= \left( \mathbf{W}_{k+1} \mathbf{W}_{\text{eff}}^{(k)} \right) \mathbf{x} + \left( \mathbf{W}_{k+1} \mathbf{b}_{\text{eff}}^{(k)} + \mathbf{b}_{k+1} \right).
+\end{align}
+Defining the composite parameter matrices:
+\begin{equation}
+\mathbf{W}_{\text{eff}}^{(k+1)} \triangleq \mathbf{W}_{k+1} \mathbf{W}_{\text{eff}}^{(k)} \in \R^{d_{k+1} \times d_0}, \quad \mathbf{b}_{\text{eff}}^{(k+1)} \triangleq \mathbf{W}_{k+1} \mathbf{b}_{\text{eff}}^{(k)} + \mathbf{b}_{k+1} \in \R^{d_{k+1}},
+\end{equation}
+the representation $\mathbf{h}^{(k+1)}$ remains strictly an affine function of $\mathbf{x}$. By induction, an $L$-layer purely linear network computes:
+\begin{equation}
+\hat{\mathbf{y}} = \mathbf{W}_{\text{eff}} \mathbf{x} + \mathbf{b}_{\text{eff}}, \quad \text{with } \mathbf{W}_{\text{eff}} = \prod_{l=L}^1 \mathbf{W}_l = \mathbf{W}_L \mathbf{W}_{L-1} \cdots \mathbf{W}_1,
+\label{eq:compositional_collapse_result}
+\end{equation}
+and $\mathbf{b}_{\text{eff}} = \mathbf{b}_L + \sum_{l=1}^{L-1} \left( \prod_{j=L}^{l+1} \mathbf{W}_j \right) \mathbf{b}_l$.
+\end{proof}
+
+Because matrix multiplication is associative and affine transformations form a mathematically closed set under functional composition, \textbf{stacking arbitrary depths of purely linear layers yields zero additional representational power over a single-layer linear model}. No matter how many millions of linear units are assembled, the composition remains incapable of bending a hyperplane.
+
+\paragraph{The imperative for non-linear activation functions.}
+To escape compositional collapse, we must break affine subspace closure. The mathematical remedy is to interleave each linear matrix projection with an element-wise, non-linear activation function $\sigma: \R \to \R$:
+\begin{equation}
+\mathbf{h}^{(l)} = \sigma\left( \mathbf{W}_l \mathbf{h}^{(l-1)} + \mathbf{b}_l \right), \quad \forall l \in \{1, \dots, L\}.
+\label{eq:interleaved_nonlinear_layer}
+\end{equation}
+Because $\sigma(\cdot)$ is non-linear, the operator $\sigma$ cannot commute with matrix multiplication: $\mathbf{W}_2 \sigma(\mathbf{W}_1 \mathbf{x} + \mathbf{b}_1) \ne \tilde{\mathbf{W}} \mathbf{x} + \tilde{\mathbf{b}}$. The non-linearity prevents the successive weight matrices from collapsing into a single matrix product. Geometrically, non-linear activations fold, stretch, and twist the coordinate axes, allowing the network to carve curved, multi-region decision boundaries that solve topologically complex tasks.
+
+\paragraph{Resolving the XOR dilemma via representation learning.}
+To see concretely how non-linear hidden representations shatter the linear separability barrier, consider Minsky and Papert's fatal XOR counterexample. The XOR function assigns positive labels ($y=1$) to $[1, 0]^\top$ and $[0, 1]^\top$, and negative labels ($y=0$) to $[0, 0]^\top$ and $[1, 1]^\top$.
+
+We construct a minimal two-layer feedforward network with two input units, two hidden units equipped with the Rectified Linear Unit ($\operatorname{ReLU}(z) \triangleq \max(0, z)$), and one linear output unit:
+\begin{align}
+\mathbf{h} &= \operatorname{ReLU}(\mathbf{W}_1 \mathbf{x} + \mathbf{b}_1), \quad \text{with } \mathbf{W}_1 = \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}, \, \mathbf{b}_1 = \begin{bmatrix} 0 \\ -1 \end{bmatrix}, \label{eq:xor_hidden_forward} \\
+\hat{y} &= \mathbf{w}_2^\top \mathbf{h} + b_2, \quad \text{with } \mathbf{w}_2 = \begin{bmatrix} 1 \\ -2 \end{bmatrix}, \, b_2 = 0. \label{eq:xor_output_forward}
+\end{align}
 
 \begin{figure}[H]
 \centering
@@ -505,7 +507,7 @@ Having established differentiable activations, we now resolve Minsky and Papert'
   % Layer 1: Hidden Layer
   \node[circle, draw=intuitiongreen, fill=intuitiongreen!15, very thick, inner sep=3pt] (h1) at (3.2, 1.2) {$h_1$};
   \node[circle, draw=intuitiongreen, fill=intuitiongreen!15, very thick, inner sep=3pt] (h2) at (3.2, -1.2) {$h_2$};
-  \node[font=\footnotesize\bfseries\color{intuitiongreen}] at (3.2, 2.2) {Hidden $\mathbf{h} = \sigma(\mathbf{W}_1\mathbf{x}+\mathbf{b}_1)$};
+  \node[font=\footnotesize\bfseries\color{intuitiongreen}] at (3.2, 2.2) {Hidden $\mathbf{h} = \operatorname{ReLU}(\mathbf{W}_1\mathbf{x}+\mathbf{b}_1)$};
 
   % Layer 2: Output Layer
   \node[circle, draw=examred, fill=examred!15, very thick, inner sep=3pt] (y) at (6.4, 0.0) {$\hat{y}$};
@@ -532,32 +534,28 @@ Having established differentiable activations, we now resolve Minsky and Papert'
 \label{fig:mlp_architecture}
 \end{figure}
 
-Consider the two-layer feedforward network depicted in Figure~\ref{fig:mlp_architecture}:
-\begin{align}
-\mathbf{h} &= \operatorname{ReLU}(\mathbf{W}_1 \mathbf{x} + \mathbf{b}_1), \quad \text{with } \mathbf{W}_1 = \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}, \, \mathbf{b}_1 = \begin{bmatrix} 0 \\ -1 \end{bmatrix}, \label{eq:xor_hidden_forward} \\
-\hat{y} &= \mathbf{w}_2^\top \mathbf{h} + b_2, \quad \text{with } \mathbf{w}_2 = \begin{bmatrix} 1 \\ -2 \end{bmatrix}, \, b_2 = 0, \label{eq:xor_output_forward}
-\end{align}
-where $\operatorname{ReLU}(z) \triangleq \max(0, z)$.
-
-Evaluating the forward pass across the four XOR input configurations:
+Evaluating the forward pass step-by-step across all four boolean input combinations:
 \begin{enumerate}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
-  \item \textbf{Input $\mathbf{x} = [0, 0]^\top$ (Negative Class)}:
+  \item \textbf{Input $\mathbf{x} = [0, 0]^\top$ (Class 0)}:
     \begin{equation}
     \mathbf{W}_1 \mathbf{x} + \mathbf{b}_1 = \begin{bmatrix} 0 \\ -1 \end{bmatrix} \implies \mathbf{h} = \operatorname{ReLU}\left(\begin{bmatrix} 0 \\ -1 \end{bmatrix}\right) = \begin{bmatrix} 0 \\ 0 \end{bmatrix} \implies \hat{y} = [1, -2] \begin{bmatrix} 0 \\ 0 \end{bmatrix} = 0.
     \end{equation}
-  \item \textbf{Input $\mathbf{x} = [1, 0]^\top$ (Positive Class)}:
+  \item \textbf{Input $\mathbf{x} = [1, 0]^\top$ (Class 1)}:
     \begin{equation}
     \mathbf{W}_1 \mathbf{x} + \mathbf{b}_1 = \begin{bmatrix} 1 \\ 0 \end{bmatrix} \implies \mathbf{h} = \operatorname{ReLU}\left(\begin{bmatrix} 1 \\ 0 \end{bmatrix}\right) = \begin{bmatrix} 1 \\ 0 \end{bmatrix} \implies \hat{y} = [1, -2] \begin{bmatrix} 1 \\ 0 \end{bmatrix} = 1.
     \end{equation}
-  \item \textbf{Input $\mathbf{x} = [0, 1]^\top$ (Positive Class)}:
+  \item \textbf{Input $\mathbf{x} = [0, 1]^\top$ (Class 1)}:
     \begin{equation}
     \mathbf{W}_1 \mathbf{x} + \mathbf{b}_1 = \begin{bmatrix} 1 \\ 0 \end{bmatrix} \implies \mathbf{h} = \operatorname{ReLU}\left(\begin{bmatrix} 1 \\ 0 \end{bmatrix}\right) = \begin{bmatrix} 1 \\ 0 \end{bmatrix} \implies \hat{y} = [1, -2] \begin{bmatrix} 1 \\ 0 \end{bmatrix} = 1.
     \end{equation}
-  \item \textbf{Input $\mathbf{x} = [1, 1]^\top$ (Negative Class)}:
+  \item \textbf{Input $\mathbf{x} = [1, 1]^\top$ (Class 0)}:
     \begin{equation}
-    \mathbf{W}_1 \mathbf{x} + \mathbf{b}_1 = \begin{bmatrix} 2 \\ 1 \end{bmatrix} \implies \mathbf{h} = \operatorname{ReLU}\left(\begin{bmatrix} 2 \\ 1 \end{bmatrix}\right) = \begin{bmatrix} 2 \\ 1 \end{bmatrix} \implies \hat{y} = [1, -2] \begin{bmatrix} 2 \\ 1 \end{bmatrix} = 0.
+    \mathbf{W}_1 \mathbf{x} + \mathbf{b}_1 = \begin{bmatrix} 2 \\ 1 \end{bmatrix} \implies \mathbf{h} = \operatorname{ReLU}\left(\begin{bmatrix} 2 \\ 1 \end{bmatrix}\right) = \begin{bmatrix} 2 \\ 1 \end{bmatrix} \implies \hat{y} = [1, -2] \begin{bmatrix} 2 \\ 1 \end{bmatrix} = 2 - 2 = 0.
     \end{equation}
 \end{enumerate}
+Every input point is classified with zero error ($\hat{y} = y$).
+
+The geometric explanation behind this triumph is illustrated in Figure~\ref{fig:xor_representation_warping}. In the original input space $\mathcal{X}$, the positive instances $[1, 0]^\top$ and $[0, 1]^\top$ are positioned along the off-diagonal, diagonally interleaved between the negative instances $[0, 0]^\top$ and $[1, 1]^\top$; no straight line can separate them. The non-linear hidden transformation $\mathbf{h} = \operatorname{ReLU}(\mathbf{W}_1 \mathbf{x} + \mathbf{b}_1)$ acts as a coordinate folding operation: it projects the two separate positive points $[1, 0]^\top$ and $[0, 1]^\top$ onto the exact same coordinate $[1, 0]^\top$ in the latent hidden space $\mathcal{H}$, while mapping $[0, 0]^\top \to [0, 0]^\top$ and $[1, 1]^\top \to [2, 1]^\top$. In this newly formed hidden representation space $\mathcal{H}$, the class distributions are strictly linearly separable by the hyperplane $h_1 - 2h_2 = 0.5$.
 
 \begin{figure}[H]
 \centering
@@ -599,27 +597,116 @@ Evaluating the forward pass across the four XOR input configurations:
 \label{fig:xor_representation_warping}
 \end{figure}
 
-Figure~\ref{fig:xor_representation_warping} illuminates the deep geometric principle at work: \textbf{the hidden layer performs representation learning}. Instead of relying on handcrafted features, the network automatically warps and projects the input space into a latent coordinate system $\mathcal{H}$ where previously non-separable distributions become strictly linearly separable!
+This reveals the foundational paradigm of modern deep learning: \textbf{representation learning}. Rather than requiring human engineers to manually design domain-specific features to make inputs linearly separable, the hidden layer of a neural network autonomously transforms raw coordinate space into a latent geometry where linear classification succeeds.
 
-\subsection{From individual perceptrons to deep fully connected networks (FCNs)}
+\subsection{Universal approximation and deep architectures}
+\label{sec:universal_approximation_theorem}
 \label{sec:perceptron_to_fcn}
+\label{sec:activation_functions_foundations}
 
-Building upon the single-hidden-layer MLP, we generalize this construction to arbitrary depth. By cascading multiple layers of perceptrons such that every neuron in layer $l-1$ connects to every neuron in layer $l$, we obtain a \textbf{Fully Connected Network (FCN)}, also termed a \textbf{Dense Feedforward Neural Network}.
+\paragraph{The Universal Approximation Theorem.}
+How expressive is a feedforward neural network equipped with non-linear activation functions? The foundational theoretical answer is established by the celebrated \textbf{Universal Approximation Theorem}, proven by George Cybenko (1989)~\cite{cybenko1989approximation} for sigmoidal activations and generalized by Kurt Hornik (1991)~\cite{hornik1991approximation} to arbitrary continuous, non-constant activations (and subsequently extended to non-polynomial continuous activations including ReLU).
 
-Formally, an $L$-layer Fully Connected Network computes a sequence of coupled affine-non-linear vector recurrences:
+\begin{theorem}[Universal Approximation Theorem~\cite{cybenko1989approximation,hornik1991approximation}]
+\label{thm:uat}
+Let $\sigma: \R \to \R$ be any continuous, non-constant, bounded (or continuous non-polynomial) activation function. Let $K \subset \R^D$ be a compact (closed and bounded) subset of Euclidean space. Then, for any continuous target function $f \in C(K)$ and any arbitrary error tolerance $\epsilon > 0$, there exists an integer $M \in \mathbb{N}$, input weight vectors $\mathbf{w}_j \in \R^D$, biases $b_j \in \R$, and output weights $\alpha_j \in \R$ such that the single-hidden-layer network:
+\begin{equation}
+F(\mathbf{x}) = \sum_{j=1}^M \alpha_j \sigma(\mathbf{w}_j^\top \mathbf{x} + b_j),
+\label{eq:universal_approximator_form}
+\end{equation}
+satisfies uniform approximation over all $\mathbf{x} \in K$:
+\begin{equation}
+\sup_{\mathbf{x} \in K} |F(\mathbf{x}) - f(\mathbf{x})| < \epsilon.
+\label{eq:universal_approximation_bound}
+\end{equation}
+\end{theorem}
+
+\paragraph{Constructive geometric proof via localized bump functions.}
+To understand why Theorem~\ref{thm:uat} holds, consider the constructive geometric proof intuition formulated by Cybenko and developed in modern treatments by Bishop~\cite{bishop2024deep} and Prince~\cite{prince2023understanding}.
+
+In one dimension ($D=1$), consider two sigmoid units with identical steep slope $w \gg 0$ but offset biases $b_1 = -w a$ and $b_2 = -w b$ (with $a < b$):
+\begin{equation}
+\operatorname{bump}(x) \triangleq \sigma(w(x - a)) - \sigma(w(x - b)).
+\label{eq:sigmoid_bump}
+\end{equation}
+As $w \to \infty$, the sigmoid $\sigma(w(x - a))$ converges to a Heaviside step jumping from $0$ to $1$ at $x = a$, while $\sigma(w(x - b))$ jumps from $0$ to $1$ at $x = b$. Subtracting them produces a localized \textbf{rectangular pulse (bump)} that evaluates to approximately $1$ on the interval $[a, b]$ and decays to $0$ everywhere outside.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  \begin{axis}[
+    width=13.5cm, height=6.2cm,
+    axis lines=center,
+    xlabel={$x$},
+    ylabel={$y$},
+    xmin=-0.5, xmax=6.5,
+    ymin=-0.2, ymax=2.2,
+    legend pos=north west,
+    legend cell align=left,
+    legend style={font=\scriptsize, fill=white, fill opacity=0.9},
+    tick label style={font=\scriptsize},
+    label style={font=\small\sffamily},
+    grid=both, grid style={dotted, gray!30}
+  ]
+    % Target continuous non-linear curve
+    \addplot[domain=0:6, samples=150, ultra thick, politoNavy] 
+      {0.8 + 0.6*sin(deg(x*1.2)) + 0.3*cos(deg(x*2.1))};
+    \addlegendentry{Target Function $f(x) \in C(K)$}
+
+    % Localized sigmoid bumps approximating the curve
+    % Bump 1: x in [0.2, 1.4], height 1.3
+    \addplot[domain=0:6, samples=200, thick, deepblue, dashed] 
+      {1.3 * (1/(1 + exp(-20*(x - 0.2))) - 1/(1 + exp(-20*(x - 1.4))))};
+    
+    % Bump 2: x in [1.4, 2.8], height 1.65
+    \addplot[domain=0:6, samples=200, thick, intuitiongreen, dashed] 
+      {1.65 * (1/(1 + exp(-20*(x - 1.4))) - 1/(1 + exp(-20*(x - 2.8))))};
+
+    % Bump 3: x in [2.8, 4.2], height 0.55
+    \addplot[domain=0:6, samples=200, thick, deepdiveTeal, dashed] 
+      {0.55 * (1/(1 + exp(-20*(x - 2.8))) - 1/(1 + exp(-20*(x - 4.2))))};
+
+    % Bump 4: x in [4.2, 5.8], height 0.95
+    \addplot[domain=0:6, samples=200, thick, orange!80!black, dashed] 
+      {0.95 * (1/(1 + exp(-20*(x - 4.2))) - 1/(1 + exp(-20*(x - 5.8))))};
+
+    % Total sum of bumps F(x)
+    \addplot[domain=0:6, samples=300, line width=1.4pt, examred] 
+      {1.3 * (1/(1 + exp(-20*(x - 0.2))) - 1/(1 + exp(-20*(x - 1.4)))) +
+       1.65 * (1/(1 + exp(-20*(x - 1.4))) - 1/(1 + exp(-20*(x - 2.8)))) +
+       0.55 * (1/(1 + exp(-20*(x - 2.8))) - 1/(1 + exp(-20*(x - 4.2)))) +
+       0.95 * (1/(1 + exp(-20*(x - 4.2))) - 1/(1 + exp(-20*(x - 5.8))))};
+    \addlegendentry{Network Approximation $F(x) = \sum \alpha_j \operatorname{bump}_j(x)$}
+
+    % Annotations
+    \node[font=\tiny\bfseries, text=deepblue] at (axis cs: 0.8, 1.45) {$\alpha_1 \operatorname{bump}_1$};
+    \node[font=\tiny\bfseries, text=intuitiongreen] at (axis cs: 2.1, 1.8) {$\alpha_2 \operatorname{bump}_2$};
+    \node[font=\tiny\bfseries, text=deepdiveTeal] at (axis cs: 3.5, 0.7) {$\alpha_3 \operatorname{bump}_3$};
+    \node[font=\tiny\bfseries, text=orange!80!black] at (axis cs: 5.0, 1.1) {$\alpha_4 \operatorname{bump}_4$};
+  \end{axis}
+\end{tikzpicture}
+\caption{The constructive geometric mechanism of the Universal Approximation Theorem. Pairs of steep sigmoidal neurons subtract to form localized rectangular pulse functions (bumps). By tiling the compact input domain with $M$ localized bumps scaled by coefficients $\alpha_j \approx f(x_j)$, a single-hidden-layer network constructs a Riemann-like step approximation that converges uniformly to any continuous function $f(x)$ as width $M \to \infty$.}
+\label{fig:uat_bump_mechanism}
+\end{figure}
+
+Any continuous target function $f(x)$ on a compact interval $[x_{\min}, x_{\max}]$ is uniformly continuous. Given tolerance $\epsilon > 0$, we can partition the interval into $M$ sub-intervals of width $\Delta x = \epsilon / L_f$ (where $L_f$ is the Lipschitz constant of $f$). Associating a bump function with each interval $[x_{j-1}, x_j]$ and weighting it by the target function's midpoint value $\alpha_j = f(x_j)$ yields a Riemann step approximation $F(x) = \sum_{j=1}^M \alpha_j \operatorname{bump}_j(x)$. As depicted in Figure~\ref{fig:uat_bump_mechanism}, the approximation error satisfies $|F(x) - f(x)| < \epsilon$ everywhere on the domain.
+
+In $D$-dimensional space $\R^D$, this construction generalizes directly: $2D$ sigmoidal hyperplanes intersect to enclose a localized multidimensional hypercube, forming a localized $D$-dimensional bump. Summing these localized bumps enables the network to tile any compact domain in $\R^D$. For Rectified Linear Units ($\operatorname{ReLU}$), each hidden neuron introduces an affine bend (spline knot); summing $M$ such units constructs a continuous piecewise linear (CPWL) manifold whose planar facets triangulate any arbitrary smooth function.
+
+\paragraph{From shallow approximations to deep feedforward networks.}
+Although Theorem~\ref{thm:uat} guarantees that a single hidden layer is theoretically sufficient to approximate any continuous function, practical machine learning almost universally deploys \textbf{deep feedforward neural networks} (also termed \textbf{Fully Connected Networks (FCNs)} or \textbf{Multi-Layer Perceptrons (MLPs)}).
+
+Formally, an $L$-layer Fully Connected Network computes a sequence of coupled affine projections and element-wise non-linear activations:
 \begin{align}
 \mathbf{a}^{(0)} &\equiv \mathbf{x} \in \R^{d_0}, \label{eq:fcn_input} \\
 \mathbf{z}^{(l)} &= \mathbf{W}^{(l)} \mathbf{a}^{(l-1)} + \mathbf{b}^{(l)}, \quad \mathbf{W}^{(l)} \in \R^{d_l \times d_{l-1}}, \, \mathbf{b}^{(l)} \in \R^{d_l}, \quad \forall l \in \{1, \dots, L\}, \label{eq:fcn_preactivation} \\
 \mathbf{a}^{(l)} &= \sigma\left( \mathbf{z}^{(l)} \right) \in \R^{d_l}, \label{eq:fcn_activation}
 \end{align}
-where $\mathbf{z}^{(l)}$ is the layer-$l$ pre-activation vector, $\sigma(\cdot)$ is an element-wise activation function, and $\mathbf{a}^{(l)}$ denotes the layer-$l$ activations (with $\hat{\mathbf{y}} \equiv \mathbf{a}^{(L)}$).
-
-The total parameter count of a dense FCN scales quadratically with layer width:
+where $\mathbf{z}^{(l)}$ is the layer-$l$ pre-activation vector, $\sigma(\cdot)$ is the non-linear activation function, $\mathbf{a}^{(l)}$ denotes the hidden activations, and the final output is $\hat{\mathbf{y}} \equiv \mathbf{a}^{(L)}$. The total parameter count scales with layer dimensions:
 \begin{equation}
 N_{\text{dense parameters}} = \sum_{l=1}^L \left( d_{l-1} \cdot d_l + d_l \right).
 \label{eq:dense_parameter_count}
 \end{equation}
-As illustrated in Figure~\ref{fig:fcn_topology}, the bipartite graph between adjacent layers is complete: every neuron receives input from all neurons of the preceding layer.
 
 \begin{figure}[H]
 \centering
@@ -684,123 +771,29 @@ As illustrated in Figure~\ref{fig:fcn_topology}, the bipartite graph between adj
 \label{fig:fcn_topology}
 \end{figure}
 
-\subsection{Activation functions: Breaking linearity without saturation}
-\label{sec:activation_functions_foundations}
-
-While non-linear activations break affine collapse, their functional form governs how gradients propagate backward across depth. Historically, early neural networks employed smooth, sigmoidal non-linearities: the logistic sigmoid $\sigma(z) = \frac{1}{1 + e^{-z}}$ or the hyperbolic tangent $\tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}}$. However, because both functions asymptotically saturate ($|\sigma'(z)| \le 0.25$ and $|\tanh'(z)| \le 1.0$), backpropagating through $L$ cascading layers multiplies $L$ diminishing derivative terms ($\prod_{l=1}^L \sigma' \to 0$), causing the gradient to vanish exponentially with depth.
-
-To conquer vanishing gradients, modern deep networks adopted the \textbf{Rectified Linear Unit (ReLU)}~\cite{glorot2011deep,nair2010rectified}:
-\begin{equation}
-\operatorname{ReLU}(z) \triangleq \max(0, z) = \begin{cases} z & \text{if } z \ge 0, \\ 0 & \text{if } z < 0. \end{cases}
-\label{eq:relu_formula_ch4}
-\end{equation}
-For all active units ($z > 0$), the local derivative is identically $1$, completely extinguishing gradient attenuation across arbitrary depth. (A comprehensive investigation of activation dynamics, the Dying ReLU phenomenon, non-zero centering, and the modern non-linear zoo is developed in Section~\ref{sec:activation_dynamics_pathologies}).
-
-\subsection{The Universal Approximation Theorem: Expressive power, splines, and depth efficiency}
-\label{sec:universal_approximation_theorem}
-
-How expressive are neural networks? This fundamental question is answered by the celebrated \textbf{Universal Approximation Theorem}, established by George Cybenko (1989)~\cite{cybenko1989approximation} for sigmoidal activations and generalized by Kurt Hornik (1991)~\cite{hornik1991approximation} to arbitrary non-constant, continuous activations.
-
-\begin{theorem}[Universal Approximation Theorem~\cite{cybenko1989approximation,hornik1991approximation}]
-\label{thm:uat}
-Let $\sigma: \R \to \R$ be any continuous, non-constant, bounded activation function. Let $K \subset \R^D$ be a compact (closed and bounded) subset of Euclidean space. Then, for any continuous target function $f \in C(K)$ and any arbitrary error tolerance $\epsilon > 0$, there exists an integer $M \in \mathbb{N}$, weight vectors $\mathbf{w}_j \in \R^D$, biases $b_j \in \R$, and output weights $\alpha_j \in \R$ such that the single-hidden-layer network:
-\begin{equation}
-F(\mathbf{x}) = \sum_{j=1}^M \alpha_j \sigma(\mathbf{w}_j^\top \mathbf{x} + b_j),
-\label{eq:universal_approximator_form}
-\end{equation}
-satisfies uniform approximation over all $\mathbf{x} \in K$:
-\begin{equation}
-\sup_{\mathbf{x} \in K} |F(\mathbf{x}) - f(\mathbf{x})| < \epsilon.
-\label{eq:universal_approximation_bound}
-\end{equation}
-\end{theorem}
-
-\paragraph{Constructive Geometric Proof Intuition via Localized Bump Functions.}
-To grasp why Theorem~\ref{thm:uat} holds, consider the constructive geometric argument formulated by Cybenko and popularized by Bishop~\cite{bishop2024deep} and Prince~\cite{prince2023understanding}. 
-
-In one dimension ($D=1$), consider two sigmoid units with identical steep slope $w \gg 0$ but offset biases $b_1 = -w a$ and $b_2 = -w b$ (with $a < b$):
-\begin{equation}
-\operatorname{bump}(x) \triangleq \sigma(w(x - a)) - \sigma(w(x - b)).
-\label{eq:sigmoid_bump}
-\end{equation}
-As $w \to \infty$, $\sigma(w(x - a))$ converges to a step function jumping from $0$ to $1$ at $x = a$, while $\sigma(w(x - b))$ jumps from $0$ to $1$ at $x = b$. Subtracting them produces a localized \textbf{rectangular pulse (bump)} that evaluates to approximately $1$ on the interval $[a, b]$ and $0$ everywhere outside.
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}
-  \begin{axis}[
-    width=13.5cm, height=6.2cm,
-    axis lines=center,
-    xlabel={$x$},
-    ylabel={$y$},
-    xmin=-0.5, xmax=6.5,
-    ymin=-0.2, ymax=2.2,
-    legend pos=north west,
-    legend cell align=left,
-    legend style={font=\scriptsize, fill=white, fill opacity=0.9},
-    tick label style={font=\scriptsize},
-    label style={font=\small\sffamily},
-    grid=both, grid style={dotted, gray!30}
-  ]
-    % Target continuous non-linear curve
-    \addplot[domain=0:6, samples=150, ultra thick, politoNavy] 
-      {0.8 + 0.6*sin(deg(x*1.2)) + 0.3*cos(deg(x*2.1))};
-    \addlegendentry{Target Function $f(x) \in C(K)$}
-
-    % Localized sigmoid bumps approximating the curve
-    % Bump 1: x in [0.2, 1.4], height 1.3
-    \addplot[domain=0:6, samples=200, thick, deepblue, dashed] 
-      {1.3 * (1/(1 + exp(-20*(x - 0.2))) - 1/(1 + exp(-20*(x - 1.4))))};
-    
-    % Bump 2: x in [1.4, 2.8], height 1.65
-    \addplot[domain=0:6, samples=200, thick, intuitiongreen, dashed] 
-      {1.65 * (1/(1 + exp(-20*(x - 1.4))) - 1/(1 + exp(-20*(x - 2.8))))};
-
-    % Bump 3: x in [2.8, 4.2], height 0.55
-    \addplot[domain=0:6, samples=200, thick, deepdiveTeal, dashed] 
-      {0.55 * (1/(1 + exp(-20*(x - 2.8))) - 1/(1 + exp(-20*(x - 4.2))))};
-
-    % Bump 4: x in [4.2, 5.8], height 0.95
-    \addplot[domain=0:6, samples=200, thick, orange!80!black, dashed] 
-      {0.95 * (1/(1 + exp(-20*(x - 4.2))) - 1/(1 + exp(-20*(x - 5.8))))};
-
-    % Total sum of bumps F(x)
-    \addplot[domain=0:6, samples=300, line width=1.4pt, examred] 
-      {1.3 * (1/(1 + exp(-20*(x - 0.2))) - 1/(1 + exp(-20*(x - 1.4)))) +
-       1.65 * (1/(1 + exp(-20*(x - 1.4))) - 1/(1 + exp(-20*(x - 2.8)))) +
-       0.55 * (1/(1 + exp(-20*(x - 2.8))) - 1/(1 + exp(-20*(x - 4.2)))) +
-       0.95 * (1/(1 + exp(-20*(x - 4.2))) - 1/(1 + exp(-20*(x - 5.8))))};
-    \addlegendentry{Network Approximation $F(x) = \sum \alpha_j \operatorname{bump}_j(x)$}
-
-    % Annotations
-    \node[font=\tiny\bfseries, text=deepblue] at (axis cs: 0.8, 1.45) {$\alpha_1 \operatorname{bump}_1$};
-    \node[font=\tiny\bfseries, text=intuitiongreen] at (axis cs: 2.1, 1.8) {$\alpha_2 \operatorname{bump}_2$};
-    \node[font=\tiny\bfseries, text=deepdiveTeal] at (axis cs: 3.5, 0.7) {$\alpha_3 \operatorname{bump}_3$};
-    \node[font=\tiny\bfseries, text=orange!80!black] at (axis cs: 5.0, 1.1) {$\alpha_4 \operatorname{bump}_4$};
-  \end{axis}
-\end{tikzpicture}
-\caption{The constructive geometric mechanism of the Universal Approximation Theorem. Pairs of steep sigmoidal neurons subtract to form localized rectangular pulse functions (bumps). By tiling the compact input domain with $M$ localized bumps scaled by coefficients $\alpha_j \approx f(x_j)$, a single-hidden-layer network constructs a Riemann-like step approximation that converges uniformly to any continuous function $f(x)$ as width $M \to \infty$.}
-\label{fig:uat_bump_mechanism}
-\end{figure}
-
-As shown in Figure~\ref{fig:uat_bump_mechanism}, any continuous target function $f(x)$ on a compact interval can be partitioned into $M$ sub-intervals of width $\Delta x = \epsilon / L_f$ (where $L_f$ is the Lipschitz constant of $f$). Setting the output weight $\alpha_j = f(x_j)$ yields a Riemann step approximation whose maximum deviation is strictly bounded by $|F(x) - f(x)| < \epsilon$.
-
-In $D$-dimensional Euclidean space, this principle generalizes directly: $2D$ sigmoidal hyperplanes intersect to enclose a localized multidimensional hypercube, constructing a $D$-dimensional localized bump. Summing these hypercubes allows the network to approximate any continuous surface on $\R^D$. Similarly, for ReLU activations, each hidden neuron introduces a continuous linear bend (spline knot); a network of $M$ ReLUs forms a continuous piecewise linear manifold whose facets triangulate any arbitrary smooth surface.
-
-\paragraph{Critical Oral Exam Insight: Existence vs. Learnability and the Power of Depth.}
-In oral examinations, a recurrent misconception is asserting that the Universal Approximation Theorem guarantees that a single-hidden-layer network is all that is ever needed in practical machine learning. As Goodfellow, Bengio, and Courville~\cite{goodfellow2016deep} emphasize, this assertion confuses \textbf{representational capacity} with \textbf{algorithmic learnability}:
+Why do we transition from wide, single-hidden-layer networks to deep, multi-layer architectures? The fundamental theoretical justification lies in the \textbf{exponential efficiency of depth}:
 \begin{enumerate}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
-  \item \textbf{Existential vs. Constructive}: The theorem proves that a valid set of weights exists in parameter space, but provides \textbf{zero guarantee} that gradient-based optimization can ever discover them. The loss surface of a wide shallow network is riddled with uncountably many saddle points and poor local minima.
-  \item \textbf{The Exponential Width Curse}: Constructing localized bumps across $D$ dimensions requires discretizing each axis into $\mathcal{O}(1/\epsilon)$ intervals. Tiling a $D$-dimensional compact unit hypercube $[0, 1]^D$ requires:
-    \begin{equation}
-    M \sim \mathcal{O}\left( \left(\frac{1}{\epsilon}\right)^D \right)
-    \end{equation}
-    hidden units! For high-dimensional data (e.g., $D = 1000$ for small images), the width $M$ exceeds the number of atoms in the observable universe. Shallow approximation is statistically and computationally intractable.
-  \item \textbf{The Exponential Power of Depth}: As proved by Montufar et al. (2014)~\cite{montufar2014number}, a shallow network with $W$ neurons can partition $\R^D$ into at most $\mathcal{O}(W^D)$ linear regions. In stark contrast, a deep network with $L$ layers and width $W$ partitions input space into:
-    \begin{equation}
-    \mathcal{O}\left( \left(\frac{W}{D}\right)^{(L-1)D} W^D \right)
-    \end{equation}
-    linear regions! Deep architectures achieve an \textbf{exponential explosion in expressive capacity with depth} for the exact same number of parameters. Natural perceptual functions (vision, speech, language) are inherently compositional: low-level edges combine into textures, textures into parts, and parts into semantic objects. Deep architectures mirror this hierarchical compositionality through recursive feature reuse, achieving representations with polynomial parameter efficiency $\mathcal{O}(D)$ that would require exponential width $\mathcal{O}(2^D)$ in a shallow network.
+  \item \textbf{Exponential Linear Regions}: As rigorously proved by Montufar et al. (2014)~\cite{montufar2014number}, a shallow network with $W$ ReLU neurons can partition the input space $\R^D$ into at most $\mathcal{O}(W^D)$ linear regions. In contrast, a deep network with $L$ layers and width $W$ partitions the space into:
+  \begin{equation}
+  \mathcal{O}\left( \left(\frac{W}{D}\right)^{(L-1)D} W^D \right)
+  \label{eq:deep_linear_regions}
+  \end{equation}
+  linear regions. Depth enables an \textbf{exponential explosion in expressive capacity} for the exact same number of parameters, as subsequent layers repeatedly fold and recombine the piecewise linear boundaries created by earlier layers.
+  \item \textbf{Compositional Feature Reuse}: Natural signals (vision, speech, natural language) are governed by hierarchical, compositional physics: pixels combine into edges, edges into motifs and textures, textures into object parts, and parts into complete scenes. Deep architectures embed this hierarchical compositional inductive bias directly into their computational structure: intermediate layers compute reusable features at increasing levels of abstraction, achieving representations with polynomial parameter efficiency $\mathcal{O}(D)$ that would require exponential width $\mathcal{O}(2^D)$ in a shallow network.
+\end{enumerate}
+
+\paragraph{Critical drawbacks and limitations of the Universal Approximation Theorem.}
+While the Universal Approximation Theorem provides a comforting mathematical guarantee of expressiveness, its practical utility in real-world machine learning is constrained by four fundamental limitations:
+\begin{enumerate}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
+  \item \textbf{Existential Guarantee vs. Algorithmic Learnability}: The theorem is purely non-constructive and existential. It proves that there \textit{exists} some choice of width $M$ and parameters $(\mathbf{W}, \mathbf{b}, \boldsymbol{\alpha})$ that achieves an approximation error below $\epsilon$. Crucially, it provides \textbf{zero guarantee that gradient-based optimization algorithms can ever discover these parameters}. The empirical loss landscape of an ultra-wide shallow network is characterized by pathological saddle points, plateaus, and bad local minima that prevent standard gradient descent from converging to the theoretical solution.
+  \item \textbf{The Curse of Dimensionality and Exponential Width}: The constructive proof partitions each input dimension into $\mathcal{O}(1/\epsilon)$ intervals. To tile a $D$-dimensional compact unit hypercube $[0, 1]^D$, the required number of localized bump units scales exponentially with dimension:
+  \begin{equation}
+  M \sim \mathcal{O}\left( \left(\frac{1}{\epsilon}\right)^D \right).
+  \label{eq:exponential_width_curse}
+  \end{equation}
+  For high-dimensional inputs typical of modern tasks (e.g., $D = 3 \times 224 \times 224 \approx 1.5 \times 10^5$ for image classification), $M$ astronomical exceeds the number of elementary particles in the observable universe. Shallow universal approximation is therefore computationally and physically impossible in high dimensions.
+  \item \textbf{Zero Generalization Guarantees and Lookup-Table Memorization}: The theorem guarantees uniform approximation only on the compact training domain $K$; it offers \textbf{no generalization bound} on unseen test distributions. An ultra-wide shallow network with $M \to \infty$ units can act as a brute-force lookup table or memorization spline, dedicating individual localized bumps to interpolate every training point exactly. Such a model achieves zero training error but learns zero underlying structure, leading to catastrophic overfitting and failure to generalize.
+  \item \textbf{Exponential Sample Complexity}: Accurately configuring the weights $\alpha_j \approx f(\mathbf{x}_j)$ across $M \sim \mathcal{O}((1/\epsilon)^D)$ localized bump functions requires observing training samples in virtually every sub-cube of the domain. In high dimensions, the volume of space is vast and finite training sets leave the input space virtually empty (the empty space phenomenon). Without the strong compositional inductive biases enforced by deep hierarchical architectures, a shallow network requires an exponentially large sample size $N \sim \mathcal{O}((1/\epsilon)^D)$ to avoid arbitrary interpolation errors in unobserved regions.
 \end{enumerate}
 
 Yet, while deep feedforward networks possess extraordinary theoretical expressive power, an urgent operational crisis emerges: \textit{how do we compute the parameter updates for a deep network containing millions of entangled weights?} In the next section, we discover why classical algebraic methods fail and how the computational graph resolves this crisis.
