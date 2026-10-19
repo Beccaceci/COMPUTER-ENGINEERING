@@ -9,18 +9,20 @@ The modern deep learning revolution was born from overcoming this linear barrier
 
 Yet, representational power is useless without an efficient training engine. Because deep compositions of non-linear activations entangle parameters in transcendental algebraic systems, closed-form matrix inversions are mathematically impossible, and numerical finite differences require an intractable $\mathcal{O}(W^2)$ computational complexity. This computational gridlock was broken by formulating deep networks as Directed Acyclic Graphs (DAGs) and applying reverse-mode automatic differentiation: the \textbf{Backpropagation algorithm}. By propagating adjoint error sensitivities backward through the network in a single sweep, backpropagation evaluates the exact gradient across millions of parameters in linear $\mathcal{O}(W)$ time, establishing the foundational mathematical engine of contemporary artificial intelligence.
 
-\section{The perceptron, linear separability, and the dawn of neural computing}
+\section{The perceptron and linear separability}
 \label{sec:perceptron_and_linear_separability}
 
-In parametric statistical learning, the central objective is constructing an algorithmic mapping that maps sensory observations $\vx \in \R^D$ to semantic decisions $y \in \mathcal{Y}$. When confronting binary classification problems, the simplest conceivable inductive bias posits that the underlying classes occupy distinct geometric regions separated by a flat $(D-1)$-dimensional hyperplane. To operationalize this intuition, early cyberneticians sought inspiration in the electro-chemical machinery of biological nervous systems, seeking to abstract the morphological properties of organic neurons into an elementary artificial learning unit.
+The quest to construct artificial intelligence originated with a profound biological ambition: to understand and replicate the computational mechanisms of the brain. In the 1940s and 1950s, the emergence of early digital computing was defined by von Neumann architectures designed for serial instruction execution and exact symbolic arithmetic. While these mechanical and electronic calculators could perform millions of numerical operations per second, they proved utterly incapable of solving elementary perceptual tasks that animal brains resolve effortlessly and instantaneously---such as recognizing a visual pattern, distinguishing spoken phonemes, or adapting to sensory variations in an uncertain environment.
 
-However, constructing a learning machine based purely on linear decision boundaries introduces severe theoretical vulnerabilities. When data distributions are corrupted by measurement noise, overlapping class conditional densities, or non-linear geometric structures, a purely linear hypothesis class breaks down catastrophically. The learning algorithm either fails to terminate, cycling endlessly between conflicting states, or proves structurally incapable of representing fundamental logical relationships.
+This striking divergence highlighted a fundamental insight: biological intelligence does not operate via centralized instruction registers, brittle algorithmic decision trees, or hand-crafted symbolic lookup tables. Instead, cognitive function emerges from the collective dynamics of billions of interconnected, elementary biological cells---neurons---transmitting electrical impulses across plastic synaptic junctions. Despite individual biological neurons operating at millisecond timescales (orders of magnitude slower than electronic switching circuits), their massive parallel connectivity enables robust associative memory, real-time sensory processing, and the ability to learn directly from experience.
 
-To understand both the historical foundations and the structural boundaries of connectionist learning, this section investigates the Perceptron from biological foundations to mathematical formalization. We trace the morphology of the biological neuron, formulate Rosenblatt's artificial threshold unit, prove Novikoff's Perceptron Convergence Theorem under linear separability, and rigorously dissect the three fatal theoretical flaws—non-separability thrashing, the XOR impasse, and zero gradient transmission—that exposed the absolute necessity of multi-layer architectures.
+Inspired by these neurophysiological observations, early cyberneticians and cognitive scientists---beginning with Warren McCulloch and Walter Pitts in 1943, Donald Hebb in 1949, and culminating in Frank Rosenblatt in 1958---sought to abstract the physical machinery of the biological neuron into an elementary mathematical learning unit. By modeling synaptic plasticity as adjustable numerical weights and dendritic summation as an affine score thresholded by an excitation activation, they aimed to create an artificial computing system capable of discovering patterns and categorizing sensory observations autonomously without explicit human programming.
 
-\subsection{The biological neuron and Rosenblatt's artificial threshold unit}
+\subsection{Perceptron architecture and convergence properties}
 \label{sec:biological_and_artificial_neuron}
+\label{sec:perceptron_learning_algorithm}
 
+\paragraph{Biological morphology and Rosenblatt's artificial threshold unit.}
 In biological nervous systems, an individual neuron consists of four primary morphological structures:
 \begin{itemize}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
   \item \textbf{Dendrites}: Branching nerve fibers that receive incoming chemical neurotransmitter signals from adjacent upstream neurons across synaptic clefts.
@@ -28,6 +30,17 @@ In biological nervous systems, an individual neuron consists of four primary mor
   \item \textbf{Axon}: A long, slender nerve transmission cable (often insulated by fatty myelin sheaths) that propagates an all-or-nothing action potential (voltage spike) down its length once the soma's membrane potential surpasses an excitation threshold.
   \item \textbf{Synapses}: Chemical junctions connecting axon terminal boutons to recipient dendrites, where biological synaptic plasticity modulates the efficacy of electrical transmission.
 \end{itemize}
+
+In 1958, Frank Rosenblatt~\cite{rosenblatt1958perceptron} formalized this biological mechanism into the \textbf{Perceptron}. Given an input vector of sensory features $\mathbf{x} = [x_1, \dots, x_d]^\top \in \R^d$, the artificial neuron associates each input channel with a tunable real-valued weight $w_j \in \R$, incorporates a scalar bias threshold $b \in \R$, and computes a linear pre-activation score:
+\begin{equation}
+z \triangleq \mathbf{w}^\top \mathbf{x} + b = \sum_{j=1}^d w_j x_j + b.
+\label{eq:perceptron_preactivation}
+\end{equation}
+The continuous scalar score $z$ is then passed through a discontinuous Heaviside step activation function to produce a binary classification decision:
+\begin{equation}
+\hat{y} = f(z) = \operatorname{sgn}(z) = \begin{cases} +1 & \text{if } \mathbf{w}^\top \mathbf{x} + b \ge 0, \\ -1 & \text{if } \mathbf{w}^\top \mathbf{x} + b < 0. \end{cases}
+\label{eq:perceptron_activation}
+\end{equation}
 
 \begin{figure}[H]
 \centering
@@ -105,16 +118,8 @@ In biological nervous systems, an individual neuron consists of four primary mor
 \label{fig:biological_vs_artificial_neuron}
 \end{figure}
 
-In 1958, Frank Rosenblatt~\cite{rosenblatt1958perceptron} formalized this biological mechanism into the \textbf{Perceptron}. Given an input vector of features $\mathbf{x} = [x_1, \dots, x_d]^\top \in \R^d$, the artificial neuron associates each input channel with a tunable real-valued weight $w_j \in \R$, incorporates a scalar bias threshold $b \in \R$, and computes a linear activation score:
-\begin{equation}
-z \triangleq \mathbf{w}^\top \mathbf{x} + b = \sum_{j=1}^d w_j x_j + b.
-\label{eq:perceptron_preactivation}
-\end{equation}
-The continuous scalar score $z$ is then passed through a discontinuous Heaviside step activation function:
-\begin{equation}
-\hat{y} = f(z) = \operatorname{sgn}(z) = \begin{cases} +1 & \text{if } \mathbf{w}^\top \mathbf{x} + b \ge 0, \\ -1 & \text{if } \mathbf{w}^\top \mathbf{x} + b < 0. \end{cases}
-\label{eq:perceptron_activation}
-\end{equation}
+\paragraph{Decision hyperplane geometry.}
+Geometrically, the equation $\mathbf{w}^\top \mathbf{x} + b = 0$ defines a $(d-1)$-dimensional \textbf{decision hyperplane} that partitions the $d$-dimensional input space $\mathcal{X} \subseteq \R^d$ into two open half-spaces: a positive half-space where $\mathbf{w}^\top \mathbf{x} + b \ge 0$ (yielding $\hat{y} = +1$) and a negative half-space where $\mathbf{w}^\top \mathbf{x} + b < 0$ (yielding $\hat{y} = -1$). The parameter vector $\mathbf{w} \in \R^d$ is the orthogonal normal vector to the hyperplane pointing directly toward the positive decision half-space. The scalar bias $b \in \R$ offsets the hyperplane from the origin, establishing a signed perpendicular Euclidean distance of $\frac{|b|}{\|\mathbf{w}\|_2}$.
 
 \begin{figure}[H]
 \centering
@@ -161,19 +166,15 @@ The continuous scalar score $z$ is then passed through a discontinuous Heaviside
 \label{fig:hyperplane_geometry}
 \end{figure}
 
-As visualized in Figure~\ref{fig:hyperplane_geometry}, the equation $\mathbf{w}^\top \mathbf{x} + b = 0$ defines a $(d-1)$-dimensional \textbf{decision hyperplane} that partitions the $d$-dimensional input space $\mathcal{X} \subseteq \R^d$ into two open half-spaces. The weight vector $\mathbf{w}$ is the normal vector to the hyperplane, pointing toward the positive decision region, while $b / \|\mathbf{w}\|_2$ quantifies the signed perpendicular distance from the coordinate origin to the hyperplane.
+\paragraph{The perceptron learning algorithm.}
+Given a supervised training dataset $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^n$ with binary labels $y_i \in \{-1, +1\}$, the perceptron learning algorithm operates in an online, mistake-driven fashion. Parameters are initialized arbitrarily (typically $\mathbf{w}^{(0)} = \mathbf{0}, b^{(0)} = 0$).
 
-\subsection{The perceptron learning algorithm and Novikoff's convergence theorem}
-\label{sec:perceptron_learning_algorithm}
-
-Given a supervised training dataset $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^N$ with labels $y_i \in \{-1, +1\}$, the perceptron learning algorithm operates in an online, mistake-driven fashion. Parameters are initialized arbitrarily (typically $\mathbf{w}^{(0)} = \mathbf{0}, b^{(0)} = 0$).
-
-At step $t$, the algorithm inspects a training instance $(\mathbf{x}_i, y_i)$. If the current hypothesis correctly classifies the instance ($y_i (\mathbf{w}^{(t)\top} \mathbf{x}_i + b^{(t)}) > 0$), no modification is made. If the instance is misclassified ($y_i (\mathbf{w}^{(t)\top} \mathbf{x}_i + b^{(t)}) \le 0$), the parameters are updated via the additive correction:
+At step $t$, the algorithm inspects an incoming training instance $(\mathbf{x}_i, y_i)$. If the current hypothesis correctly classifies the instance ($y_i (\mathbf{w}^{(t)\top} \mathbf{x}_i + b^{(t)}) > 0$), no modification is made. If the instance is misclassified ($y_i (\mathbf{w}^{(t)\top} \mathbf{x}_i + b^{(t)}) \le 0$), parameters are updated via the additive correction:
 \begin{align}
 \mathbf{w}^{(t+1)} &= \mathbf{w}^{(t)} + \eta y_i \mathbf{x}_i, \label{eq:perceptron_update_w} \\
 b^{(t+1)} &= b^{(t)} + \eta y_i R^2, \label{eq:perceptron_update_b}
 \end{align}
-where $\eta > 0$ is the learning rate (often set to $\eta = 1$ without loss of generality, as scaling both sides leaves the sign unchanged), and $R = \max_i \|\mathbf{x}_i\|_2$.
+where $\eta > 0$ is the learning rate (often set to $\eta = 1$ without loss of generality, as scaling both sides leaves the sign of predictions unchanged), and $R = \max_i \|\mathbf{x}_i\|_2$ is the radius of the smallest sphere enclosing the data. In parameter space, this update executes vector addition; in input space, it rotates the decision hyperplane directly toward the misclassified sample, pulling it into the correct decision region.
 
 \begin{figure}[H]
 \centering
@@ -223,13 +224,14 @@ where $\eta > 0$ is the learning rate (often set to $\eta = 1$ without loss of g
 \label{fig:perceptron_learning_dynamics}
 \end{figure}
 
+\paragraph{Novikoff's convergence theorem.}
 The historical significance of Rosenblatt's perceptron stems from the fact that it was the first machine learning model accompanied by a rigorous mathematical convergence proof, formalized by Albert Novikoff in 1962~\cite{novikoff1962convergence}.
 
 \begin{theorem}[Novikoff's Perceptron Convergence Theorem]
 \label{thm:novikoff_convergence}
-Let $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^N$ be a training dataset where $\|\mathbf{x}_i\|_2 \le R$ for all $i$. Assume the dataset is strictly \textbf{linearly separable}: that is, there exists an optimal unit-norm parameter vector $\mathbf{w}^*$ ($\|\mathbf{w}^*\|_2 = 1$) and an optimal margin $\gamma > 0$ such that:
+Let $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^n$ be a training dataset where $\|\mathbf{x}_i\|_2 \le R$ for all $i$. Assume the dataset is strictly \textbf{linearly separable}: that is, there exists an optimal unit-norm parameter vector $\mathbf{w}^*$ ($\|\mathbf{w}^*\|_2 = 1$) and an optimal margin $\gamma > 0$ such that:
 \begin{equation}
-y_i (\mathbf{w}^{*\top} \mathbf{x}_i) \ge \gamma, \quad \forall i \in \{1, \dots, N\}.
+y_i (\mathbf{w}^{*\top} \mathbf{x}_i) \ge \gamma, \quad \forall i \in \{1, \dots, n\}.
 \label{eq:linear_separability_condition}
 \end{equation}
 Then, starting from $\mathbf{w}^{(0)} = \mathbf{0}$, the perceptron learning algorithm makes at most $k$ mistake updates before converging to a perfectly separating hyperplane, where:
@@ -274,24 +276,19 @@ k \gamma \le \mathbf{w}^{(k)\top} \mathbf{w}^* \le \|\mathbf{w}^{(k)}\|_2 \le \s
 This completes the proof.
 \end{proof}
 
-\subsection{The fatal flaws: The XOR impasse and Minsky \& Papert's critique}
+\subsection{The fatal flaws}
 \label{sec:xor_and_minsky_critique}
 
 Despite the mathematical elegance of Novikoff's theorem, the single-layer perceptron suffers from fundamental theoretical limitations that ultimately triggered the historical First AI Winter.
 
-\paragraph{The Non-Separability Catastrophe: Infinite Cycling.}
-Novikoff's Perceptron Convergence Theorem (Theorem~\ref{thm:novikoff_convergence}) holds strictly under the premise that the training dataset $\mathcal{D}$ is linearly separable, meaning that a strictly positive margin exists: $\gamma > 0$. 
+\paragraph{The non-separability catastrophe: Boundary thrashing and infinite cycling.}
+Novikoff's Perceptron Convergence Theorem (Theorem~\ref{thm:novikoff_convergence}) holds strictly under the premise that the training dataset $\mathcal{D}$ is linearly separable, meaning that a strictly positive margin exists: $\gamma > 0$.
 
-However, in realistic real-world datasets, sensory noise, label ambiguity, and overlapping class probability distributions inevitably render data \textbf{linearly non-separable} ($\gamma \le 0$). When applied to non-separable data, the perceptron learning algorithm fails catastrophically:
+However, in realistic real-world datasets, sensory noise, label ambiguity, and overlapping class probability distributions inevitably render data \textbf{linearly non-separable} ($\gamma \le 0$). Under non-separability, the convergence upper bound $k \le (R/\gamma)^2$ becomes undefined ($\gamma \to 0$ implies $k \to \infty$).
+
+Crucially, the presence of an inseparable outlier or overlapping class instance (such as a negative point located within a cluster of positive samples) triggers a catastrophic failure mode:
 \begin{itemize}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
-  \item \textbf{Destruction of the Convergence Guarantee}: If no hyperplane can simultaneously satisfy all training constraints $y_i(\mathbf{w}^\top \mathbf{x}_i) > 0$, the upper bound $k \le (R/\gamma)^2$ becomes undefined ($\gamma \to 0$ implies $k \to \infty$).
-  \item \textbf{The Inseparable Outlier and Boundary Thrashing}: Consider a dataset where an inseparable outlier (e.g., a negative point located within a cluster of positive samples) is encountered. Because the point is misclassified, the algorithm updates the weight vector:
-  \begin{equation}
-  \mathbf{w}^{(t+1)} = \mathbf{w}^{(t)} + y_i \mathbf{x}_i.
-  \end{equation}
-  As illustrated in Figure~\ref{fig:perceptron_flaw_nonseparable}, this update forcibly rotates the decision boundary from $H^{(t)}$ to $H^{(t+1)}$ to satisfy the outlier.
-  \item \textbf{Perpetual Ping-Pong Oscillation}: Crucially, rotating the hyperplane to correctly classify the outlier inevitably moves the boundary across previously well-classified points, immediately causing them to become misclassified. In subsequent iterations, those newly misclassified points trigger counter-updates that rotate the boundary back toward $H^{(t)}$.
-  \item \textbf{Infinite Looping}: The algorithm becomes trapped in an infinite ping-pong oscillation between conflicting hyperplanes, violently thrashing back and forth and \textbf{never terminating}.
+  \item \textbf{Boundary thrashing and non-terminating ping-pong oscillation}: Because the outlier violates the margin condition, the algorithm executes the additive update $\mathbf{w}^{(t+1)} = \mathbf{w}^{(t)} + y_i \mathbf{x}_i$, forcibly rotating the decision boundary from $H^{(t)}$ to $H^{(t+1)}$ to satisfy that outlier. However, this corrective rotation inevitably sweeps across previously well-classified instances, instantly converting them into misclassified errors. In subsequent iterations, these newly displaced points trigger counter-updates that swing the boundary back toward $H^{(t)}$. The algorithm thus becomes trapped in an infinite ping-pong loop, thrashing perpetually between conflicting hyperplanes without ever terminating ($k \to \infty$).
 \end{itemize}
 
 To mitigate this catastrophic behavior in practical applications, Stephen Gallant introduced the heuristic \textbf{Pocket Algorithm}~\cite{gallant1990perceptron}, which runs the perceptron algorithm for a predetermined number of iterations while storing (``in its pocket'') the parameter vector that achieved the lowest classification error seen so far. Nevertheless, the fundamental theoretical guarantee of exact convergence is irrevocably lost on non-separable data.
@@ -328,13 +325,13 @@ To mitigate this catastrophic behavior in practical applications, Stephen Gallan
 
   \node[draw=examred, fill=examback, rounded corners, font=\scriptsize, align=center] at (2.0, -0.6) {Non-separable data: Algorithm oscillates indefinitely ($k \to \infty$).};
 \end{tikzpicture}
-\caption{Flaw 1 of the Perceptron: Non-separability and infinite cycling. When classes overlap or contain an inseparable outlier, no separating hyperplane exists ($\gamma \le 0$). The perceptron learning algorithm continually rotates to satisfy the misclassified outlier, which promptly causes previously classified points to fail, trapping the algorithm in an infinite ping-pong oscillation between conflicting hyperplanes $H^{(t)}$ and $H^{(t+1)}$.}
+\caption{Flaw 1 of the Perceptron: Non-separability and perpetual boundary thrashing. When classes overlap or contain an inseparable outlier, no separating hyperplane exists ($\gamma \le 0$). The perceptron learning algorithm continually rotates to satisfy the misclassified outlier, which promptly causes previously classified points to fail, trapping the algorithm in an infinite ping-pong oscillation between conflicting hyperplanes $H^{(t)}$ and $H^{(t+1)}$.}
 \label{fig:perceptron_flaw_nonseparable}
 \end{figure}
 
-The non-separability catastrophe demonstrates that the perceptron fails in the presence of noise and outliers. Yet a far deeper question remains: what if the data contains zero noise, zero outliers, and is completely deterministic? Can a single-layer perceptron learn even the simplest logical functions? As Marvin Minsky and Seymour Papert demonstrated, the answer is an emphatic no.
+\paragraph{Inability to compute Exclusive-OR (XOR).}
+The non-separability catastrophe demonstrates that the perceptron fails in the presence of noise and outliers. Yet a far deeper question remains: what if the data contains zero noise, zero outliers, and is completely deterministic? Can a single-layer perceptron learn even the simplest logical functions?
 
-\paragraph{Inability to Compute Exclusive-OR (XOR).}
 In their landmark 1969 monograph \textit{Perceptrons}, Marvin Minsky and Seymour Papert~\cite{minsky1969perceptrons} established that a single-layer perceptron is geometrically incapable of computing basic non-linear Boolean predicates, most famously the \textbf{Exclusive-OR (XOR)} function.
 
 Consider the four canonical vertices of the unit square $[0, 1]^2$ defining the XOR logic gate:
@@ -375,7 +372,7 @@ However, Equation~\eqref{eq:xor_ineq4} strictly requires:
 w_1 + w_2 + b < 0.
 \label{eq:xor_contradiction_negative}
 \end{equation}
-Equations~\eqref{eq:xor_contradiction_positive} and~\eqref{eq:xor_contradiction_negative} are directly contradictory: a real quantity cannot be strictly positive and strictly negative simultaneously ($0 < w_1 + w_2 + b < 0$, a manifest contradiction in $\mathbb{R}$). 
+Equations~\eqref{eq:xor_contradiction_positive} and~\eqref{eq:xor_contradiction_negative} are directly contradictory: a real quantity cannot be strictly positive and strictly negative simultaneously ($0 < w_1 + w_2 + b < 0$, a manifest contradiction in $\mathbb{R}$).
 \end{proof}
 
 Hence, \textbf{no parameter vector $\mathbf{w} \in \mathbb{R}^2$ and bias $b \in \mathbb{R}$ can ever classify the XOR problem}. Geometrically, as illustrated in Figure~\ref{fig:perceptron_flaw_xor}, the positive points $(0, 1)$ and $(1, 0)$ and negative points $(0, 0)$ and $(1, 1)$ occupy opposite diagonals of the unit square. Any straight line drawn through the plane can at best isolate three of the four points, always misclassifying at least one vertex.
@@ -407,7 +404,7 @@ Hence, \textbf{no parameter vector $\mathbf{w} \in \mathbb{R}^2$ and bias $b \in
 
 The publication of Minsky and Papert's critique had devastating historical ramifications. Because early AI researchers lacked an algorithm to train multi-layer neural architectures with hidden units, the field broadly concluded that artificial neural networks were fundamentally flawed and unscalable, causing government and academic funding to evaporate and initiating the decade-long First AI Winter.
 
-\paragraph{Zero Derivative and Optimization Incompatibility.}
+\paragraph{Zero derivative and optimization incompatibility.}
 The third fatal flaw of Rosenblatt's perceptron lies in its activation function. The discontinuous step activation:
 \begin{equation}
 f(z) = \operatorname{sgn}(z) = \begin{cases} +1 & \text{if } z \ge 0, \\ -1 & \text{if } z < 0, \end{cases}
@@ -424,7 +421,7 @@ Consequently, the parameter gradient of the pre-activation with respect to weigh
 \end{equation}
 Because the gradient is identically zero almost everywhere, \textbf{gradient-based optimization algorithms cannot receive any directional learning signal}. Perturbing the weights by an infinitesimal step $\Delta \mathbf{w}$ either produces zero change in output or an abrupt, unpredictable jump across the step discontinuity. 
 
-The perceptron's inability to provide smooth gradient signals, coupled with its linear separability barrier on problems like XOR, established the definitive conclusion of the classical era: single-layer linear architectures cannot serve as universal intelligent learners. To break through this barrier, machine learning had to transition to layered compositions of continuous, differentiable units—leading directly to the Multi-Layer Perceptron.
+The perceptron's inability to provide smooth gradient signals, coupled with its linear separability barrier on problems like XOR, established the definitive conclusion of the classical era: single-layer linear architectures cannot serve as universal intelligent learners. To break through this barrier, machine learning had to transition to layered compositions of continuous, differentiable units---leading directly to the Multi-Layer Perceptron in Section~\ref{sec:mlp_and_representation_learning}.
 
 \section{Multilayer perceptrons, representation learning, and universal approximation}
 \label{sec:mlp_and_representation_learning}
