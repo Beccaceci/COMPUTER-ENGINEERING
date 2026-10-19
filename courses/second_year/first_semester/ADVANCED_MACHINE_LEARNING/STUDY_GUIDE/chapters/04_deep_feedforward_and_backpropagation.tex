@@ -1,4 +1,4 @@
-\chapter{Deep feedforward networks, representation learning, and backpropagation}
+\chapter{Deep feedforward networks and backpropagation}
 \label{sec:deep_feedforward_and_backpropagation}
 
 The quest to construct artificial intelligence originated with a profound biological ambition: to emulate the computational architecture of the human brain. While classical machine learning algorithms—such as Ordinary Least Squares, Ridge regression, and linear support vector machines—operate by mapping inputs directly to predictions via fixed, handcrafted feature representations, natural sensory perception defies static linear modeling. Human cognition effortlessly navigates complex perceptual manifolds: recognizing a handwritten digit, segmenting a tumor in an acoustic scan, or parsing visual scenes across dramatic shifts in illumination, scale, and orientation.
@@ -9,7 +9,7 @@ The modern deep learning revolution was born from overcoming this linear barrier
 
 Yet, representational power is useless without an efficient training engine. Because deep compositions of non-linear activations entangle parameters in transcendental algebraic systems, closed-form matrix inversions are mathematically impossible, and numerical finite differences require an intractable $\mathcal{O}(W^2)$ computational complexity. This computational gridlock was broken by formulating deep networks as Directed Acyclic Graphs (DAGs) and applying reverse-mode automatic differentiation: the \textbf{Backpropagation algorithm}. By propagating adjoint error sensitivities backward through the network in a single sweep, backpropagation evaluates the exact gradient across millions of parameters in linear $\mathcal{O}(W)$ time, establishing the foundational mathematical engine of contemporary artificial intelligence.
 
-\section{The perceptron and linear separability}
+\section{The perceptron}
 \label{sec:perceptron_and_linear_separability}
 
 The quest to construct artificial intelligence originated with a profound biological ambition: to understand and replicate the computational mechanisms of the brain. In the 1940s and 1950s, the emergence of early digital computing was defined by von Neumann architectures designed for serial instruction execution and exact symbolic arithmetic. While these mechanical and electronic calculators could perform millions of numerical operations per second, they proved utterly incapable of solving elementary perceptual tasks that animal brains resolve effortlessly and instantaneously---such as recognizing a visual pattern, distinguishing spoken phonemes, or adapting to sensory variations in an uncertain environment.
@@ -18,7 +18,7 @@ This striking divergence highlighted a fundamental insight: biological intellige
 
 Inspired by these neurophysiological observations, early cyberneticians and cognitive scientists---beginning with Warren McCulloch and Walter Pitts in 1943, Donald Hebb in 1949, and culminating in Frank Rosenblatt in 1958---sought to abstract the physical machinery of the biological neuron into an elementary mathematical learning unit. By modeling synaptic plasticity as adjustable numerical weights and dendritic summation as an affine score thresholded by an excitation activation, they aimed to create an artificial computing system capable of discovering patterns and categorizing sensory observations autonomously without explicit human programming.
 
-\subsection{Perceptron architecture and convergence properties}
+\subsection{Architecture and convergence}
 \label{sec:biological_and_artificial_neuron}
 \label{sec:perceptron_learning_algorithm}
 
@@ -423,14 +423,14 @@ Because the gradient is identically zero almost everywhere, \textbf{gradient-bas
 
 The perceptron's inability to provide smooth gradient signals, coupled with its linear separability barrier on problems like XOR, established the definitive conclusion of the classical era: single-layer linear architectures cannot serve as universal intelligent learners. To break through this barrier, machine learning had to transition to layered compositions of continuous, differentiable units---leading directly to the Multi-Layer Perceptron in Section~\ref{sec:mlp_and_representation_learning}.
 
-\section{Multilayer perceptrons and universal approximation}
+\section{Multilayer perceptrons and approximation}
 \label{sec:mlp_and_representation_learning}
 
 To liberate neural computing from the linear separability impasse, the architecture of the artificial neuron must be fundamentally reconceived. The failure on XOR and the non-differentiability of step functions revealed that a single hyperplane cutting through raw input space cannot capture complex decision geometries. A learner must be capable of transforming the geometry of the input space itself.
 
 However, resolving this challenge is not as straightforward as simply stacking multiple linear perceptrons into a cascading sequence. As linear algebra dictates, any sequence of cascaded affine transformations collapses into a single affine transformation, offering zero representational advantage over a single-layer model. To unlock true hierarchical expressiveness, two simultaneous transformations are mathematically mandatory: (1) interleaving linear matrix projections with continuous, non-linear activation functions that break affine subspace closure, and (2) organizing neurons into intermediate \textbf{hidden layers} that execute automated \textbf{representation learning}.
 
-\subsection{Going beyond linearity and representation learning}
+\subsection{Beyond linearity and representation}
 \label{sec:continuous_probabilities_softmax}
 \label{sec:resolving_xor_hidden_representations}
 
@@ -599,7 +599,7 @@ The geometric explanation behind this triumph is illustrated in Figure~\ref{fig:
 
 This reveals the foundational paradigm of modern deep learning: \textbf{representation learning}. Rather than requiring human engineers to manually design domain-specific features to make inputs linearly separable, the hidden layer of a neural network autonomously transforms raw coordinate space into a latent geometry where linear classification succeeds.
 
-\subsection{Universal approximation and deep architectures}
+\subsection{Universal approximation and depth}
 \label{sec:universal_approximation_theorem}
 \label{sec:perceptron_to_fcn}
 \label{sec:activation_functions_foundations}
@@ -804,7 +804,7 @@ Yet, while deep feedforward networks possess extraordinary theoretical expressiv
 
 Having established that deep feedforward networks possess the expressive capacity to represent complex non-linear manifolds, we confront the central operational challenge of machine learning: \textbf{parameter optimization}. In classical Ordinary Least Squares (Chapter~3), parameters admit an exact, globally optimal analytical solution via the Normal Equations $\mathbf{w}^* = (\mathbf{X}^\top \mathbf{X})^{-1}\mathbf{X}^\top \mathbf{y}$. In deep neural networks, however, parameters are deeply entangled across multi-layer compositions of non-linear activations. Optimizing these models requires computing the gradient of a scalar loss function with respect to millions or billions of parameters efficiently and accurately.
 
-\subsection{The motivation for computational graphs}
+\subsection{Motivation for computational graphs}
 \label{sec:algebraic_impasse}
 \label{sec:numerical_differentiation_failure}
 
@@ -828,7 +828,7 @@ To execute gradient descent, we must compute the exact gradient vector $\nabla_{
 \end{equation}
 where $\mathbf{e}_j$ is the $j$-th standard basis vector and $\epsilon \approx 10^{-5}$ is an infinitesimal perturbation. Evaluating Equation~\eqref{eq:finite_differences} across all $W$ parameters requires evaluating $W + 1$ complete forward passes through the network. In a standard deep network where $W = 10^8$ (such as ResNet or AlexNet), computing a single parameter update step would require $100{,}000{,}001$ forward network evaluations. If a single forward pass takes $10$ milliseconds, evaluating one gradient step would require over \textbf{11 days of continuous GPU computation}, yielding an intractable computational complexity of $\mathcal{O}(W^2)$. Finite-difference numerical differentiation is therefore completely unusable for deep learning optimization.
 
-\subsection{Directed acyclic graphs and reverse-mode automatic differentiation}
+\subsection{DAGs and reverse-mode differentiation}
 \label{sec:dag_computational_graphs}
 \label{sec:autodiff_modes}
 
@@ -1151,7 +1151,7 @@ Despite its foundational role, the backpropagation algorithm incurs two signific
   In ultra-deep networks (such as 152-layer ResNets or deep Transformers), activation memory vastly exceeds parameter memory, forming the primary physical bottleneck on training batch size and model depth. To mitigate this VRAM wall, modern systems implement \textbf{Activation Checkpointing}~\cite{chen2016training}, which discards activations during the forward pass and selectively recomputes them during the backward sweep, trading a $30\%$ increase in compute FLOPs for an $\mathcal{O}(\sqrt{L})$ reduction in memory footprint.
 \end{enumerate}
 
-\section{Summary and bridge to convolutional networks}
+\section{Summary and bridge to CNNs}
 \label{sec:chapter4_synthesis}
 
 Across this chapter, we have analyzed the foundational evolutionary trajectory of deep neural networks:

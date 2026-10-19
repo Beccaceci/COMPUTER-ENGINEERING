@@ -1,4 +1,4 @@
-\chapter{Probability theory and statistical decision theory}
+\chapter{Probability and decision theory}
 \label{sec:probability_and_decision_theory}
 
 Machine learning is fundamentally the science of making principled inferences and optimal decisions under uncertainty. Every real-world sensor reading is perturbed by noise, every dataset represents an incomplete sample of reality, and every prediction about future test instances carries inherent ambiguity. To build algorithms that learn from data, we must ground our reasoning in the mathematical framework of \textbf{probability theory} and \textbf{statistical decision theory}.
@@ -9,7 +9,7 @@ We then construct generative classifiers: exploring the complete continuum from 
 
 ---
 
-\section{Foundations of probability theory}
+\section{Probability foundations}
 \label{sec:foundations_of_probability}
 
 Why are basic statistics and probability indispensable for machine learning? As established in lecture, machine learning models do not possess omniscience; they process finite empirical observations to infer unobserved truths. Probability provides the formal mathematical calculus to:
@@ -19,7 +19,7 @@ Why are basic statistics and probability indispensable for machine learning? As 
   \item Bridge observed finite datasets to unobserved continuous population distributions.
 \end{itemize}
 
-\subsection{Sample spaces, events, and probability measures}
+\subsection{Sample spaces and probability measures}
 \label{sec:sample_spaces_and_events}
 
 To formalize uncertainty mathematically, we construct a probability space as a measure-theoretic triplet $(\Omega, \mathcal{F}, P)$:
@@ -33,7 +33,7 @@ To formalize uncertainty mathematically, we construct a probability space as a m
   \item \textbf{Probability Measure} $P(A)$: A real-valued function $P: \mathcal{F} \to [0, 1]$ that assigns a scalar plausibility to event $A$. Visually, if the entire sample space $\Omega$ is represented as a geometric region with unit area ($P(\Omega) = 1$), the probability of event $A$ is the fraction of total area covered by subset $A$.
 \end{enumerate}
 
-\subsection{The Kolmogorov probability axioms and set-theoretic consequences}
+\subsection{Kolmogorov axioms}
 \label{sec:kolmogorov_axioms}
 
 In 1933, Andrey Kolmogorov established that any valid mathematical calculus of probability must satisfy three non-negotiable axioms:
@@ -74,7 +74,7 @@ From these three minimal axioms, the foundational properties of probability calc
   \end{equation}
 \end{itemize}
 
-\subsection{Cox's plausibility postulates: Why probability calculus is unique}
+\subsection{Cox's postulates}
 \label{sec:cox_postulates}
 
 A profound foundational question in machine learning is: \emph{Why must we quantify uncertainty using Kolmogorov probability calculus rather than inventing arbitrary scoring heuristics, fuzzy logics, or ad-hoc confidence metrics?}
@@ -87,7 +87,7 @@ In 1946, physicist Richard Cox~\cite{cox1946probability,jaynes2003probability} p
 \end{enumerate}
 From these three qualitative postulates alone, Cox proved through functional equations that the product rule $P(A \cap B) = P(A \mid B)P(B)$ and the sum rule $P(A) + P(\neg A) = 1$ are mathematically inevitable. \textbf{Probability theory is not an arbitrary convention; it is the unique mathematical extension of Boolean logic to conditions of uncertainty.}
 
-\subsection{de Finetti's Dutch Book theorem: The decision-theoretic foundation}
+\subsection{de Finetti's Dutch Book theorem}
 \label{sec:dutch_book_theorem}
 
 While Richard Cox approached the uniqueness of probability from the perspective of qualitative logic, Italian mathematician Bruno de Finetti~\cite{definetti1937prevision,russell2020artificial} provided an independent, operational justification grounded in \textbf{decision theory and rational economics}: the celebrated \textbf{Dutch Book Theorem}.
@@ -130,7 +130,7 @@ The total money received upfront by the agent is $p(A) + p(A^c) = 1 + \epsilon$.
 In every possible state of reality, the bookmaker is guaranteed to extract exactly $\epsilon > 0$ from the agent. A symmetric Dutch book forces an unavoidable loss if $p(A) + p(A^c) < 1$. Therefore, an agent who deviates from Kolmogorov's axioms is mathematically irrational in an operational sense: their beliefs permit an opponent to systematically drain their resources with zero risk.
 \end{proof}
 
-\subsection{Random variables: Discrete vs. continuous and density transformations}
+\subsection{Random variables and transformations}
 \label{sec:random_variables}
 
 A \textbf{random variable} $X$ is a formal mathematical function that maps outcomes from the sample space to real numbers:
@@ -175,7 +175,7 @@ However, for continuous densities, maximizing $p_y(y)$ is not equivalent to eval
 Setting this to zero reveals that the stationary point of $p_y(y)$ depends on the curvature $\frac{d^2 x}{dy^2}$ of the transformation. Consequently, Maximum A Posteriori (MAP) point estimates depend on the chosen coordinate parameterization!
 \end{examinsight}
 
-\subsection{Moments of random variables: Expectation, variance, and the covariance matrix}
+\subsection{Expectation, variance, and covariance}
 \label{sec:moments_and_covariance}
 
 To summarize probability distributions compactly, we compute their statistical moments:
@@ -232,12 +232,12 @@ Throughout this text, we adhere strictly to canonical probabilistic notation:
 
 ---
 
-\section{Multivariable distributions and probabilistic inference}
+\section{Multivariable distributions and inference}
 \label{sec:multivariable_inference}
 
 Real-world machine learning systems rarely observe a single isolated random variable; they observe dozens, hundreds, or millions of interacting features simultaneously.
 
-\subsection{Joint ensembles and joint probability distributions}
+\subsection{Joint distributions}
 \label{sec:joint_distributions}
 
 When two or more random variables interact, the probability of one variable taking a specific value depends on the values assumed by the others. We define a \textbf{joint ensemble} $(X, Y)$ governed by the \textbf{joint probability distribution}:
@@ -279,7 +279,7 @@ From this joint distribution table, the probability of \textbf{any} compound eve
   \end{align}
 \end{itemize}
 
-\subsection{Marginal distributions and the summing out operation}
+\subsection{Marginalization}
 \label{sec:marginal_distributions}
 
 In many practical scenarios, we possess a high-dimensional joint distribution over multiple variables, but we are interested in the probability distribution over a smaller subset of variables, ignoring the others. 
@@ -306,7 +306,7 @@ P(W = \text{rain}) &= 0.10 + 0.40 = 0.50.
 \end{align}
 Because weather has only two possible mutually exclusive values, observing $P(W = \text{sun}) = 0.50$ immediately allows us to express $P(W = \text{rain}) = 1 - P(W = \text{sun}) = 0.50$.
 
-\subsection{Conditional probabilities and sample space contraction}
+\subsection{Conditional probability}
 \label{sec:conditional_probabilities}
 
 \textbf{Conditional probability} quantifies our updated belief in an event $X = x$ given that we have observed deterministic evidence that another event $Y = y$ has occurred. Mathematically, conditional probability is defined as the fraction of worlds in which $X$ is true among those worlds where $Y$ is true:
@@ -326,7 +326,7 @@ P(W = \text{rain} \mid T = \text{hot}) &= \frac{P(W=\text{rain}, T=\text{hot})}{
 \end{align}
 Notice how our belief in sunshine increased from its prior marginal probability $P(W = \text{sun}) = 0.50$ to $0.80$ once we observed the evidence that temperature is hot.
 
-\subsection{Probabilistic inference as belief updating upon evidence}
+\subsection{Probabilistic belief updating}
 \label{sec:belief_updating}
 
 \textbf{Probabilistic inference} is the computational process of calculating a desired probability distribution from a known model and observed evidence. In machine learning, an intelligent agent maintains beliefs about unobserved state variables (e.g., traffic conditions, disease status, or semantic object labels) and dynamically updates these beliefs as new sensor measurements arrive:
@@ -337,7 +337,7 @@ Notice how our belief in sunshine increased from its prior marginal probability 
 \end{itemize}
 As additional evidence is observed, the conditioning set expands, and beliefs are continuously revised according to the laws of probability.
 
-\subsection{Inference by enumeration: The UC Berkeley CS188 framework}
+\subsection{Inference by enumeration}
 \label{sec:inference_by_enumeration}
 
 When we possess the full joint distribution table across all variables in a domain, any probabilistic query can be answered using the general algorithm of \textbf{Inference by Enumeration} (pioneered in the UC Berkeley CS188 artificial intelligence curriculum~\cite{russell2020artificial}).
@@ -425,7 +425,7 @@ Suppose we observe only that $S = \text{winter}$, while Temperature $T$ is unobs
 \end{enumerate}
 Inference by enumeration is exact and universal. However, if a problem has $d$ discrete variables each taking $v$ values, the joint table has size $v^d$, making inference by enumeration computationally intractable ($O(v^d)$ time and space) for large-scale machine learning problems.
 
-\subsection{The product rule and the general chain rule}
+\subsection{Product and chain rules}
 \label{sec:product_and_chain_rules}
 
 Rearranging the definition of conditional probability in Equation~\eqref{eq:conditional_probability_def} yields the \textbf{Product Rule}:
@@ -441,7 +441,7 @@ P(X_1, X_2, \dots, X_d) &= P(X_1) P(X_2 \mid X_1) P(X_3 \mid X_1, X_2) \dots P(X
 \end{align}
 Equation~\eqref{eq:chain_rule_general} is an exact identity that holds for \textbf{any} joint probability distribution without requiring any independence assumptions. It proves that any joint distribution can be decomposed into an incremental product of conditional distributions.
 
-\subsection{Foundations of information theory: Entropy, KL divergence, and cross-entropy}
+\subsection{Information-theoretic foundations}
 \label{sec:information_theory_foundations}
 
 In modern statistical machine learning and deep learning, quantifying information content, uncertainty, and divergence between probability distributions is essential~\cite{goodfellow2016deep,bishop2024deep}. Information theory, founded by Claude Shannon in 1948~\cite{shannon1948mathematical}, provides the formal mathematical language for this quantification.
@@ -581,10 +581,10 @@ These set-theoretic relationships are visualized geometrically in Figure~\ref{fi
 
 ---
 
-\section{Bayes' rule and conditional independence}
+\section{Bayes' rule and independence}
 \label{sec:bayes_rule_and_paradoxes}
 
-\subsection{Mathematical derivation and anatomy of Bayes' rule}
+\subsection{Derivation of Bayes' rule}
 \label{sec:bayes_rule_derivation}
 
 Equating the two symmetric formulations of the product rule from Equation~\eqref{eq:product_rule_basic}:
@@ -610,7 +610,7 @@ The four constituents of Bayes' rule define the epistemological vocabulary of st
   \item \textbf{Posterior Probability} $P(Y \mid X)$: The updated, rational degree of belief in hypothesis $Y$ \textbf{after} incorporating evidence $X$.
 \end{enumerate}
 
-\subsection{Geometric area representation of Bayes' rule}
+\subsection{Geometric interpretation of Bayes' rule}
 \label{sec:bayes_area_geometry}
 
 To develop an intuitive geometric understanding of Bayes' rule, probability updates can be visualized as proportional area slicing within a bounded sample space box~\cite{jaynes2003probability}, as depicted in Figure~\ref{fig:slide_3b1b_bayes_area}. Rather than manipulating abstract algebraic fractions, conditioning on evidence corresponds to restricting our attention to the surviving subset of the sample space and computing relative geometric area ratios.
@@ -669,7 +669,7 @@ The geometric mechanics proceed as follows:
   \item \textbf{Posterior Ratio}: The posterior probability $P(H \mid E)$ is the fraction of the \textbf{total shaded area} that lies in the left ($H$) column. Even if the likelihood $P(E \mid H)$ is high (tall bar), if the prior $P(H)$ is minuscule (very narrow column), the right shaded area (false positives) can easily dwarf the left shaded area, explaining why rare disease screenings often produce low posterior true-positive rates.
 \end{enumerate}
 
-\subsection{The Monty Hall game show problem: A Bayesian proof}
+\subsection{The Monty Hall problem}
 \label{sec:monty_hall_problem}
 
 To demonstrate how counter-intuitive probabilistic reasoning can be when intuition conflicts with rigorous Bayes conditioning, consider the famous \textbf{Monty Hall Problem} (dramatized in the movie \emph{21}, where MIT blackjack students exploit basic statistics to win in Las Vegas).
@@ -724,7 +724,7 @@ P(\text{Switch}) &= P(B \mid H_C) = \frac{P(H_C \mid B)P(B)}{P(H_C)} = \frac{1 \
 \end{align}
 Because $P(B \mid H_C) = \frac{2}{3} = 2 \times P(A \mid H_C)$, the optimal rational strategy is \textbf{always to switch}. The host's action transfers all the unallocated probability mass from the unchosen doors into Door $B$.
 
-\subsection{Independence, conditional independence, and confounding}
+\subsection{Conditional independence and confounding}
 \label{sec:independence_and_confounding}
 
 \paragraph{Unconditional statistical independence.}
@@ -829,12 +829,12 @@ In probabilistic graphical models and causal machine learning~\cite{russell2020a
 
 ---
 
-\section{Naïve Bayes and parameter estimation}
+\section{Naïve Bayes and estimation}
 \label{sec:naive_bayes_classifier}
 
 We now construct our first complete, formal probabilistic machine learning classifier: the \textbf{Naïve Bayes Classifier}.
 
-\subsection{Model-based classification formulation}
+\subsection{Model-based classification}
 \label{sec:naive_bayes_formulation}
 
 Let each training instance be represented by a feature vector of $d$ attributes:
@@ -854,7 +854,7 @@ Because the evidence denominator $P(\mathbf{x}) = \sum_y P(\mathbf{x} \mid y)P(y
 \label{eq:unnormalized_map_rule}
 \end{equation}
 
-\subsection{The Naïve conditional independence assumption and complexity reduction}
+\subsection{The Naïve Bayes assumption}
 \label{sec:naive_independence_assumption}
 
 Estimating the prior $P(y)$ from training data is trivial: we simply count class frequencies $P(y = c) \approx \frac{N_c}{N}$. 
@@ -892,7 +892,7 @@ Under the Naïve Bayes assumption:
   For $d = 30$ and $K = 2$, parameter complexity drops from $2 \times 10^9$ down to just $2 \times 30 = 60$ parameters!
 \end{itemize}
 
-\subsection{Numerical walkthrough: The EnjoySport / Picnic dataset}
+\subsection{EnjoySport dataset walkthrough}
 \label{sec:naive_bayes_walkthrough}
 
 To understand how Naïve Bayes trains and evaluates in practice, consider the classic benchmark from Tom Mitchell's curriculum~\cite{mitchell1997machine}: predicting whether a weekend picnic spot is enjoyable ($y \in \{\text{Yes}, \text{No}\}$) based on $d = 6$ environmental features:
@@ -963,7 +963,7 @@ We compute the unnormalized posterior scores:
 \end{align}
 Because $\text{Score}(\text{No}) > \text{Score}(\text{Yes})$, Naïve Bayes predicts $\hat{y} = \textbf{No}$ (the picnic spot will not be enjoyable). Normalizing yields $P(\text{No} \mid \mathbf{x}^*) = \frac{0.01029}{0.01029 + 0.00618} \approx 62.5\%$.
 
-\subsection{The zero-frequency flaw and Laplace smoothing}
+\subsection{Laplace smoothing}
 \label{sec:laplace_smoothing}
 
 \paragraph{The catastrophic zero-frequency flaw.}
@@ -1000,7 +1000,7 @@ A generalized version is \textbf{Lidstone Smoothing} (Add-$k$ smoothing), where 
 \label{eq:lidstone_smoothing}
 \end{equation}
 
-\subsection{Generative vs. discriminative learning paradigms}
+\subsection{Generative versus discriminative models}
 \label{sec:generative_vs_discriminative}
 
 Naïve Bayes exemplifies the \textbf{generative learning paradigm}:
@@ -1017,7 +1017,7 @@ Naïve Bayes exemplifies the \textbf{generative learning paradigm}:
   A discriminative model bypasses the difficult task of modeling the feature distribution $P(\mathbf{x})$, focusing all its parameter capacity on learning the decision boundary separating classes.
 \end{itemize}
 
-\subsection{The maximum likelihood (MLE) vs. maximum a posteriori (MAP) parameter estimation frameworks}
+\subsection{MLE and MAP estimation}
 \label{sec:map_vs_mle}
 
 When training probabilistic classifiers such as Naïve Bayes, how do we estimate the numerical parameters $\boldsymbol{\theta}$ (e.g., class priors $P(y)$ and feature probabilities $P(x_j \mid y)$) from an observed finite training dataset $\mathcal{D} = \{\mathbf{x}_i, y_i\}_{i=1}^N$?
@@ -1140,7 +1140,7 @@ Notice what happens to the MAP estimator as the training dataset size $N \to \in
 \end{equation}
 This establishes a universal principle of statistical estimation: \textbf{as sample size grows, the empirical data likelihood $\mathcal{O}(N)$ overwhelms the static prior $\mathcal{O}(1)$, and the MAP estimate converges asymptotically to the MLE estimate.} The prior protects against variance in small samples, while allowing empirical reality to dictate parameters in large samples.
 
-\subsection{Continuous Gaussian Naïve Bayes}
+\subsection{Gaussian Naïve Bayes}
 \label{sec:continuous_gaussian_nb}
 
 When input features are continuous real numbers $\mathbf{x} \in \mathbb{R}^d$ (e.g., patient blood pressure, temperatures, acoustic frequency spectra), the discrete frequency counting of Section~\ref{sec:naive_bayes_walkthrough} cannot be applied directly because the probability of any exact real number is zero ($P(X = x) = 0$).
@@ -1167,7 +1167,7 @@ Given training instances $\mathcal{D}_c = \{\mathbf{x}_i : y_i = c\}$ of size $N
 \end{equation}
 The decision rule assigns $\mathbf{x}$ to the class maximizing $\ln P(y = c) + \ln p(\mathbf{x} \mid y = c)$.
 
-\subsection{The geometric continuum: From Gaussian Naïve Bayes to LDA and QDA}
+\subsection{From Naïve Bayes to LDA and QDA}
 \label{sec:lda_qda_continuum}
 
 Gaussian Naïve Bayes models each feature independently. What happens if we remove the conditional independence assumption and allow full multivariate interactions between continuous features?
@@ -1310,12 +1310,12 @@ Figure~\ref{fig:generative_classifiers_comparison} visualizes the geometric prog
 
 ---
 
-\section{Statistical learning and decision theory}
+\section{Statistical decision theory}
 \label{sec:statistical_learning_theory}
 
 We now take a decisive forward step: transitioning from discrete probability models (Naïve Bayes) to \textbf{Statistical Learning Theory}, which provides the theoretical foundations for Deep Learning and Empirical Risk Minimization.
 
-\subsection{Formal mathematical setup and notation}
+\subsection{Formal setup and notation}
 \label{sec:slt_notation}
 
 Let the learning framework be defined by the following mathematical entities:
@@ -1327,7 +1327,7 @@ Let the learning framework be defined by the following mathematical entities:
   \item \textbf{Predictor / Model} $h \in \mathcal{H}$: A specific hypothesis parameterized by weights $\boldsymbol{\theta}$.
 \end{itemize}
 
-\subsection{Loss functions strictly depend on the target task}
+\subsection{Task-dependent loss functions}
 \label{sec:task_dependent_losses}
 
 How do we measure the quality of a model's prediction? A model outputs a prediction $\hat{y} = h(\mathbf{x})$, while reality provides the true ground-truth target $y$. 
@@ -1383,7 +1383,7 @@ If our ultimate goal in classification is to minimize the 0-1 loss, why do we no
   \item Therefore, machine learning relies on \textbf{continuous, convex surrogate losses} (such as Cross-Entropy for neural networks, Logistic loss for logistic regression, and Hinge loss for Support Vector Machines) that provide smooth, informative non-zero gradients everywhere.
 \end{itemize}
 
-\subsection{True risk, the Bayes optimal classifier, and Bayes risk}
+\subsection{Risk and Bayes optimality}
 \label{sec:true_risk_and_bayes_optimal}
 
 The foundational objective of statistical learning theory is to evaluate and guarantee how a machine learning hypothesis $h \in \mathcal{H}$ will perform when deployed in the real world. To formalize this performance, we must distinguish between the performance on the observed training sample and the performance across the entire universe of data.
@@ -1539,7 +1539,7 @@ R(h) = \underbrace{\mathcal{R}^*}_{\substack{\text{\textbf{Bayes Risk}} \\ \text
 \end{itemize}
 \end{intuition}
 
-\subsection{Batch learning and empirical risk minimization (ERM)}
+\subsection{Empirical risk minimization}
 \label{sec:erm_principle}
 
 Because the true distribution $\mathcal{D}$ is unknown, machine learning operates in the \textbf{Batch Learning} regime:
@@ -1563,7 +1563,7 @@ h_{\text{ERM}} \triangleq \argmin_{h \in \mathcal{H}} \hat{R}_N(h) = \argmin_{h 
 \end{equation}
 ERM replaces the impossible problem of minimizing True Risk $R(h)$ with the computationally feasible problem of minimizing the average loss on the observed training sample.
 
-\subsection{Probably approximately correct (PAC) learning theory}
+\subsection{PAC learning theory}
 \label{sec:pac_learning_theory}
 
 Can we guarantee that a hypothesis $h_{\text{ERM}}$ that achieves low empirical risk $\hat{R}_N(h)$ will also achieve low true risk $R(h)$ on unobserved test data?
@@ -1591,7 +1591,7 @@ N \ge \frac{1}{\epsilon} \left( \ln |\mathcal{H}| + \ln \frac{1}{\delta} \right)
 \end{theorem}
 Equation~\eqref{eq:pac_sample_complexity} reveals the fundamental price of model capacity: as the size of the hypothesis space $|\mathcal{H}|$ grows, the sample complexity $N$ required to guarantee generalization increases logarithmically.
 
-\subsection{Statistical decision theory with asymmetric costs: The general loss matrix}
+\subsection{Asymmetric loss matrices}
 \label{sec:asymmetric_cost_matrix}
 
 In Section~\ref{sec:true_risk_and_bayes_optimal}, we derived the Bayes Optimal Classifier under the symmetric $0$-$1$ loss function, proving that the risk-minimizing rule assigns $\mathbf{x}$ to the class with highest posterior probability ($P(Y=1 \mid \mathbf{x}) \gtrless 0.5$). 
@@ -1673,7 +1673,7 @@ In oral examinations, students are often asked: \emph{``If missing a cancer diag
 The optimal decision threshold does not reside at $0.5$; it drops to \textbf{less than $1\%$}! If the model estimates just a $1\%$ chance of malignancy, the risk-minimizing rational action is to classify the patient as positive and immediately order follow-up diagnostic procedures.
 \end{examinsight}
 
-\subsection{The reject option: Principled abstention under uncertainty}
+\subsection{The reject option}
 \label{sec:reject_option}
 
 In many automated decision systems, forced binary or categorical classification is inappropriate when the model is uncertain. For regions of the feature space where class posteriors are nearly balanced ($P(\mathcal{C}_1 \mid \mathbf{x}) \approx P(\mathcal{C}_2 \mid \mathbf{x}) \approx 0.5$), any automated decision incurs a substantial probability of error.
@@ -1736,7 +1736,7 @@ If $\max_k P(\mathcal{C}_k \mid \mathbf{x}) < 1 - \theta$, the instance falls in
 \label{fig:asymmetric_costs_and_reject_option}
 \end{figure}
 
-\subsection{Statistical decision theory for regression: Conditional mean and median}
+\subsection{Decision theory for regression}
 \label{sec:regression_decision_theory}
 
 How does statistical decision theory operate when target outputs are continuous real numbers ($y \in \mathbb{R}$)? 
@@ -1800,7 +1800,7 @@ Splitting the integral into regions where $y < h(\mathbf{x})$ and $y > h(\mathbf
 \end{equation}
 \textbf{Under $L_1$ absolute loss, the optimal predictor is the conditional median $\operatorname{median}(Y \mid \mathbf{x})$!} The median is inherently robust to extreme outlier perturbations, making $L_1$ loss the principled choice for datasets with heavy-tailed sensor anomalies.
 
-\subsection{Constructing loss functions from parametric probability distributions}
+\subsection{Losses from probability models}
 \label{sec:parametric_loss_construction}
 
 In Section~\ref{sec:task_dependent_losses}, we observed that loss functions depend on the target task. A profound unifying principle established in modern deep learning literature~\cite{prince2023understanding,goodfellow2016deep} is that \textbf{loss functions are not heuristic inventions; they are derived directly as the Negative Log-Likelihood (NLL) of parametric probability distributions}:
@@ -1865,7 +1865,7 @@ The negative log-likelihood evaluates to:
 \end{equation}
 which is the standard \textbf{Categorical Cross-Entropy Loss} ubiquitous in deep learning.
 
-\subsection{Information-theoretic equivalence: Maximum likelihood as KL divergence minimization}
+\subsection{Maximum likelihood and KL divergence}
 \label{sec:mle_kl_equivalence}
 
 We can now establish the profound unification connecting statistical estimation to information theory~\cite{goodfellow2016deep,bishop2024deep}:
@@ -1896,7 +1896,7 @@ Therefore:
 \end{proof}
 This fundamental equivalence proves that Maximum Likelihood Estimation is not an arbitrary optimization heuristic; it is the unique statistical procedure that minimizes information-theoretic divergence from reality to model.
 
-\subsection{Point estimator statistics, bias, and Bessel's correction}
+\subsection{Point estimator bias and Bessel's correction}
 \label{sec:point_estimators_and_bessel}
 
 To complete our foundational statistical grounding, we formalize the properties of \textbf{point estimators}~\cite{goodfellow2016deep,bishop2024deep}. 

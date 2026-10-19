@@ -1,4 +1,4 @@
-\chapter{Deep network optimization, numerical stability, and regularization}
+\chapter{Deep network training and regularization}
 \label{sec:deep_network_training_and_regularization}
 
 In Chapters~\ref{sec:deep_feedforward_and_backpropagation} and~\ref{sec:convolutional_neural_networks}, we developed the architectural foundations of deep learning: Multilayer Perceptrons capable of universal function approximation and Convolutional Neural Networks endowed with an infinitely strong spatial prior. In theory, once a loss function $\mathcal{L}$ and a computational graph are defined, the Backpropagation algorithm evaluates exact parameter gradients $\nabla_{\boldsymbol{\theta}} \mathcal{L}$, and first-order optimizers (such as Stochastic Gradient Descent or Adam, derived in Chapter~\ref{sec:linear_predictors_and_gradient_optimization}) iteratively minimize empirical risk.
@@ -14,7 +14,7 @@ In practice, however, when researchers in the early 2000s attempted to train fee
 
 To transform deep neural networks from unstable mathematical curiosities into robust, scalable engineering systems, machine learning had to conquer the \textbf{numerical physics of deep training}. This chapter investigates the theoretical breakthroughs that unlocked deep network optimization: from activation function dynamics and data preprocessing, through Xavier and He weight initialization theory, to Batch Normalization and modern regularization paradigms.
 
-\section{The deep training pathology and activation function dynamics}
+\section{Activation dynamics and pathologies}
 \label{sec:activation_dynamics_pathologies}
 
 Before analyzing the specific failure modes of deep neural network optimization, we must establish why \textbf{activation functions} constitute the foundational engine of representation learning, and why their numerical behavior fundamentally dictates whether a deep architecture can be trained.
@@ -56,7 +56,7 @@ If $\sigma'(z)$ is poorly conditioned, training a deep network encounters severe
 \end{enumerate}
 Understanding these five interconnected phenomena is essential to mastering modern deep network optimization.
 
-\subsection{The vanishing and exploding gradient dilemma}
+\subsection{Vanishing and exploding gradients}
 \label{sec:vanishing_exploding_gradients}
 
 To understand why deep networks fail to train out of the box, we analyze the analytical structure of backpropagation across an $L$-layer network from first principles.
@@ -156,7 +156,7 @@ Equation~\eqref{eq:spectral_norm_bound} provides the fundamental mathematical ex
   \item \textbf{Exploding Gradients ($\gamma > 1$)}: If $\gamma > 1$, the product grows exponentially: $\|\boldsymbol{\delta}^{(l)}\|_2 \sim \mathcal{O}(\gamma^{L-l}) \to \infty$. A gradient step $\Delta \mathbf{W} = -\eta \nabla_{\mathbf{W}} \mathcal{L}$ takes massive, erratic jumps across the loss surface, catapulting parameters into unstable regions and producing floating-point overflow (\texttt{NaN} or \texttt{Inf}).
 \end{itemize}
 
-\subsection{Pathologies of classical activations: Sigmoid and Tanh}
+\subsection{Pathologies of Sigmoid and Tanh}
 \label{sec:sigmoid_tanh_pathologies}
 
 For decades, the default non-linearities in neural computation were the smooth sigmoidal functions: the logistic sigmoid $\sigma(z) = \frac{1}{1 + e^{-z}}$ and hyperbolic tangent $\tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}}$. When deployed in deep architectures, both functions induce severe mathematical pathologies that prevent gradient-based learning from scaling beyond a few layers.
@@ -228,7 +228,7 @@ Because $\tanh(z)$ is an odd function ($\tanh(-z) = -\tanh(z)$), its outputs are
 
 However, $\tanh$ remains a \textbf{saturating function}: for $|z| \ge 2.5$, $\tanh(z) \to \pm 1$ and $\tanh'(z) \to 0$. In deep networks, as layer pre-activations naturally spread out in variance, activations drift into the saturating asymptotic tails, causing vanishing gradients to persist.
 
-\subsection{The ReLU revolution and the dying ReLU trap}
+\subsection{ReLU and the dying ReLU problem}
 \label{sec:relu_and_dying_relu}
 
 The breakthrough that unlocked modern deep learning was the introduction of the \textbf{Rectified Linear Unit (ReLU)}~\cite{nair2010rectified,glorot2011deep}:
@@ -347,7 +347,7 @@ Because its gradients are identically zero across the entire dataset, \textbf{it
 \label{fig:dying_relu_geometry}
 \end{figure}
 
-\subsection{Modern activation solutions: Leaky ReLU, ELU, and GELU}
+\subsection{Modern non-linear activations}
 \label{sec:modern_activation_variants}
 
 To resolve the dying ReLU trap while preserving non-saturating gradient flow, modern deep learning introduced several principled variants. To systematically analyze their mathematical properties and geometrical behaviors, Figure~\ref{fig:activation_cartesian_plots} plots each fundamental activation function individually within its own Cartesian coordinate frame, highlighting their saturation limits, zero crossings, and derivative dynamics.
@@ -622,7 +622,7 @@ Directly below these variants, Figure~\ref{fig:cifar10_activation_benchmark} pre
 \label{fig:cifar10_activation_benchmark}
 \end{figure}
 
-\subsection{Diagnostic principles: Deprecated activations versus the true source of error}
+\subsection{Diagnostic principles for activations}
 \label{sec:activation_empirical_benchmark}
 
 Table~\ref{tab:activation_functions_master_comparison} provides a comprehensive master comparative taxonomy of all discussed activation functions, summarizing their mathematical formulations, output dynamic ranges, key computational properties, and practical engineering verdicts.
@@ -686,7 +686,7 @@ When a deep architecture fails or underperforms, the engineer must look past the
 \paragraph{The Practical Baseline Rule:}
 In industrial and research practice, the golden rule is: \textbf{Default to standard ReLU}. ReLU is computationally trivial (a single hardware branch comparator), memory-efficient, and universally accelerated across edge devices, GPUs, and TPUs. Only when the entire deep learning system is verified to be fully functional, converging stably, and properly regularized should an engineer experiment with Leaky ReLU, ELU, GELU, or Swish to harvest the final marginal fractions of a percent on benchmark competitions.
 
-\section{Input data preprocessing and feature conditioning}
+\section{Input preprocessing and conditioning}
 \label{sec:data_preprocessing_conditioning}
 
 Before any architectural forward pass or backpropagation update can occur, the input data feeding the network must undergo rigorous mathematical conditioning. In real-world applications, raw data rarely arrives in a form amenable to smooth gradient-based optimization. In computer vision, raw digital images arrive as unsigned 8-bit integers in the discrete range $\{0, 1, \dots, 255\}$; in tabular, speech, and multimodal datasets, features frequently span wildly disparate dynamic ranges, arbitrary non-zero offsets, and dense cross-feature correlations.
@@ -709,7 +709,7 @@ To overcome these obstacles, machine learning practitioners employ a systematic 
   \item \textbf{Local Contrast / Patch Normalization}: Normalizes spatial neighborhoods by local standard deviations, suppressing illumination variations in vision.
 \end{itemize}
 
-\subsection{Zero-centering and variance scaling}
+\subsection{Centering and variance scaling}
 \label{sec:zero_centering_scaling}
 
 The two primary operations in feature conditioning are zero-centering and variance scaling. To understand their necessity, we examine their optimization consequences from both qualitative and quantitative perspectives.
@@ -919,7 +919,7 @@ Figure~\ref{fig:centering_scaling_geometry} visually demonstrates the geometric 
 \label{fig:centering_scaling_geometry}
 \end{figure}
 
-\subsection{Principal Component Analysis (PCA) and whitening}
+\subsection{PCA and whitening}
 \label{sec:pca_and_whitening}
 
 While zero-centering and coordinate-wise variance scaling normalize each dimension independently, they operate strictly along the canonical coordinate axes. In real-world data, features frequently exhibit strong cross-correlations. To tackle this, we examine PCA and Whitening from qualitative and quantitative perspectives.
@@ -1029,7 +1029,7 @@ As proved in Chapter~\ref{sec:convolutional_neural_networks}, CNNs rely fundamen
 Projecting an image through the global eigenvector matrix $\mathbf{U}^\top$ completely scrambles the spatial arrangement of pixels: pixels on opposite sides of the image are linearly blended into abstract global components. Whitening destroys spatial stationarity, spatial locality, and translation equivariance, shattering the fundamental inductive bias that gives CNNs their visual power. Therefore, CNNs utilize exclusively per-channel zero-centering and scaling.
 \end{examinsight}
 
-\section{Weight initialization theory: Breaking symmetry and preserving variance}
+\section{Weight initialization}
 \label{sec:weight_initialization_theory}
 
 Having preprocessed the input data, how should the network parameters $\mathbf{W}$ and $\mathbf{b}$ be initialized at iteration $t = 0$? 
@@ -1046,7 +1046,7 @@ In deep neural networks, the situation is fundamentally different. The loss land
 
 Therefore, weight initialization is not a cosmetic hyperparameter; it is the fundamental boundary condition that governs gradient survival, breaks symmetry, and steers optimization into generalizable basins of attraction.
 
-\subsection{The zero-initialization trap and small random failure}
+\subsection{Zero and small random initialization}
 \label{sec:zero_init_trap}
 
 To appreciate the theoretical principles underlying modern initialization, we inspect the failure modes of naive initialization strategies solution-by-solution:
@@ -1139,7 +1139,7 @@ Figure~\ref{fig:initialization_pathologies_visual} provides an intuitive visual 
 \label{fig:initialization_pathologies_visual}
 \end{figure}
 
-\subsection{Xavier / Glorot initialization: Mathematical derivation}
+\subsection{Xavier / Glorot initialization}
 \label{sec:xavier_glorot_derivation}
 
 To eliminate both variance collapse and saturation, Xavier Glorot and Yoshua Bengio~\cite{glorot2010understanding} formulated the \textbf{variance preservation principle}: \textbf{the variance of activations on the forward pass must remain constant across all layers, and the variance of error gradients on the backward pass must remain constant across all layers}:
@@ -1212,7 +1212,7 @@ Unless $n_{\text{in}} = n_{\text{out}}$, we cannot simultaneously satisfy both c
     \end{equation}
 \end{itemize}
 
-\subsection{He / Kaiming initialization for ReLU networks}
+\subsection{He / Kaiming initialization}
 \label{sec:he_kaiming_initialization}
 
 While Xavier initialization solved training for Sigmoid and Tanh, it \textbf{catastrophically failed when applied to ReLU networks}. Why?
@@ -1247,7 +1247,7 @@ To fix this, Kaiming He et al.~\cite{he2015delving} introduced \textbf{He (Kaimi
 
 He initialization was the mathematical key that allowed Kaiming He to train the revolutionary 152-layer ResNet, winning the ImageNet 2015 challenge.
 
-\section{Internal covariate shift and Batch Normalization}
+\section{Batch Normalization}
 \label{sec:batch_normalization_theory}
 
 Even with proper He initialization and input data conditioning, training deep networks remains notoriously delicate. In a deep architecture, each intermediate layer receives as its input the activations produced by the preceding layer. As gradient descent simultaneously updates the parameters of all layers at every training iteration, a critical optimization dilemma emerges: \textbf{the distribution of inputs to each layer changes continuously throughout training}.
@@ -1265,7 +1265,7 @@ From a qualitative perspective, internal covariate shift represents a severe opt
   \item \textbf{Constrained Optimization Schedules}: To prevent internal distributions from swinging out of control, practitioners are forced to use painfully small learning rates, drag out training across weeks, and rely on hyper-sensitive initialization schemes.
 \end{enumerate}
 
-\subsection{The Batch Normalization algorithm and layer mechanics}
+\subsection{Batch Normalization mechanics}
 \label{sec:batch_norm_algorithm}
 \label{sec:why_gamma_beta}
 \label{sec:batch_norm_backprop}
@@ -1394,7 +1394,7 @@ Notice that Equation~\eqref{eq:bn_test_inference} is a pure affine transformatio
 \end{equation}
 At test time, Batch Normalization incurs \textbf{zero computational latency and zero memory overhead}!
 
-\subsection{The normalization taxonomy: Spatial BatchNorm, LayerNorm, InstanceNorm, and GroupNorm}
+\subsection{The normalization family}
 \label{sec:spatial_batch_norm}
 \label{sec:normalization_taxonomy}
 
@@ -1486,7 +1486,7 @@ To decouple normalization from batch size, alternative architectures alter the d
   \item \textbf{Group Normalization (GN)}~\cite{wu2018group}: Divides the $C$ channels into $G$ groups (typically $G = 32$) and normalizes across $(C/G, H, W)$ for each sample. GN delivers performance parity with Batch Normalization in CNNs while remaining completely invariant to batch size, excelling in memory-constrained detection and segmentation pipelines.
 \end{enumerate}
 
-\section{Generalization, overfitting, and deep regularization}
+\section{Deep regularization}
 \label{sec:deep_regularization_generalization}
 
 Once deep networks can be stably initialized and trained via He initialization and Batch Normalization, they confront their central theoretical challenge: \textbf{generalization in overparameterized regimes}.
@@ -1500,7 +1500,7 @@ From a qualitative perspective, why must we deal with overparameterization, and 
   \item \textbf{The Imperative for Regularization}: Because training loss alone cannot distinguish between a smooth function that generalizes well and a convoluted function that memorizes noise, we must introduce \textbf{regularization}---both explicit inductive penalties and implicit optimization biases---to guide the model toward flat, robust solutions.
 \end{enumerate}
 
-\subsection{$L_1$ regularization, sparsity, and motivation for $L_2$ regularization}
+\subsection{$L_1$ and $L_2$ regularization}
 \label{sec:l1_l2_regularization}
 \label{sec:weight_decay_deep}
 
@@ -1569,7 +1569,7 @@ w_j = \left( \frac{\lambda_j}{\lambda_j + \lambda} \right) w_j^*.
 
 \textbf{Geometric Insight}: Along directions of \textbf{large curvature} (large Hessian eigenvalues $\lambda_j \gg \lambda$, where moving away from $\mathbf{w}^*$ sharply increases loss), $\frac{\lambda_j}{\lambda_j + \lambda} \approx 1$: the parameter is preserved. Along directions of \textbf{small curvature} (small Hessian eigenvalues $\lambda_j \ll \lambda$, flat directions susceptible to fitting noise), $\frac{\lambda_j}{\lambda_j + \lambda} \to 0$: the weights are shrunken aggressively to zero! Weight decay selectively suppresses low-curvature parameter combinations that overfit noise.
 
-\subsection{Early stopping as implicit $L_2$ regularization: Bishop's equivalence theorem}
+\subsection{Early stopping}
 \label{sec:early_stopping_bishop}
 
 While $L_2$ regularization explicitly modifies the objective function by penalizing large weight vectors, \textbf{Early Stopping} achieves an identical regularizing effect without adding any penalty terms to the loss function.
@@ -1649,7 +1649,7 @@ The fundamental insight of Bishop (1995)~\cite{bishop1995training} and Goodfello
 Furthermore, Equation~\eqref{eq:early_stopping_trajectory_eigen} reveals an intrinsic directional selectivity: parameter coordinates aligned with \textbf{large curvature} (large eigenvalues $\sigma_i$) satisfy $(1 - \eta \sigma_i)^\tau \to 0$ rapidly, allowing the network to converge quickly along dominant structural directions. In contrast, coordinates aligned with \textbf{flat directions} (small eigenvalues $\sigma_i \approx 0$) evolve slowly, remaining tightly anchored near zero. Early stopping automatically determines the optimal regularization strength along each eigenvector direction without requiring expensive grid searches over $\lambda$.
 \end{intuition}
 
-\subsection{The double descent phenomenon: Generalization beyond the interpolation threshold}
+\subsection{The double descent phenomenon}
 \label{sec:double_descent_phenomenon}
 
 For nearly a century, classical statistical learning theory dictated that model complexity must be strictly balanced against dataset size: increasing model parameters beyond the number of training samples ($P > N$) inevitably causes catastrophic overfitting, as depicted by the traditional U-shaped risk curve.
@@ -1750,7 +1750,7 @@ Preetum Nakkiran et al.~\cite{nakkiran2020deep} generalized double descent beyon
   \item \textbf{Sample Double Descent}: Counter-intuitively, collecting a slightly larger training dataset can temporarily \textbf{worsen test performance} if the additional data shifts the interpolation threshold directly onto the model's fixed parameter count ($N \to P$).
 \end{itemize}
 
-\subsection{Inverted Dropout and the geometric ensemble interpretation}
+\subsection{Dropout regularization}
 \label{sec:inverted_dropout}
 
 Introduced by Nitish Srivastava et al.~\cite{srivastava2014dropout}, \textbf{Dropout} is a foundational stochastic regularization technique designed to prevent complex co-adaptation in deep representations. 
@@ -1865,7 +1865,7 @@ A critical architectural insight emphasized across modern computer vision concer
 Beyond skip connections serving as backpropagation highways (derived in Chapter~\ref{sec:convolutional_neural_networks}), Hao Li et al.~\cite{li2018visualizing} demonstrated that residual connections act as powerful \textbf{implicit regularizers}. 
 In standard deep feedforward networks without skip connections (e.g. ResNet-56 without shortcuts), the high-dimensional loss surface is chaotic, non-convex, and fractured by millions of sharp, ill-conditioned local minima. Residual connections create a multi-scale ensemble of shallow and deep paths, smoothing the non-convex landscape into a wide, spherical, convex-like basin. This loss surface smoothing prevents optimization trajectories from becoming trapped in sharp, high-generalization-error crevices.
 
-\subsection{Data augmentation and modern regularization strategies}
+\subsection{Data augmentation and modern regularizers}
 \label{sec:data_augmentation_modern}
 
 The single most effective regularization strategy in machine learning is \textbf{expanding the training dataset}. In supervised learning, error bounds scale inversely with dataset size $N$. However, gathering, curating, and manually annotating massive real-world datasets is expensive, time-consuming, and frequently infeasible.
@@ -1956,7 +1956,7 @@ A unifying pattern in modern deep regularization is: \textbf{inject randomness d
 \label{tab:noise_injection_taxonomy}
 \end{table}
 
-\section{Training dynamics, diagnostic curves, and learning rate scheduling}
+\section{Training diagnostics and learning rates}
 \label{sec:training_dynamics_babysitting}
 
 Having engineered the model architecture, input preprocessing, weight initialization, normalization layers, and regularizers, the practitioner confronts the dynamic optimization phase: \textbf{babysitting the learning process}.
@@ -1973,7 +1973,7 @@ A deep learning training run is never a ``set-it-and-forget-it'' endeavor. Witho
 
 To turn this empirical babysitting into a disciplined engineering science rather than haphazard guesswork, we follow a systematic workflow.
 
-\subsection{The 7-step systematic training protocol}
+\subsection{Systematic training protocol}
 \label{sec:seven_step_training_protocol}
 
 Justin Johnson outlines a rigorous, disciplined 7-step procedure for initializing, debugging, and verifying a deep learning experiment before committing substantial compute resources:
@@ -2003,7 +2003,7 @@ Justin Johnson outlines a rigorous, disciplined 7-step procedure for initializin
 \paragraph{Drawback of Static Checkpoints and Transition to Dynamic Curves:}
 While this 7-step checklist guarantees that the code is free of fundamental implementation bugs at initialization, it provides only static, discrete checkpoints. Once long-horizon training begins on the full dataset, static checks cannot reveal how the model's representations are evolving across epochs or why training slows down. To understand and steer the ongoing training process, practitioners must continuously analyze \textbf{dynamic learning curves}.
 
-\subsection{Diagnostic loss and accuracy curves}
+\subsection{Diagnostic curves}
 \label{sec:diagnostic_curves}
 
 Analyzing the trajectory and geometry of learning curves provides immediate actionable insight into optimization health (Figure~\ref{fig:diagnostic_curves}):
@@ -2115,7 +2115,7 @@ Diagnostic curve inspection exposes a fundamental contradiction inherent to any 
 \end{itemize}
 This limitation makes dynamic \textbf{Learning Rate Scheduling and Warmup} mathematically mandatory.
 
-\subsection{Learning rate schedules and warmup dynamics}
+\subsection{Schedules and warmup dynamics}
 \label{sec:learning_rate_schedules}
 
 To resolve the constant-learning-rate dilemma, modern optimizers adjust the step size $\alpha_t$ over the course of training, decaying it according to principled mathematical trajectories (Figure~\ref{fig:learning_rate_schedules_comparison}):
@@ -2209,7 +2209,7 @@ The primary mathematical formulations include:
 \paragraph{Drawback of Manual Tuning and Motivation for Systematic Search:}
 Even with sophisticated schedules and warmup dynamics, the engineer is confronted with a critical dilemma: \textbf{how do we set the initial learning rate $\alpha_0$, the weight decay $\lambda$, the warmup length $T_{\text{warmup}}$, and the momentum coefficient $\beta$?} Tuning these hyperparameters by hand is painfully slow, subjective, and prone to human cognitive bias. This motivates the necessity of a principled, automated discipline: \textbf{Hyperparameter Optimization and Experiment Tracking}.
 
-\section{Hyperparameter optimization and empirical experiment tracking}
+\section{Hyperparameter optimization}
 \label{sec:hyperparameter_optimization_sweeps}
 
 In deep learning, we must distinguish between two fundamental classes of parameters: \textbf{model parameters} (weights $\mathbf{W}$ and biases $\mathbf{b}$), which are updated automatically through backpropagation and gradient descent, and \textbf{hyperparameters} (learning rate $\alpha$, weight decay $\lambda$, batch size $B$, Dropout keep probability $p$, architecture depth and width), which govern the operation of the learning algorithm itself and define the model's inductive capacity.
@@ -2224,7 +2224,7 @@ Furthermore, the performance of deep neural networks is exceptionally sensitive 
 \end{itemize}
 Therefore, machine learning requires a rigorous, disciplined methodology to explore hyperparameter spaces efficiently within a finite compute budget, ensuring sound validation without data leakage.
 
-\subsection{Random search versus grid search: The low effective dimensionality proof}
+\subsection{Random search versus grid search}
 \label{sec:random_vs_grid_search}
 
 In classical engineering, practitioners frequently deploy \textbf{Grid Search}: laying out an equidistant mesh across all hyperparameter axes. James Bergstra and Yoshua Bengio~\cite{bergstra2012random} mathematically proved that \textbf{Random Search is strictly superior to Grid Search} (Figure~\ref{fig:grid_vs_random_search}):
@@ -2310,7 +2310,7 @@ Sampling uniformly in linear space across $[10^{-4}, 10^{-1}]$ would waste 90\% 
 \paragraph{Drawback of Pure Random Search and Motivation for Intelligent Sweeps:}
 While Random Search solves the grid redundancy problem, it suffers from a major efficiency drawback: \textbf{it operates completely open-loop without memory}. Random search samples configurations independently, failing to learn from previously evaluated points, and it runs every single trial for the full duration of training. If a randomly sampled learning rate is catastrophic, Random Search will waste an entire 100-epoch GPU budget training a hopelessly broken model. This limitation motivates \textbf{Automated Distributed Sweeps} with adaptive pruning and Bayesian optimization.
 
-\subsection{Cross-validation and modern sweep infrastructure}
+\subsection{Cross-validation and sweep tracking}
 \label{sec:sweeps_wandb}
 
 In standard deep learning, $k$-fold cross-validation is avoided due to extreme computational costs (training $k$ separate 100-epoch models). Instead, practitioners enforce a fixed split: 70\% Training, 15\% Validation, 15\% Test.
@@ -2324,7 +2324,7 @@ To automate exploration across GPU clusters efficiently, modern production envir
 \paragraph{Drawback of Single-Model Optimization and Transition to Ensembles:}
 Even after conducting comprehensive Bayesian sweeps and identifying the global best hyperparameter configuration, the resulting trained model remains a \textbf{single, isolated point estimate} in parameter space. It is trapped in a single local minimum and inevitably makes errors on specific, ambiguous test samples. Can we push generalization and calibration beyond what any single model can achieve? This directly motivates \textbf{Model Ensembling}.
 
-\section{Model ensembling and parameter trajectory averaging}
+\section{Model ensembling and weight averaging}
 \label{sec:model_ensembles_polyak_ema}
 
 Once hyperparameter sweeps identify a collection of well-performing models, the final strategy in competitive deep learning to maximize accuracy and prediction calibration is \textbf{Model Ensembling}.
@@ -2333,7 +2333,7 @@ In non-convex optimization, stochastic gradient descent runs initialized with di
 
 By combining the predictions of multiple diverse models, individual misclassifications are outvoted by the collective consensus. Mathematically, ensembling reduces the variance of the estimator without increasing its bias, producing an almost guaranteed \textbf{$1.5\%\text{--}2.0\%$ top-1 accuracy boost} on challenging visual benchmarks like ImageNet. In safety-critical applications (such as autonomous vehicle perception and medical imaging diagnostics) and competitive leaderboards (Kaggle), ensembling is the universally recognized gold standard for peak performance.
 
-\subsection{Independent model ensembles}
+\subsection{Model ensembles}
 \label{sec:independent_ensembles}
 
 The classical approach to ensembling trains $M$ completely independent neural networks (varying random seeds, architectures, or hyperparameter samples) and averages their predicted softmax class probability distributions at test time:
@@ -2353,7 +2353,7 @@ While independent ensembles provide superior accuracy, they suffer from a severe
 \end{equation}
 For massive models that take days or weeks to train on GPU clusters, multiplying training costs by $M = 5$ or $10$ is economically and computationally impossible for most research labs and industrial teams. This drawback motivates the search for an ensemble method that incurs \textbf{zero additional training cost}: \textbf{Snapshot Ensembles}.
 
-\subsection{Snapshot ensembles: Train 1, get $M$ for free}
+\subsection{Snapshot ensembles}
 \label{sec:snapshot_ensembles}
 
 Gao Huang, Yixuan Li, Geoff Pleiss et al.~\cite{huang2017snapshot} introduced \textbf{Snapshot Ensembles}, an ingenious technique to construct an ensemble of $M$ diverse neural networks \textbf{at the cost of a single standard training run} (Figure~\ref{fig:snapshot_ensembles_cyclic}):
@@ -2414,7 +2414,7 @@ While Snapshot Ensembles eliminate the $M\times$ training compute penalty, they 
 \end{itemize}
 Can we achieve the generalization benefits of ensembling \textbf{within a single model, with strictly zero inference latency penalty}? The definitive answer is \textbf{Parameter Trajectory Averaging}.
 
-\subsection{Polyak-Juditsky parameter averaging and Exponential Moving Average (EMA)}
+\subsection{Exponential moving average (EMA)}
 \label{sec:polyak_ema}
 
 To eliminate the $M\times$ inference latency bottleneck of classical ensembles, modern deep learning leverages \textbf{Exponential Moving Average (EMA) of Weights}, rooted in classical stochastic approximation theory by Boris Polyak and Anatoli Juditsky (1992)~\cite{polyak1992acceleration}.

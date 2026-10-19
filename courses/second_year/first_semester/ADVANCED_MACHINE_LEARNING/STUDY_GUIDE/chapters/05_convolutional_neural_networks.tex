@@ -1,4 +1,4 @@
-\chapter{Convolutional neural networks and deep visual representations}
+\chapter{Convolutional neural networks}
 \label{sec:convolutional_neural_networks}
 
 In Chapter~\ref{sec:deep_feedforward_and_backpropagation}, we established that Multi-Layer Perceptrons equipped with non-linear activation functions are universal function approximators: given sufficient neurons, they can represent any continuous manifold. Yet, in empirical computer vision, deploying dense MLPs directly onto pixel arrays yields an immediate, catastrophic failure. Fully connected networks treat each input feature independently; they possess zero awareness of geometry, spatial adjacency, or physical symmetries.
@@ -9,7 +9,7 @@ From Yoshua Bengio's Bayesian perspective, a convolutional network is not merely
 
 This chapter provides an exhaustive theoretical and mathematical treatment of convolutional architectures: from continuous convolutions and discrete cross-correlations, through receptive field algebra, $1 \times 1$ bottlenecks, and global average pooling, to landmark architectural evolutions (AlexNet, VGG, ResNet) and the complete taxonomy of visual tasks (classification, detection, and semantic segmentation).
 
-\section{The visual challenge and the structural failure of fully connected networks}
+\section{Failure of dense networks on vision}
 \label{sec:failure_of_fc_on_images}
 
 In biological vision and modern artificial intelligence, visual sensory inputs are fundamentally distinct from tabular database entries or isolated acoustic waveforms: an image is a continuous, high-dimensional projection of a structured three-dimensional physical environment onto a two-dimensional sensor plane. In Chapter~\ref{sec:deep_feedforward_and_backpropagation}, we proved the Universal Approximation Theorem, establishing that Multi-Layer Perceptrons (MLPs) equipped with non-linear activation functions can approximate any continuous compact mapping to arbitrary precision. However, when machine learning practitioners attempt to deploy unconstrained fully connected architectures directly onto raw visual sensory grids, the models suffer an immediate, catastrophic empirical failure.
@@ -18,7 +18,7 @@ The root cause of this breakdown lies in the profound dimensional and topologica
 
 To resolve this empirical crisis, we must analyze the structural mechanisms that render dense networks inadequate for computer vision. This section establishes the theoretical failure modes of fully connected layers on images: we first formalize the vectorization requirement, the metric disruption of pixel coordinates, and the unconstrained parameter explosion under VC generalization theory; next, we analyze natural image statistics, examining high local autocorrelation, the $1/f^2$ scale-invariant power spectrum, and the universality of low-level edge primitives; finally, we trace the neurobiological discoveries of Hubel and Wiesel in the mammalian visual cortex that directly motivated the architectural shift toward convolutional neural networks.
 
-\subsection{Why MLPs fail on high-dimensional visual data}
+\subsection{Dense MLP limitations on images}
 \label{sec:why_mlps_fail_images}
 
 \begin{figure}[H]
@@ -149,7 +149,7 @@ where $M$ is the number of neurons in the first hidden layer.
 \end{itemize}
 By Vapnik-Chervonenkis (VC) generalization theory (Chapter~\ref{sec:pac_learning_theory}), the sample complexity required to prevent overfitting scales linearly with the number of free parameters ($N \propto \mathcal{O}(|\boldsymbol{\theta}|)$). Training an unconstrained model with hundreds of millions of parameters on typical dataset sizes ($N \sim 10^4$--$10^6$) guarantees catastrophic overfitting and failure to generalize.
 
-\subsection{Natural image statistics: Why do all images share universal patterns?}
+\subsection{Natural image statistics}
 \label{sec:natural_image_statistics}
 
 Why are dense networks structurally mismatched to images, and why can we design a far more compact, universal visual architecture? As emphasized during lectures, the answer lies in the fundamental statistical physics of natural scenes.
@@ -224,7 +224,7 @@ As depicted in Figure~\ref{fig:visual_feature_hierarchy}, neurophysiologists Dav
 The catastrophic failure of dense MLPs on images demonstrates an inescapable structural truth: when unconstrained models ignore 2D spatial geometry, parameter explosions and lack of translation equivariance render sample-efficient generalization impossible. This failure motivates the mathematical construction of operators that inherently preserve 2D grid topology while drastically constraining free parameters via local receptive fields and weight tying: \textbf{discrete 2D convolution and cross-correlation}.
 
 
-\section{Convolution mechanics, algebra, and geometry}
+\section{Convolution mechanics and geometry}
 \label{sec:cnn_mechanics_and_geometry}
 
 To overcome the structural collapse of dense Multi-Layer Perceptrons on visual data, machine learning must operationalize the spatial physics of natural photographic scenes. The foundational mathematical engine for this task is the convolution operator. Tracing its lineage from functional analysis and continuous differential systems to discrete tensor mechanics, convolution transforms spatial filtering into a localized, sliding affine transformation that respects the spatial metric of continuous physical space.
@@ -233,7 +233,7 @@ Unlike unconstrained matrix multiplication—which binds an independent paramete
 
 This section provides an exhaustive derivation of the mechanics, linear algebra, and geometry of convolutional layers: we first trace the continuous convolution integral and explain why modern deep learning frameworks operationalize discrete 2D cross-correlation rather than true commutative convolution; we then formalize the volumetric geometry of multi-channel convolutional layers, establish the universal spatial dimension formula, and analyze the linear algebraic equivalence between convolution and banded Toeplitz and circulant matrix operators.
 
-\subsection{The continuous convolution and discrete 2D cross-correlation}
+\subsection{Continuous and discrete convolution}
 \label{sec:convolution_mathematical_definition}
 
 To establish the theoretical foundations of convolutional neural networks, we must first examine the convolution operation from a rigorous mathematical and physical perspective, tracing its formulation from functional analysis to modern tensor computation~\cite{goodfellow2016deep,bishop2024deep}.
@@ -466,7 +466,7 @@ where $\odot$ denotes element-wise Hadamard multiplication. This matrix view exp
 
 As shown in Figure~\ref{fig:sparse_vs_dense_connectivity}, discrete convolution mathematically enforces sparse connectivity and parameter sharing. The number of parameters is \textbf{completely independent of image resolution}, determined strictly by kernel size $F \times F \times C$.
 
-\subsection{Anatomy of a convolutional layer: Stride, padding, and output geometry}
+\subsection{Stride, padding, and layer geometry}
 \label{sec:conv_layer_anatomy}
 
 We now formalize the full multi-channel convolutional layer as deployed in modern deep networks.
@@ -635,7 +635,7 @@ An MLP performing the identical mapping from $3,072$ inputs to $32 \times 32 \ti
 
 While the mechanics and geometry of convolution explain how multi-channel tensors are transformed with spatial parameter sharing, a fundamental theoretical question remains: why does this specific architectural constraint succeed so profoundly in empirical vision, and how can we understand it through Bayesian and biological principles? This question motivates examining convolutional neural networks as an infinitely strong spatial prior rooted in the functional architecture of the mammalian visual cortex.
 
-\section{CNNs as an infinitely strong spatial prior and biological foundations}
+\section{CNN priors and structural design}
 \label{sec:cnns_as_infinitely_strong_prior}
 
 In the mathematical analysis of deep learning, a pervasive misconception treats convolutional networks as merely an empirical engineering heuristic—a clever computational shortcut designed to reduce parameter counts on GPUs. As Yoshua Bengio, Ian Goodfellow, and Aaron Courville established in their foundational work, convolutional networks are deeply grounded in Bayesian probability theory: a CNN is an unconstrained fully connected network upon which an \textbf{infinitely strong spatial prior} has been imposed. This prior assigns absolute zero probability mass to any linear transformation that violates spatial locality or translation equivariance, permanently restricting parameter search to a low-dimensional manifold of shared local weights.
@@ -644,7 +644,7 @@ Understanding convolutional networks through this Bayesian lens clarifies both t
 
 This section develops the theoretical, biological, and Bayesian foundations of convolutional representations: we first formalize the three foundational motivations—sparse interactions, parameter sharing, and equivariant representations—deriving their computational and sample-complexity consequences; next, we trace the neurobiological discoveries of simple and complex cells in Area V1, mathematically modeling cortical receptive fields via 2D Gabor wavelets and proving why standard backpropagation spontaneously replicates mammalian visual tuning; finally, we formalize Bengio's infinitely strong prior, evaluate its bias-variance trade-offs, and examine the permutation-invariance diagnostic benchmark that distinguishes spatial architectures from tabular classifiers.
 
-\subsection{The three foundational motivations of CNNs: Sparse interactions, parameter sharing, and equivariant representations}
+\subsection{Sparsity, parameter sharing, and equivariance}
 \label{sec:translation_equivariance_sample_complexity}
 
 In their foundational treatise \textit{Deep Learning}, Ian Goodfellow, Yoshua Bengio, and Aaron Courville~\cite{goodfellow2016deep} establish that convolutional networks improve upon traditional dense feedforward neural architectures by operationalizing three fundamental mathematical ideas: \textbf{sparse interactions} (sparse connectivity), \textbf{parameter sharing} (tied weights), and \textbf{equivariant representations}. We analyze each principle in depth, examine how convolutional architectures algebraically guarantee it, evaluate its practical computational and statistical utility, and formalize why dense Multi-Layer Perceptrons (MLPs) suffer from catastrophic sample complexity on visual data~\cite{goodfellow2016deep,prince2023understanding}.
@@ -872,7 +872,7 @@ N_{\text{CNN}} = O(N_0).
 \end{equation}
 As Simon Prince highlights~\cite{prince2023understanding}, weight sharing acts as an \textbf{infinite Bayesian prior} (or Dirac delta regularization) that penalizes all non-translation-equivariant linear mappings to infinity, slashing hypothesis complexity without sacrificing expressive power.
 
-\subsection{Biological visual cortex foundations and spontaneous Gabor emergence}
+\subsection{Biological foundations and Gabor filters}
 \label{sec:biological_visual_cortex_and_gabor_emergence}
 
 The hierarchical design of Convolutional Neural Networks is deeply rooted in 20th-century neurobiology, reflecting profound mathematical parallels between mammalian visual processing and statistical gradient optimization~\cite{bishop2024deep}.
@@ -927,7 +927,7 @@ Crucially, \textbf{no biological priors or Gabor templates were engineered into 
 
 As Christopher Bishop cautions~\cite{bishop2024deep}, this convergence does not prove that CNNs function as biophysical models of the mammalian brain; rather, it demonstrates that \textbf{Gabor-like filtering and color opponency are universal mathematical solutions dictated by the statistical physics of natural imagery}. Both biological evolution and artificial backpropagation independently discover the exact same optimal representations.
 
-\subsection{Convolution and pooling as an infinitely strong prior (Bengio's formulation)}
+\subsection{Convolution as an infinitely strong prior}
 \label{sec:infinitely_strong_prior_bengio}
 
 To attain the deepest theoretical understanding of why Convolutional Neural Networks succeed---and precisely when they fail---we must examine their architecture through the lens of Bayesian probability theory and statistical learning theory. In Chapter~9.4 of their foundational treatise \textit{Deep Learning}, Ian Goodfellow, Yoshua Bengio, and Aaron Courville~\cite{goodfellow2016deep} introduce a profound, unifying perspective: \textbf{convolution and pooling can be understood as an infinitely strong prior on the weights of a fully connected layer}.
@@ -1062,7 +1062,7 @@ To break past these computational barriers, modern computer vision underwent a s
 
 In this section, we develop the quantitative foundations of these architectural design principles. We first formalize the VGG principle, mathematically deriving the linear recurrence of effective receptive field growth and proving the exact parameter and FLOP savings achieved by cascading small filters. Next, we examine the mechanics of $1 \times 1$ convolutions introduced in Network In Network and their modern role in cross-channel dimensionality manipulation. Finally, we dissect spatial pooling operations and analyze the architectural transition from parameter-heavy dense fully connected heads to parameter-free Global Average Pooling (GAP), establishing how spatially distributed visual evidence is synthesized into categorical decisions.
 
-\subsection{The VGG principle: effective receptive fields and the algebra of stacking small kernels}
+\subsection{Effective receptive fields and small kernels}
 \label{sec:vgg_principle_stacking_small_kernels}
 
 Having formalized the output geometry of individual convolutional layers, we analyze a decisive architectural paradigm shift in deep learning: \textit{should deep networks employ large convolutional kernels (such as the $11 \times 11$ and $5 \times 5$ filters in AlexNet~\cite{krizhevsky2012imagenet}), or should they cascade multiple small $3 \times 3$ filters?}~\cite{simonyan2014very,bishop2024deep}
@@ -1251,7 +1251,7 @@ Beyond parameter and FLOP reductions, cascading smaller filters confers a crucia
     the network incorporates \textbf{three non-linear decision stages} instead of one. Three cascaded ReLUs fold and partition the local input space into an exponentially larger number of piecewise-linear decision regions~\cite{montufar2014number,telgarsky2016benefits}. This enables the network to learn substantially more discriminative, hierarchical visual primitives (e.g. oriented edges $\to$ corners $\to$ textured motifs) while simultaneously regularizing the hypothesis space against unstructured spatial overfitting.
 \end{itemize}
 
-\subsection{Network In Network and the power of $1 \times 1$ convolutions}
+\subsection{Pointwise $1 \times 1$ convolutions}
 \label{sec:one_by_one_convolutions}
 
 At first glance, a $1 \times 1$ convolutional filter ($F = 1$) might appear redundant: convolving a scalar with a single pixel seems to merely scale pixel values. 
@@ -1298,7 +1298,7 @@ A $1 \times 1$ convolution operates as a multi-layer perceptron applied identica
   \item \textbf{Cross-Channel Non-Linearity}: Placing a ReLU activation after a $1 \times 1$ convolution allows the network to learn non-linear interactions across feature channels at zero spatial cost.
 \end{enumerate}
 
-\subsection{Pooling layers and global decision synthesis: dense heads vs. global average pooling}
+\subsection{Pooling layers and global average pooling}
 \label{sec:pooling_and_decision_synthesis}
 \label{sec:pooling_layers}
 
@@ -1569,7 +1569,7 @@ In oral examinations, professors frequently ask students to compare the architec
 
 While micro-architectural design principles---stacking small $3\times 3$ kernels to expand the effective receptive field, deploying $1\times 1$ point-wise projections as computational bottlenecks, and utilizing spatial pooling with Global Average Pooling to eliminate fully connected parameter bloat---provide the modular primitives of deep vision, assembling these building blocks into high-capacity networks revealed severe empirical roadblocks. When researchers attempted to scale plain convolutional architectures beyond 20 layers, networks encountered devastating optimization pathologies: vanishing and exploding gradients, covariate shifts, and the counter-intuitive degradation problem where deeper models exhibited higher training error than their shallower counterparts. Overcoming these barriers required an empirical revolution driven by large-scale visual benchmarks. In Section~\ref{sec:landmark_cnn_architectures_imagenet}, we trace this historic paradigm shift across the ImageNet Large Scale Visual Recognition Challenge, analyzing how landmark architectures from AlexNet to ResNet systematically dismantled each optimization bottleneck to unlock extreme network depth.
 
-\section{Landmark CNN architectures and the ImageNet empirical paradigm shift}
+\section{Landmark CNN architectures}
 \label{sec:landmark_cnn_architectures_imagenet}
 
 The transition from theoretical formulation to practical dominance in computer vision was governed by a profound empirical struggle. For decades, visual recognition relied on handcrafted feature pipelines---such as SIFT, HOG, and Fisher Vectors---engineered through human geometric and physical domain intuition. However, because these engineered descriptors were fundamentally detached from the downstream optimization objective, their classification performance stagnated at an empirical plateau. Unlocking the true expressive potential of visual models required an end-to-end paradigm where multi-layer feature representations were optimized directly on data via backpropagation.
@@ -1578,7 +1578,7 @@ This paradigm shift materialized through the confluence of three technological c
 
 In this section, we analyze the historical and mathematical evolution of landmark deep convolutional architectures that resolved these foundational bottlenecks. We first formalize the ImageNet benchmark setting and document the pre-2012 handcrafted plateau. Next, we examine AlexNet's dual-GPU model-parallel engineering and its core training stability pillars. We then study VGGNet's principled homogeneous stacking and GoogLeNet's multi-scale Inception bottlenecks. Finally, we dissect the deep residual learning revolution of ResNet, providing a rigorous mathematical proof of how identity skip connections construct an uninterrupted gradient highway that enables networks to scale to hundreds of layers.
 
-\subsection{The ImageNet benchmark setting and pre-2012 handcrafted plateau}
+\subsection{The ImageNet benchmark}
 \label{sec:imagenet_benchmark_revolution}
 
 The theoretical principles governing convolutional networks---translation equivariance, receptive field arithmetic, and multi-task loss formulation---found their decisive historical validation through the \textbf{ImageNet Large Scale Visual Recognition Challenge (ILSVRC)}~\cite{deng2009imagenet,russakovsky2015imagenet}.
@@ -1640,7 +1640,7 @@ The historical trajectory in Table~\ref{tab:imagenet_historical_evolution} yield
   \item \textbf{Generalization Beyond ImageNet}: Representations learned on ImageNet serve as universal visual representations. A convolutional backbone pre-trained on ImageNet can be fine-tuned or transferred to object detection (Faster R-CNN), semantic segmentation (FCN/U-Net), medical imaging, and autonomous driving, establishing pre-training and transfer learning as the foundational paradigm of modern machine learning.
 \end{enumerate}
 
-\subsection{AlexNet: The deep GPU watershed (2012)}
+\subsection{AlexNet (2012)}
 \label{sec:alexnet_architecture}
 
 In October 2012, Alex Krizhevsky, Ilya Sutskever, and Geoffrey Hinton submitted \textbf{AlexNet}~\cite{krizhevsky2012imagenet} to the ILSVRC competition, recording a top-5 error of \textbf{16.4\%} and winning the competition by an unprecedented 9.8 percentage point margin. This single empirical result ignited the modern deep learning revolution by demonstrating that deep convolutional neural networks trained via backpropagation could decisively eclipse decades of classical feature engineering.
@@ -1780,7 +1780,7 @@ Beyond hardware parallelism, AlexNet's success rested on four algorithmic breakt
     where $a_{x,y}^i$ is the activation of kernel $i$ at coordinate $(x, y)$, and $n, k, \alpha, \beta$ are hyper-parameters ($n=5, k=2, \alpha=10^{-4}, \beta=0.75$). LRN created competition for big activities among adjacent features, reducing top-1 error by $1.4\%$. In later architectures, LRN was superseded by Batch Normalization.
 \end{enumerate}
 
-\subsection{VGGNet: The elegance of homogeneous $3\times 3$ kernel stacking (2014)}
+\subsection{VGGNet (2014)}
 \label{sec:vggnet_architecture}
 
 While AlexNet demonstrated the power of deep convolutional networks, its architectural configuration was highly heuristic, employing large $11 \times 11$ and $5 \times 5$ filters with irregular strides ($S=4$). In 2014, Karen Simonyan and Andrew Zisserman introduced \textbf{VGGNet} (the Visual Geometry Group at Oxford)~\cite{simonyan2014very}, securing second place in ILSVRC 2014 with a top-5 error of \textbf{7.3\%}. VGGNet established that \textbf{architectural simplicity, homogeneity, and extreme depth strictly dominate heterogeneous large-kernel designs}.
@@ -1822,7 +1822,7 @@ A layer-by-layer parameter audit reveals:
 \end{itemize}
 This parameter bloat produced massive memory overhead ($>500\text{ MB}$ weights file) and severe risk of overfitting, motivating subsequent architectures to eliminate dense classification heads entirely.
 
-\subsection{GoogLeNet / Inception: Multi-scale processing and $1\times 1$ bottlenecks (2014)}
+\subsection{GoogLeNet and Inception (2014)}
 \label{sec:googlenet_inception}
 
 Concurrently with VGG at ILSVRC 2014, Christian Szegedy et al. at Google developed \textbf{GoogLeNet} (Inception-v1)~\cite{szegedy2015going}, winning the competition with a top-5 error of \textbf{6.7\%}. GoogLeNet achieved this superior performance with a 22-layer deep network that contained only \textbf{6.8 million parameters}---over \textbf{$20\times$ fewer parameters than VGG-16}!
@@ -1933,7 +1933,7 @@ To counteract this, GoogLeNet introduced \textbf{Auxiliary Classifiers} connecte
 \end{equation}
 The auxiliary heads injected clean, unattenuated error gradients directly into the lower convolutional stages, stabilizing training. At test time, both auxiliary branches were discarded, incurring zero inference overhead.
 
-\subsection{ResNet: Residual learning, the degradation problem, and the gradient highway (2015)}
+\subsection{ResNet (2015)}
 \label{sec:resnet_architecture}
 
 In 2015, Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun at Microsoft Research published the foundational \textbf{Deep Residual Learning for Image Recognition} (ResNet)~\cite{he2016deep,he2016identity}. Winning ILSVRC 2015 across all visual challenges (Classification, Detection, and Localization), ResNet-152 achieved an astonishing top-5 error of \textbf{3.57\%}, becoming the first autonomous visual model in history to surpass human-level performance ($\approx 5.1\%$).
@@ -2170,7 +2170,7 @@ While benchmark classification on ImageNet drove the historical development of d
 
 
 
-\section{The taxonomy of deep visual perception tasks}
+\section{Computer vision tasks}
 \label{sec:downstream_cv_tasks_imagenet}
 
 The physical visual world does not present itself as neatly isolated, canonically centered objects floating against uniform backgrounds. In real-world environments, visual scenes are continuous, highly cluttered, and composed of multiple overlapping entities distributed across complex spatial topographies. While whole-image categorical classification provides a vital mathematical benchmark for representation learning, reducing an entire high-dimensional image tensor $\mathbf{X} \in \R^{H \times W \times C}$ to a single discrete label or simplex vector fundamentally discards the spatial coordinates, geometric dimensions, and physical relationships among visual entities.
@@ -2179,7 +2179,7 @@ To construct autonomous visual agents capable of navigating physical environment
 
 In this section, we develop the mathematical and architectural foundations of these downstream perception tasks. We first formalize whole-image classification, detailing categorical cross-entropy loss, contrasting invariant decision heads against equivariant backbones, and establishing a unified comparative taxonomy across all three tasks. Next, we analyze object detection, formalizing continuous 4D bounding box parameterization, multi-task losses, the Intersection over Union (IoU) localization metric, and Non-Maximum Suppression (NMS). Finally, we examine semantic image segmentation, dissecting the fundamental trade-off between semantic context and spatial resolution, mechanisms of learned transposed convolutions, and the U-Net skip-connection topology.
 
-\subsection{Whole-image classification: Invariance, categorical cross-entropy, and the task taxonomy}
+\subsection{Image classification}
 \label{sec:cv_tasks_taxonomy}
 
 Visual perception operates along a spectrum of spatial granularity, transitioning from coarse whole-image semantic abstraction to dense coordinate-level parsing.
@@ -2229,7 +2229,7 @@ Table~\ref{tab:cv_tasks_comparison} establishes the formal mathematical comparis
 \end{tabularx}
 \end{table}
 
-\subsection{Object detection: continuous bounding boxes, IoU, and non-maximum suppression}
+\subsection{Object detection}
 \label{sec:object_detection_mechanics}
 
 Object detection extends classification by requiring an algorithm to simultaneously answer \textit{``What is present?''} and \textit{``Where is it located?''} for an arbitrary, unknown number of instances $M \ge 0$ scattered across the image~\cite{prince2023understanding}.
@@ -2416,7 +2416,7 @@ The computational challenge of object detection motivated one of deep learning's
   \item \textbf{Faster R-CNN (Ren et al., 2015)}~\cite{ren2015faster}: Replaced the CPU-bound Selective Search heuristic entirely with an internal, fully convolutional \textbf{Region Proposal Network (RPN)} that slides $3 \times 3$ convolutional filters over the shared feature map, predicting multi-scale anchor offsets and objectness scores in unified end-to-end GPU memory.
 \end{itemize}
 
-\subsection{Semantic image segmentation: dense pixel categorization and encoder-decoder topologies}
+\subsection{Semantic segmentation}
 \label{sec:semantic_segmentation_mechanics}
 
 While object detection encloses targets within coarse bounding boxes, \textbf{Semantic Image Segmentation} requires dense, pixel-level visual understanding: assigning a categorical class label to every individual coordinate $(i, j)$ of the image grid~\cite{prince2023understanding,bishop2024deep}.
@@ -2581,7 +2581,7 @@ While convolutional architectures provide the structural machinery for classific
 
 
 
-\section{Chapter synthesis and roadmap to deep network training}
+\section{Summary and roadmap}
 \label{sec:chapter5_synthesis}
 
 Across this chapter, we have analyzed how convolutional neural networks revolutionized artificial intelligence by aligning neural network topology with the spatial physics of natural images:

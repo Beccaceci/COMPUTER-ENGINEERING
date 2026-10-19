@@ -1,4 +1,4 @@
-\chapter{Transfer learning, representation adaptation, and knowledge distillation}
+\chapter{Transfer learning and adaptation}
 \label{sec:transfer_learning_distillation}
 
 In Chapter~\ref{sec:deep_network_training_and_regularization}, we established the mathematical mechanisms required to train a deep neural network from scratch: variance-preserving weight initialization, batch normalization dynamics, gradient descent babysitting, and stochastic noise regularization. Yet, an overwhelming empirical challenge remains: \textbf{what happens when the target task possesses only a few dozen or hundred labeled training samples?}
@@ -9,7 +9,7 @@ This chapter dismantles that myth through the paradigm of \textbf{Representation
 
 ---
 
-\section{The transfer learning paradigm and representation reuse}
+\section{Transfer learning principles}
 \label{sec:transfer_learning_paradigm}
 
 The classical supervised learning framework assumes that training and testing data are drawn independently and identically from the exact same underlying joint probability distribution:
@@ -34,7 +34,7 @@ This definition establishes the clear tripartite taxonomy distinguishing transfe
   \item \textbf{Concept Drift}: A non-stationary data stream where the joint distribution $\mathcal{P}_t(X, Y)$ evolves continuously over temporal horizon $t$, requiring continual adaptation of internal representations.
 \end{enumerate}
 
-\subsection{Underlying factors of variation and architectural dualities}
+\subsection{Factors of variation}
 \label{sec:factors_of_variation_dualities}
 
 Why does transfer learning work across seemingly unrelated visual problems? Goodfellow et al.~\cite{goodfellow2016deep} explain this through the hypothesis of \textbf{Shared Factors of Variation}. 
@@ -92,7 +92,7 @@ This insight gives rise to an \textbf{architectural duality} in how representati
   \item \textbf{Topology B (Task-Specific Lower Encoders, Shared Canonical Representation)}: Occurs when the output variable $y$ has the identical semantics across domains, but the input spaces $\vx^{(1)}, \vx^{(2)}$ differ in dimension or sensory modality. For example, in multi-speaker speech recognition, speaker-specific acoustic front-ends map disparate vocal tracts into a shared phonetic representation. Similarly, in multimodal vision-language models (e.g., CLIP), disparate image and text encoders project into a unified metric embedding space.
 \end{itemize}
 
-\subsection{Hierarchical representation discovery in deep visual networks}
+\subsection{Hierarchical representations in CNNs}
 \label{sec:hierarchical_visual_representations}
 
 Why can weights trained to classify 1,000 everyday object categories in ImageNet (e.g., golden retrievers, tea kettles, freight cars) assist in detecting metastatic tumor cells in microscopic lymph node biopsies?
@@ -167,7 +167,7 @@ As formalized in Figure~\ref{fig:hierarchical_feature_spectrum}, a deep network 
   \item \textbf{Deep Layers (Task-Specific Semantics)}: The final stages ($\text{Conv}_5$, fully connected layers, or class logits) assemble mid-level parts into complete class configurations. These representations encode high-level source domain semantics (distinguishing an Afghan Hound from a Golden Retriever) and become increasingly non-transferable to distant downstream problems.
 \end{enumerate}
 
-\subsection{Off-the-shelf CNN features: the DeCAF breakthrough}
+\subsection{Off-the-shelf features and DeCAF}
 \label{sec:decaf_features}
 
 In 2014, Jeff Donahue et al.~\cite{donahue2014decaf} and Ali Sharif Razavian et al.~\cite{razavian2014cnn} established that deep convolutional networks trained on ImageNet act as \textbf{universal off-the-shelf feature extractors}. 
@@ -190,7 +190,7 @@ We pass the target dataset \textbf{once} through the frozen network, save the co
 
 ---
 
-\section{The adaptation spectrum: Linear probing versus full fine-tuning}
+\section{Linear probing versus fine-tuning}
 \label{sec:linear_probing_vs_finetuning}
 
 When deploying a pre-trained network on a downstream task, the practitioner faces a fundamental architectural continuum between two primary protocols:
@@ -209,7 +209,7 @@ The target classification head is initialized randomly, but the backbone paramet
 \boldsymbol{\theta}_{\text{backbone}} \leftarrow \boldsymbol{\theta}_{\text{backbone}} - \eta_{\text{backbone}} \nabla_{\boldsymbol{\theta}} \mathcal{L}, \qquad \mathbf{W}_{\text{head}} \leftarrow \mathbf{W}_{\text{head}} - \eta_{\text{head}} \nabla_{\mathbf{W}} \mathcal{L}.
 \end{equation}
 
-\subsection{The regularizing perspective and differential learning rate dynamics}
+\subsection{Regularization and differential learning rates}
 \label{sec:differential_lr_d2l}
 
 Why does fine-tuning work so effectively compared to random initialization? Simon Prince~\cite{prince2023understanding} formalizes transfer learning as an \textbf{implicit parameter regularization and initialization prior}. In an overparameterized deep loss landscape, the global objective possesses countless local minima and saddle points. Initializing with pre-trained weights places the parameters within a favorable basin of attraction—a region characterized by well-conditioned curvature and high generalization capacity. 
@@ -240,7 +240,7 @@ Furthermore, Zhang et al. emphasize that downstream inputs \textbf{must strictly
 \end{equation}
 Using the target dataset's own empirical mean and variance shifts the coordinate origin, forcing early convolutional filters to operate outside their calibrated activation distributions.
 
-\subsection{The transfer learning decision matrix}
+\subsection{Transfer learning decision matrix}
 \label{sec:transfer_learning_decision_matrix}
 
 How should a machine learning engineer choose between Linear Probing, partial fine-tuning, and full fine-tuning? As formalized by Fei-Fei Li and Justin Johnson, the choice is governed by a \textbf{$2 \times 2$ Decision Matrix} balancing \textbf{Target Dataset Size} against \textbf{Domain Similarity} (Figure~\ref{fig:transfer_decision_matrix}):
@@ -323,7 +323,7 @@ How should a machine learning engineer choose between Linear Probing, partial fi
     Because data is plentiful, the network can afford to reconfigure all feature layers. Starting from pre-trained weights accelerates optimization compared to random initialization, though training from scratch remains competitive.
 \end{enumerate}
 
-\subsection{Pervasiveness in modern computer vision and multimodal AI}
+\subsection{Transfer learning in modern vision and AI}
 \label{sec:pervasiveness_transfer_learning}
 
 Transfer learning is not an auxiliary trick; it is the universal backbone of modern applied artificial intelligence:
@@ -335,7 +335,7 @@ Transfer learning is not an auxiliary trick; it is the universal backbone of mod
 
 ---
 
-\section{Rethinking pre-training: Speedup versus asymptotic capacity}
+\section{Rethinking pre-training}
 \label{sec:rethinking_pretraining}
 
 For years, the universal assumption across computer vision was that pre-training on ImageNet provided an indispensable regularizer that yielded superior final accuracy that could never be matched by training from scratch.
@@ -402,12 +402,12 @@ The seminal findings of He et al.~\cite{he2019rethinking} include:
 
 ---
 
-\section{Out-of-distribution robustness and feature distortion: The LP-FT protocol}
+\section{Distribution shifts and the LP-FT protocol}
 \label{sec:feature_distortion_lp_ft}
 
 While fine-tuning is universally regarded as superior to linear probing on in-distribution data, Ananya Kumar, Aditi Raghunathan, Robbie Jones, Tengyu Ma, and Percy Liang~\cite{kumar2022fine} uncovered a profound theoretical paradox: \textbf{Fine-tuning can severely distort pre-trained representations and dramatically underperform linear probing out-of-distribution}.
 
-\subsection{The in-distribution versus out-of-distribution paradox}
+\subsection{The OOD performance paradox}
 \label{sec:id_vs_ood_paradox}
 
 Consider a pre-trained foundation model evaluated across two distinct testing distributions:
@@ -432,7 +432,7 @@ Consider a pre-trained foundation model evaluated across two distinct testing di
 
 As documented in Table~\ref{tab:lp_ft_benchmark_comparison}, on 8 out of 10 distribution shift datasets, \textbf{Linear Probing substantially outperforms Full Fine-Tuning under distribution shift} ($66.2\%$ vs. $59.3\%$). Why does fine-tuning destroy out-of-distribution generalization?
 
-\subsection{The mathematical mechanism of feature distortion}
+\subsection{Feature distortion mechanics}
 \label{sec:mechanism_feature_distortion}
 
 The vulnerability of fine-tuning originates from the \textbf{random initialization of the target classification head}:
@@ -480,14 +480,14 @@ As confirmed in Table~\ref{tab:lp_ft_benchmark_comparison}, LP-FT achieves the h
 
 ---
 
-\section{Knowledge distillation: Compressing overparameterized models into lightweight edge networks}
+\section{Knowledge distillation}
 \label{sec:knowledge_distillation}
 
 Up to this point, representation transfer has focused on adapting a single model to a new task. A complementary paradigm concerns transferring the knowledge of an overparameterized, high-capacity model (or model ensemble) into a \textbf{compact, lightweight student network} suitable for edge deployment.
 
 The roots of model compression date back to Cristian Bucilu\v{a}, Rich Caruana, and Alexandru Niculescu-Mizil (2006)~\cite{bucilua2006model}, who demonstrated that massive ensembles could be compressed into a single neural network by matching pseudo-labeled predictions on large unlabeled data pools. This methodology was modernized into its foundational theoretical form by Geoffrey Hinton, Oriol Vinyals, and Jeff Dean (2015)~\cite{hinton2015distilling} as \textbf{Knowledge Distillation}.
 
-\subsection{Soft targets and the concept of dark knowledge}
+\subsection{Dark knowledge and soft targets}
 \label{sec:dark_knowledge_concept}
 
 Standard supervised classification trains networks using \textbf{hard one-hot ground-truth targets}:
@@ -504,7 +504,7 @@ However, a well-trained, high-capacity \textbf{Teacher Model} computes continuou
 
 Hinton et al.~\cite{hinton2015distilling} termed this hidden structural similarity \textbf{Dark Knowledge}. Transferring dark knowledge enables a compact student network to learn the smooth decision manifolds discovered by the cumbersome teacher.
 
-\subsection{Temperature-scaled Softmax dynamics}
+\subsection{Temperature-scaled Softmax}
 \label{sec:temperature_scaled_softmax}
 
 In a standard trained network, the softmax probabilities:
@@ -575,7 +575,7 @@ p_i^{(T)} = \frac{\exp\left(\frac{z_i}{T}\right)}{\sum_{j=1}^C \exp\left(\frac{z
   \item When $T \to \infty$, the logits are compressed toward zero, and the probabilities approach a uniform distribution: $p_i \to \frac{1}{C}$. In this high-temperature limit, the relative logit differences $z_i - z_j$ are preserved linearly without exponential exaggeration.
 \end{itemize}
 
-\subsection{The dual distillation objective function}
+\subsection{Distillation loss objective}
 \label{sec:dual_distillation_objective}
 
 As illustrated in Figure~\ref{fig:knowledge_distillation_architecture}, the student network (with trainable weights $\vw$ producing logits $\mathbf{v}$) is trained on a linear combination of two objectives:
@@ -599,7 +599,7 @@ Combining both terms yields the total Knowledge Distillation objective:
 \end{equation}
 where $\lambda \in [0, 1]$ is a balancing hyperparameter (typically $\lambda = 0.5$ or $0.7$).
 
-\subsection{Derivation of the $T^2$ gradient scaling factor}
+\subsection{Derivation of the $T^2$ scaling factor}
 \label{sec:t_squared_scaling_derivation}
 
 A common oral examination trap is to ask: \textbf{why is the distillation loss multiplied by $T^2$ in Equation~\eqref{eq:full_kd_loss_formula}?}
@@ -633,7 +633,7 @@ Multiplying the distillation loss by $T^2$ in the objective function ensures tha
 This keeps the relative gradient contributions of the hard ground-truth loss and the soft distillation loss properly balanced, preventing the soft dark knowledge signal from vanishing as $T$ increases.
 \end{theorem}
 
-\subsection{Intermediate feature distillation: Attention transfer}
+\subsection{Attention transfer}
 \label{sec:attention_transfer_distillation}
 
 In complex computer vision tasks, distilling strictly the final pre-softmax logits is often insufficient: two deep architectures can output identical class probabilities while routing information through entirely disparate internal representational mechanisms.
@@ -738,7 +738,7 @@ As illustrated in Figure~\ref{fig:multilevel_knowledge_distillation}, normalized
 \end{equation}
 By matching these 2D spatial attention heatmaps, the student model is forced not only to produce identical class logits, but to look at the exact same salient anatomical or visual parts (e.g., eyes, wheels, tumor borders) as the heavy teacher network.
 
-\subsection{Can distillation defeat overparameterization?}
+\subsection{Distillation versus overparameterization}
 \label{sec:distillation_overparameterization_limits}
 
 An enduring theoretical question in deep learning is whether distillation can compress an overparameterized model down to an \textit{underparameterized} regime without sacrificing generalization accuracy.
@@ -757,7 +757,7 @@ Consequently, compressing a network below this threshold impairs its Lipschitz c
 
 ---
 
-\section{The representation learning continuum: Transfer, multitask, and meta-learning}
+\section{Transfer, multitask, and meta-learning}
 \label{sec:representation_learning_continuum}
 
 Transfer learning does not exist in isolation. It forms a coherent theoretical spectrum with \textbf{Multitask Learning} and \textbf{Meta-Learning}, as synthesized across Bishop~\cite{bishop2024deep}, Goodfellow et al.~\cite{goodfellow2016deep}, and Prince~\cite{prince2023understanding}:

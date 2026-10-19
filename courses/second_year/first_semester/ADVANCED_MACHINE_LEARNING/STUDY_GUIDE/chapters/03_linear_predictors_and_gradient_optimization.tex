@@ -1,4 +1,4 @@
-\chapter{Linear predictors, generalization, and first-order numerical optimization}
+\chapter{Linear predictors and gradient optimization}
 \label{sec:linear_predictors_and_gradient_optimization}
 \label{sec:optimization_and_gradient_descent}
 
@@ -13,12 +13,12 @@ However, as statistical learning scales to real-world complexities, this apparen
 
 To conquer these barriers, machine learning must abandon closed-form linear algebra and embrace two foundational pillars: \textbf{regularization} (to tame capacity and restore matrix invertibility) and \textbf{iterative numerical optimization} (gradient descent, momentum, and stochastic mini-batch dynamics). This chapter charts this complete intellectual journey from closed-form least squares to modern large-scale optimization.
 
-\section{Linear regression, ordinary least squares, and model capacity}
+\section{Linear regression and capacity}
 \label{sec:linear_regression_and_capacity}
 
 In the study of supervised learning, linear models occupy a foundational position as both an intuitive baseline and an analytically tractable laboratory for exploring core statistical principles. By modeling the relationship between input features and continuous targets as an affine transformation, linear regression provides an interpretable mapping whose parameters directly reflect feature importances. Under the classic squared error criterion, the parameter estimation problem achieves a rare and remarkable property in machine learning: it admits an exact, globally optimal analytical closed-form solution via the celebrated Normal Equations, bypassing the need for exploratory numerical search.
 
-\subsection{Ordinary least squares, normal equations, and orthogonal projection}
+\subsection{Ordinary least squares and projection}
 \label{sec:ols_and_normal_equations}
 \label{sec:linear_predictor_formulation}
 \label{sec:ols_and_mle}
@@ -259,7 +259,7 @@ Even when $N > D$, if two or more input features are strongly correlated, the co
 
 These computational bottlenecks and structural failure modes reveal that closed-form Ordinary Least Squares cannot suffice for high-dimensional or non-linear prediction. Even when $N > D$ and the Gram matrix is strictly invertible, an affine hyperplane cannot capture curved physical patterns without expanding the input feature representation. In the next subsection, we venture beyond linearity and uncover the delicate interplay between model capacity and generalization.
 
-\subsection{Beyond linearity: Basis function expansion and polynomial regression}
+\subsection{Non-linear basis expansions}
 \label{sec:beyond_linearity_and_capacity}
 \label{sec:basis_expansion_polynomial}
 
@@ -295,7 +295,7 @@ The corresponding feature matrix $\boldsymbol{\Phi}$ is the classical \textbf{Va
 \label{eq:vandermonde_matrix}
 \end{equation}
 
-\subsection{Model capacity, inductive bias, and the underfitting--overfitting dilemma}
+\subsection{Model capacity and overfitting}
 \label{sec:capacity_underfitting_overfitting}
 
 The polynomial degree $M$ acts as a direct control dial for the \textbf{capacity} of the hypothesis class $\mathcal{H}_M = \{h(x) = \sum_{j=0}^M w_j x^j\}$. Capacity measures the richness or flexibility of the functional shapes that the model can represent. Every model class is constrained by its \textbf{inductive bias}---the structural assumptions that restrict its search space before observing data. For polynomial regression, the inductive bias is that the relationship between $x$ and $y$ can be faithfully approximated by a smooth polynomial of order $\le M$.
@@ -471,14 +471,14 @@ where $\hat{y}_i$ is the prediction of the model trained on the \textit{full} da
 
 Although basis function expansions enable linear models to approximate intricate non-linear phenomena, unconstrained capacity comes at a severe operational cost: when the basis dimension $M$ is large, the parameter vector experiences explosive weight oscillations ($|w_j| \to \infty$) that fit idiosyncratic sample noise and decimate test generalization. Furthermore, in high-dimensional or collinear regimes, the design matrix $\boldsymbol{\Phi}$ yields a singular or severely ill-conditioned Gram matrix $\boldsymbol{\Phi}^\top \boldsymbol{\Phi}$, causing ordinary least squares to lose its uniqueness and collapse into extreme numerical instability. Rather than crudely truncating candidate feature dimensions, statistical learning demands a principled framework that preserves expressive capacity while systematically penalizing excessive parameter magnitude. This motivates the regularization paradigm explored in Section~\ref{sec:regularization_linear_models}.
 
-\section{Regularization for linear models: Lasso ($L_1$) and Ridge ($L_2$)}
+\section{Regularization for linear models}
 \label{sec:regularization_linear_models}
 
 In high-dimensional learning, the core challenge is balancing model capacity against generalization error. When a linear predictor possesses more degrees of freedom than can be reliably constrained by available observations, the empirical risk minimizer naturally exploits these excess dimensions to achieve zero training error by driving parameter values to astronomical positive and negative extremes. These runaway weights cancel each other out over the training points, but oscillate wildly across unobserved regions of the input space. Regularization counteracts this failure mode by incorporating a structural inductive bias directly into the objective function, imposing a controlled penalty on parameter complexity.
 
 From an algebraic perspective, regularization addresses the fatal pathology of rank deficiency and ill-conditioning in ordinary least squares. When features are correlated or when the input dimensionality exceeds the dataset size ($D > N$), the sample covariance matrix possesses zero or near-zero eigenvalues, causing standard matrix inversion to fail or explode under floating-point arithmetic. By augmenting the empirical loss with a penalty on parameter norms, regularization reshapes the optimization landscape, dampening the variance of the estimator and restoring mathematical well-posedness to underdetermined systems.
 
-\subsection{The regularization paradigm and complexity penalization}
+\subsection{Regularization principles}
 \label{sec:regularization_paradigm}
 
 In Section~\ref{sec:capacity_underfitting_overfitting}, we discovered that overfitting in linear basis models manifests as an explosive divergence in parameter magnitudes $\|\vw\|_2 \to \infty$. Rather than crudely restricting the hypothesis space by truncating the polynomial degree $M$ (which limits expressive resolution), modern statistical learning adopts the \textbf{regularization paradigm}: we allow rich, high-dimensional basis representations, but augment the objective function with a penalty term that discourages complex, runaway weight configurations:
@@ -497,7 +497,7 @@ where:
 By universal convention, the intercept (bias) $b$ is \textbf{strictly excluded} from the regularization penalty $\Omega(\vw)$. Regularizing the bias would make the model's predictions dependent on the choice of origin for the target variable $y$. For example, adding an arbitrary constant offset $+100$ to all targets $y_i$ would force $b$ to absorb $+100$, incurring an artificial regularization penalty. Therefore, the data matrix $\mX \in \R^{N \times D}$ is centered ($\sum_{i=1}^N x_{ij} = 0$), the targets are centered ($\bar{y} = 0 \implies b = 0$), and $\Omega(\vw)$ penalizes only the directional weight vector $\vw \in \R^D$.
 \end{remark}
 
-\subsection{Lasso regression ($L_1$ regularization) and parameter sparsity}
+\subsection{Lasso regularization ($L_1$)}
 \label{sec:lasso_regression}
 
 When dealing with high-dimensional input spaces ($D \gg 1$), many candidate features are redundant, noisy, or completely irrelevant to the underlying physical task. While penalizing weights smoothly can reduce overfitting, interpreting dense parameter vectors remains difficult when thousands of features retain non-zero coefficients. To achieve true parameter sparsity and automated feature selection, Robert Tibshirani (1996) introduced the \textbf{Lasso} (\textit{Least Absolute Shrinkage and Selection Operator}), which replaces the Euclidean norm with the $L_1$ norm penalty:
@@ -596,7 +596,7 @@ Despite its remarkable capacity for exact feature selection, Lasso regression is
 \end{enumerate}
 These limitations motivate $L_2$ regularization, which restores smooth differentiability, provides an unconditional closed-form solution, and guarantees numerical invertibility even when $D > N$.
 
-\subsection{Ridge regression ($L_2$ regularization) and guaranteed matrix invertibility}
+\subsection{Ridge regularization ($L_2$)}
 \label{sec:ridge_regression}
 
 When the penalty is the squared Euclidean ($L_2$) norm of the weight vector, the method is known as \textbf{Ridge regression} (or \textit{Tikhonov regularization}):
@@ -651,7 +651,7 @@ While Ridge regression elegantly resolves singular matrix breakdown and admits a
 
 While linear regression, Lasso, and Ridge establish the mathematical foundation for predicting continuous targets, real-world machine learning frequently requires classifying observations into discrete qualitative categories---such as diagnosing an ultrasound lesion as benign ($y=0$) versus malignant ($y=1$). A tempting initial instinct is to deploy this exact same regularized linear framework on binary indicator targets and apply a hard threshold to continuous predictions. However, as revealed in Section~\ref{sec:linear_to_logistic}, ordinary least squares encounters fundamental theoretical and geometrical failure modes when applied to discrete classification, necessitating the development of the probabilistic logistic model.
 
-\section{The limits of linear regression for classification and the logistic model}
+\section{Logistic regression}
 \label{sec:linear_to_logistic}
 
 In classical statistical learning, ordinary least squares linear regression provides an elegant, closed-form mapping from continuous input features $\mathbf{x} \in \R^d$ to continuous targets $y \in \R$ through the analytical Normal Equations. When faced with classification problems where targets represent discrete qualitative outcomes---such as clinical diagnoses (benign versus malignant lesions), fraud detection, or document categorizations---a tempting intuition is to reuse this established regression machinery. By treating class labels as binary numerical indicators ($y \in \{0, 1\}$), one might hope to fit a continuous affine hyperplane $h_{\boldsymbol{\theta}}(\mathbf{x}) = \mathbf{w}^\top \mathbf{x} + b$ and obtain discrete predictions by simply thresholding the continuous output at an arbitrary decision cutoff such as $0.5$.
@@ -660,7 +660,7 @@ However, direct application of squared error regression to discrete classificati
 
 This section systematically deconstructs the failure modes of linear regression for classification and establishes the logistic regression model. We first examine why ordinary least squares fails on discrete targets through the lenses of unbounded range and outlier leverage, using a concrete clinical tumor diagnosis setting. We then introduce the logistic sigmoid activation function, deriving it rigorously from log-odds and logit transformations to squash real-valued activations into mathematically well-calibrated posterior probabilities. Finally, we expose why coupling the sigmoid activation with mean squared error produces non-convex loss surfaces riddled with local minima and vanishing gradients, setting the stage for cross-entropy optimization.
 
-\subsection{Why ordinary least squares fails on discrete labels}
+\subsection{Failure of least squares on classification}
 \label{sec:least_squares_failure}
 
 Consider a real-world clinical diagnostic task: automated tumor diagnosis from medical ultrasound imaging. The input $\mathbf{x} \in \R^d$ represents quantitative acoustic texture features extracted from an ultrasound scan, and the clinical goal is to output a discrete diagnostic category $y \in \{0, 1\}$:
@@ -795,7 +795,7 @@ To reduce this large quadratic penalty, the OLS fitting procedure tilts and rota
 
 Thus, least squares penalizes samples for being \textit{too confidently correct}, distorting the geometric decision boundary. This confirms that regression with squared error is structurally inappropriate for classification.
 
-\subsection{The logistic sigmoid activation and the log-odds formulation}
+\subsection{The logistic sigmoid model}
 \label{sec:logistic_sigmoid_formulation}
 
 To resolve the unbounded range problem, we must apply a non-linear squashing function that maps the real line $\R$ smoothly and monotonically into the open probability interval $(0, 1)$. This function is the \textbf{logistic sigmoid}:
@@ -847,7 +847,7 @@ Taking the natural logarithm of the odds defines the \textbf{log-odds} (or \text
 \end{equation}
 Equation~\eqref{eq:logit_transformation} reveals that logistic regression is a \textbf{generalized linear model (GLM)}: while the output probability $p$ is non-linear in $\mathbf{x}$, the log-odds is strictly affine. The decision boundary separating $P(y=1 \mid \mathbf{x}) \ge 0.5$ from $P(y=1 \mid \mathbf{x}) < 0.5$ corresponds precisely to $\operatorname{logit}(p) = 0$, which is the linear hyperplane $\mathbf{w}^\top \mathbf{x} + b = 0$.
 
-\subsection{Why squared error with sigmoid fails: Non-convexity and vanishing gradients}
+\subsection{Failure of squared error on logistic models}
 \label{sec:squared_error_sigmoid_failure}
 
 Now that the linear predictor has been mapped into valid probabilities via the sigmoid squashing function $\hat{y}_i = \sigma(\mathbf{w}^\top \mathbf{x}_i + b) \in (0, 1)$, a natural follow-up question arises: \textit{can we simply retain our familiar Mean Squared Error (MSE) loss function and optimize the parameters via gradient descent?}
@@ -904,14 +904,14 @@ Candidates must immediately articulate the two complementary justifications:
 
 Having established that mapping linear outputs through a sigmoidal link rectifies the range pathology and yields well-calibrated posterior probabilities, we discovered that pairing the sigmoid with classical squared error introduces fatal optimization pathologies: non-convex local traps and gradient saturation on egregious errors. To optimize probabilistic classifiers reliably, we require an objective function whose loss landscape is strictly convex, whose gradients penalize catastrophic misclassifications with linear restoration forces, and whose statistical formulation aligns with maximum likelihood principles. This motivates the deep study of loss function geometry and binary cross-entropy in Section~\ref{sec:loss_geometry_and_cross_entropy}.
 
-\section{Loss function geometry, cross-entropy, and the non-existence of closed-form solutions}
+\section{Loss functions and geometry}
 \label{sec:loss_geometry_and_cross_entropy}
 
 The choice of loss function is the central design decision that governs both the statistical validity and the geometric solvability of a classification algorithm. In an ideal world, one would directly minimize the discrete 0-1 classification loss, which counts the number of misclassified samples. However, because the 0-1 loss is piecewise constant with zero derivative almost everywhere and discontinuous at the decision boundary, empirical risk minimization under this metric is an NP-hard combinatorial problem, rendering gradient-based learning completely impossible.
 
 To make progress, statistical learning replaces the intractable 0-1 step loss with smooth, continuous surrogate functions defined over the classification margin. Yet, choosing an ill-suited surrogate can have disastrous consequences: as proven in Section~\ref{sec:squared_error_sigmoid_failure}, squared error penalizes over-confident correct classifications while destroying convexity and inducing vanishing gradients. In contrast, cross-entropy loss---derived from Maximum Likelihood Estimation on Bernoulli and Multinomial distributions---possesses a remarkably benign geometry: it is strictly convex, penalizes confident mistakes with severe logarithmic penalties, and algebraically cancels the vanishing derivative of sigmoidal and softmax links.
 
-\subsection{The role of loss functions: Downstream alignment and surrogate geometry}
+\subsection{Surrogate loss geometry}
 \label{sec:loss_comparison_review}
 
 In supervised learning, the loss function $\ell(h(\mathbf{x}), y)$ serves as the mathematical objective that steers the parameter vector $\mathbf{w}$ across the parameter space. Optimization algorithms possess no intrinsic semantic understanding of the downstream application---whether diagnosing medical lesions, detecting credit card fraud, or forecasting physical temperatures; they simply follow the local descent trajectory dictated by the gradients of the chosen loss surface. Consequently, defining a mathematically sound and task-aligned loss function is the single most critical modeling decision in machine learning.
@@ -998,7 +998,7 @@ As visually summarized in Figure~\ref{fig:slide_loss_functions}:
   \item \textbf{Logistic Loss (Cross-Entropy)}: $\ell_{\text{log}}(z) = \ln(1 + e^{-z})$. Infinitely smooth, strictly convex, upper-bounds the 0-1 loss, and approaches zero asymptotically as $z \to +\infty$.
 \end{enumerate}
 
-\subsection{Maximum likelihood estimation as a principled loss generator}
+\subsection{Maximum likelihood loss generation}
 \label{sec:maximum_likelihood_logistic}
 \label{sec:analytical_gradients}
 
@@ -1106,7 +1106,7 @@ Notice the striking structural parallel with the gradient of Mean Squared Error:
 \end{equation}
 In both foundational estimation paradigms, the gradient is an error-weighted linear combination of input feature vectors $\mathbf{x}_i$, where each sample contributes proportionally to its prediction residual $(\hat{y}_i - y_i)$.
 
-\subsection{Why iterative optimization is necessary: Computational bottlenecks and transcendental equations}
+\subsection{Necessity of iterative optimization}
 \label{sec:no_closed_form_solution}
 
 Equipped with the analytical gradients for both linear regression and logistic cross-entropy, a fundamental question arises: \textit{why can we not simply set the gradient to zero ($\nabla_\mathbf{w} J(\mathbf{w}) = \mathbf{0}$) and solve for the optimal parameter vector in a single exact closed-form step?}
@@ -1159,14 +1159,14 @@ These two contrasting examples reveal a profound theoretical truth:
 \end{itemize}
 Therefore, modern machine learning must abandon closed-form linear algebra and rely entirely on \textbf{Iterative Numerical Optimization}: initializing parameters with a guess $\mathbf{w}_0$ and executing small, localized downhill steps guided by gradient vectors until convergence. This motivates the formal study of first-order numerical optimization, loss landscapes, and gradient descent in Section~\ref{sec:first_order_optimization}.
 
-\section{First-order numerical optimization: Loss landscapes and gradient descent}
+\section{Gradient descent}
 \label{sec:first_order_optimization}
 
 When analytical solutions are mathematically impossible or computationally prohibitive, machine learning algorithms must acquire knowledge through iterative numerical optimization. Rather than leaping to the global optimum via closed-form matrix algebra, the model begins with an initial parameter guess and refines it through a sequence of discrete, localized updates across the loss landscape. Each iteration queries the objective function and its local derivatives to determine an exploratory step that decreases empirical error.
 
 However, navigating high-dimensional loss landscapes is fraught with peril. An optimizer operating without global visibility can be likened to an explorer traversing an unfamiliar mountain shrouded in dense fog: one can only evaluate the local inclination directly beneath one's feet. If the step size is chosen too conservatively, optimization crawls at an agonizingly slow pace, stalling on shallow plateaus; if chosen too aggressively, updates overshoot valleys and oscillate wildly, driving loss values toward numerical overflow. Moreover, the presence of stationary points---where gradients vanish identically---poses constant risks of premature stagnation.
 
-\subsection{Foundations of gradient descent: Topography, contours, and differentiability}
+\subsection{Gradient descent geometry}
 \label{sec:gd_foundations_topography}
 \label{sec:skier_analogy_landscape}
 \label{sec:loss_surface_topology}
@@ -1419,7 +1419,7 @@ Unlike standard gradient descent on smooth functions, subgradient descent is not
 \end{equation}
 the distance to the optimal set $\|\mathbf{w}_t - \mathbf{w}^*\|_2$ contracts monotonically, guaranteeing asymptotic convergence to the global minimum.
 
-\subsection{Stationary points and initialization sensitivity}
+\subsection{Stationary points and initialization}
 \label{sec:stationary_points_initialization}
 
 A point $\mathbf{x}^* \in \mathbb{R}^d$ where the gradient vanishes identically is defined as a \textbf{stationary point} (or critical point):
@@ -1448,7 +1448,7 @@ A stationary point can be a local minimum, a local maximum, or a saddle point.
 
 As visualized in Figure~\ref{fig:gd_trajectories_initialization}, which stationary point gradient descent reaches depends entirely on the initial parameter configuration $\mathbf{x}^{(0)}$. In complex non-convex landscapes, different initializations lead to vastly different local basins or saddle geometries.
 
-\subsection{First-order optimization: Linear approximation and the gradient descent update}
+\subsection{First-order updates}
 \label{sec:first_order_taylor}
 
 We parameterize a finite step of length $\eta > 0$ along the negative gradient direction, yielding displacement $\Delta \mathbf{w} = -\eta \nabla f(\mathbf{w})$. The first-order Taylor series approximation around point $\mathbf{w}_t$ is:
@@ -1469,7 +1469,7 @@ where $\eta > 0$ is the \textbf{learning rate} (step size hyperparameter).
 
 The foundational premise of first-order gradient descent is that the objective function can be effectively approximated by its flat tangent hyperplane. While this linear approximation is strictly valid in an infinitesimal local neighborhood, realistic loss surfaces possess curvature. If an update takes too large a step across a curved landscape, the first-order approximation breaks down, leading to instability. To formally characterize how curvature governs the admissible step size, we must turn to second-order analysis.
 
-\subsection{Second-order curvature, the Hessian matrix, and ill-conditioned ravines}
+\subsection{Second-order curvature and the Hessian}
 \label{sec:second_order_curvature}
 \label{sec:hessian_matrix}
 \label{sec:condition_number_ravines}
@@ -1597,14 +1597,14 @@ As visualized in Figure~\ref{fig:slide_ill_conditioned_ravine}:
 \end{itemize}
 Consequently, first-order gradient descent oscillates violently back and forth between the opposing walls of the ravine, making negligible forward progress toward the true minimizer.
 
-\section{The learning rate: Dynamics, stability bounds, and decay schedules}
+\section{The learning rate}
 \label{sec:learning_rate_dynamics_section}
 
 In first-order gradient optimization, the learning rate $\eta > 0$ represents the single most influential hyperparameter governing model training. Acting as the global step-size multiplier, it dictates how far parameters are displaced along the negative gradient vector at every discrete update. Selecting $\eta$ demands resolving a profound operational dilemma: an excessively small step size guarantees stable local descent but stalls optimization on shallow plateaus, while an excessively large step size risks catastrophic overshooting, bouncing violently across ravines and destabilizing parameter updates toward numerical overflow.
 
 Controlling this behavior requires a comprehensive understanding of step dynamics on contour landscapes, the theoretical stability bounds imposed by local curvature, and the deterministic decay schedules that modulate the step size throughout optimization.
 
-\subsection{Learning rate dynamics: Under-stepping, overshooting, and exact line search}
+\subsection{Learning rate dynamics and stability}
 \label{sec:learning_rate_dynamics}
 
 The magnitude of the learning rate $\eta$ critically dictates optimization stability:
@@ -1634,7 +1634,7 @@ As illustrated across the contour landscapes in Figure~\ref{fig:slide_learning_r
     Equation~\eqref{eq:line_search_orthogonality} reveals a fundamental geometric theorem: at the exact line-search minimizer, the new gradient $\nabla f(\mathbf{x}^{(t+1)})$ is strictly perpendicular to the previous search direction $-\nabla f(\mathbf{x}^{(t)})$. In terms of contour topology, this means the gradient direction at the landing point is \textbf{tangent to the local isocurve} (level set), producing the characteristic orthogonal zig-zag trajectory shown in the right panel of Figure~\ref{fig:slide_learning_rates}.
 \end{itemize}
 
-\subsection{Deterministic learning rate decay schedules: Linear, inverse, and exponential}
+\subsection{Learning rate decay schedules}
 \label{sec:learning_rate_decay_schedules}
 
 Fixing a constant scalar learning rate $\alpha$ forces an undesirable trade-off: a large learning rate enables rapid traversal of distant plateaus early in training but prevents convergence near the minimum due to endless cross-valley oscillations; conversely, a small learning rate ensures stable fine-grained convergence but crawls agonizingly slowly at initialization.
@@ -1667,14 +1667,14 @@ Because the step size contracts by a constant multiplicative factor $e^{-\rho}$ 
 
 Although learning rate decay schedules effectively dampen updates over time to stabilize asymptotic convergence, they apply an identical scalar multiplier uniformly across all spatial coordinates. Consequently, decay schedules are fundamentally incapable of resolving the directional anisotropy of ill-conditioned ravines ($\kappa \gg 1$), where optimization requires aggressive dampening across steep valley walls alongside massive acceleration along gentle valley floors. Furthermore, standard gradient descent operates as a purely reactive, memoryless physical system, resetting its step direction at every iteration solely from instantaneous slope. Overcoming these fundamental geometric bottlenecks requires imbuing the optimizer with physical momentum and developing adaptive coordinate-wise scaling algorithms, as established in Section~\ref{sec:first_order_acceleration_methods}.
 
-\section{First-order acceleration methods: Momentum and unified matrix scaling}
+\section{Accelerated gradient methods}
 \label{sec:first_order_acceleration_methods}
 
 In high-dimensional non-convex optimization, standard first-order gradient descent behaves like a memoryless physical system: at every iteration, the parameter vector acts as an idealized massless particle that instantly resets its velocity to match the instantaneous negative gradient. While this reactive behavior works satisfactorily on perfectly isotropic quadratic surfaces, it fails catastrophically in the presence of anisotropic curvature and ill-conditioned ravines ($\kappa \gg 1$). In such geometries, the optimizer is buffeted back and forth between opposing valley walls, dissipating nearly all its computational energy in high-frequency cross-valley oscillations while making negligible longitudinal progress toward the minimum.
 
 To overcome this fundamental limitation without incurring the prohibitive $\mathcal{O}(d^3)$ cost of explicit second-order Hessian inversion, statistical learning turns to the principles of classical mechanics. By imbuing the optimizer with \textbf{physical momentum}, the parameter vector is modeled not as a massless point, but as a heavy marble rolling down a frictioned potential well. Historical gradient vectors are accumulated into an internal velocity state, allowing persistent directional forces along the valley floor to build up constructive kinetic energy while high-frequency cross-ravine gradient oscillations cancel each other out destructively.
 
-\subsection{Classical momentum: Physical mechanism and aligned gradient acceleration}
+\subsection{Classical momentum}
 \label{sec:classical_momentum}
 \label{sec:aligned_gradient_acceleration}
 
@@ -1732,7 +1732,7 @@ Equation~\eqref{eq:terminal_momentum_step} reveals the remarkable speedup factor
 \end{itemize}
 This dynamic amplification enables momentum to surge rapidly through flat regions and provides the kinetic energy required to carry parameter updates over shallow local barriers into deeper, more generalizing minima basins.
 
-\subsection{Unrolling optimization dynamics: Standard gradient descent vs. momentum}
+\subsection{Unrolling optimization dynamics}
 \label{sec:unrolling_gd_momentum}
 
 To understand how momentum transforms optimization trajectories over an entire training run, we analyze the optimization recurrence in unrolled form.
@@ -1776,7 +1776,7 @@ Substituting this closed-form coefficient into the unrolled parameter position y
 \end{equation}
 For early gradients where $t - i \gg 0$, $\lambda^{t+1-i} \to 0$, so their cumulative weight saturates at $-\frac{\alpha}{1 - \lambda}$. For very recent gradients ($i \approx t$), the weight is approximately $-\alpha$. This provides a smooth, recency-weighted memory filter over the optimization trajectory.
 
-\subsection{Adaptive learning rate optimizers and the unified diagonal scaling matrix}
+\subsection{Adaptive learning rate optimizers}
 \label{sec:unified_diagonal_scaling}
 
 \paragraph{The unified diagonal scaling matrix framework.}
@@ -1979,14 +1979,14 @@ As visualized across both panels:
 
 Although momentum and adaptive diagonal scaling provide powerful mechanisms for traversing ill-conditioned valleys and accelerating through flat regions, they were originally conceived within the paradigm of convex or locally unimodal optimization. Deep neural architectures, however, present a radically more complex challenge: the composition of multi-layer nonlinear transformations shatters convexity completely, creating high-dimensional loss landscapes populated by astronomically many critical points---including local minima, local maxima, and complex saddle surfaces. Furthermore, simply locating an empirical minimum does not ensure predictive success, as different minima exhibit wildly divergent generalization properties on unseen data. To optimize deep models effectively, we must therefore investigate the topology of critical points and the delicate interplay between curvature and generalization, as explored in Section~\ref{sec:critical_points_deep_learning}.
 
-\section{Critical points and generalization in deep learning}
+\section{Critical points and generalization}
 \label{sec:critical_points_deep_learning}
 
 In classical convex optimization, the landscape of the objective function is inherently benign: every stationary point where the gradient vanishes is guaranteed to be a global minimum, ensuring that local search trajectories converge to globally optimal parameters regardless of initialization. In deep neural networks, however, permutation symmetries among hidden units and the cascaded nesting of non-linear activations shatter convexity completely. The resulting parameter space is characterized by an intricate, non-convex terrain punctuated by an astronomical proliferation of critical points, flat plateaus, and treacherous ravines.
 
 For decades, the central fear in non-convex optimization was that gradient-based algorithms would become irrevocably trapped in suboptimal, high-loss local minima. However, modern high-dimensional probability and random matrix theory have revolutionized our understanding of deep loss surfaces: in millions of dimensions, the probability that all eigenvalues of the Hessian are simultaneously positive at a high loss elevation decays exponentially to zero. The primary obstacles that impede training are not isolated local minima, but rather high-index saddle points and vast degenerate plateaus. Crucially, the ultimate objective of machine learning is not to achieve the absolute lowest empirical training loss, but to identify parameter configurations that generalize robustly to unseen test distributions.
 
-\subsection{Classification of critical points}
+\subsection{Critical point classification}
 \label{sec:hessian_classification}
 
 At a critical point $\mathbf{w}^*$, the linear Taylor term in Equation~\eqref{eq:second_order_taylor} vanishes, leaving the local behavior entirely governed by the quadratic form $\frac{1}{2} \Delta \mathbf{w}^\top \mathbf{H}(\mathbf{w}^*) \Delta \mathbf{w}$:
@@ -2077,7 +2077,7 @@ Figures~\ref{fig:slide_saddle_point} and~\ref{fig:manim_saddle_point} illustrate
 \end{equation}
 yielding eigenvalues $\lambda_1 = +2 > 0$ (along the $w_1$ axis) and $\lambda_2 = -2 < 0$ (along the $w_2$ axis).
 
-\subsection{Proliferation of saddle points in high dimensions}
+\subsection{Saddle point proliferation}
 \label{sec:dauphin_saddle_points}
 
 In popular machine learning discourse, a persistent misconception is that training deep neural networks fails because first-order gradient descent gets trapped in poor local minima.
@@ -2094,7 +2094,7 @@ In a landmark paper presented at NeurIPS 2014, Dauphin, Bengio et al.~\cite{daup
   \item However, because $\|\nabla f(\mathbf{w})\| \approx 0$ in the vicinity of a saddle point, standard first-order gradient descent decelerates dramatically, spending exponential time navigating plateau-like saddle neighborhoods unless escaping noise is injected.
 \end{enumerate}
 
-\subsection{The global optimum fallacy: Flat versus sharp minima}
+\subsection{Flat versus sharp minima}
 \label{sec:global_optimum_fallacy}
 \label{sec:flat_vs_sharp_minima}
 
@@ -2226,14 +2226,14 @@ As demonstrated in Figure~\ref{fig:flat_vs_sharp_minima}:
 
 Although first-order gradient descent equipped with momentum and adaptive scaling provides a robust framework for navigating non-convex landscapes toward flat minima, its full-batch formulation suffers from a crushing operational bottleneck in modern data-rich environments: computing the exact gradient requires evaluating forward and backward passes across every single training observation in the dataset. When training sets scale to millions or billions of examples, evaluating a single full-batch parameter update becomes prohibitively sluggish, requiring hours or days of compute. Moreover, deterministic full-batch trajectories lack any exploratory stochasticity to jump over low energetic barriers separating sharp, overfitted wells from wide, generalizing valleys. To unlock efficient learning on massive datasets while harnessing beneficial stochastic perturbation, we must transition from deterministic batch optimization to stochastic gradient descent and mini-batch dynamics in Section~\ref{sec:sgd_and_minibatch}.
 
-\section{Stochastic gradient descent and mini-batch optimization}
+\section{Stochastic gradient descent}
 \label{sec:sgd_and_minibatch}
 
 The empirical risk objective in supervised learning is structured as an arithmetic average of loss terms computed across individual training samples. By linearity of differentiation, computing the exact full-batch gradient requires summing the loss gradients evaluated over the entire dataset. In an era where benchmark datasets encompass millions of high-resolution images, billions of web documents, or continuous streaming logs, executing this exhaustive summation for every parameter update creates a paralyzing computational bottleneck that brings optimization to a virtual standstill.
 
 Stochastic gradient descent (SGD) resolves this computational crisis through a profound statistical principle: an average computed over a small, randomly sampled subset of observations serves as an unbiased estimator of the true population expectation. While this subsampling injects high-frequency variance into parameter updates, this stochastic noise is far from a mere nuisance: it acts as a beneficial thermal agitation---an implicit Langevin regularizer that actively prevents parameters from settling into narrow, sharp overfitted minima, nudging the optimization trajectory toward wide, flat basins with superior generalization capabilities.
 
-\subsection{Computational bottlenecks and mini-batch gradient descent}
+\subsection{Mini-batch gradient descent}
 \label{sec:two_bottlenecks_gd}
 \label{sec:gradient_estimators_taxonomy}
 \label{sec:algorithmic_cycle_epochs}
@@ -2303,7 +2303,7 @@ The procedural execution of mini-batch stochastic gradient descent proceeds cycl
 A crucial property is that the update cost per iteration is $\mathcal{O}(m \cdot d)$, which is \textbf{strictly constant regardless of the total size of dataset $\mathcal{T}$}. This invariance enables deep learning algorithms to scale gracefully to virtually infinite streaming datasets.
 \end{remark}
 
-\subsection{Statistical properties of stochastic gradients}
+\subsection{Statistical gradient properties}
 \label{sec:minibatch_statistics}
 \label{sec:robbins_monro}
 
@@ -2347,7 +2347,7 @@ To extinguish persistent stochastic fluctuations and guarantee almost-sure conve
 \end{equation}
 The first condition ensures an infinite exploration horizon so the optimizer never stalls prematurely, while the second guarantees that cumulative variance contracts to zero asymptotically.
 
-\subsection{Practical considerations for stochastic optimization}
+\subsection{Practical stochastic optimization}
 \label{sec:practical_sgd_deep_learning}
 
 To deploy SGD effectively in contemporary deep neural networks, five foundational practical principles govern implementation and training stability:

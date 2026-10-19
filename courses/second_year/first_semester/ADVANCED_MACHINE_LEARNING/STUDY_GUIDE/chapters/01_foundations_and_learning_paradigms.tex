@@ -1,7 +1,7 @@
-\chapter{Foundations of artificial intelligence and machine learning paradigms}
+\chapter{Foundations and learning paradigms}
 \label{sec:foundations_and_paradigms}
 
-\section{Course architecture and the 3-tier examination framework}
+\section{Course architecture and evaluation}
 \label{sec:academic_environment}
 
 The graduate curriculum in \emph{Advanced Machine Learning} at Politecnico di Torino (Course Codes: \texttt{01URWOV} / \texttt{01URWYG}, 6 CFU) is structured to transition students from passive consumers of machine learning APIs into rigorous theoretical researchers and deep learning engineers. The curriculum operates under the academic direction of the DAUIN, VANDAL Lab, and ELLIS Unit Turin teams.
@@ -52,7 +52,7 @@ The graduate curriculum in \emph{Advanced Machine Learning} at Politecnico di To
 \label{fig:slide_exam_framework}
 \end{figure}
 
-\subsection{The 3-tier evaluation architecture}
+\subsection{Evaluation tiers}
 \label{sec:exam_evaluation_tiers}
 
 As formalized in Figure~\ref{fig:slide_exam_framework}, successful completion of the course requires mastering three complementary evaluation tiers:
@@ -76,7 +76,7 @@ As formalized in Figure~\ref{fig:slide_exam_framework}, successful completion of
 
 ---
 
-\section{What is artificial intelligence? From logicism to computational rationality}
+\section{Artificial intelligence paradigms}
 \label{sec:what_is_ai}
 
 To understand modern machine learning, one must first deconstruct the historical evolution and foundational definitions of artificial intelligence. In their seminal treatise, Russell and Norvig~\cite{russell2020artificial} observe that artificial intelligence has historically been defined along two primary orthogonal axes:
@@ -208,7 +208,7 @@ A rigorous inspection of each of the four quadrants reveals their distinct found
   Consequently, the rational agent approach has become the \textbf{Standard Model} of modern artificial intelligence. It unifies AI with control engineering (where a controller minimizes an integral cost function), operations research (where a policy maximizes cumulative expected rewards in a Markov decision process), statistical decision theory (where a decision rule minimizes conditional risk), and microeconomics (where an actor maximizes expected utility).
 \end{enumerate}
 
-\subsection{The limitations of the logicist approach}
+\subsection{Limitations of logicism}
 \label{sec:logicist_limitations}
 
 Why did the classical logicist tradition---despite its deductive elegance---fail as a universal architecture for artificial intelligence? When researchers in the 1970s and 1980s attempted to scale symbolic logic systems to real-world tasks such as medical diagnosis, visual recognition, and robotic navigation, the logicist program encountered five insurmountable structural bottlenecks:
@@ -236,7 +236,7 @@ Why did the classical logicist tradition---despite its deductive elegance---fail
 
 These fundamental limitations forced artificial intelligence to undergo a paradigm shift: from brittle symbolic deduction over handcrafted rules to \textbf{probabilistic reasoning} and \textbf{data-driven statistical machine learning}.
 
-\subsection{Computational rationality and bounded optimality}
+\subsection{Rationality and bounded optimality}
 \label{sec:computational_rationality}
 
 To resolve the limitations of logicism, modern AI redefines intelligence as \textbf{computational rationality}:
@@ -262,7 +262,7 @@ Consequently, bounded agents operating in high-dimensional perceptual environmen
 
 ---
 
-\section{Defining machine learning: The triad of experience, task, and performance}
+\section{Defining machine learning}
 \label{sec:definition_of_machine_learning}
 
 Rather than hand-crafting explicit rule-based systems ($C = A + B$), machine learning inverts the traditional computer science programming paradigm:
@@ -271,7 +271,7 @@ Rather than hand-crafting explicit rule-based systems ($C = A + B$), machine lea
   \item \textbf{Machine Learning Engineering}: $\text{Data} + \text{Outputs (Answers)} \longrightarrow \text{Rules (Hypothesis Model } h \in \mathcal{H}\text{)}$.
 \end{itemize}
 
-\subsection{Tom Mitchell's foundational formulation}
+\subsection{Mitchell's formulation}
 \label{sec:mitchell_formulation}
 
 The canonical mathematical definition of learning is formulated by Tom Mitchell:
@@ -314,7 +314,7 @@ This gap constitutes the core challenge of \textbf{generalization and overfittin
 
 ---
 
-\section{Taxonomy of machine learning paradigms}
+\section{Learning paradigms}
 \label{sec:learning_paradigms}
 
 The nature of the supervisory feedback embedded within experience $\mathcal{E}$ dictates the structure of the learning algorithm. Machine learning is organized into five primary paradigms:
@@ -386,7 +386,7 @@ Unsupervised learning is structured into three primary sub-paradigms:
   Explicitly estimating the continuous probability density function $p(\mathbf{x})$ (via Normalizing Flows or Kernel Density Estimation) or learning an implicit stochastic sampler $G_\theta: \mathcal{Z} \to \mathcal{X}$ that generates synthetic data indistinguishable from real data (Variational Autoencoders - VAEs, Generative Adversarial Networks - GANs, and Denoising Diffusion Probabilistic Models - DDPMs).
 \end{enumerate}
 
-\subsection{Self-supervised learning (SSL)}
+\subsection{Self-supervised learning}
 \label{sec:self_supervised_learning}
 
 \textbf{Motivation and Problem Setting}: Self-supervised learning represents the modern bridge that unlocked foundation models (such as GPT and BERT in NLP, and DINO and CLIP in vision). Rather than requiring external human annotations, the learning algorithm constructs an internal \textbf{pretext task} derived entirely from the raw unlabeled data itself:
@@ -448,12 +448,12 @@ In practical machine learning systems, two intermediate hybrid paradigms resolve
 
 ---
 
-\section{Data uncertainty: Aleatoric vs. epistemic dimensions}
+\section{Data uncertainty}
 \label{sec:data_uncertainty}
 
 In statistical machine learning, every model is only as sound as the assumptions it makes regarding data uncertainty. Real-world observations $\mathbf{x}$ and targets $y$ are never pristine mathematical constants; they are contaminated by stochastic uncertainty. A rigorous machine learning engineer must decompose uncertainty into its two fundamental constituents:
 
-\subsection{Aleatoric uncertainty and irreducible data noise}
+\subsection{Aleatoric uncertainty}
 \label{sec:aleatoric_uncertainty}
 
 \textbf{Aleatoric uncertainty} (from the Latin \emph{alea}, meaning dice) refers to the inherent, irreducible randomness present in the data-generating process itself. It captures stochastic variations that cannot be eliminated regardless of how many training examples are collected.
@@ -480,7 +480,7 @@ Aleatoric uncertainty is further subdivided into two mathematical forms:
 \end{enumerate}
 Aleatoric uncertainty establishes the fundamental theoretical ceiling on classification performance: the \textbf{irreducible Bayes error rate} $\mathcal{R}^*$.
 
-\subsection{Epistemic uncertainty and reducible model uncertainty}
+\subsection{Epistemic uncertainty}
 \label{sec:epistemic_uncertainty}
 
 \textbf{Epistemic uncertainty} (from the Greek \emph{episteme}, meaning knowledge) refers to the uncertainty arising from a \textbf{lack of knowledge} or data in specific regions of the feature space. 
@@ -500,7 +500,7 @@ In safety-critical deep learning (such as medical diagnosis and autonomous robot
 
 ---
 
-\section{How to deal with data: The seven methodological pillars}
+\section{Methodological data pillars}
 \label{sec:how_to_deal_with_data}
 
 In modern statistical machine learning, data is not merely a static numerical array to be fed uncritically into black-box algorithms; it is the physical empirical substrate from which all intelligence is distilled. As established in the introductory lecture, becoming a genuine machine learner requires mastering an explicit, disciplined seven-step protocol for interacting with data before, during, and after model training:
@@ -514,7 +514,7 @@ In modern statistical machine learning, data is not merely a static numerical ar
   \item \textbf{Avoid data bias}: Guard against spurious correlations, historical demographic skew, and out-of-distribution domain shift.
 \end{enumerate}
 
-\subsection{Motivation: The Datasaurus fallacy and why summary statistics fail}
+\subsection{The Datasaurus fallacy}
 \label{sec:datasaurus_fallacy}
 
 The fundamental catalyst driving this seven-pillar protocol is the mathematical failure of low-order summary statistics. A pervasive trap among novice practitioners is summarizing datasets exclusively by their sample means, sample variances, and Pearson correlation coefficients, assuming these scalars adequately characterize the underlying phenomenon.
@@ -548,7 +548,7 @@ Furthermore, summary statistics completely discard:
 \end{itemize}
 Hence, the golden imperative of machine learning: \textbf{Never trust summary statistics alone; always visualize and deeply inspect the data before modeling.}
 
-\subsection{Pillar 1: Observe the data (Exploratory visualization and feature spaces)}
+\subsection{Pillar 1: Data observation}
 \label{sec:pillar_1_observe}
 
 The first rule of machine learning is to open the dataset directory and directly examine the individual instances. In tabular domains or low-dimensional problems ($d \le 3$), scatter plots, histograms, and pair-wise correlation grids allow immediate visual diagnosis.
@@ -562,7 +562,7 @@ However, modern deep learning typically operates on extremely high-dimensional s
 \paragraph{Critical oral exam insight: Knowing your dataset.}
 In the oral examination, a fundamental line of questioning focuses on dataset mastery: \emph{Which benchmark did you use in your project or paper analysis? What semantic object categories does it contain? How many total instances are present, and what is the exact sample distribution across classes?} A candidate who views data as an interchangeable numeric matrix without knowing its class taxonomy, sensor resolution, or subgroup composition demonstrates a shallow understanding. A true machine learner understands the physical reality generating each feature coordinate.
 
-\subsection{Pillar 2: Summarize uncertainty (Distributions and probabilistic frameworks)}
+\subsection{Pillar 2: Uncertainty modeling}
 \label{sec:pillar_2_uncertainty}
 
 Rather than condensing a feature coordinate into a single scalar average $\bar{x}$, rigorous data analysis models uncertainty through full probability distributions:
@@ -571,7 +571,7 @@ p(\mathbf{x}) \quad \text{or} \quad p(\mathbf{x} \mid y).
 \end{equation}
 As derived in Section~\ref{sec:data_uncertainty}, uncertainty comprises both irreducible sensor stochasticity (aleatoric) and epistemic parameter ignorance arising from data sparsity. In safety-critical applications—such as autonomous navigation or medical oncology—a point prediction $\hat{y} = f(\mathbf{x})$ without an accompanying confidence interval or posterior distribution $p(y \mid \mathbf{x})$ is dangerous. Modeling the full distribution provides the foundational calculus for Bayes decision theory, hypothesis testing, and risk-aware decision boundaries.
 
-\subsection{Pillar 3: Search for constraints and invariances (Prior knowledge)}
+\subsection{Pillar 3: Constraints and invariances}
 \label{sec:pillar_3_prior_knowledge}
 
 Without prior knowledge, an algorithm facing a finite dataset $\mathcal{D}_N$ must search through the uncountably infinite universe of mathematical functions that interpolate the points. Prior domain knowledge acts as a powerful mathematical filter, restricting the hypothesis space $\mathcal{H}$ to functions that obey known physical laws, geometric symmetries, and environmental constraints.
@@ -600,7 +600,7 @@ In statistical machine learning, prior knowledge functions in precisely the same
 \end{itemize}
 Prior knowledge is the most effective regularizer: it saves optimization time, prevents overfitting, and minimizes the sample complexity required to achieve high generalization.
 
-\subsection{Pillar 4: Find a model to explain the data (Families, capacity, and coordinate linearization)}
+\subsection{Pillar 4: Model selection and capacity}
 \label{sec:pillar_4_model_family}
 
 Once data has been observed and prior constraints identified, the machine learner selects an appropriate mathematical model family $f(\mathbf{x}; \boldsymbol{\theta})$ to explain the relationship between input $\mathbf{x}$ and target $y$.
@@ -631,7 +631,7 @@ r(\theta) = a \theta.
 \end{equation}
 By simply changing the geometric frame of reference, the learning problem reduces from fitting an intractable non-linear model to fitting a \textbf{single linear parameter} $a$! Mathematical sophistication in representation simplifies computational optimization.
 
-\subsection{Pillar 5: Represent the data (Handcrafted features vs. geometric dimensionality)}
+\subsection{Pillar 5: Data representation}
 \label{sec:pillar_5_representation}
 
 Learning algorithms do not ingest raw physical reality; they process mathematical representations. In classical machine learning (from the 1980s through 2010), representations were constructed via manual feature engineering guided by human domain experts.
@@ -653,7 +653,7 @@ When classes overlap in a chosen feature space and cannot be separated linearly,
 \paragraph{Dimensionality reduction and manifold unrolling.}
 Conversely, when raw data is unnecessarily high-dimensional (e.g., 100 sensor readings that are heavily correlated), the data may lie on a low-dimensional intrinsic manifold (e.g., a 2D sheet embedded in $\mathbb{R}^3$). In such cases, applying linear PCA or non-linear manifold unrolling reduces dimensionality, eliminates multicollinearity, suppresses measurement noise, and circumvents the curse of dimensionality.
 
-\subsection{Pillar 6: Joint end-to-end learning via computing power (The playing cards analogy)}
+\subsection{Pillar 6: End-to-end learning}
 \label{sec:pillar_6_joint_learning}
 
 The decisive paradigm shift of the 2010 Deep Learning revolution was abandoning decoupled manual feature engineering in favor of \textbf{end-to-end joint representation learning}.
@@ -763,7 +763,7 @@ In the seminal 2012 AlexNet architecture trained on the 1,000-class ImageNet ben
 \end{itemize}
 This hierarchical decomposition was not programmed by humans; it emerged autonomously from raw pixels driven entirely by gradient optimization on the cross-entropy task loss.
 
-\subsection{Pillar 7: Avoid data bias, spurious correlations, and enforce fairness}
+\subsection{Pillar 7: Fairness and bias mitigation}
 \label{sec:pillar_7_avoid_bias}
 
 The final pillar governs the ethical and epistemological reliability of deployed models. A pervasive myth in society is that mathematical algorithms are inherently objective and immune to human prejudice. 
@@ -772,12 +772,12 @@ In reality, \textbf{machine learning models are objective only in the sense that
 
 ---
 
-\section{Societal consequences of bias and the algorithmic frontier}
+\section{Algorithmic bias and generalization limits}
 \label{sec:societal_bias_and_fairness}
 
 When machine learning systems are deployed in real-world institutions—such as criminal justice, credit scoring, medical triage, and hiring—data bias ceases to be a theoretical optimization nuisance and becomes an active source of systemic harm.
 
-\subsection{Spurious correlations as algorithmic shortcuts: The doctor vs. nurse dilemma}
+\subsection{Spurious correlations}
 \label{sec:spurious_shortcuts}
 
 Machine learning models optimize purely for accuracy under their training distribution. When presented with training datasets that reflect historical gender imbalances in professional occupations, computer vision models learn to rely on spurious demographic shortcuts rather than true semantic features.
@@ -791,7 +791,7 @@ Because the scraped web training data had a high proportion of male doctors and 
 
 When deployed in clinical environments where female doctors and male nurses are present, the model failed catastrophically. This failure illustrates the fundamental machine learning adage: \textbf{"Garbage in, garbage out"}—if an algorithm is trained on biased data, it produces biased, untrustworthy predictions.
 
-\subsection{The COMPAS recidivism case study and mathematical fairness}
+\subsection{The COMPAS case study}
 \label{sec:compas_case_study}
 
 The most consequential and widely analyzed real-world failure of algorithmic decision-making occurred in the United States criminal justice system with the \textbf{COMPAS} (Correctional Offender Management Profiling for Alternative Sanctions) algorithm, developed by Northpointe (now Equivant)~\cite{angwin2016machine}.
@@ -849,7 +849,7 @@ Because historical arrest base rates differed between demographic groups due to 
 
 This mathematical reality underscores why algorithmic fairness cannot be resolved purely by code: practitioners must consciously choose which fairness definition to prioritize based on legal, ethical, and societal values.
 
-\subsection{Legal and regulatory safeguards: The EU AI Act (August 2024)}
+\subsection{The EU AI Act}
 \label{sec:eu_ai_act}
 
 In response to scandals such as COMPAS and predatory biometric profiling, governments have instituted binding legal regulations. In \textbf{August 2024}, the European Union enacted into law the \textbf{Artificial Intelligence Act (EU AI Act)}, establishing the world's first comprehensive horizontal legal framework for AI governance.
@@ -871,7 +871,7 @@ Under the EU AI Act, systems operating in the justice and law enforcement domain
 \end{itemize}
 While the EU AI Act legally applies only within European jurisdiction, its extraterritorial scope binds any international entity or US provider deploying AI systems whose outputs affect individuals residing within the European Union.
 
-\subsection{Domain shift, Sim-to-Real gap, and the limits of i.i.d. generalization}
+\subsection{Domain shift and generalization limits}
 \label{sec:domain_shift_and_sim2real}
 
 Statistical learning theory rests entirely on the foundational assumption that training samples and future deployment test samples are drawn \textbf{independently and identically distributed (i.i.d.)} from the exact same stationary probability distribution:
