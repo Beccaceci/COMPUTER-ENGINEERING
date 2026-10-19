@@ -866,26 +866,20 @@ Several practical vision domains expose the limitations of the convolutional and
 \end{enumerate}
 
 
-\section[Architectural design principles: Stacking kernels, 1x1 convolutions, and pooling]{Architectural design principles: Stacking kernels, $1 \times 1$ convolutions, and pooling}
+\section{Architectural design principles}
 \label{sec:architectural_design_principles_cnns}
 
 The realization that convolutional networks embody an infinitely strong spatial prior explains their data efficiency, but it leaves an essential engineering challenge unsolved: how should one configure individual convolutional layers into an expressive, deep visual architecture? In the early eras of deep learning, visual networks relied on wide, heterogeneous spatial filters---such as the $11 \times 11$, $7 \times 7$, and $5 \times 5$ convolutions deployed in early CNNs---to rapidly capture extended spatial context. However, large spatial kernels suffer from quadratic computational and parameter complexity ($\mathcal{O}(k^2)$), consuming massive memory and floating-point budgets while severely constraining the total depth that can be trained under practical hardware constraints.
 
-To break past these computational barriers, modern computer vision underwent a structural paradigm shift toward disciplined micro-architectural design principles. Rather than relying on single monolithic convolutions, contemporary deep backbones decompose spatial transformations into cascaded sequences of localized $3 \times 3$ filters. This structural decomposition achieves identical or superior effective receptive fields while dramatically slashing weight counts and introducing multiple non-linear activations that geometrically fold and partition the representation space. Concurrently, point-wise $1 \times 1$ convolutions decouple cross-channel linear combination from spatial aggregation, acting as versatile computational bottlenecks that compress activation depth before costly spatial operations.
+To break past these computational barriers, modern computer vision underwent a structural paradigm shift toward disciplined micro-architectural design principles. Rather than relying on single monolithic convolutions, contemporary deep backbones decompose spatial transformations into cascaded sequences of localized $3 \times 3$ filters. This structural decomposition achieves identical or superior effective receptive fields while dramatically slashing weight counts and introducing multiple non-linear activations that geometrically fold and partition the representation space. Combined with spatial pooling operations for progressive spatial downsampling and dense classification heads for global relational synthesis, these principles establish the canonical blueprint of modern vision architectures.
 
-In this section, we develop the quantitative foundations of these architectural design principles. We first formalize the VGG principle, mathematically deriving the linear recurrence of effective receptive field growth and proving the exact parameter and FLOP savings achieved by cascading small filters. Next, we examine the mechanics of $1 \times 1$ convolutions introduced in Network In Network and their modern role in cross-channel dimensionality manipulation. Finally, we dissect spatial pooling operations and analyze the architectural transition from parameter-heavy dense fully connected heads to parameter-free Global Average Pooling (GAP), establishing how spatially distributed visual evidence is synthesized into categorical decisions.
-
-\subsection{Effective receptive fields and small kernels}
+\subsection{Receptive fields and depth}
 \label{sec:vgg_principle_stacking_small_kernels}
 
-Having formalized the output geometry of individual convolutional layers, we analyze a decisive architectural paradigm shift in deep learning: \textit{should deep networks employ large convolutional kernels (such as the $11 \times 11$ and $5 \times 5$ filters in AlexNet~\cite{krizhevsky2012imagenet}), or should they cascade multiple small $3 \times 3$ filters?}~\cite{simonyan2014very,bishop2024deep}
+Having formalized the output geometry of individual convolutional layers, we analyze a decisive architectural paradigm shift in deep learning: \textit{should deep networks employ large convolutional kernels, or should they cascade multiple small $3 \times 3$ filters?}~\cite{simonyan2014very,bishop2024deep}
 
-This question was definitively resolved by Karen Simonyan and Andrew Zisserman in the landmark \textbf{VGG Network} (2014)~\cite{simonyan2014very}, establishing what is now universally known as the \textbf{VGG Principle}: \textit{a stack of multiple small $3 \times 3$ convolutional layers strictly dominates a single large convolutional layer in parameter efficiency, computational FLOPs, and non-linear expressive capacity}.
-
-\paragraph{Effective receptive field arithmetic.}
-The \textbf{receptive field} $R_l$ of a neuron in layer $l$ is defined as the spatial extent (diameter along one axis) in the input image $\mathbf{X}^{(0)}$ that contributes to the activation of that neuron~\cite{bishop2024deep,prince2023understanding}.
-
-Let $k_l$ denote the kernel size at layer $l$, and let $s_l$ denote the layer stride. With $R_0 = 1$ (the input pixel itself), the cumulative stride (jump) preceding layer $l$ is $J_{l-1} = \prod_{i=1}^{l-1} s_i$ (with $J_0 = 1$). The effective receptive field progression follows the universal linear recurrence:
+\paragraph{Receptive field arithmetic and hyperparameter selection.}
+The receptive field $R_l$ of a neuron in layer $l$ is defined as the spatial extent (diameter along one axis) in the input image $\mathbf{X}^{(0)}$ that contributes to the activation of that neuron~\cite{bishop2024deep,prince2023understanding}. Let $k_l$ denote the kernel size at layer $l$, and let $s_l$ denote the layer stride. With $R_0 = 1$ (the input pixel itself), the cumulative stride (jump) preceding layer $l$ is $J_{l-1} = \prod_{i=1}^{l-1} s_i$ (with $J_0 = 1$). The effective receptive field progression follows the universal linear recurrence:
 \begin{equation}
 R_l = R_{l-1} + (k_l - 1) \cdot J_{l-1}.
 \label{eq:receptive_field_recurrence}
@@ -900,13 +894,11 @@ For a sequence of $L$ cascaded convolutional layers with identical kernel size $
 R_L = 1 + \sum_{l=1}^L (k - 1) = 1 + L(k - 1).
 \label{eq:cascaded_receptive_field_closed_form}
 \end{equation}
-Specializing Equation~\eqref{eq:cascaded_receptive_field_closed_form} to standard $3 \times 3$ kernels ($k = 3 \implies k - 1 = 2$):
+\textit{Example}: Specializing Equation~\eqref{eq:cascaded_receptive_field_closed_form} to standard $3 \times 3$ kernels ($k = 3 \implies k - 1 = 2$):
 \begin{itemize}[leftmargin=*]
-  \item \textbf{Layer 1 ($L=1$)}: $R_1 = 1 + 1(2) = \mathbf{3}$ ($3 \times 3$ effective receptive field).
-  \item \textbf{Layer 2 ($L=2$)}: $R_2 = 3 + 2 = \mathbf{5}$ ($5 \times 5$ effective receptive field).  
-    \textit{Analytical Proof}: A hidden unit $h_j^{(2)}$ at layer 2 computes a linear combination of three layer-1 units: $\{h_{j-1}^{(1)}, h_j^{(1)}, h_{j+1}^{(1)}\}$. In turn, the leftmost unit $h_{j-1}^{(1)}$ accesses input pixels $\{x_{j-2}, x_{j-1}, x_j\}$, while the rightmost unit $h_{j+1}^{(1)}$ accesses $\{x_j, x_{j+1}, x_{j+2}\}$. The total spatial span on the input is $[j-2, j+2]$, spanning $(j+2) - (j-2) + 1 = \mathbf{5}$ pixels along each dimension.
-  \item \textbf{Layer 3 ($L=3$)}: $R_3 = 5 + 2 = \mathbf{7}$ ($7 \times 7$ effective receptive field).  
-    \textit{Analytical Proof}: The three layer-2 units span $[j-3, j+3]$ on the input grid, encompassing $(j+3) - (j-3) + 1 = \mathbf{7}$ pixels along each dimension.
+  \item \textit{Layer 1 ($L=1$)}: $R_1 = 1 + 1(2) = 3$ ($3 \times 3$ effective receptive field).
+  \item \textit{Layer 2 ($L=2$)}: $R_2 = 3 + 2 = 5$ ($5 \times 5$ effective receptive field). A hidden unit $h_j^{(2)}$ at layer 2 computes a linear combination of three layer-1 units: $\{h_{j-1}^{(1)}, h_j^{(1)}, h_{j+1}^{(1)}\}$. In turn, the leftmost unit $h_{j-1}^{(1)}$ accesses input pixels $\{x_{j-2}, x_{j-1}, x_j\}$, while the rightmost unit $h_{j+1}^{(1)}$ accesses $\{x_j, x_{j+1}, x_{j+2}\}$. The total spatial span on the input is $[j-2, j+2]$, spanning $(j+2) - (j-2) + 1 = 5$ pixels along each axis. Stacking two $3 \times 3$ layers with $C$ channels requires $2 \times (3^2 C^2) = 18 C^2$ parameters compared to a single $5 \times 5$ layer requiring $1 \times (5^2 C^2) = 25 C^2$, achieving an exact parameter reduction of $\frac{25 - 18}{25} = 28\%$.
+  \item \textit{Layer 3 ($L=3$)}: $R_3 = 5 + 2 = 7$ ($7 \times 7$ effective receptive field). The three layer-2 units span $[j-3, j+3]$ on the input grid, encompassing $7$ pixels along each dimension. Stacking three $3 \times 3$ layers requires $3 \times (3^2 C^2) = 27 C^2$ weights and $3 \times (2 \times 9 C^2 HW) = 54 C^2 HW$ FLOPs, compared to a single $7 \times 7$ layer requiring $1 \times (7^2 C^2) = 49 C^2$ weights and $98 C^2 HW$ FLOPs. This structural decomposition achieves an exact savings of $\frac{49 - 27}{49} \approx 45\%$ in both parameters and arithmetic operations.
 \end{itemize}
 
 \begin{figure}[H]
@@ -986,9 +978,9 @@ Specializing Equation~\eqref{eq:cascaded_receptive_field_closed_form} to standar
       \textbf{Parameter Savings}:
       \begin{itemize}[leftmargin=*, noitemsep]
         \item Two $3\times 3$ vs. one $5\times 5$:
-        $2 \cdot 9C^2 = 18C^2$ vs. $25C^2$ (\textbf{28\% cut})
+        $2 \cdot 9C^2 = 18C^2$ vs. $25C^2$ (28\% cut)
         \item Three $3\times 3$ vs. one $7\times 7$:
-        $3 \cdot 9C^2 = 27C^2$ vs. $49C^2$ (\textbf{45\% cut})
+        $3 \cdot 9C^2 = 27C^2$ vs. $49C^2$ (45\% cut)
       \end{itemize}
       \vspace{2pt}
       \textbf{Representational Power}:\\
@@ -1001,121 +993,62 @@ Specializing Equation~\eqref{eq:cascaded_receptive_field_closed_form} to standar
 \label{fig:receptive_field_expansion}
 \end{figure}
 
-\paragraph{Derivation of parameter complexity savings.}
-As proved in Figure~\ref{fig:receptive_field_expansion}, cascading small convolutions achieves identical receptive fields to large kernels. We now quantify the exact parameter savings across a block operating on $C$ input and output channels ($C_{\text{in}} = C_{\text{out}} = C$):
-\begin{enumerate}[leftmargin=*]
-  \item \textbf{Stacking Two $3 \times 3$ vs. One $5 \times 5$}:
-    \begin{itemize}[noitemsep]
-      \item A single $5 \times 5$ layer has weights:
-        \begin{equation}
-        N_{\text{single}}^{5\times 5} = 1 \times \left( 5^2 \cdot C^2 \right) = \mathbf{25 C^2}.
-        \end{equation}
-      \item Two stacked $3 \times 3$ layers have weights:
-        \begin{equation}
-        N_{\text{stacked}}^{2 \times (3\times 3)} = 2 \times \left( 3^2 \cdot C^2 \right) = 2 \times 9 C^2 = \mathbf{18 C^2}.
-        \end{equation}
-      \item The parameter reduction is exact:
-        \begin{equation}
-        \Delta_{\text{params}} = \frac{25 C^2 - 18 C^2}{25 C^2} = \frac{7}{25} = \mathbf{28\% \text{ reduction}}.
-        \label{eq:vgg_savings_28}
-        \end{equation}
-    \end{itemize}
-  
-  \item \textbf{Stacking Three $3 \times 3$ vs. One $7 \times 7$}:
-    \begin{itemize}[noitemsep]
-      \item A single $7 \times 7$ layer has weights:
-        \begin{equation}
-        N_{\text{single}}^{7\times 7} = 1 \times \left( 7^2 \cdot C^2 \right) = \mathbf{49 C^2}.
-        \end{equation}
-      \item Three stacked $3 \times 3$ layers have weights:
-        \begin{equation}
-        N_{\text{stacked}}^{3 \times (3\times 3)} = 3 \times \left( 3^2 \cdot C^2 \right) = 3 \times 9 C^2 = \mathbf{27 C^2}.
-        \end{equation}
-      \item The parameter reduction is exact:
-        \begin{equation}
-        \Delta_{\text{params}} = \frac{49 C^2 - 27 C^2}{49 C^2} = \frac{22}{49} \approx \mathbf{44.898\% \approx 45\% \text{ reduction}}.
-        \label{eq:vgg_savings_45}
-        \end{equation}
-    \end{itemize}
-\end{enumerate}
+This receptive field arithmetic provides the foundational guideline for selecting the architectural hyperparameters of a CNN. For a deep network to recognize semantic entities or make holistic categorical decisions, the final convolutional neurons must possess an effective receptive field that matches or exceeds the physical scale of the target objects in the input image. If an architect selects hyperparameters that produce an undersized receptive field (for instance, stacking only two convolutional layers on high-resolution $224 \times 224$ images), deep neurons remain local feature detectors blind to global spatial context. Conversely, attempting to broaden the receptive field by increasing kernel size $F$ incurs quadratic computational and storage penalties $\mathcal{O}(F^2)$. The principled hyperparameter strategy, codified by the VGG architecture~\cite{simonyan2014very}, is to fix the spatial kernel size to the minimal non-trivial odd dimension ($F = 3$) and expand the receptive field by increasing architectural depth $L$ alongside periodic spatial downsampling.
 
-\paragraph{Computational FLOPs savings.}
-For an activation feature map of spatial resolution $H \times W$ with unit stride and padding to preserve dimensions:
-\begin{itemize}[leftmargin=*]
-  \item A single $7 \times 7$ layer requires $2 \times (49 C^2 H W) = 98 C^2 H W$ FLOPs.
-  \item Three stacked $3 \times 3$ layers require $3 \times \big( 2 \times 9 C^2 H W \big) = 54 C^2 H W$ FLOPs.
-  \item The computational cost drops by $\frac{98 - 54}{98} = \mathbf{45\%}$!
-\end{itemize}
+\paragraph{Non-linear vs. linear depth: Mathematical proof of collapse.}
+Beyond parameter and FLOP efficiency, cascading convolutions introduces a vital question regarding representational depth: what happens if intermediate non-linear activations are omitted?
 
-\paragraph{Representational gain: Non-linear depth vs. linear collapse.}
-Beyond parameter and FLOP reductions, cascading smaller filters confers a crucial \textbf{representational expressiveness gain}:
-\begin{itemize}[leftmargin=*]
-  \item \textbf{Linear Collapse in the Absence of Activations}: If we applied three linear convolutional filters without intermediate activation functions, the associative property of convolution collapses the entire cascade into a single linear filter:
-    \begin{equation}
-    \mathbf{W}_3 * (\mathbf{W}_2 * (\mathbf{W}_1 * \mathbf{X})) = (\mathbf{W}_3 * \mathbf{W}_2 * \mathbf{W}_1) * \mathbf{X} = \mathbf{W}_{\text{eff}} * \mathbf{X},
-    \end{equation}
-    where $\mathbf{W}_{\text{eff}} \in \R^{7 \times 7}$. The cascade would simply parameterize a constrained subspace of linear $7 \times 7$ kernels.
-  \item \textbf{Discriminative Expressiveness via Cascaded ReLUs}: In contrast, by placing a non-linear activation function $\sigma(\cdot)$ (e.g., ReLU) after each $3 \times 3$ convolution:
-    \begin{align}
-    \mathbf{H}_1 &= \sigma\left(\mathbf{W}_1 * \mathbf{X} + \mathbf{b}_1\right), \\
-    \mathbf{H}_2 &= \sigma\left(\mathbf{W}_2 * \mathbf{H}_1 + \mathbf{b}_2\right), \\
-    \mathbf{Y} &= \sigma\left(\mathbf{W}_3 * \mathbf{H}_2 + \mathbf{b}_3\right),
-    \end{align}
-    the network incorporates \textbf{three non-linear decision stages} instead of one. Three cascaded ReLUs fold and partition the local input space into an exponentially larger number of piecewise-linear decision regions~\cite{montufar2014number,telgarsky2016benefits}. This enables the network to learn substantially more discriminative, hierarchical visual primitives (e.g. oriented edges $\to$ corners $\to$ textured motifs) while simultaneously regularizing the hypothesis space against unstructured spatial overfitting.
-\end{itemize}
-
-\subsection{Pointwise $1 \times 1$ convolutions}
-\label{sec:one_by_one_convolutions}
-
-At first glance, a $1 \times 1$ convolutional filter ($F = 1$) might appear redundant: convolving a scalar with a single pixel seems to merely scale pixel values. 
-
-However, as introduced by Min Lin et al. (2013) in \textit{Network In Network}~\cite{lin2013network} and shown in Figure~\ref{fig:one_by_one_conv}, because filters span the entire channel depth $C_{\text{in}}$, a $1 \times 1$ filter is actually a \textbf{cross-channel linear projection}:
+Consider a cascade of $L$ consecutive 2D convolutional layers operating without activation functions (or with identity mappings $\sigma(z) = z$):
 \begin{equation}
-\mathbf{Y}_{i, j, k} = \sum_{c=1}^{C_{\text{in}}} \mathbf{X}_{i, j, c} \, K_{0, 0, c}^{(k)} + b_k.
-\label{eq:one_by_one_math}
+\mathbf{Y} = \mathbf{W}_L * \big( \mathbf{W}_{L-1} * ( \dots * (\mathbf{W}_1 * \mathbf{X}) \dots ) \big).
 \end{equation}
+Recall that 2D continuous and discrete convolution operators are strictly associative and commutative:
+\begin{equation}
+\mathbf{A} * (\mathbf{B} * \mathbf{C}) = (\mathbf{A} * \mathbf{B}) * \mathbf{C}.
+\end{equation}
+For any two successive linear convolutional layers parameterized by kernels $\mathbf{W}_1 \in \R^{k_1 \times k_1}$ and $\mathbf{W}_2 \in \R^{k_2 \times k_2}$, the associative property yields:
+\begin{equation}
+\mathbf{W}_2 * (\mathbf{W}_1 * \mathbf{X}) = (\mathbf{W}_2 * \mathbf{W}_1) * \mathbf{X} = \mathbf{W}_{\text{eff}}^{(2)} * \mathbf{X},
+\end{equation}
+where the composite kernel $\mathbf{W}_{\text{eff}}^{(2)} = \mathbf{W}_2 * \mathbf{W}_1$ is obtained by convolving the two kernel tensors directly, spanning a spatial support of $(k_1 + k_2 - 1) \times (k_1 + k_2 - 1)$. 
 
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[scale=0.92]
-  % Input 3D Volume: H x W x C_in
-  \draw[fill=deepblue!15, draw=deepblue, thick] (0, 0) rectangle (2.2, 2.2);
-  \draw[fill=deepblue!25, draw=deepblue, thick] (2.2, 0) -- (3.2, 0.8) -- (3.2, 3.0) -- (2.2, 2.2) -- cycle;
-  \draw[fill=deepblue!10, draw=deepblue, thick] (0, 2.2) -- (1.0, 3.0) -- (3.2, 3.0) -- (2.2, 2.2) -- cycle;
-  \node[font=\footnotesize\bfseries\color{politoNavy}, align=center] at (1.1, 1.1) {Input Volume\\$H \times W \times C_{\text{in}}$};
+By induction over $L$ successive layers, the entire multi-layer cascade algebraically collapses into a single linear convolution:
+\begin{equation}
+\mathbf{W}_{\text{eff}} = \mathbf{W}_L * \mathbf{W}_{L-1} * \dots * \mathbf{W}_1 \in \R^{\left(1 + \sum_{l=1}^L (k_l - 1)\right) \times \left(1 + \sum_{l=1}^L (k_l - 1)\right)},
+\end{equation}
+yielding the purely linear mapping:
+\begin{equation}
+\mathbf{Y} = \mathbf{W}_{\text{eff}} * \mathbf{X} + \mathbf{b}_{\text{eff}}.
+\label{eq:linear_conv_collapse}
+\end{equation}
+Equation~\eqref{eq:linear_conv_collapse} proves that linear depth is an illusion: a deep stack of linear convolutions possesses no greater representational capacity than a single convolutional layer with a larger kernel size. It cannot partition input space into non-linear decision regions and merely parameterizes a low-rank, constrained factorization of a single linear filter.
 
-  % Pencil-like 1x1xC_in filter at (i, j)
-  \draw[fill=examred!40, draw=examred, very thick] (0.8, 0.8) -- (0.8, 1.0) -- (1.8, 1.8) -- (1.8, 1.6) -- cycle;
-  \node[font=\tiny\color{examred}, rotate=38] at (1.4, 1.5) {$1 \times 1 \times C_{\text{in}}$};
+To unlock the true power of architectural depth, each convolutional layer must be coupled with an element-wise non-linear activation function $\sigma(\cdot)$ (such as ReLU):
+\begin{equation}
+\mathbf{H}_l = \sigma\left(\mathbf{W}_l * \mathbf{H}_{l-1} + \mathbf{b}_l\right).
+\end{equation}
+Because non-linear activation functions do not commute with convolution ($\sigma(\mathbf{W} * \mathbf{X}) \neq \mathbf{W} * \sigma(\mathbf{X})$), each successive layer geometrically bends, folds, and partitions the representation space into an exponentially large number of linear decision regions $\mathcal{O}(2^L)$~\cite{montufar2014number,telgarsky2016benefits}. Non-linear depth allows the network to construct a true hierarchical abstraction: early layers extract elementary oriented edges, intermediate layers combine them into corners and textural primitives, and deep layers assemble complex parts and holistic object geometries.
 
-  % Projection Arrow
-  \draw[-{Stealth}, ultra thick, examred] (3.6, 1.5) -- (5.0, 1.5) node[midway, above, font=\scriptsize, align=center] {$C_{\text{out}}$ Filters\\$1 \times 1 \times C_{\text{in}}$};
-
-  % Output 3D Volume: H x W x C_out
-  \draw[fill=intuitiongreen!15, draw=intuitiongreen, thick] (5.4, 0) rectangle (7.6, 2.2);
-  \draw[fill=intuitiongreen!25, draw=intuitiongreen, thick] (7.6, 0) -- (8.2, 0.6) -- (8.2, 2.8) -- (7.6, 2.2) -- cycle;
-  \draw[fill=intuitiongreen!10, draw=intuitiongreen, thick] (5.4, 2.2) -- (6.0, 2.8) -- (8.2, 2.8) -- (7.6, 2.2) -- cycle;
-  \node[font=\footnotesize\bfseries\color{intuitiongreen}, align=center] at (6.5, 1.1) {Output Volume\\$H \times W \times C_{\text{out}}$};
-
-  % Single pixel column output
-  \draw[fill=intuitiongreen!40, draw=intuitiongreen, very thick] (6.2, 0.8) -- (6.2, 1.0) -- (6.8, 1.6) -- (6.8, 1.4) -- cycle;
-\end{tikzpicture}
-\caption{Mechanics of a $1 \times 1$ convolution. A $1 \times 1 \times C_{\text{in}}$ filter spans the entire channel depth at a single spatial pixel coordinate $(i, j)$, computing a localized linear combination across all channels without altering spatial height or width. This enables cross-channel dimensionality reduction (bottlenecks) and non-linear feature pooling.}
-\label{fig:one_by_one_conv}
-\end{figure}
-
-A $1 \times 1$ convolution operates as a multi-layer perceptron applied identically to every spatial pixel coordinate $(i, j)$:
-\begin{enumerate}
-  \item \textbf{Channel Dimensionality Reduction / Bottlenecks}: If an input has $C_{\text{in}} = 256$ channels, applying $C_{\text{out}} = 64$ filters of size $1 \times 1 \times 256$ reduces the channel depth from 256 to 64 while leaving spatial dimensions $(H, W)$ completely unchanged. This bottleneck concept is the foundational computational engine of Inception networks and ResNet bottleneck blocks~\cite{he2016deep}, reducing FLOPs by up to $10\times$.
-  \item \textbf{Channel Dimensionality Expansion}: Conversely, setting $C_{\text{out}} > C_{\text{in}}$ lifts feature representations into a richer, higher-dimensional channel space.
-  \item \textbf{Cross-Channel Non-Linearity}: Placing a ReLU activation after a $1 \times 1$ convolution allows the network to learn non-linear interactions across feature channels at zero spatial cost.
-\end{enumerate}
-
-\subsection{Pooling layers and global average pooling}
-\label{sec:pooling_and_decision_synthesis}
+\subsection{Pooling operations}
 \label{sec:pooling_layers}
 
-Interspersed between convolutional layers are \textbf{Pooling (Subsampling) layers}. A pooling layer operates independently on each feature channel, replacing local spatial neighborhoods with an aggregated summary statistic~\cite{goodfellow2016deep}.
+Interspersed between convolutional layers are spatial pooling (subsampling) operations. A pooling layer operates independently on each feature channel slice, replacing local spatial neighborhoods with an aggregated summary statistic~\cite{goodfellow2016deep}.
+
+The two standard pooling operations are:
+\begin{itemize}[leftmargin=*]
+  \item \textit{Max Pooling}: Computes the maximum activation value within a local sliding window of spatial size $F_p \times F_p$ with stride $S_p$:
+    \begin{equation}
+    Y_{i, j, c} = \max_{m, n \in \{0, \dots, F_p-1\}} X_{i \cdot S_p + m, \, j \cdot S_p + n, \, c}.
+    \label{eq:max_pooling_formula}
+    \end{equation}
+    Max pooling acts as a localized feature presence detector (a continuous logical OR): it tests whether a specific visual pattern (e.g., an edge, corner, or texture) is active anywhere within the receptive patch, regardless of its exact sub-window coordinate.
+  \item \textit{Average Pooling}: Computes the arithmetic mean of activations across the window:
+    \begin{equation}
+    Y_{i, j, c} = \frac{1}{F_p^2} \sum_{m=0}^{F_p-1} \sum_{n=0}^{F_p-1} X_{i \cdot S_p + m, \, j \cdot S_p + n, \, c},
+    \label{eq:avg_pooling_formula}
+    \end{equation}
+    smoothing spatial responses and capturing background feature energy.
+\end{itemize}
 
 \begin{figure}[H]
 \centering
@@ -1127,13 +1060,13 @@ Interspersed between convolutional layers are \textbf{Pooling (Subsampling) laye
     % Top-Left (Green)
     \draw[fill=intuitiongreen!20, draw=intuitiongreen, thick] (0, 2) rectangle (2, 4);
     \node[font=\small\bfseries] at (0.5, 3.5) {12};
-    \node[font=\small\bfseries\color{intuitiongreen}] at (1.5, 3.5) {\textbf{20}};
+    \node[font=\small\bfseries\color{intuitiongreen}] at (1.5, 3.5) {20};
     \node[font=\small\bfseries] at (0.5, 2.5) {8};
     \node[font=\small\bfseries] at (1.5, 2.5) {12};
 
     % Top-Right (Orange/Red)
     \draw[fill=examred!20, draw=examred, thick] (2, 2) rectangle (4, 4);
-    \node[font=\small\bfseries\color{examred}] at (2.5, 3.5) {\textbf{30}};
+    \node[font=\small\bfseries\color{examred}] at (2.5, 3.5) {30};
     \node[font=\small\bfseries] at (3.5, 3.5) {0};
     \node[font=\small\bfseries] at (2.5, 2.5) {2};
     \node[font=\small\bfseries] at (3.5, 2.5) {0};
@@ -1142,12 +1075,12 @@ Interspersed between convolutional layers are \textbf{Pooling (Subsampling) laye
     \draw[fill=deepblue!20, draw=deepblue, thick] (0, 0) rectangle (2, 2);
     \node[font=\small\bfseries] at (0.5, 1.5) {34};
     \node[font=\small\bfseries] at (1.5, 1.5) {70};
-    \node[font=\small\bfseries\color{deepblue}] at (0.5, 0.5) {\textbf{112}};
+    \node[font=\small\bfseries\color{deepblue}] at (0.5, 0.5) {112};
     \node[font=\small\bfseries] at (1.5, 0.5) {100};
 
     % Bottom-Right (SkyBlue / Teal)
     \draw[fill=deepdiveTeal!20, draw=deepdiveTeal, thick] (2, 0) rectangle (4, 2);
-    \node[font=\small\bfseries\color{deepdiveTeal}] at (2.5, 1.5) {\textbf{37}};
+    \node[font=\small\bfseries\color{deepdiveTeal}] at (2.5, 1.5) {37};
     \node[font=\small\bfseries] at (3.5, 1.5) {4};
     \node[font=\small\bfseries] at (2.5, 0.5) {25};
     \node[font=\small\bfseries] at (3.5, 0.5) {12};
@@ -1187,33 +1120,20 @@ Interspersed between convolutional layers are \textbf{Pooling (Subsampling) laye
 \label{fig:max_pooling}
 \end{figure}
 
-\paragraph{Max Pooling vs. Average Pooling.}
-\begin{itemize}
-  \item \textbf{Max Pooling}: Outputs the maximum activation within the pooling window:
-    \begin{equation}
-    Y_{i, j, c} = \max_{m, n \in \{0, \dots, F-1\}} X_{i \cdot S + m, \, j \cdot S + n, \, c}.
-    \label{eq:max_pooling_formula}
-    \end{equation}
-    Max pooling acts as a logical OR: it tests whether a specific visual feature (e.g., an edge, corner, or texture) is present anywhere within the receptive patch, regardless of its exact coordinate.
-  \item \textbf{Average Pooling}: Computes the arithmetic mean of activations:
-    \begin{equation}
-    Y_{i, j, c} = \frac{1}{F^2} \sum_{m=0}^{F-1} \sum_{n=0}^{F-1} X_{i \cdot S + m, \, j \cdot S + n, \, c}.
-    \label{eq:avg_pooling_formula}
-    \end{equation}
+In the framework of CNN hyperparameter selection, pooling layers serve as critical structural regulators:
+\begin{itemize}[leftmargin=*]
+  \item \textit{Kernel and Stride Configuration}: The canonical hyperparameter choice is an unpadded ($P=0$) non-overlapping window with $F_p = 2$ and $S_p = 2$. Setting $S_p = F_p$ ensures that every input activation belongs to exactly one pooling quadrant, preventing redundant multi-counting.
+  \item \textit{Parameter-Free Computation}: Unlike convolutional layers, pooling involves fixed aggregation arithmetic and contains zero learnable parameters ($N_{\text{params}} = 0$).
+  \item \textit{Spatial Downsampling and FLOP Reduction}: Halving spatial dimensions ($H_{\text{out}} = H_{\text{in}}/2$, $W_{\text{out}} = W_{\text{in}}/2$) reduces spatial activation volume by a factor of $4$ ($75\%$ area reduction). Because the computational FLOPs of subsequent convolutional layers scale as $\mathcal{O}(H \cdot W \cdot C_{\text{in}} C_{\text{out}} F^2)$, each pooling stage slashes subsequent computational and memory burdens by $75\%$.
+  \item \textit{Receptive Field Doubling}: Pooling multiplies the cumulative stride of all downstream layers: $J_{\text{post}} = J_{\text{pre}} \cdot S_p$. Consequently, a subsequent $3 \times 3$ convolutional kernel jumps across twice as many input pixels, doubling its rate of receptive field expansion without increasing parameter counts.
+  \item \textit{Local Translation Invariance}: If the input image shifts by one pixel, the maximum activation within a $2 \times 2$ quadrant often remains unchanged, conferring robust local shift invariance.
+  \item \textit{Hyperparameter Pitfalls}: Choosing excessively large pooling kernels ($F_p > 3$) or inserting pooling stages too aggressively causes premature and irreversible loss of fine-grained spatial localization and high-frequency details.
 \end{itemize}
 
-\paragraph{Canonical Settings and Architectural Roles.}
-The standard configuration in modern CNNs is a \textbf{$2 \times 2$ filter with stride $S = 2$} ($P = 0$). Because the stride equals the filter size, pooling windows do not overlap.
-This operation yields four primary architectural benefits:
-\begin{enumerate}
-  \item \textbf{Zero Learnable Parameters}: Pooling is a fixed mathematical aggregation rule. It contains zero weights and zero biases ($N_{\text{params}} = 0$).
-  \item \textbf{Spatial Downsampling and FLOP Reduction}: A $2 \times 2$ max pool with stride 2 cuts height and width in half ($H/2, W/2$). This reduces the spatial area by a factor of 4 ($75\%$ reduction in activations), slashing the memory footprint and FLOP burden of all subsequent layers.
-  \item \textbf{Local Translation Invariance}: If the input image shifts by 1 pixel, the maximum value within a $2 \times 2$ region frequently remains identical. Pooling confers invariance to small spatial shifts and distortions.
-  \item \textbf{Receptive Field Expansion}: By halving the spatial grid, a $3 \times 3$ filter applied in the layer \textit{following} a pooling operation covers twice the physical field of view on the original input image.
-\end{enumerate}
-
-\paragraph{Global Decision Synthesis: Why Place Fully Connected Heads After Convolution?}
+\subsection{Network composition and dense heads}
 \label{sec:why_fcn_after_cnn}
+
+A complete convolutional architecture combines convolutional backbones, non-linear activations, and spatial pooling into an end-to-end processing pipeline, concluding with Fully Connected (dense) layers at the output. This raises a fundamental architectural question: \textit{if Fully Connected Networks fail catastrophically when applied directly to images (as established in Section~\ref{sec:why_mlps_fail_images}), why is it a sound architectural design to place a Fully Connected Network at the bottom of a CNN?}
 
 \begin{figure}[H]
 \centering
@@ -1286,101 +1206,39 @@ This operation yields four primary architectural benefits:
 \label{fig:end_to_end_cnn_pipeline}
 \end{figure}
 
-Having examined convolution, activations, and pooling, we address a foundational architectural puzzle emphasized by Prof.~Tatiana Tommasi: \textit{if Fully Connected Networks fail catastrophically on visual inputs (as proven in Section~\ref{sec:why_mlps_fail_images}), why does every classic deep convolutional architecture (LeNet-5, AlexNet, ZFNet, VGG) conclude by placing multiple Fully Connected Layers at the end of the convolutional stack?}
-
-As illustrated in Figure~\ref{fig:end_to_end_cnn_pipeline}, this architectural design is neither an accident nor an inconsistency. Rather, it represents a mathematically principled \textbf{division of labor between geometric feature extraction and global semantic decision synthesis}.
-
-\paragraph{The complementary division of labor: Local equivariance vs. global invariance.}
-A complete visual recognition system must reconcile two fundamentally conflicting operational requirements:
+As shown in Figure~\ref{fig:end_to_end_cnn_pipeline}, placing a Fully Connected Network at the output of a convolutional backbone realizes a principled division of labor between two distinct computational regimes:
 \begin{enumerate}[leftmargin=*]
-  \item \textbf{The Feature Extraction Requirement (Spatial Equivariance)}: In early and intermediate visual processing, the network must detect local features (edges, corners, textures, motifs, object parts) while \textbf{preserving their exact spatial coordinates}. The convolutional backbone achieves this through shared kernels sliding across the 2D grid, computing an activation tensor:
-  \begin{equation}
-  \mathbf{F} \in \R^{H' \times W' \times C'},
-  \end{equation}
-  where channel $c$ at coordinate $(i, j)$ answers the localized question: \textit{``Does visual feature $c$ appear in the receptive field centered at $(i, j)$?''} This representation is translation-equivariant: shifting the object shifts the activation map identically.
+  \item \textit{The Convolutional Backbone as a Geometric Feature Extractor}: The primary role of the CNN backbone is to resolve the spatial physics of natural imagery. Operating on local 2D neighborhoods via parameter sharing, it guarantees translation equivariance and builds an increasingly abstracted, multi-scale representation while progressively downsampling spatial dimensions. Each unit at coordinate $(i, j)$ in the final convolutional tensor $\mathbf{F} \in \R^{H' \times W' \times C'}$ answers a localized question: \textit{``Does semantic feature $c$ occur at spatial coordinate $(i, j)$?''}
   
-  \item \textbf{The Classification Requirement (Global Invariance and Relational Logic)}: In contrast, categorical object classification (e.g., determining whether an image depicts a ``Cat'' or a ``Truck'') is fundamentally a \textbf{global, translation-invariant, non-spatial decision problem}:
-  \begin{equation}
-  \hat{\mathbf{y}} = P(y \in \{1, \dots, K\} \mid \mathbf{X}) \in \Delta^{K-1}.
-  \end{equation}
-  The final output is a single categorical probability distribution over $K$ classes that must be invariant to where the object was found on the canvas. 
+  \item \textit{The Fully Connected Head as a Global Decision Synthesizer}: Whole-image classification is fundamentally a non-spatial, translation-invariant decision task: mapping input evidence to a probability distribution $\hat{\mathbf{y}} \in \Delta^{K-1}$ over $K$ categories. Recognizing a holistic category requires reasoning over the global spatial co-occurrence and relative geometric arrangement of multiple independent parts (e.g., verifying that two eyes appear above a nose, which in turn appears above a mouth). Because convolutional kernels are spatially constrained, they cannot establish unconstrained all-to-all cross-spatial correlations between distant quadrants of the canvas without an impractical number of extra layers. By flattening the feature tensor $\mathbf{v} = \operatorname{vec}(\mathbf{F}) \in \R^{H' W' C'}$, the dense head computes:
+    \begin{equation}
+    z_m = \sum_{c=1}^{C'} \sum_{i=1}^{H'} \sum_{j=1}^{W'} W_{m, (i, j, c)} F_{i, j, c} + b_m.
+    \label{eq:dense_all_to_all_synthesis}
+    \end{equation}
+    Every neuron in the dense head connects to every spatial coordinate and feature channel simultaneously, enabling unconstrained relational synthesis across the entire visual field to emit categorical class logits.
 \end{enumerate}
 
-\paragraph{The relational synthesis problem: Part-to-whole composition.}
-Why can the convolutional layers not simply make the final classification decision directly?
-Because recognizing a holistic visual concept requires reasoning over the \textbf{global spatial co-occurrence and relative geometric arrangement of multiple independent parts}:
+\paragraph{Parameter distribution across the architecture.}
+To understand the trade-offs of this architectural composition, we must mathematically analyze where parameters are concentrated in a CNN.
+
+While the convolutional backbone accounts for the overwhelming majority of computational FLOPs (due to sliding dot products across $H \times W$ locations), the fully connected head accounts for the vast majority of parameters. Consider the canonical benchmark of VGG-16 operating on $224 \times 224$ images:
 \begin{itemize}[leftmargin=*]
-  \item Identifying a ``Face'' requires verifying that two eye features appear above a nose feature, which in turn appears above a mouth feature.
-  \item Identifying a ``Car'' requires verifying that a front wheel and a rear wheel appear beneath a metallic chassis and windshield. If an ear appears floating next to an exhaust pipe, the semantic combination is invalid.
+  \item \textit{Convolutional Backbone Parameters}: The 13 convolutional layers (utilizing small $3 \times 3$ filters across channel depths from 64 to 512) contain a cumulative total of:
+    \begin{equation}
+    N_{\text{conv}} \approx 14.71 \times 10^6 \text{ parameters } (14.71\text{M}).
+    \end{equation}
+  \item \textit{Fully Connected Head Parameters}: The final convolutional volume of size $7 \times 7 \times 512$ is flattened into a 1D vector of dimension $d_{\text{feat}} = 7 \times 7 \times 512 = 25,088$. Connecting this vector to the first dense hidden layer of $4,096$ units requires:
+    \begin{equation}
+    |\mathbf{W}_{\text{fc1}}| = 25,088 \times 4,096 = 102,760,448 \text{ parameters } (\approx 102.76\text{M}).
+    \end{equation}
+    The second dense layer ($4,096 \to 4,096$) requires $4,096 \times 4,096 \approx 16.78\text{M}$ weights, and the final classification projection ($4,096 \to 1,000$) requires $4,096 \times 1,000 \approx 4.10\text{M}$ weights. The dense head alone totals:
+    \begin{equation}
+    N_{\text{fc}} = 102.76\text{M} + 16.78\text{M} + 4.10\text{M} \approx 123.64 \times 10^6 \text{ parameters } (123.64\text{M}).
+    \end{equation}
 \end{itemize}
-Because convolutional filters are spatially constrained (typically $3 \times 3$ or $5 \times 5$), a convolutional unit can only combine information within its local spatial receptive field. Even deep in the network, convolutional kernels compute spatially localized combinations with strictly shared weights; they cannot establish arbitrary, unconstrained all-to-all cross-spatial correlations between a feature in the upper-left quadrant and a feature in the lower-right quadrant without adding an impractical number of extra layers.
+Out of the total $138.36\text{M}$ parameters in VGG-16, the fully connected layers account for over $\mathbf{89.4\%}$ of all model weights, with the single transition layer ($\text{FC}_1$) alone consuming nearly $75\%$ of the network's entire parameter budget! Similarly, in AlexNet, the dense layers account for $58.6\text{M}$ out of $61.0\text{M}$ parameters ($\approx 96.1\%$). 
 
-\paragraph{Global relational synthesis via dense connectivity.}
-The Fully Connected layers placed at the end of the convolutional backbone resolve this relational bottleneck through \textbf{dense all-to-all connectivity}. By unrolling the final 3D feature tensor into a 1D representation:
-\begin{equation}
-\mathbf{v} = \operatorname{vec}(\mathbf{F}) \in \R^{d_{\text{feat}}}, \quad \text{where } d_{\text{feat}} = H' \cdot W' \cdot C',
-\end{equation}
-the first fully connected layer computes:
-\begin{equation}
-\mathbf{a}_{\text{fc}}^{(1)} = \sigma\left( \mathbf{W}_{\text{fc}}^{(1)} \mathbf{v} + \mathbf{b}_{\text{fc}}^{(1)} \right).
-\end{equation}
-In scalar notation, each hidden unit $m$ in the dense head computes:
-\begin{equation}
-z_m = \sum_{c=1}^{C'} \sum_{i=1}^{H'} \sum_{j=1}^{W'} W_{m, (i, j, c)} F_{i, j, c} + b_m.
-\label{eq:dense_all_to_all_synthesis}
-\end{equation}
-Equation~\eqref{eq:dense_all_to_all_synthesis} reveals the unique power of the FCN head: \textbf{every neuron receives inputs from every spatial location $(i, j)$ and every semantic channel $c$ simultaneously}. The dense layer can freely learn unconstrained global relational templates:
-\begin{equation}
-\big[ F_{1, 2, 42} \text{ (ear)} \gg 0 \;\land\; F_{3, 4, 88} \text{ (snout)} \gg 0 \big] \implies z_{\text{cat}} \gg 0.
-\end{equation}
-The fully connected layers act as the \textbf{global decision synthesizer}, mapping the spatially distributed evidence discovered by the convolutional backbone into final categorical class logits.
-
-\paragraph{Exponential spatial compression and late-stage parameter control.}
-A critical student question often arises: \textit{if dense layers cause catastrophic parameter explosion at the input, why does using an FCN at the end not suffer the same fate?}
-
-The answer lies in the \textbf{exponential spatial compression} performed by the convolutional backbone:
-\begin{itemize}[leftmargin=*]
-  \item \textbf{At the Input (Raw Image)}: The raw input space is massive ($224 \times 224 \times 3 = 150,528$ dimensions). Flattening directly at the input requires over $616$ million weights for a single layer of $4,096$ units, operating on raw uninformative pixel intensities.
-  \item \textbf{At the End (Latent Feature Tensor)}: Through cascading convolutions and pooling/striding operations, spatial dimensions are downsampled exponentially while channel capacity expands:
-  \begin{equation}
-  \begin{aligned}
-  (224 \times 224 \times 3) &\xrightarrow{\text{stride/pool}} (112 \times 112 \times 64) \to (56 \times 56 \times 128) \\
-  &\to (28 \times 28 \times 256) \to (14 \times 14 \times 512) \to (7 \times 7 \times 512).
-  \end{aligned}
-  \end{equation}
-  The spatial area has been compressed by a factor of $(224 / 7)^2 = 32^2 = \mathbf{1,024\times}$!
-  \item \textbf{Semantic Density}: When flattened at this late stage, the feature vector has length $d_{\text{feat}} = 7 \times 7 \times 512 = 25,088$. While still sizable, connecting to $4,096$ neurons requires $25,088 \times 4,096 \approx 102.7 \times 10^6$ parameters. Crucially, each of these $25,088$ inputs is not a fragile pixel intensity, but a rich, highly abstracted, non-linear semantic descriptor (e.g., an entire wheel, a dog snout, or a bird wing). 
-\end{itemize}
-
-\paragraph{The architectural decoupling principle.}
-Placing the FCN at the end decouples the computer vision problem into two specialized stages:
-\begin{enumerate}[noitemsep]
-  \item \textbf{Stage 1 (CNN Backbone)}: Solves the continuous geometry and physics of visual perception (spatial locality, translation equivariance, illumination invariance, edge filtering, and multi-scale hierarchy).
-  \item \textbf{Stage 2 (FCN Head)}: Solves the discrete semantic categorization problem, acting as an unconstrained non-linear classifier that maps high-level feature evidence into class probabilities via Softmax:
-  \begin{equation}
-  \mathbf{z}_{\text{out}} = \mathbf{W}_{\text{out}} \mathbf{a}_{\text{fc}} + \mathbf{b}_{\text{out}} \in \R^K \implies \hat{y}_k = \frac{e^{z_k}}{\sum_{j=1}^K e^{z_j}}.
-  \end{equation}
-\end{enumerate}
-
-\paragraph{The modern paradigm: Dense FC heads vs. global average pooling (GAP).}
-While dense classification heads provide immense expressive power for global spatial-relational reasoning, they introduce a significant drawback in deep networks: in architectures such as AlexNet and VGG-16, the fully connected layers account for over $85\%$--$90\%$ of the total parameters ($58.6\text{M}$ of $61\text{M}$ weights in AlexNet; $102.7\text{M}$ of $138\text{M}$ in VGG-16!). This concentration of parameters creates severe overfitting risks and requires aggressive regularization such as Dropout ($p=0.5$)~\cite{srivastava2014dropout}.
-
-To eliminate this parameter bottleneck, modern architectures (pioneered by Network In Network~\cite{lin2013network} and established by GoogLeNet and ResNet~\cite{he2016deep}) replace the dense flattening head with \textbf{Global Average Pooling (GAP)}:
-\begin{equation}
-\bar{z}_c \triangleq \frac{1}{H' \times W'} \sum_{i=1}^{H'} \sum_{j=1}^{W'} F_{i, j, c}, \quad \forall c \in \{1, \dots, K\}.
-\label{eq:gap_formula}
-\end{equation}
-By setting the final convolutional layer to output exactly $K$ feature channels (one channel per target category) and averaging each spatial map across its entire area, GAP produces a $K$-dimensional vector directly fed into the Softmax function.
-
-\paragraph{Exam-critical comparison: Dense heads vs. global average pooling.}
-In oral examinations, professors frequently ask students to compare the architectural trade-offs between Dense FC Heads and Global Average Pooling:
-\begin{itemize}[leftmargin=*]
-  \item \textbf{Spatial Position Sensitivity}: Dense FCN heads retain spatial position sensitivity (preserving the relative spatial coordinate within the $7 \times 7$ grid where a feature occurred). This property is indispensable in structured spatial tasks such as \textbf{object detection} (e.g., the bounding-box regression heads in Fast/Faster R-CNN RoI heads) and \textbf{keypoint estimation}. In contrast, GAP completely integrates out spatial coordinates, enforcing strict spatial invariance.
-  \item \textbf{Parameter Efficiency and Overfitting}: Dense heads require tens of millions of parameters, making them prone to overfitting on small datasets. GAP introduces zero trainable parameters, acting as a structural regularizer that prevents overfitting and eliminates the need for Dropout.
-  \item \textbf{Arbitrary Input Resolution}: Dense heads require a fixed input resolution because the weight matrix $\mathbf{W}_{\text{fc}}$ depends rigidly on the flattened dimension $H' W' C'$. GAP, by computing a spatial average, can seamlessly ingest input images of arbitrary resolutions at test time without architectural modifications.
-\end{itemize}
-
-While micro-architectural design principles---stacking small $3\times 3$ kernels to expand the effective receptive field, deploying $1\times 1$ point-wise projections as computational bottlenecks, and utilizing spatial pooling with Global Average Pooling to eliminate fully connected parameter bloat---provide the modular primitives of deep vision, assembling these building blocks into high-capacity networks revealed severe empirical roadblocks. When researchers attempted to scale plain convolutional architectures beyond 20 layers, networks encountered devastating optimization pathologies: vanishing and exploding gradients, covariate shifts, and the counter-intuitive degradation problem where deeper models exhibited higher training error than their shallower counterparts. Overcoming these barriers required an empirical revolution driven by large-scale visual benchmarks. In Section~\ref{sec:landmark_cnn_architectures_imagenet}, we trace this historic paradigm shift across the ImageNet Large Scale Visual Recognition Challenge, analyzing how landmark architectures from AlexNet to ResNet systematically dismantled each optimization bottleneck to unlock extreme network depth.
+This mathematical derivation demonstrates that in classical CNN architectures, parameters are overwhelmingly concentrated at the dense classification head. Consequently, while the convolutional backbone provides parameter-efficient feature extraction, the dense head forms the primary bottleneck for memory storage and represents the predominant source of overfitting, necessitating heavy regularization techniques such as Dropout.
 
 \section{Landmark CNN architectures}
 \label{sec:landmark_cnn_architectures_imagenet}
@@ -1389,99 +1247,53 @@ The transition from theoretical formulation to practical dominance in computer v
 
 This paradigm shift materialized through the confluence of three technological catalysts: colossal labeled datasets, parallel commodity graphics processing units (GPUs), and non-saturating non-linearities. From AlexNet's dual-GPU breakthrough in 2012 to the modular homogeneous stacking of VGG and the multi-scale Inception topology in 2014, vision researchers systematically demonstrated that increasing architectural depth yielded exponentially richer representational hierarchies. Yet, scaling networks to extreme depth soon collided with an unexpected and severe optimization pathology: the degradation problem, where deeper plain networks exhibited higher training error than their shallower counterparts despite possessing strictly greater representational capacity.
 
-In this section, we analyze the historical and mathematical evolution of landmark deep convolutional architectures that resolved these foundational bottlenecks. We first formalize the ImageNet benchmark setting and document the pre-2012 handcrafted plateau. Next, we examine AlexNet's dual-GPU model-parallel engineering and its core training stability pillars. We then study VGGNet's principled homogeneous stacking and GoogLeNet's multi-scale Inception bottlenecks. Finally, we dissect the deep residual learning revolution of ResNet, providing a rigorous mathematical proof of how identity skip connections construct an uninterrupted gradient highway that enables networks to scale to hundreds of layers.
-
 \subsection{The ImageNet benchmark}
 \label{sec:imagenet_benchmark_revolution}
 
-The theoretical principles governing convolutional networks---translation equivariance, receptive field arithmetic, and multi-task loss formulation---found their decisive historical validation through the \textbf{ImageNet Large Scale Visual Recognition Challenge (ILSVRC)}~\cite{deng2009imagenet,russakovsky2015imagenet}.
+The theoretical principles governing convolutional networks found their decisive historical validation through the ImageNet Large Scale Visual Recognition Challenge (ILSVRC)~\cite{deng2009imagenet,russakovsky2015imagenet}. Constructed by Fei-Fei Li and colleagues in 2009, ImageNet organized over 14 million images mapped to the WordNet lexical hierarchy. The annual competition established a standardized benchmark comprising 1.28 million training images, 50,000 validation images, and 100,000 test images across $K = 1,000$ fine-grained object categories. Models were evaluated primarily on Top-5 Error (the fraction of test images where the ground-truth category is not among the model's top 5 most confident predictions), accounting for inherent semantic ambiguities in fine-grained labeling.
 
-\paragraph{The ImageNet benchmark setting.}
-Constructed by Fei-Fei Li and colleagues in 2009~\cite{deng2009imagenet}, ImageNet organized over 14 million images mapped to the WordNet lexical hierarchy. The annual ILSVRC competition established the rigorous benchmark:
-\begin{itemize}[noitemsep]
-  \item \textbf{Data Scale}: $1.28$ million training images, $50,000$ validation images, and $100,000$ test images.
-  \item \textbf{Category Granularity}: Exactly $K = 1,000$ fine-grained object categories (including 120 distinct breeds of dogs).
-  \item \textbf{Evaluation Metrics}:
-    \begin{itemize}
-      \item \textbf{Top-1 Error}: The fraction of test images where the model's single highest-probability class prediction is incorrect ($\hat{y}_{\text{pred}} \neq y_{\text{true}}$).
-      \item \textbf{Top-5 Error}: The fraction of test images where the true category is not among the model's top 5 most confident class predictions ($\text{True Label} \notin \{c_{(1)}, c_{(2)}, c_{(3)}, c_{(4)}, c_{(5)}\}$). Top-5 error served as the official ranking metric to account for inherent semantic ambiguity in fine-grained labels.
-    \end{itemize}
-\end{itemize}
+Prior to 2012, computer vision was dominated by classical multi-stage pipelines: dense handcrafted feature extraction (SIFT, HOG), vector quantization and aggregation (Bag-of-Visual-Words, Spatial Pyramid Matching, Fisher Vectors), and supervised kernel Support Vector Machines. Despite extensive mathematical design, these handcrafted pipelines stalled at an empirical plateau with a winning top-5 error of $26.2\%$ in 2011. The arrival of deep convolutional neural networks shattered this ceiling, demonstrating that optimizing feature representations end-to-end directly from raw pixels decisively outperforms engineered descriptors.
 
-\paragraph{The pre-2012 handcrafted plateau.}
-Prior to 2012, computer vision was dominated by classical multi-stage pipelines:
-\begin{enumerate}[leftmargin=*]
-  \item Dense handcrafted local feature extraction: Scale-Invariant Feature Transform (SIFT, Lowe 2004)~\cite{lowe2004distinctive} and Histogram of Oriented Gradients (HOG, Dalal \& Triggs 2005)~\cite{dalal2005histograms}.
-  \item Vector quantization and aggregation: Bag-of-Visual-Words (BoVW), Spatial Pyramid Matching, and Fisher Vectors (Perronnin et al., 2010).
-  \item Supervised linear classification: One-vs-Rest kernel Support Vector Machines (SVMs).
-\end{enumerate}
-Despite decades of meticulous mathematical design by vision scientists, these handcrafted pipelines stalled at an empirical plateau: the winning 2011 system achieved a \textbf{top-5 error of $26.2\%$}. Many researchers believed that computer vision had encountered an asymptotic ceiling governed by the limits of visual representations.
-
-\begin{table}[H]
+\begin{figure}[H]
 \centering
-\footnotesize
-\setlength{\tabcolsep}{4pt}
-\caption{Historical evolution of top-5 classification error on the ImageNet (ILSVRC) 1,000-class benchmark, documenting the transition from pre-2012 handcrafted feature pipelines to ultra-deep residual networks.}
-\label{tab:imagenet_historical_evolution}
-\vspace{4pt}
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.6cm} c c c c >{\raggedright\arraybackslash}X}
-\toprule
-\textbf{Model / Paradigm} & \textbf{Year} & \textbf{Depth} & \textbf{Params} & \textbf{Top-5 Err.} & \textbf{Key Innovations \& Architectural Milestones} \\
-\midrule
-\textbf{Handcrafted Baseline} & 2011 & Shallow & $\sim 10^7$ & $26.2\%$ & Dense SIFT, Fisher Vectors, Bag-of-Visual-Words (BoVW), Spatial Pyramid Matching, linear/kernel SVMs. Severe empirical ceiling. \\
-\addlinespace
-\textbf{AlexNet} & 2012 & 8 & $61\,\text{M}$ & $16.4\%$ & Deep CNN watershed: cut relative error by $\sim 40\%$. ReLU activations, Dropout ($p=0.5$), 2$\times$ GTX 580 GPUs, overlapping max pooling~\cite{krizhevsky2012imagenet}. \\
-\addlinespace
-\textbf{ZFNet} & 2013 & 8 & $60\,\text{M}$ & $11.7\%$ & Deconvolutional feature visualization; reduced Layer 1 filter size from $11\times 11$ ($S=4$) to $7\times 7$ ($S=2$) to preserve high-frequency features~\cite{zeiler2014visualizing}. \\
-\addlinespace
-\textbf{VGG-16} & 2014 & 16 & $138\,\text{M}$ & $7.3\%$ & Homogeneous $3\times 3$ kernel stacking (VGG principle); proves depth and simplicity trump large filters; $45\%$ parameter savings vs. $7\times 7$~\cite{simonyan2014very}. \\
-\addlinespace
-\textbf{GoogLeNet} & 2014 & 22 & $6.8\,\text{M}$ & $6.7\%$ & Multi-scale Inception modules ($1\times 1, 3\times 3, 5\times 5$); $1\times 1$ conv dimensionality reduction; Global Average Pooling; $20\times$ fewer params than VGG~\cite{szegedy2015going}. \\
-\addlinespace
-\textbf{ResNet-152} & 2015 & 152 & $60.2\,\text{M}$ & $\mathbf{3.57\%}$ & Residual skip connections $\mathbf{y} = \mathcal{F}(\mathbf{x}) + \mathbf{x}$; identity shortcuts solve the gradient degradation problem; enabled 152-layer optimization~\cite{he2016deep}. \\
-\midrule
-\textbf{Human Baseline} & 2015 & Cortex & $\sim 10^{14}$ syn. & $\approx \mathbf{5.1\%}$ & Andrej Karpathy human benchmark study (1,500 test images). ResNet-152 became the first model in history to surpass human performance. \\
-\bottomrule
-\end{tabularx}
-\end{table}
+\begin{tikzpicture}[
+  model/.style={rectangle, draw=politoNavy, fill=skyBlue!20, thick, rounded corners=3pt, minimum width=2.1cm, minimum height=0.85cm, align=center, font=\scriptsize\bfseries},
+  year/.style={font=\footnotesize\bfseries\color{politoNavy}},
+  tarrow/.style={-{Stealth[scale=0.9]}, thick, politoNavy}
+]
+  \node[model, draw=gray!70, fill=gray!15] (m0) at (0, 0) {Handcrafted\\{\tiny (SIFT / HOG / SVM)}};
+  \node[year, above=2pt of m0] {2011};
 
-\paragraph{Conceptual takeaways of the deep revolution.}
-The historical trajectory in Table~\ref{tab:imagenet_historical_evolution} yields three profound theoretical conclusions:
-\begin{enumerate}[leftmargin=*]
-  \item \textbf{End-to-End Representation Learning}: The superiority of learned representations over engineered descriptors demonstrated that optimizing feature extractors directly on the downstream objective is vastly more powerful than separating feature design from classifier optimization.
-  \item \textbf{Depth and Inductive Bias as Regularizers}: As evidenced by VGG, GoogLeNet, and ResNet, network performance scales directly with architectural depth ($8 \to 16 \to 22 \to 152$ layers). Crucially, depth is only trainable when paired with principled architectural inductive biases: small kernel stacking, multi-scale bottleneck projections, and residual identity mappings.
-  \item \textbf{Generalization Beyond ImageNet}: Representations learned on ImageNet serve as universal visual representations. A convolutional backbone pre-trained on ImageNet can be fine-tuned or transferred to object detection (Faster R-CNN), semantic segmentation (FCN/U-Net), medical imaging, and autonomous driving, establishing pre-training and transfer learning as the foundational paradigm of modern machine learning.
-\end{enumerate}
+  \node[model, draw=deepblue, fill=skyBlue!25] (m1) at (2.8, 0) {AlexNet};
+  \node[year, above=2pt of m1] {2012};
+
+  \node[model, draw=deepblue!80, fill=skyBlue!15] (m2) at (5.4, 0) {ZFNet};
+  \node[year, above=2pt of m2] {2013};
+
+  \node[model, draw=intuitiongreen, fill=intuitiongreen!20] (m3) at (8.3, 0) {VGGNet /\\GoogLeNet};
+  \node[year, above=2pt of m3] {2014};
+
+  \node[model, draw=examred, fill=examred!20] (m4) at (11.4, 0) {ResNet};
+  \node[year, above=2pt of m4] {2015};
+
+  \draw[tarrow] (m0) -- (m1);
+  \draw[tarrow] (m1) -- (m2);
+  \draw[tarrow] (m2) -- (m3);
+  \draw[tarrow] (m3) -- (m4);
+\end{tikzpicture}
+\caption{Timeline of landmark image classification architectures developed on the ImageNet benchmark (2011--2015).}
+\label{fig:imagenet_models_timeline}
+\end{figure}
+
+As summarized in Figure~\ref{fig:imagenet_models_timeline}, the rapid succession of deep architectures established two fundamental lessons: first, end-to-end gradient-based optimization of representation hierarchies strictly dominates decoupled handcrafted feature design; second, architectural depth serves as a powerful regularizer, unlocking increasingly rich semantic representations when supported by principled structural biases such as small-kernel stacking, multi-scale bottlenecks, and residual skip connections.
 
 \subsection{AlexNet (2012)}
 \label{sec:alexnet_architecture}
 
-In October 2012, Alex Krizhevsky, Ilya Sutskever, and Geoffrey Hinton submitted \textbf{AlexNet}~\cite{krizhevsky2012imagenet} to the ILSVRC competition, recording a top-5 error of \textbf{16.4\%} and winning the competition by an unprecedented 9.8 percentage point margin. This single empirical result ignited the modern deep learning revolution by demonstrating that deep convolutional neural networks trained via backpropagation could decisively eclipse decades of classical feature engineering.
+In October 2012, Alex Krizhevsky, Ilya Sutskever, and Geoffrey Hinton submitted AlexNet~\cite{krizhevsky2012imagenet} to the ILSVRC competition, winning with a top-5 error of $16.4\%$ and outpacing the runner-up by an unprecedented 9.8 percentage points. AlexNet comprised 8 learned layers: 5 convolutional layers followed by 3 dense fully connected layers, encompassing approximately $61 \times 10^6$ parameters.
 
-\paragraph{Layer-by-layer architectural anatomy.}
-AlexNet comprises 8 learned layers: 5 convolutional layers followed by 3 dense fully connected layers, encompassing approximately $61 \times 10^6$ learnable parameters and $724 \times 10^6$ multiply-accumulate operations (MACs):
-\begin{enumerate}[leftmargin=*]
-  \item \textbf{Input}: A fixed-resolution color image $\mathbf{X} \in \R^{224 \times 224 \times 3}$ (internally padded to $227 \times 227 \times 3$ to ensure integer dimension compatibility).
-  \item \textbf{Convolutional Layer 1}: Filters the input with 96 kernels of size $11 \times 11 \times 3$ applied with a coarse stride of $S = 4$ and no padding ($P = 0$):
-    \begin{equation}
-    H_{\text{out}} = \left\lfloor \frac{227 - 11}{4} \right\rfloor + 1 = 55 \implies \mathbf{F}_1 \in \R^{55 \times 55 \times 96}.
-    \end{equation}
-    Followed immediately by ReLU, Local Response Normalization (LRN), and overlapping Max Pooling ($3 \times 3, S = 2$), reducing the feature map to $27 \times 27 \times 96$.
-  \item \textbf{Convolutional Layer 2}: Applies 256 kernels of size $5 \times 5 \times 48$ with stride $S = 1$ and padding $P = 2$, preserving spatial resolution:
-    \begin{equation}
-    H_{\text{out}} = \left\lfloor \frac{27 + 4 - 5}{1} \right\rfloor + 1 = 27 \implies \mathbf{F}_2 \in \R^{27 \times 27 \times 256}.
-    \end{equation}
-    Followed by ReLU, LRN, and overlapping Max Pooling ($3 \times 3, S = 2$), yielding dimensions $13 \times 13 \times 256$.
-  \item \textbf{Convolutional Layer 3}: Applies 384 kernels of size $3 \times 3 \times 256$ with stride $S = 1$ and padding $P = 1$, yielding $\mathbf{F}_3 \in \R^{13 \times 13 \times 384}$. Followed by ReLU.
-  \item \textbf{Convolutional Layer 4}: Applies 384 kernels of size $3 \times 3 \times 192$ with stride $S = 1$ and padding $P = 1$, yielding $\mathbf{F}_4 \in \R^{13 \times 13 \times 384}$. Followed by ReLU.
-  \item \textbf{Convolutional Layer 5}: Applies 256 kernels of size $3 \times 3 \times 192$ with stride $S = 1$ and padding $P = 1$, followed by overlapping Max Pooling ($3 \times 3, S = 2$):
-    \begin{equation}
-    H_{\text{out}} = \left\lfloor \frac{13 - 3}{2} \right\rfloor + 1 = 6 \implies \mathbf{F}_5 \in \R^{6 \times 6 \times 256}.
-    \end{equation}
-  \item \textbf{Fully Connected Layer 6}: Flattens the $6 \times 6 \times 256 = 9,216$ activations and connects densely to 4,096 units. This single transition matrix contains $9,216 \times 4,096 \approx \mathbf{37.7 \times 10^6}$ parameters ($62\%$ of the total network parameter budget). Regularized with Dropout ($p = 0.5$) and ReLU.
-  \item \textbf{Fully Connected Layer 7}: A dense layer of 4,096 units ($4,096 \times 4,096 \approx \mathbf{16.8 \times 10^6}$ parameters), regularized with Dropout ($p = 0.5$) and ReLU.
-  \item \textbf{Output Layer 8}: Connects to 1,000 units corresponding to the 1,000 ImageNet categories, emitting class probabilities through Softmax.
-\end{enumerate}
+\paragraph{Dual-GPU model parallelism.}
+In 2012, state-of-the-art hardware (the NVIDIA GeForce GTX 580) provided only 3~GB of on-board VRAM. Storing 61 million parameters alongside forward activations, backward gradients, and momentum buffers exceeded this physical limit. To overcome this memory constraint, Krizhevsky implemented model parallelism across two GPUs by partitioning convolutional feature channels symmetrically across both devices (for example, 48 filters on GPU 1 and 48 on GPU 2 in Layer 1). Because inter-device PCIe communication was slow, cross-GPU data transfers were restricted strictly to Layer 3 and the dense fully connected layers. This induced spontaneous functional specialization: GPU 1 specialized in high-frequency, color-agnostic edge detectors, while GPU 2 specialized in low-frequency, chromatic blob and texture filters.
 
 \begin{figure}[H]
 \centering
@@ -1553,100 +1365,34 @@ AlexNet comprises 8 learned layers: 5 convolutional layers followed by 3 dense f
 \label{fig:alexnet_dual_gpu_architecture}
 \end{figure}
 
-\paragraph{Dual-GPU model parallelism and emergent feature specialization.}
-In 2012, state-of-the-art commodity hardware---the NVIDIA GeForce GTX 580---was limited to 3~GB of on-board VRAM. A network with 61 million parameters, stored alongside its intermediate forward activations, backward gradients, and momentum optimizer buffers, exceeded this physical limit.
-
-To overcome this hardware constraint, Krizhevsky engineered a custom CUDA kernel implementing \textbf{model parallelism across two physical GPUs}, as diagrammed in Figure~\ref{fig:alexnet_dual_gpu_architecture}:
-\begin{itemize}[leftmargin=*]
-  \item \textbf{Channel Partitioning}: The feature channels were split symmetrically: GPU 1 hosted 48 kernels in Conv 1, 128 in Conv 2, 192 in Conv 3, 192 in Conv 4, and 128 in Conv 5. GPU 2 hosted the identical complementary partition.
-  \item \textbf{Communication Bottleneck Optimization}: Because PCIe bus synchronization was prohibitively slow, cross-GPU data transfers were restricted to two strategic sync points:
-    \begin{enumerate}
-      \item \textbf{Convolutional Layer 3}: Kernels in Conv 3 took input from the outputs of \textit{both} GPU 1 and GPU 2 at Layer 2. In contrast, Conv 2, Conv 4, and Conv 5 operated strictly intra-GPU, processing only activations from their local device.
-      \item \textbf{Fully Connected Layers}: The dense layers (FC6, FC7, FC8) connected all units across both devices, recombining the partitioned streams into a unified semantic classifier.
-    \end{enumerate}
-  \item \textbf{Emergent Functional Specialization}: The dual-GPU partitioning produced an extraordinary, spontaneous division of labor in the learned weights. Without explicit supervision, the filters on GPU 1 specialized in high-frequency, orientation-selective, color-agnostic Gabor-like edge detectors. Simultaneously, the filters on GPU 2 specialized into low-frequency, color-sensitive chromatic blob and texture filters. This dual-stream organization mirrored the biological division between the magnocellular (spatial/motion) and parvocellular (color/detail) visual pathways in primate cortex.
-\end{itemize}
-
-\paragraph{The four foundational pillars of AlexNet.}
-Beyond hardware parallelism, AlexNet's success rested on four algorithmic breakthroughs that became universal standards in deep learning:
+\paragraph{Algorithmic innovations.}
+Beyond parallel hardware execution, AlexNet introduced three algorithmic techniques that became foundational standards in deep learning:
 \begin{enumerate}[leftmargin=*]
-  \item \textbf{Rectified Linear Unit (ReLU)}: Prior networks utilized saturating sigmoidal activations:
-    \begin{equation}
-    \sigma(z) = \frac{1}{1 + e^{-z}} \quad \text{or} \quad \tanh(z).
-    \end{equation}
-    Because $|\sigma'(z)| \le 0.25$, gradients vanished exponentially across deep cascades ($\prod \sigma' \to 0$). AlexNet adopted the non-saturating piecewise linear function $\text{ReLU}(z) = \max(0, z)$. With a constant derivative $\sigma'(z) = 1$ for all $z > 0$, ReLU accelerated gradient descent convergence by a factor of \textbf{$6\times$} on ImageNet compared to $\tanh$, making deep networks trainable within practical time horizons.
-  \item \textbf{Dropout Regularization}: With 61 million parameters trained on 1.2 million samples, AlexNet was highly vulnerable to catastrophic overfitting. In dense layers FC6 and FC7, AlexNet applied \textbf{Dropout} with probability $p = 0.5$~\cite{srivastava2014dropout}. At each training iteration, half the hidden units were randomly zeroed out, preventing neurons from developing fragile co-adaptations and approximating an ensemble of exponentially many thinned networks.
-  \item \textbf{Massive Data Augmentation}: To artificially expand the training distribution without memory overhead, AlexNet generated data perturbations on the CPU in parallel with GPU forward-backward passes:
-    \begin{itemize}
-      \item Random spatial crops: Extracting $224 \times 224$ patches from $256 \times 256$ images alongside random horizontal reflections, expanding the effective dataset size by a factor of $(256 - 224)^2 \times 2 = 2,048$.
-      \item PCA color jittering: Performing Principal Component Analysis on RGB pixel values across the training set and adding multiples of the principal components to RGB channels:
-        \begin{equation}
-        \mathbf{I}_{x,y} \leftarrow \mathbf{I}_{x,y} + [\mathbf{p}_1, \mathbf{p}_2, \mathbf{p}_3] [\alpha_1 \lambda_1, \, \alpha_2 \lambda_2, \, \alpha_3 \lambda_3]^\top,
-        \end{equation}
-        where $\mathbf{p}_i$ and $\lambda_i$ are eigenvectors and eigenvalues of the $3 \times 3$ RGB covariance matrix, and $\alpha_i \sim \mathcal{N}(0, 0.1)$. This conferred invariance to natural illumination shifts.
-    \end{itemize}
-  \item \textbf{Local Response Normalization (LRN)}: Inspired by neurobiology, LRN implemented lateral inhibition among adjacent kernel feature maps:
-    \begin{equation}
-    b_{x,y}^i = \frac{a_{x,y}^i}{\left( k + \alpha \sum_{j=\max(0, i-n/2)}^{\min(N-1, i+n/2)} (a_{x,y}^j)^2 \right)^\beta},
-    \label{eq:lrn_formula}
-    \end{equation}
-    where $a_{x,y}^i$ is the activation of kernel $i$ at coordinate $(x, y)$, and $n, k, \alpha, \beta$ are hyper-parameters ($n=5, k=2, \alpha=10^{-4}, \beta=0.75$). LRN created competition for big activities among adjacent features, reducing top-1 error by $1.4\%$. In later architectures, LRN was superseded by Batch Normalization.
+  \item \textit{Rectified Linear Units (ReLU)}: AlexNet replaced saturating activations ($\tanh$ and sigmoid) with the piecewise linear $\text{ReLU}(z) = \max(0, z)$. Because $\text{ReLU}'(z) = 1$ for all $z > 0$, it eliminated gradient vanishing across deep cascades, accelerating convergence by a factor of $6\times$ on ImageNet compared to $\tanh$.
+  \item \textit{Dropout Regularization}: To regularize the 61 million parameters against catastrophic overfitting, AlexNet applied Dropout ($p = 0.5$) in the dense layers FC6 and FC7, randomly zeroing half the hidden activations at each training step to prevent fragile co-adaptations.
+  \item \textit{Data Augmentation}: Effective dataset scale was expanded via CPU-generated perturbations computed in parallel with GPU passes, using random $224 \times 224$ crops from $256 \times 256$ images and horizontal reflections to provide robust geometric invariance.
 \end{enumerate}
 
 \subsection{VGGNet (2014)}
 \label{sec:vggnet_architecture}
 
-While AlexNet demonstrated the power of deep convolutional networks, its architectural configuration was highly heuristic, employing large $11 \times 11$ and $5 \times 5$ filters with irregular strides ($S=4$). In 2014, Karen Simonyan and Andrew Zisserman introduced \textbf{VGGNet} (the Visual Geometry Group at Oxford)~\cite{simonyan2014very}, securing second place in ILSVRC 2014 with a top-5 error of \textbf{7.3\%}. VGGNet established that \textbf{architectural simplicity, homogeneity, and extreme depth strictly dominate heterogeneous large-kernel designs}.
+While AlexNet demonstrated the empirical power of deep learning, its architectural configuration remained heuristic, relying on large $11 \times 11$ and $5 \times 5$ filters with irregular strides. In 2014, Karen Simonyan and Andrew Zisserman introduced VGGNet~\cite{simonyan2014very}, securing second place in ILSVRC 2014 with a top-5 error of $7.3\%$ and proving that architectural simplicity, structural homogeneity, and extreme depth strictly dominate heterogeneous large-kernel networks.
 
-\paragraph{The modular homogeneous block paradigm.}
-VGG eliminated all large spatial filters, establishing two universal design rules:
+\paragraph{Homogeneous modular design and depth scaling.}
+VGG eliminated all large spatial filters, establishing two universal architectural rules:
 \begin{enumerate}[leftmargin=*]
-  \item \textbf{Homogeneous $3 \times 3$ Convolutions}: Every single convolutional layer in the backbone strictly utilizes a $3 \times 3$ kernel with unit stride ($S = 1$) and unit padding ($P = 1$). Because $H_{\text{out}} = (H - 3 + 2)/1 + 1 = H$, convolution preserves spatial resolution identically, isolating spatial downsampling exclusively to pooling layers.
-  \item \textbf{Doubling Channels Upon Halving Resolution}: VGG organizes its computation into five sequential stages separated by standard $2 \times 2$ max pooling with stride $S = 2$:
-    \begin{equation}
-    (224 \times 224 \times 64) \xrightarrow{\text{Pool}} (112 \times 112 \times 128) \xrightarrow{\text{Pool}} (56 \times 56 \times 256) \xrightarrow{\text{Pool}} (28 \times 28 \times 512) \xrightarrow{\text{Pool}} (14 \times 14 \times 512) \xrightarrow{\text{Pool}} (7 \times 7 \times 512).
-    \end{equation}
-    Whenever max pooling halves the spatial resolution ($H \to H/2, W \to W/2$), the number of convolutional channels is doubled ($C \to 2C$). Because spatial area drops by $4\times$ while channel products expand by $4\times$ ($C_{\text{in}} C_{\text{out}} = 2C \cdot 2C = 4C^2$), the arithmetic computational FLOPs per convolutional layer remain approximately invariant across all stages!
+  \item \textit{Homogeneous $3 \times 3$ Convolutions}: Every convolutional layer strictly uses a $3 \times 3$ kernel with unit stride ($S = 1$) and unit padding ($P = 1$), preserving spatial resolution identically throughout each stage.
+  \item \textit{Channel Doubling Upon Spatial Downsampling}: Computation is organized into five sequential stages separated by standard $2 \times 2$ max pooling ($S = 2$). Whenever spatial resolution is halved ($H \to H/2, W \to W/2$), the number of convolutional channels is doubled ($C \to 2C$). Because the $4\times$ spatial area reduction balances the $4\times$ channel expansion ($2C \cdot 2C = 4C^2$), computational FLOPs remain roughly invariant across all stages.
 \end{enumerate}
-
-\paragraph{Depth scaling progression: VGG-11 through VGG-19.}
-Simonyan and Zisserman systematically investigated the relationship between network depth and performance by evaluating configurations ranging from 11 to 19 weight layers:
-\begin{itemize}[leftmargin=*]
-  \item \textbf{VGG-11}: 8 conv layers, 3 FC layers.
-  \item \textbf{VGG-13}: 10 conv layers (two $3 \times 3$ per stage), 3 FC layers.
-  \item \textbf{VGG-16}: 13 conv layers (arranged as $2 \times [2 \text{ conv}] + 3 \times [3 \text{ conv}]$), 3 FC layers.
-  \item \textbf{VGG-19}: 16 conv layers (arranged as $2 \times [2 \text{ conv}] + 3 \times [4 \text{ conv}]$), 3 FC layers.
-\end{itemize}
-This systematic ablation demonstrated that classification accuracy increased monotonically with depth, proving that deep representation hierarchies fold the metric space into increasingly linearly separable manifolds.
-
-\paragraph{The parameter concentration bottleneck in VGG.}
-Despite its architectural elegance and widespread adoption as a universal feature extractor, VGG-16 exhibits a severe design flaw: an extreme, imbalanced parameter concentration in its dense classification head:
-\begin{equation}
-N_{\text{total}} = 138.35 \times 10^6 \text{ parameters}.
-\end{equation}
-A layer-by-layer parameter audit reveals:
-\begin{itemize}[leftmargin=*]
-  \item \textbf{The Entire Convolutional Backbone (13 layers)}: Contains only $\mathbf{14.7 \times 10^6}$ parameters ($10.6\%$ of the network).
-  \item \textbf{Fully Connected Layer 6 (FC6)}: Connects the flattened $7 \times 7 \times 512 = 25,088$ features to 4,096 units:
-    \begin{equation}
-    N_{\text{FC6}} = 25,088 \times 4,096 = \mathbf{102,760,448 \text{ parameters}} \quad (\mathbf{74.3\%} \text{ of the entire model!}).
-    \end{equation}
-  \item \textbf{FC7 and FC8}: Add an additional $16.78\text{M}$ and $4.1\text{M}$ parameters, bringing the dense head to $\mathbf{123.6 \times 10^6}$ parameters ($89.4\%$ of total weights).
-\end{itemize}
-This parameter bloat produced massive memory overhead ($>500\text{ MB}$ weights file) and severe risk of overfitting, motivating subsequent architectures to eliminate dense classification heads entirely.
+Simonyan and Zisserman evaluated configurations ranging from 11 to 19 weight layers (VGG-11 through VGG-19), demonstrating that classification accuracy increased monotonically with depth. However, VGG-16 also exposed the severe parameter concentration of dense heads: of its $138.35\text{M}$ total parameters, the dense layers account for $123.6\text{M}$ ($89.4\%$), with the single $\text{FC}_6$ transition matrix consuming nearly $75\%$ of the model.
 
 \subsection{GoogLeNet and Inception (2014)}
 \label{sec:googlenet_inception}
 
-Concurrently with VGG at ILSVRC 2014, Christian Szegedy et al. at Google developed \textbf{GoogLeNet} (Inception-v1)~\cite{szegedy2015going}, winning the competition with a top-5 error of \textbf{6.7\%}. GoogLeNet achieved this superior performance with a 22-layer deep network that contained only \textbf{6.8 million parameters}---over \textbf{$20\times$ fewer parameters than VGG-16}!
+Concurrently at ILSVRC 2014, Christian Szegedy et al. developed GoogLeNet (Inception-v1)~\cite{szegedy2015going}, winning the competition with a top-5 error of $6.7\%$. GoogLeNet achieved this performance with a 22-layer deep network containing only $6.8\text{ million}$ parameters---over $20\times$ fewer than VGG-16.
 
-\paragraph{The multi-scale Inception hypothesis.}
-GoogLeNet was built on a foundational physical intuition regarding natural images: \textbf{salient visual features appear at drastically different spatial scales within the same image}. For example:
-\begin{itemize}[leftmargin=*]
-  \item A localized texture, edge, or fine animal fur requires a compact $3 \times 3$ receptive field to preserve sharp spatial details.
-  \item An entire object part (such as an animal torso or vehicle chassis) requires a broad $5 \times 5$ or $7 \times 7$ receptive field to capture global structural context.
-\end{itemize}
-In standard sequential CNNs, the architect must commit to a single filter size per layer. The Inception architecture rejects this compromise: instead of choosing between $1 \times 1$, $3 \times 3$, or $5 \times 5$ convolutions, the \textbf{Inception module executes all of them in parallel at the same layer and concatenates their output feature maps along the channel dimension}.
+\paragraph{Multi-scale Inception and $1\times 1$ bottlenecks.}
+GoogLeNet was built on the intuition that salient visual features appear at drastically different spatial scales within the same scene. Rather than committing to a single filter size per layer, the Inception module executes $1 \times 1$, $3 \times 3$, and $5 \times 5$ convolutions alongside $3 \times 3$ max pooling in parallel, concatenating their outputs along the channel dimension.
 
 \begin{figure}[H]
 \centering
@@ -1704,82 +1450,22 @@ In standard sequential CNNs, the architect must commit to a single filter size p
 \label{fig:inception_module_architecture}
 \end{figure}
 
-\paragraph{The combinatorial explosion of naive Inception and the $1\times 1$ bottleneck solution.}
-A naive implementation of parallel multi-scale convolutions leads to an immediate computational catastrophe. Suppose an intermediate stage receives an input of dimensions $H \times W \times 256$, and we apply:
-\begin{itemize}[noitemsep]
-  \item 128 filters of size $1 \times 1$,
-  \item 192 filters of size $3 \times 3$ ($P=1$),
-  \item 96 filters of size $5 \times 5$ ($P=2$),
-  \item $3 \times 3$ max pooling ($S=1, P=1$, outputting 256 channels).
-\end{itemize}
-Concatenating these four branches produces an output depth of $128 + 192 + 96 + 256 = \mathbf{672\text{ channels}}$! In the subsequent layer, a $5 \times 5$ convolution operating on 672 input channels would require over $160\text{ million}$ operations per single pixel, causing computational cost to explode exponentially.
-
-To resolve this bottleneck, GoogLeNet introduced \textbf{$1 \times 1$ convolutional dimension reduction layers} (the red blocks in Figure~\ref{fig:inception_module_architecture}):
-\begin{enumerate}[leftmargin=*]
-  \item \textbf{Pre-Convolution Reduction}: A $1 \times 1$ convolution is inserted \textit{before} the $3 \times 3$ and $5 \times 5$ convolutions, compressing the input from 256 channels down to 64 or 96 channels.
-  \item \textbf{Post-Pooling Reduction}: A $1 \times 1$ convolution is placed \textit{after} the $3 \times 3$ max pooling layer, compressing its output from 256 channels to 64 channels.
-\end{enumerate}
-
-\paragraph{Exact mathematical quantification of bottleneck FLOP savings.}
-To see the dramatic arithmetic savings achieved by the $1 \times 1$ bottleneck, consider computing 128 output channels with a $5 \times 5$ convolution on a feature map of dimensions $28 \times 28 \times 256$:
-\begin{itemize}[leftmargin=*]
-  \item \textbf{Direct $5 \times 5$ Convolution (Without Bottleneck)}:
-    \begin{equation}
-    \text{FLOPs} = 2 \times (28 \times 28) \times (5 \times 5 \times 256) \times 128 \approx \mathbf{100.35 \times 10^6 \text{ FLOPs}}.
-    \end{equation}
-  \item \textbf{Bottleneck Architecture ($1 \times 1$ Reduction to 32 Channels $\to 5 \times 5$ Convolution)}:
-    \begin{align}
-    \text{Step 1 ($1\times 1$ reduction to 32)}: &\quad 2 \times (28 \times 28) \times (1 \times 1 \times 256) \times 32 \approx 3.21 \times 10^6 \text{ FLOPs}, \\
-    \text{Step 2 ($5\times 5$ convolution)}: &\quad 2 \times (28 \times 28) \times (5 \times 5 \times 32) \times 128 \approx 12.54 \times 10^6 \text{ FLOPs}, \\
-    \text{Total FLOPs} &= 3.21 \times 10^6 + 12.54 \times 10^6 = \mathbf{15.75 \times 10^6 \text{ FLOPs}}.
-    \end{align}
-  \item \textbf{Efficiency Gain}: The $1 \times 1$ bottleneck cuts computational cost by $\frac{100.35 - 15.75}{100.35} \approx \mathbf{84.3\%}$!
-\end{itemize}
-
-\paragraph{Auxiliary classification heads for gradient injection.}
-In 2014, training a 22-layer deep network without residual shortcuts or batch normalization was severely hindered by vanishing gradients: backpropagated signals attenuated before reaching the earliest layers.
-
-To counteract this, GoogLeNet introduced \textbf{Auxiliary Classifiers} connected at intermediate stages (after Inception-4a and Inception-4d). During training, each auxiliary branch branched off intermediate activations, applied average pooling, a $1 \times 1$ convolution, a dense layer of 1,024 units with Dropout ($p=0.7$), and a 1,000-way Softmax classifier. The training objective minimized a weighted multi-task loss:
-\begin{equation}
-\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{main}} + 0.3 \cdot \mathcal{L}_{\text{aux1}} + 0.3 \cdot \mathcal{L}_{\text{aux2}}.
-\label{eq:googlenet_auxiliary_loss}
-\end{equation}
-The auxiliary heads injected clean, unattenuated error gradients directly into the lower convolutional stages, stabilizing training. At test time, both auxiliary branches were discarded, incurring zero inference overhead.
+To prevent parallel convolutions from triggering an exponential explosion in channel depth, GoogLeNet introduced $1 \times 1$ convolutional bottleneck layers (the red blocks in Figure~\ref{fig:inception_module_architecture}). Inserting a $1 \times 1$ reduction before costly $3 \times 3$ and $5 \times 5$ filters compresses channel depth (e.g., from 256 to 32), slashing computational FLOPs by over $84\%$. Furthermore, GoogLeNet replaced the massive dense classification head with Global Average Pooling (GAP), eliminating tens of millions of parameters while regularizing against overfitting.
 
 \subsection{ResNet (2015)}
 \label{sec:resnet_architecture}
 
-In 2015, Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun at Microsoft Research published the foundational \textbf{Deep Residual Learning for Image Recognition} (ResNet)~\cite{he2016deep,he2016identity}. Winning ILSVRC 2015 across all visual challenges (Classification, Detection, and Localization), ResNet-152 achieved an astonishing top-5 error of \textbf{3.57\%}, becoming the first autonomous visual model in history to surpass human-level performance ($\approx 5.1\%$).
+In 2015, Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun introduced Deep Residual Learning (ResNet)~\cite{he2016deep,he2016identity}. Winning ILSVRC 2015 with a top-5 error of $3.57\%$, ResNet-152 became the first autonomous visual model to surpass estimated human performance ($\approx 5.1\%$).
 
-\paragraph{The degradation problem: Optimization failure vs. overfitting.}
-Prior to ResNet, empirical deep learning was constrained by an impenetrable barrier: as networks grew deeper than $\approx 20$ layers, their accuracy saturated and then rapidly degraded.
+\paragraph{The degradation problem and residual re-parameterization.}
+Prior to ResNet, stacking plain convolutional layers beyond $\approx 20$ layers caused accuracy to saturate and then rapidly degrade. Crucially, this degradation was not caused by overfitting: deeper plain networks exhibited strictly higher training error than shallower ones. Stacking unconstrained non-linear layers $\mathbf{h}_{l+1} = \sigma(\mathbf{W}_l \mathbf{h}_l + \mathbf{b}_l)$ introduces severe optimization friction that prevents numerical gradient descent from learning simple identity mappings.
 
-Crucially, as proven by He et al.~\cite{he2016deep}, this degradation is \textbf{not caused by overfitting}:
-\begin{itemize}[leftmargin=*]
-  \item In standard overfitting, a model exhibits near-zero training error but high test error due to variance.
-  \item In the \textbf{degradation problem}, a \textbf{56-layer plain network exhibits significantly higher training error than a 20-layer plain network} on the exact same dataset!
-\end{itemize}
-This counter-intuitive failure exposes a profound optimization paradox. Consider a shallower network architecture $\mathcal{A}$ with $M$ layers, and a deeper architecture $\mathcal{B}$ with $N > M$ layers constructed by appending $N - M$ extra layers to $\mathcal{A}$. In principle, the hypothesis space of $\mathcal{B}$ strictly contains $\mathcal{A}$ ($\mathcal{H}_{\mathcal{A}} \subset \mathcal{H}_{\mathcal{B}}$): the solver could simply set the $N - M$ extra layers to the \textbf{identity mapping} ($\mathcal{H}(\mathbf{x}) = \mathbf{x}$), guaranteeing that the deeper model achieves training error no higher than the shallower model.
-
-Yet, empirical experiments revealed that standard numerical optimizers (SGD and Adam) fail catastrophically to find this solution. Stacking standard non-linear transformations:
-\begin{equation}
-\mathbf{h}_{l+1} = \sigma(\mathbf{W}_l \mathbf{h}_l + \mathbf{b}_l),
-\end{equation}
-makes it notoriously difficult for gradient descent to learn an identity mapping: fitting multiple weight matrices to approximate $\mathbf{I}$ through non-linearities introduces severe optimization friction.
-
-\paragraph{The residual formulation: Re-parameterizing the objective.}
-To eliminate this optimization friction, He et al.~\cite{he2016deep} reformulated the underlying learning problem. Instead of asking a stack of layers to directly fit an elusive underlying mapping $\mathcal{H}(\mathbf{x})$, they explicitly split the mapping into an identity shortcut and a learned \textbf{residual perturbation}:
+To resolve this, He et al. split the underlying mapping $\mathcal{H}(\mathbf{x})$ into an identity shortcut and a learned residual perturbation:
 \begin{equation}
 \mathcal{H}(\mathbf{x}) \triangleq \mathcal{F}(\mathbf{x}) + \mathbf{x} \iff \mathcal{F}(\mathbf{x}) = \mathcal{H}(\mathbf{x}) - \mathbf{x}.
 \label{eq:residual_definition}
 \end{equation}
-The convolutional layers are tasked exclusively with fitting the residual mapping $\mathcal{F}(\mathbf{x})$. 
-
-This re-parameterization transforms the geometry of the loss landscape:
-\begin{itemize}[leftmargin=*]
-  \item If the optimal transformation is closer to an identity mapping than to zero, it is vastly easier for gradient descent to push the residual weights toward zero ($\mathcal{F}(\mathbf{x}) \to \mathbf{0}$) than to push an unconstrained dense cascade to match the identity matrix.
-  \item In the limit where additional layers are superfluous, standard $L_2$ weight decay naturally pushes the residual weights $\mathbf{W} \to \mathbf{0}$, automatically collapsing the block into an exact identity mapping $\mathcal{H}(\mathbf{x}) = \mathbf{0} + \mathbf{x} = \mathbf{x}$.
-\end{itemize}
+The layers are tasked exclusively with fitting the residual function $\mathcal{F}(\mathbf{x})$. If extra layers are superfluous, standard weight decay naturally drives weights toward zero ($\mathcal{F}(\mathbf{x}) \to \mathbf{0}$), automatically collapsing the block into an exact identity mapping $\mathcal{H}(\mathbf{x}) = \mathbf{x}$.
 
 \begin{figure}[H]
 \centering
@@ -1873,18 +1559,11 @@ This re-parameterization transforms the geometry of the loss landscape:
 \end{figure}
 
 \paragraph{Mathematical proof of the uninterrupted gradient highway.}
-The true mathematical triumph of residual learning lies in its gradient backpropagation dynamics. Following the formal analysis of He et al. (ECCV 2016)~\cite{he2016identity}, we derive the exact gradient flow across a chain of residual blocks.
-
-Let $\mathbf{x}_l$ denote the input activation vector (or tensor) to residual block $l$. The unit computes:
-\begin{equation}
-\mathbf{x}_{l+1} = \mathbf{x}_l + \mathcal{F}(\mathbf{x}_l, \mathcal{W}_l),
-\label{eq:resnet_recurrence}
-\end{equation}
-where $\mathcal{F}(\cdot)$ represents the residual function parameterized by weights $\mathcal{W}_l$.
+The core theoretical advantage of residual learning lies in its backpropagation dynamics~\cite{he2016identity}.
 
 \begin{theorem}[Uninterrupted Residual Gradient Highway]
 \label{thm:residual_gradient_highway}
-Let $\mathcal{E}$ denote a scalar loss function defined at the network output layer $L$. The gradient of the loss with respect to the activation $\mathbf{x}_l$ at any arbitrary shallow layer $l < L$ satisfies:
+Let $\mathcal{E}$ denote a scalar loss function defined at the network output layer $L$. Across a cascade of residual units $\mathbf{x}_{l+1} = \mathbf{x}_l + \mathcal{F}(\mathbf{x}_l, \mathcal{W}_l)$, the gradient of the loss with respect to activation $\mathbf{x}_l$ at any shallow layer $l < L$ satisfies:
 \begin{equation}
 \frac{\partial \mathcal{E}}{\partial \mathbf{x}_l} = \frac{\partial \mathcal{E}}{\partial \mathbf{x}_L} \left( \mathbf{I} + \frac{\partial}{\partial \mathbf{x}_l} \sum_{i=l}^{L-1} \mathcal{F}(\mathbf{x}_i, \mathcal{W}_i) \right).
 \label{eq:resnet_gradient_highway}
@@ -1892,94 +1571,27 @@ Let $\mathcal{E}$ denote a scalar loss function defined at the network output la
 \end{theorem}
 
 \begin{proof}
-We begin by recursively unrolling the forward recurrence relation in Equation~\eqref{eq:resnet_recurrence} from layer $l$ to an arbitrary deeper layer $L$:
-\begin{align}
-\mathbf{x}_{l+1} &= \mathbf{x}_l + \mathcal{F}(\mathbf{x}_l, \mathcal{W}_l), \\
-\mathbf{x}_{l+2} &= \mathbf{x}_{l+1} + \mathcal{F}(\mathbf{x}_{l+1}, \mathcal{W}_{l+1}) = \mathbf{x}_l + \mathcal{F}(\mathbf{x}_l, \mathcal{W}_l) + \mathcal{F}(\mathbf{x}_{l+1}, \mathcal{W}_{l+1}), \\
-&\;\;\vdots \nonumber \\
-\mathbf{x}_L &= \mathbf{x}_l + \sum_{i=l}^{L-1} \mathcal{F}(\mathbf{x}_i, \mathcal{W}_i).
+Recursively unrolling the forward recurrence relation $\mathbf{x}_{l+1} = \mathbf{x}_l + \mathcal{F}(\mathbf{x}_l, \mathcal{W}_l)$ from layer $l$ to layer $L$:
+\begin{equation}
+\mathbf{x}_L = \mathbf{x}_l + \sum_{i=l}^{L-1} \mathcal{F}(\mathbf{x}_i, \mathcal{W}_i).
 \label{eq:resnet_forward_unrolled}
-\end{align}
-Equation~\eqref{eq:resnet_forward_unrolled} demonstrates an extraordinary forward property: \textbf{the feature representation at any deep layer $L$ is expressed directly as the feature representation at any shallow layer $l$, plus an additive accumulation of all intermediate residual perturbations}!
-
-Now, consider the backward pass. Let $\mathcal{E}$ denote the scalar loss function. Applying the multivariable vector chain rule:
-\begin{equation}
-\frac{\partial \mathcal{E}}{\partial \mathbf{x}_l} = \frac{\partial \mathcal{E}}{\partial \mathbf{x}_L} \frac{\partial \mathbf{x}_L}{\partial \mathbf{x}_l}.
-\label{eq:chain_rule_step}
 \end{equation}
-Differentiating the unrolled representation in Equation~\eqref{eq:resnet_forward_unrolled} with respect to $\mathbf{x}_l$:
+Applying the multivariable chain rule $\frac{\partial \mathcal{E}}{\partial \mathbf{x}_l} = \frac{\partial \mathcal{E}}{\partial \mathbf{x}_L} \frac{\partial \mathbf{x}_L}{\partial \mathbf{x}_l}$ and differentiating Equation~\eqref{eq:resnet_forward_unrolled} with respect to $\mathbf{x}_l$:
 \begin{equation}
-\frac{\partial \mathbf{x}_L}{\partial \mathbf{x}_l} = \frac{\partial}{\partial \mathbf{x}_l} \left( \mathbf{x}_l + \sum_{i=l}^{L-1} \mathcal{F}(\mathbf{x}_i, \mathcal{W}_i) \right) = \mathbf{I} + \frac{\partial}{\partial \mathbf{x}_l} \sum_{i=l}^{L-1} \mathcal{F}(\mathbf{x}_i, \mathcal{W}_i).
-\label{eq:jacobian_unrolled}
+\frac{\partial \mathbf{x}_L}{\partial \mathbf{x}_l} = \mathbf{I} + \frac{\partial}{\partial \mathbf{x}_l} \sum_{i=l}^{L-1} \mathcal{F}(\mathbf{x}_i, \mathcal{W}_i).
 \end{equation}
-Substituting Equation~\eqref{eq:jacobian_unrolled} into Equation~\eqref{eq:chain_rule_step} directly yields:
-\begin{equation}
-\frac{\partial \mathcal{E}}{\partial \mathbf{x}_l} = \frac{\partial \mathcal{E}}{\partial \mathbf{x}_L} \left( \mathbf{I} + \frac{\partial}{\partial \mathbf{x}_l} \sum_{i=l}^{L-1} \mathcal{F}(\mathbf{x}_i, \mathcal{W}_i) \right).
-\end{equation}
+Substituting this Jacobian directly yields Equation~\eqref{eq:resnet_gradient_highway}.
 \end{proof}
 
-\paragraph{Theoretical implications of the residual gradient formulation.}
-Equation~\eqref{eq:resnet_gradient_highway} reveals why ResNet completely eliminates the vanishing gradient problem across extreme depths:
-\begin{enumerate}[leftmargin=*]
-  \item \textbf{Additive vs. Multiplicative Backpropagation}:
-    In a standard plain deep network:
-    \begin{equation}
-    \mathbf{x}_{l+1} = \sigma(\mathbf{W}_l \mathbf{x}_l),
-    \end{equation}
-    the gradient backpropagates via a \textbf{multiplicative product of Jacobians}:
-    \begin{equation}
-    \frac{\partial \mathcal{E}}{\partial \mathbf{x}_l} = \frac{\partial \mathcal{E}}{\partial \mathbf{x}_L} \prod_{i=l}^{L-1} \left( \mathbf{W}_i^\top \operatorname{diag}\big(\sigma'(\mathbf{z}_i)\big) \right).
-    \label{eq:plain_gradient_multiplicative}
-    \end{equation}
-    If the singular values of the transition matrices are less than 1 (or activations saturate), the product in Equation~\eqref{eq:plain_gradient_multiplicative} decays exponentially to zero as $(L - l) \to \infty$. The early layers receive zero gradient updates.
-  
-  \item \textbf{The Identity Gradient Shield}:
-    In contrast, in Equation~\eqref{eq:resnet_gradient_highway}, the gradient decomposes into two additive terms:
-    \begin{equation}
-    \frac{\partial \mathcal{E}}{\partial \mathbf{x}_l} = \underbrace{\frac{\partial \mathcal{E}}{\partial \mathbf{x}_L}}_{\text{Uninterrupted Highway}} + \underbrace{\frac{\partial \mathcal{E}}{\partial \mathbf{x}_L} \left( \frac{\partial}{\partial \mathbf{x}_l} \sum_{i=l}^{L-1} \mathcal{F}(\mathbf{x}_i, \mathcal{W}_i) \right)}_{\text{Modulated Residual Feedback}}.
-    \end{equation}
-    The identity matrix $\mathbf{I}$ guarantees that the loss gradient $\frac{\partial \mathcal{E}}{\partial \mathbf{x}_L}$ is routed \textbf{directly and unattenuated to any arbitrarily shallow layer $\mathbf{x}_l$, completely independent of the network depth $L - l$}!
-  
-  \item \textbf{Robustness Against Vanishing Terms}:
-    Even if the intermediate residual weights are initialized near zero ($\mathcal{W} \approx \mathbf{0}$) or intermediate gradients vanish:
-    \begin{equation}
-    \frac{\partial}{\partial \mathbf{x}_l} \sum_{i=l}^{L-1} \mathcal{F}_i \approx \mathbf{0},
-    \end{equation}
-    the gradient never vanishes: $\frac{\partial \mathcal{E}}{\partial \mathbf{x}_l} \approx \frac{\partial \mathcal{E}}{\partial \mathbf{x}_L} \neq \mathbf{0}$. The identity shortcut serves as a \textbf{gradient superhighway} traversing hundreds of layers.
-\end{enumerate}
+In contrast to plain networks where gradients decay exponentially via a multiplicative product of Jacobians ($\prod \mathbf{W}_i \to \mathbf{0}$), the identity matrix $\mathbf{I}$ in Equation~\eqref{eq:resnet_gradient_highway} routes the loss gradient $\frac{\partial \mathcal{E}}{\partial \mathbf{x}_L}$ directly and unattenuated to any shallow layer, completely independent of network depth.
 
-\paragraph{Basic residual blocks vs. bottleneck blocks.}
-As shown in Figure~\ref{fig:resnet_blocks_comparison}, ResNet deploys two distinct micro-architectural topologies:
+\paragraph{Residual block topologies.}
+As shown in Figure~\ref{fig:resnet_blocks_comparison}, ResNet deploys two micro-architectures:
 \begin{itemize}[leftmargin=*]
-  \item \textbf{Basic Residual Block (ResNet-18, ResNet-34)}: Designed for moderate depths, it stacks two $3 \times 3$ convolutions with $C$ filters each:
-    \begin{equation}
-    \mathcal{F}(\mathbf{x}) = \mathbf{W}_2 * \operatorname{ReLU}(\operatorname{BN}(\mathbf{W}_1 * \mathbf{x})).
-    \end{equation}
-    Computational complexity per block is $2 \times (3 \times 3 \times C^2) = \mathbf{18 C^2}$ parameters.
-  \item \textbf{Bottleneck Residual Block (ResNet-50, ResNet-101, ResNet-152)}: To scale to 152 layers without running out of compute, He et al. integrated the $1 \times 1$ bottleneck principle into a 3-layer sandwich:
-    \begin{enumerate}
-      \item A $1 \times 1$ convolution reducing channel capacity from $4C$ down to $C$ ($4\times$ compression).
-      \item A $3 \times 3$ spatial convolution operating on the compact $C$-dimensional manifold.
-      \item A $1 \times 1$ convolution restoring channel capacity from $C$ back up to $4C$.
-    \end{enumerate}
-    Total parameters per bottleneck block:
-    \begin{equation}
-    N_{\text{bottleneck}} = (1 \times 1 \times 4C \times C) + (3 \times 3 \times C \times C) + (1 \times 1 \times C \times 4C) = 4C^2 + 9C^2 + 4C^2 = \mathbf{17 C^2}.
-    \end{equation}
-    In contrast, two uncompressed $3 \times 3$ convolutions on $4C$ channels would require $2 \times (3 \times 3 \times (4C)^2) = \mathbf{288 C^2}$ parameters! The bottleneck block achieves a \textbf{$17\times$ parameter reduction}, allowing ResNet-152 to contain fewer parameters ($60.2\text{M}$) than VGG-16 ($138\text{M}$) while being nearly ten times deeper!
+  \item \textit{Basic Residual Block (ResNet-18/34)}: Cascades two $3 \times 3$ convolutions with an additive shortcut ($18 C^2$ parameters).
+  \item \textit{Bottleneck Residual Block (ResNet-50/101/152)}: Uses a three-layer sandwich of $1 \times 1$ reduce ($4C \to C$), $3 \times 3$ spatial convolution ($C \to C$), and $1 \times 1$ restore ($C \to 4C$), requiring only $17 C^2$ parameters. This achieves a $17\times$ parameter reduction over uncompressed convolutions, enabling 152 layers with fewer parameters ($60.2\text{M}$) than VGG-16.
+  \item \textit{Projection Shortcuts}: When transitioning between stages where spatial resolution is halved ($S=2$) and channels double ($C \to 2C$), ResNet uses a projection shortcut $\mathbf{y} = \mathcal{F}(\mathbf{x}) + \mathbf{W}_s \mathbf{x}$ via a $1 \times 1$ convolution with stride 2 to match dimensions.
 \end{itemize}
-
-\paragraph{Identity shortcuts vs. projection shortcuts.}
-When feature map spatial resolution and channel capacity remain constant ($H_{\text{out}} = H_{\text{in}}, C_{\text{out}} = C_{\text{in}}$), the shortcut connection is a pure, parameter-free identity mapping ($\mathbf{y} = \mathcal{F}(\mathbf{x}) + \mathbf{x}$).
-
-However, when transitioning between stages where spatial resolution is halved ($S = 2$) and channel capacity is doubled ($C \to 2C$), the dimensions of $\mathcal{F}(\mathbf{x})$ and $\mathbf{x}$ do not match ($\R^{H/2 \times W/2 \times 2C} \neq \R^{H \times W \times C}$). In these transition blocks, ResNet applies a \textbf{Projection Shortcut}:
-\begin{equation}
-\mathbf{y} = \mathcal{F}(\mathbf{x}) + \mathbf{W}_s \mathbf{x},
-\label{eq:projection_shortcut}
-\end{equation}
-where $\mathbf{W}_s$ is implemented via a $1 \times 1$ convolution with stride $S = 2$ and $2C$ filters. While projection shortcuts introduce a small parameter overhead, they reconcile tensor dimensions while maintaining uninterrupted gradient backpropagation.
-
-While benchmark classification on ImageNet drove the historical development of deep backbones, whole-image categorical prediction represents only the simplest form of visual intelligence. In practical systems---such as autonomous navigation, medical diagnostics, and robotic manipulation---an intelligent agent must not only classify what is present in an image, but localize multiple discrete objects via continuous bounding geometries and delineate individual structures at dense pixel-level resolution. In Section~\ref{sec:downstream_cv_tasks_imagenet}, we formalize the taxonomy of deep visual perception tasks, demonstrating how foundational convolutional backbones are adapted to solve object detection and semantic image segmentation.
 
 
 
@@ -1989,8 +1601,6 @@ While benchmark classification on ImageNet drove the historical development of d
 The physical visual world does not present itself as neatly isolated, canonically centered objects floating against uniform backgrounds. In real-world environments, visual scenes are continuous, highly cluttered, and composed of multiple overlapping entities distributed across complex spatial topographies. While whole-image categorical classification provides a vital mathematical benchmark for representation learning, reducing an entire high-dimensional image tensor $\mathbf{X} \in \R^{H \times W \times C}$ to a single discrete label or simplex vector fundamentally discards the spatial coordinates, geometric dimensions, and physical relationships among visual entities.
 
 To construct autonomous visual agents capable of navigating physical environments, manipulating objects, or parsing dense medical imagery, modern machine learning formulates visual perception along a structured spectrum of spatial granularity. At the coarsest level, whole-image classification enforces spatial translation invariance to determine what object category dominates the canvas. At an intermediate level, object detection reconciles spatial equivariance with continuous coordinate regression, identifying both categorical identities and localized 4D bounding geometries for an arbitrary number of object instances. At the finest level, semantic image segmentation enforces dense translation equivariance, assigning a discrete categorical label to every single pixel coordinate of the image grid while reconstructing intricate boundary contours.
-
-In this section, we develop the mathematical and architectural foundations of these downstream perception tasks. We first formalize whole-image classification, detailing categorical cross-entropy loss, contrasting invariant decision heads against equivariant backbones, and establishing a unified comparative taxonomy across all three tasks. Next, we analyze object detection, formalizing continuous 4D bounding box parameterization, multi-task losses, the Intersection over Union (IoU) localization metric, and Non-Maximum Suppression (NMS). Finally, we examine semantic image segmentation, dissecting the fundamental trade-off between semantic context and spatial resolution, mechanisms of learned transposed convolutions, and the U-Net skip-connection topology.
 
 \subsection{Image classification}
 \label{sec:cv_tasks_taxonomy}

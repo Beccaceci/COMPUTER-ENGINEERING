@@ -658,8 +658,6 @@ In classical statistical learning, ordinary least squares linear regression prov
 
 However, direct application of squared error regression to discrete classification targets triggers fundamental theoretical and geometric pathologies. The range of an affine predictor is the unbounded real line $(-\infty, +\infty)$, producing predictions that severely violate the Kolmogorov axioms of probability ($P \in [0, 1]$) and leaving extreme outputs uninterpretable as posterior confidences. Even more catastrophically, ordinary least squares penalizes errors quadratically; as a result, correctly classified samples that lie far from the decision boundary incur massive squared residuals, exerting enormous leverage on the solution and rotating the decision boundary away from clearly separable clusters.
 
-This section systematically deconstructs the failure modes of linear regression for classification and establishes the logistic regression model. We first examine why ordinary least squares fails on discrete targets through the lenses of unbounded range and outlier leverage, using a concrete clinical tumor diagnosis setting. We then introduce the logistic sigmoid activation function, deriving it rigorously from log-odds and logit transformations to squash real-valued activations into mathematically well-calibrated posterior probabilities. Finally, we expose why coupling the sigmoid activation with mean squared error produces non-convex loss surfaces riddled with local minima and vanishing gradients, setting the stage for cross-entropy optimization.
-
 \subsection{Failure of least squares on classification}
 \label{sec:least_squares_failure}
 
