@@ -1130,7 +1130,53 @@ In the framework of CNN hyperparameter selection, pooling layers serve as critic
   \item \textit{Hyperparameter Pitfalls}: Choosing excessively large pooling kernels ($F_p > 3$) or inserting pooling stages too aggressively causes premature and irreversible loss of fine-grained spatial localization and high-frequency details.
 \end{itemize}
 
-\subsection{Network composition and dense heads}
+\subsection{Building a convolutional network}
+\label{sec:building_a_convolutional_network}
+
+Designing a convolutional neural network requires synthesizing local convolutions, non-linear activations, and spatial downsampling into a coherent processing hierarchy. Rather than arranging layers arbitrarily, standard CNN architectures follow a principled modular framework structured into sequential computational stages.
+
+\paragraph{Stage-based modular organization.}
+A convolutional backbone is organized into cascading stages. Within each stage $s \in \{1, \dots, S\}$, the spatial resolution $(H_s, W_s)$ is held fixed while multiple convolutional layers extract increasingly expressive features. A complete CNN pipeline comprises:
+\begin{enumerate}[leftmargin=*]
+  \item \textit{Input Layer}: Ingests the raw image tensor $\mathbf{X} \in \R^{H \times W \times C_{\text{in}}}$ (e.g., $224 \times 224 \times 3$ for standard RGB images).
+  \item \textit{Convolutional Stages}: A sequence of stages where each stage contains one or more convolutional layers with non-linear activations.
+  \item \textit{Transition Downsampling}: Inter-stage transitions that systematically halve the spatial dimensions and expand channel capacity.
+  \item \textit{Terminal Head}: A final decision module that maps the high-level spatial feature map to downstream task outputs (such as classification probabilities).
+\end{enumerate}
+
+\paragraph{Intra-stage layer design.}
+Within each individual stage, the architecture adheres to the small-kernel stacking principle established by VGG:
+\begin{itemize}[leftmargin=*]
+  \item \textit{Filter Size ($F = 3$)}: All convolutional kernels are standardized to small $3 \times 3$ filters ($F=3$), representing the minimal footprint capable of capturing directional spatial patterns (up/down, left/right, and diagonals).
+  \item \textit{Unit Stride and Same Padding ($S=1, P=1$)}: Setting stride $S = 1$ and zero-padding $P = (F-1)/2 = 1$ ensures that spatial height and width remain strictly invariant across convolutions:
+    \begin{equation}
+    H_{\text{out}} = \frac{H_{\text{in}} - 3 + 2(1)}{1} + 1 = H_{\text{in}}.
+    \end{equation}
+    This decouples feature extraction from spatial resolution reduction, allowing the network to grow deep without prematurely extinguishing spatial information.
+  \item \textit{Non-Linear Activations}: Every convolutional layer is immediately followed by a non-linear activation (typically ReLU). As demonstrated in Section~\ref{sec:vgg_principle_stacking_small_kernels}, stacking $k$ non-linear $3 \times 3$ convolutions expands the receptive field to $2k + 1$ while embedding $k$ independent non-linearities, providing strictly greater representational expressiveness than a single linear filter of equivalent receptive field.
+\end{itemize}
+
+\paragraph{Inter-stage transitions: Spatial halving and channel doubling.}
+Between consecutive stages, the network executes a coordinated spatial downsampling and channel expansion:
+\begin{itemize}[leftmargin=*]
+  \item \textit{Spatial Halving}: Spatial dimensions are halved ($H_{s+1} = H_s / 2$ and $W_{s+1} = W_s / 2$) using either max pooling ($2 \times 2, S=2$) or a strided convolution ($S=2$). This reduces the spatial area by $75\%$ ($1/4$ of the original grid cells), slashes computational FLOPs for all subsequent layers, and doubles the cumulative stride rate ($J_{s+1} = 2 J_s$), causing downstream kernels to expand their effective receptive field at twice the rate.
+  \item \textit{Channel Doubling}: Concurrently with spatial halving, the number of feature channels is doubled ($C_{s+1} = 2 C_s$, e.g., $64 \to 128 \to 256 \to 512$). Because halving spatial dimensions contracts the canvas by a factor of 4, doubling the channels preserves total representational capacity while halving total activation memory:
+    \begin{equation}
+    \left(\frac{H_s}{2}\right) \times \left(\frac{W_s}{2}\right) \times (2 C_s) = \frac{1}{2} (H_s \times W_s \times C_s).
+    \end{equation}
+    As spatial coordinates become coarser, the network compensates by expanding its dictionary of semantic feature detectors, allocating greater expressive capacity to represent diverse, complex patterns.
+\end{itemize}
+
+\paragraph{Hierarchical feature abstraction.}
+By combining small-kernel stacking with progressive downsampling and channel doubling, the network forms an inductive representational hierarchy:
+\begin{itemize}[leftmargin=*]
+  \item \textit{Shallow Layers (Stages 1--2)}: Small receptive fields and high spatial resolution capture low-level, class-agnostic geometric primitives (oriented edges, color contrasts, local gradients, simple textures).
+  \item \textit{Mid-Level Layers (Stage 3)}: Moderate receptive fields aggregate primitives into structured motifs, contours, corners, and object parts (wheels, handles, organic textures).
+  \item \textit{Deep Layers (Stages 4--5)}: Expansive receptive fields covering most or all of the input canvas synthesize global semantic concepts and holistic category geometries (dog faces, vehicle profiles, architectural structures).
+\end{itemize}
+This multi-stage pyramid of feature extraction produces a compact, semantically rich tensor $\mathbf{F} \in \R^{H' \times W' \times C'}$ (e.g., $7 \times 7 \times 512$), perfectly positioned for global decision synthesis.
+
+\subsection{Dense classification heads and parameter distribution}
 \label{sec:why_fcn_after_cnn}
 
 A complete convolutional architecture combines convolutional backbones, non-linear activations, and spatial pooling into an end-to-end processing pipeline, concluding with Fully Connected (dense) layers at the output. This raises a fundamental architectural question: \textit{if Fully Connected Networks fail catastrophically when applied directly to images (as established in Section~\ref{sec:why_mlps_fail_images}), why is it a sound architectural design to place a Fully Connected Network at the bottom of a CNN?}
@@ -1598,430 +1644,38 @@ As shown in Figure~\ref{fig:resnet_blocks_comparison}, ResNet deploys two micro-
 \section{Computer vision tasks}
 \label{sec:downstream_cv_tasks_imagenet}
 
-The physical visual world does not present itself as neatly isolated, canonically centered objects floating against uniform backgrounds. In real-world environments, visual scenes are continuous, highly cluttered, and composed of multiple overlapping entities distributed across complex spatial topographies. While whole-image categorical classification provides a vital mathematical benchmark for representation learning, reducing an entire high-dimensional image tensor $\mathbf{X} \in \R^{H \times W \times C}$ to a single discrete label or simplex vector fundamentally discards the spatial coordinates, geometric dimensions, and physical relationships among visual entities.
+The physical visual world does not present itself as neatly isolated, canonically centered objects floating against uniform backgrounds. In real-world environments, visual scenes are continuous, highly cluttered, and composed of multiple overlapping entities distributed across complex spatial topographies. While whole-image categorical classification provides a vital mathematical benchmark for representation learning, reducing an entire high-dimensional image tensor $\mathbf{X} \in \R^{H \times W \times C}$ to a single discrete label fundamentally discards spatial coordinates, geometric dimensions, and physical relationships among visual entities. To address diverse real-world perceptual demands, machine learning formulates visual tasks along a structured spectrum of spatial granularity.
 
-To construct autonomous visual agents capable of navigating physical environments, manipulating objects, or parsing dense medical imagery, modern machine learning formulates visual perception along a structured spectrum of spatial granularity. At the coarsest level, whole-image classification enforces spatial translation invariance to determine what object category dominates the canvas. At an intermediate level, object detection reconciles spatial equivariance with continuous coordinate regression, identifying both categorical identities and localized 4D bounding geometries for an arbitrary number of object instances. At the finest level, semantic image segmentation enforces dense translation equivariance, assigning a discrete categorical label to every single pixel coordinate of the image grid while reconstructing intricate boundary contours.
+\paragraph{Image classification.}
+In whole-image categorical classification, the model maps an input image $\mathbf{X} \in \R^{H \times W \times C}$ to a single categorical probability distribution $\hat{\mathbf{y}} \in \Delta^{K-1}$ over $K$ mutually exclusive classes. It answers the holistic question: \textit{``What object category is present in this image?''} Because the objective concerns only the presence of a class regardless of where it appears in the frame, image classification enforces strict \textbf{translation invariance} ($f(\mathcal{T}_{\boldsymbol{\delta}}\mathbf{X}) = f(\mathbf{X})$). While intermediate convolutional layers maintain spatial geometry through translation equivariance, the terminal classification head (via Global Average Pooling or flattening into dense layers) intentionally collapses spatial coordinates to emit invariant class predictions.
 
-\subsection{Image classification}
-\label{sec:cv_tasks_taxonomy}
+\paragraph{Object detection.}
+Object detection extends visual recognition by simultaneously answering \textit{``What is present?''} and \textit{``Where is it located?''} for an arbitrary, unknown number of object instances $M \ge 0$ scattered across the canvas. Rather than predicting a single label, the model predicts a set of detections, each parameterized by a discrete categorical class $c \in \{1, \dots, K\}$ and 4D continuous bounding box coordinates $\mathbf{b} = [x_c, y_c, w, h]^\top \in \R^4$ (specifying the object's spatial centroid, width, and height). Training optimizes a composite multi-task objective combining categorical cross-entropy with continuous bounding box regression (such as Smooth $L_1$ loss). Detection performance is quantitatively evaluated using the \textbf{Intersection over Union (IoU)} metric (the ratio between the area of overlap and the area of union of predicted and ground-truth boxes), scoring detections as true positives when $\text{IoU} \ge 0.5$. Object detection reconciles translation-equivariant feature extraction across the backbone with spatial coordinate regression in the detection heads.
 
-Visual perception operates along a spectrum of spatial granularity, transitioning from coarse whole-image semantic abstraction to dense coordinate-level parsing.
+\paragraph{Semantic segmentation.}
+Semantic segmentation formulates perception as a dense, pixel-level classification problem, assigning a categorical class label to every individual coordinate $(i, j)$ in the spatial grid: $\hat{\mathbf{Y}} \in \{1, \dots, K\}^{H \times W}$. It answers: \textit{``Which semantic class does each individual pixel belong to?''} Unlike classification, semantic segmentation strictly demands \textbf{translation equivariance}: shifting an input image by $\boldsymbol{\delta}$ must shift the corresponding segmentation mask by the identical displacement. Deep segmentation architectures resolve the inherent trade-off between downsampling to capture broad semantic context (``what'') and preserving high-resolution spatial details for boundary localization (``where'') by deploying encoder-decoder architectures (such as U-Net) equipped with skip connections that route pristine, early-stage edge features directly to the decoding layers. Importantly, semantic segmentation does not distinguish between distinct instances of the same category; all pixels belonging to the same semantic class share an identical label.
 
-\paragraph{Categorical classification formulation.}
-In whole-image categorical classification, the input image $\mathbf{X} \in \R^{H \times W \times C}$ is mapped to a single probability distribution across $K$ mutually exclusive categories:
-\begin{equation}
-\hat{\mathbf{y}} = P(y \in \{1,\dots,K\} \mid \mathbf{X}) \in \Delta^{K-1},
-\label{eq:image_classification_mapping}
-\end{equation}
-where $\Delta^{K-1} \triangleq \{\mathbf{p} \in \R^K : p_k \ge 0, \, \sum_{k=1}^K p_k = 1\}$ denotes the probability simplex. Given a high-level latent feature representation $\mathbf{h} \in \R^d$ produced by the convolutional backbone and global pooling, the classification head computes logits $\mathbf{z} \in \R^K$ and Softmax probabilities:
-\begin{equation}
-\mathbf{z} = \mathbf{W}_{\text{head}}\mathbf{h} + \mathbf{b}_{\text{head}}, \quad \hat{y}_k = \frac{\exp(z_k)}{\sum_{j=1}^K \exp(z_j)}, \quad \forall k \in \{1,\dots,K\}.
-\label{eq:classification_softmax_logits}
-\end{equation}
-Training minimizes the Categorical Cross-Entropy (Negative Log-Likelihood) loss:
-\begin{equation}
-\mathcal{L}_{\text{CE}}(\mathbf{y}, \hat{\mathbf{y}}) \triangleq -\sum_{k=1}^K y_k \ln \hat{y}_k = -\ln \hat{y}_{c^*},
-\label{eq:classification_cross_entropy}
-\end{equation}
-where $c^* \in \{1,\dots,K\}$ denotes the ground-truth categorical label. Categorical classification enforces strict \textbf{translation invariance}: shifting the image coordinates must leave the predicted class probability vector completely unaltered:
-\begin{equation}
-f\left( \mathcal{T}_{\boldsymbol{\delta}}\mathbf{X} \right) = f(\mathbf{X}), \quad \forall \boldsymbol{\delta} \in \mathbb{Z}^2.
-\end{equation}
-While intermediate convolutional layers preserve spatial geometry through translation equivariance, the terminal global pooling stage or dense flattening head intentionally destroys spatial coordinates to enforce invariant decision boundaries.
-
-\paragraph{Comparative task taxonomy.}
-Table~\ref{tab:cv_tasks_comparison} establishes the formal mathematical comparison among the three canonical vision tasks.
+\paragraph{Instance segmentation.}
+Instance segmentation synthesizes the complementary strengths of object detection and semantic segmentation. It simultaneously identifies individual object instances and predicts a detailed, pixel-level binary mask for each detected instance. While semantic segmentation labels all contiguous pixels of a given category identically, instance segmentation separates and delineates multiple overlapping or adjacent instances of the same class (e.g., distinguishing five individual sheep grazing together in a field), providing both instance-level localization and precise boundary contours.
 
 \begin{table}[H]
 \centering
-\footnotesize
-\setlength{\tabcolsep}{5pt}
-\caption{Taxonomy of canonical computer vision tasks comparing target objectives, output mathematical domains, symmetry requirements, head architectures, and primary loss formulations.}
+\small
+\setlength{\tabcolsep}{6pt}
+\caption{Comparative taxonomy of canonical computer vision tasks across objective, output domain, and spatial symmetry requirements.}
 \label{tab:cv_tasks_comparison}
 \vspace{4pt}
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.3cm} >{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}p{2.2cm} >{\raggedright\arraybackslash}p{2.4cm} >{\raggedright\arraybackslash}p{2.5cm} >{\raggedright\arraybackslash}X}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.2cm} >{\raggedright\arraybackslash}p{4.2cm} >{\raggedright\arraybackslash}p{3.6cm} >{\raggedright\arraybackslash}X}
 \toprule
-\textbf{Task} & \textbf{Objective} & \textbf{Output Domain} & \textbf{Symmetry} & \textbf{Head Architecture} & \textbf{Primary Loss} \\
+\textbf{Task} & \textbf{Objective} & \textbf{Output Domain} & \textbf{Spatial Symmetry} \\
 \midrule
-\textbf{Image Classification} & Whole-image categorical recognition & Simplex $\Delta^{K-1}$ ($1 \times K$) & Translation Invariance ($f(\mathcal{T}\mathbf{X}) = f(\mathbf{X})$) & Dense FC or Global Average Pooling (GAP) & Categorical Cross-Entropy ($\mathcal{L}_{\text{CE}}$) \\
+\textbf{Image Classification} & Holistic categorical recognition & Class distribution $\hat{\mathbf{y}} \in \Delta^{K-1}$ & Translation Invariance \\
 \addlinespace
-\textbf{Object Detection} & Simultaneous classification \& spatial localization of $M$ objects & $\{1,\dots,K\} \times \R^4$ per instance & Equivariant backbone, coordinate regression & RoI Pooling / RoI Align with sibling FC branches & Multi-task: Cross-Entropy $+$ Smooth $L_1$ \\
+\textbf{Object Detection} & Instance classification and 2D bounding box localization & $\{1,\dots,K\} \times \R^4$ per detected instance & Equivariant backbone, localized heads \\
 \addlinespace
-\textbf{Semantic Segmentation} & Dense pixel-level categorical classification & Grid $\{1,\dots,K\}^{H \times W}$ ($H \times W \times K$) & Translation Equivariance ($Y(\mathcal{T}\mathbf{X}) = \mathcal{T}[Y(\mathbf{X})]$) & Fully convolutional decoder (U-Net) with skip connections & Mean pixel-wise Cross-Entropy ($\mathcal{L}_{\text{seg}}$) \\
+\textbf{Semantic Segmentation} & Dense per-pixel categorical classification & Label canvas $\{1,\dots,K\}^{H \times W}$ & Translation Equivariance \\
+\addlinespace
+\textbf{Instance Segmentation} & Per-instance detection with pixel-level silhouette masks & $\{1,\dots,K\} \times \{0,1\}^{H \times W}$ per instance & Equivariant per detected instance \\
 \bottomrule
 \end{tabularx}
 \end{table}
-
-\subsection{Object detection}
-\label{sec:object_detection_mechanics}
-
-Object detection extends classification by requiring an algorithm to simultaneously answer \textit{``What is present?''} and \textit{``Where is it located?''} for an arbitrary, unknown number of instances $M \ge 0$ scattered across the image~\cite{prince2023understanding}.
-
-\paragraph{Continuous 4D bounding box parameterization.}
-Each visual object instance is tightly enclosed by a 2D rectangular bounding box. In continuous spatial coordinates, a bounding box is parameterized by a 4D vector $\mathbf{b} \in \R^4$:
-\begin{equation}
-\mathbf{b} = [x_c, \, y_c, \, w, \, h]^\top,
-\label{eq:bounding_box_center_param}
-\end{equation}
-where $(x_c, y_c) \in [0, W] \times [0, H]$ denotes the centroid of the bounding box, and $w > 0, h > 0$ denote its spatial width and height. Alternatively, in corner coordinate notation:
-\begin{equation}
-\mathbf{b}_{\text{corner}} = [x_{\min}, \, y_{\min}, \, x_{\max}, \, y_{\max}]^\top = \left[x_c - \frac{w}{2}, \, y_c - \frac{h}{2}, \, x_c + \frac{w}{2}, \, y_c + \frac{h}{2}\right]^\top.
-\label{eq:bounding_box_corner_param}
-\end{equation}
-
-\paragraph{The multi-task detection objective.}
-Unlike classification networks which optimize a single loss, modern object detectors optimize a composite \textbf{multi-task objective} balancing discrete categorical recognition with continuous geometric regression~\cite{girshick2015fast}:
-\begin{equation}
-\mathcal{L}(p, u, \mathbf{t}^u, \mathbf{v}) = \mathcal{L}_{\text{cls}}(p, u) + \lambda \, [u \ge 1] \, \mathcal{L}_{\text{loc}}(\mathbf{t}^u, \mathbf{v}).
-\label{eq:detection_multitask_loss}
-\end{equation}
-In Equation~\eqref{eq:detection_multitask_loss}:
-\begin{itemize}[leftmargin=*]
-  \item $\mathcal{L}_{\text{cls}}(p, u) = -\ln p_u$ is the log loss for true category $u \in \{0, 1, \dots, K\}$, where class $u=0$ designates background.
-  \item The Iverson bracket $[u \ge 1]$ evaluates to $1$ when the region corresponds to a positive foreground object and $0$ for background proposals, ensuring localization gradients are never computed on empty canvas.
-  \item $\mathbf{t}^u = (t_x^u, t_y^u, t_w^u, t_h^u)$ is the predicted scale-invariant parameterized coordinate offset vector, regressed toward normalized ground-truth target $\mathbf{v} = (v_x, v_y, v_w, v_h)$.
-  \item $\mathcal{L}_{\text{loc}}$ is evaluated using the robust \textbf{Smooth $L_1$ loss}:
-    \begin{equation}
-    \mathcal{L}_{\text{loc}}(\mathbf{t}^u, \mathbf{v}) = \sum_{i \in \{x, y, w, h\}} \operatorname{smooth}_{L_1}(t_i^u - v_i), \quad \operatorname{smooth}_{L_1}(z) = \begin{cases} 0.5 z^2 & \text{if } |z| < 1, \\ |z| - 0.5 & \text{otherwise.} \end{cases}
-    \label{eq:smooth_l1_loss}
-    \end{equation}
-    The Smooth $L_1$ loss behaves quadratically ($L_2$) near zero error, ensuring smooth gradient descent convergence, but transitions to linear ($L_1$) behavior for large regression errors, preventing exploding gradients caused by wild outlier proposals.
-\end{itemize}
-
-\paragraph{Quantitative localization metric: Intersection over Union (IoU).}
-To quantify how accurately a predicted bounding box $B_{\text{pred}}$ matches ground-truth box $B_{\text{gt}}$, computer vision uses the \textbf{Jaccard Index}, universally termed \textbf{Intersection over Union (IoU)}:
-\begin{equation}
-\text{IoU}(B_{\text{pred}}, B_{\text{gt}}) \triangleq \frac{\operatorname{Area}(B_{\text{pred}} \cap B_{\text{gt}})}{\operatorname{Area}(B_{\text{pred}} \cup B_{\text{gt}})} = \frac{\operatorname{Area}(B_{\text{pred}} \cap B_{\text{gt}})}{\operatorname{Area}(B_{\text{pred}}) + \operatorname{Area}(B_{\text{gt}}) - \operatorname{Area}(B_{\text{pred}} \cap B_{\text{gt}})}.
-\label{eq:iou_definition}
-\end{equation}
-Analytically, the intersection area of two axis-aligned bounding boxes is evaluated by coordinate clipping:
-\begin{align}
-\operatorname{Area}(B_{\text{pred}} \cap B_{\text{gt}}) &= \max\left(0, \min(x_{\max}^p, x_{\max}^g) - \max(x_{\min}^p, x_{\min}^g)\right) \nonumber \\
-&\quad \times \max\left(0, \min(y_{\max}^p, y_{\max}^g) - \max(y_{\min}^p, y_{\min}^g)\right).
-\label{eq:iou_overlap_area}
-\end{align}
-
-\begin{figure}[H]
-\centering
-\resizebox{0.96\textwidth}{!}{%
-\begin{tikzpicture}
-  % -------------------------------------------------------------
-  % CANVAS FRAME (Simulated Image)
-  % -------------------------------------------------------------
-  \draw[draw=gray!50, fill=gray!5, thick, rounded corners=3pt] (0, 0) rectangle (9.8, 6.4);
-  \node[font=\scriptsize\bfseries\color{gray!70}, anchor=north west] at (0.3, 6.15) {Image Canvas $\mathbf{X} \in \mathbb{R}^{H \times W \times 3}$};
-
-  % -------------------------------------------------------------
-  % 1. BACKGROUND FILLS (Drawn first so fills never obscure text or outlines)
-  % -------------------------------------------------------------
-  % Ground Truth background: [0.6, 4.8] x [0.8, 3.8]
-  \draw[draw=none, fill=deepblue!10] (0.6, 0.8) rectangle (4.8, 3.8);
-  % Predicted Box background: [3.4, 7.6] x [1.8, 4.8]
-  \draw[draw=none, fill=examred!10] (3.4, 1.8) rectangle (7.6, 4.8);
-  % Overlap (Intersection) background: [3.4, 4.8] x [1.8, 3.8]
-  \draw[draw=none, fill=deepdiveTeal!30] (3.4, 1.8) rectangle (4.8, 3.8);
-
-  % -------------------------------------------------------------
-  % 2. OUTLINES
-  % -------------------------------------------------------------
-  \draw[draw=politoNavy, very thick] (0.6, 0.8) rectangle (4.8, 3.8);
-  \draw[draw=examred, very thick, dashed] (3.4, 1.8) rectangle (7.6, 4.8);
-  \draw[draw=deepdiveTeal, thick] (3.4, 1.8) rectangle (4.8, 3.8);
-
-  % -------------------------------------------------------------
-  % 3. LABELS AND CENTROIDS (Completely disjoint spatial regions)
-  % -------------------------------------------------------------
-  % Ground Truth Label (Stacked two lines in non-overlapping left region: x in [0.8, 2.4], y in [3.1, 3.65])
-  \node[font=\footnotesize\bfseries\color{politoNavy}, align=left, anchor=north west] at (0.8, 3.65) {
-    Ground Truth\\[1pt]$B_{\text{gt}}$
-  };
-  
-  % Ground Truth Centroid (Exact geometric center: xc=2.7, yc=2.3)
-  \node[circle, fill=politoNavy, inner sep=1.8pt] (gt_c) at (2.7, 2.3) {};
-  \node[font=\scriptsize\bfseries\color{politoNavy}, anchor=north east] at (2.55, 2.2) {$(x_c^{\text{gt}}, y_c^{\text{gt}})$};
-
-  % Predicted Box Label (Stacked two lines in non-overlapping top-right region: x in [5.8, 7.4], y in [4.1, 4.65])
-  \node[font=\footnotesize\bfseries\color{examred}, align=right, anchor=north east] at (7.4, 4.65) {
-    Predicted\\[1pt]$B_{\text{pred}}$
-  };
-  
-  % Predicted Centroid (Exact geometric center: xc=5.5, yc=3.3)
-  % Label placed below-right so it has ample separation from top-right title
-  \node[circle, fill=examred, inner sep=1.8pt] (pred_c) at (5.5, 3.3) {};
-  \node[font=\scriptsize\bfseries\color{examred}, anchor=north west] at (5.65, 3.15) {$(x_c^{\text{pred}}, y_c^{\text{pred}})$};
-
-  % Overlap Area (Intersection) Label (Center of intersection: x=4.1, y=2.8)
-  \node[font=\scriptsize\bfseries\color{deepdiveTeal!90!black}, align=center] at (4.1, 2.8) {Intersection\\[2pt]$B_{\text{pred}} \cap B_{\text{gt}}$};
-
-  % -------------------------------------------------------------
-  % 4. DIMENSION BRACES FOR B_pred
-  % -------------------------------------------------------------
-  % Width brace at y=5.05 (centered at x=5.5; canvas text is at x=0.3, y=6.15 -> completely disjoint)
-  \draw[thick, examred, decorate, decoration={brace, amplitude=4pt}] (3.4, 5.05) -- (7.6, 5.05)
-    node[midway, above=3pt, font=\scriptsize\bfseries\color{examred}] {Width $w_{\text{pred}}$};
-    
-  % Height brace at x=7.85 (midway at y=3.3; label ends at x=9.5, canvas border is at x=9.8)
-  \draw[thick, examred, decorate, decoration={brace, amplitude=4pt}] (7.85, 4.8) -- (7.85, 1.8)
-    node[midway, right=4pt, font=\scriptsize\bfseries\color{examred}] {Height $h_{\text{pred}}$};
-
-  % -------------------------------------------------------------
-  % 5. MATHEMATICAL IoU PANEL (Generously shifted to x=10.8 to guarantee zero collision)
-  % -------------------------------------------------------------
-  \begin{scope}[shift={(10.8, 0.4)}]
-    % Formula Header (IoU =)
-    \node[font=\normalsize\bfseries, anchor=east] at (0.6, 3.0) {$\text{IoU} = $};
-
-    % Division bar
-    \draw[very thick, black] (0.8, 3.0) -- (5.4, 3.0);
-
-    % Numerator: Intersection Subpanel
-    \draw[draw=deepdiveTeal, fill=deepdiveTeal!20, thick, rounded corners=2pt] (1.0, 3.4) rectangle (2.8, 4.8);
-    \node[font=\tiny\bfseries\color{deepdiveTeal!90!black}, align=center] at (1.9, 4.1) {$\operatorname{Area}(B_{\text{pred}} \cap B_{\text{gt}})$\\(Intersection)};
-    \node[anchor=west, font=\scriptsize] at (3.0, 4.1) {$[w_{\cap} \times h_{\cap}]$ overlap area};
-
-    % Denominator: Union Subpanel
-    \draw[draw=politoNavy, fill=politoNavy!15, thick, rounded corners=2pt] (1.0, 1.2) rectangle (2.8, 2.6);
-    \node[font=\tiny\bfseries\color{politoNavy}, align=center] at (1.9, 1.9) {$\operatorname{Area}(B_{\text{pred}} \cup B_{\text{gt}})$\\(Total Union)};
-    \node[anchor=west, font=\scriptsize] at (3.0, 1.9) {$\operatorname{Area}_{\text{pred}} + \operatorname{Area}_{\text{gt}} - \operatorname{Area}_{\cap}$};
-
-    % Evaluation Criterion Box
-    \node[draw=examred, fill=examback, thick, rounded corners=3pt, inner sep=6pt, anchor=north west] at (0.0, 0.5) {
-      \begin{minipage}{5.6cm}
-        \scriptsize\bfseries\textcolor{examred}{Standard Evaluation Gate:}\\[3pt]
-        \normalfont\scriptsize
-        $\bullet$ $\text{IoU} \ge 0.5 \implies$ \textbf{True Positive (TP)} (Correct detection).\\
-        $\bullet$ $\text{IoU} < 0.5 \implies$ \textbf{False Positive (FP)} (Localization error).\\
-        $\bullet$ Strict COCO AP uses average over thresholds $\text{IoU} \in [0.50 : 0.05 : 0.95]$.
-      \end{minipage}
-    };
-  \end{scope}
-\end{tikzpicture}%
-}
-\caption{Continuous 4D bounding box parameterization and Intersection over Union (IoU) localization evaluation metric. The ratio between the area of overlap (intersection) and the total combined area (union) quantifies spatial agreement; detections with $\text{IoU} \ge 0.5$ are deemed true positives in the PASCAL VOC benchmark.}
-\label{fig:iou_bounding_box_schematic}
-\end{figure}
-
-As shown in Figure~\ref{fig:iou_bounding_box_schematic}, in benchmark evaluations (e.g., PASCAL VOC), a candidate detection is scored as a \textbf{True Positive (TP)} if and only if $\text{IoU}(B_{\text{pred}}, B_{\text{gt}}) \ge 0.5$ and the categorical label matches ground truth. If $\text{IoU} < 0.5$, the prediction is penalized as a \textbf{False Positive (FP)}. In the modern MS-COCO benchmark, performance is evaluated across a spectrum of ten thresholds $\text{IoU} \in [0.50 : 0.05 : 0.95]$, rewarding sub-pixel localization accuracy.
-
-\paragraph{Non-Maximum Suppression (NMS) algorithm.}
-Because dense detection architectures evaluate thousands of potential spatial anchors or proposals across adjacent coordinates, the network routinely fires dozens of highly confident bounding boxes around the exact same target. To eliminate this spatial redundancy, modern detectors execute \textbf{Non-Maximum Suppression (NMS)}, a greedy deduplication algorithm:
-\begin{enumerate}[leftmargin=*]
-  \item \textbf{Input}: A set of candidate bounding boxes $\mathcal{B} = \{B_1, \dots, B_N\}$, corresponding category confidence scores $\mathcal{S} = \{s_1, \dots, s_N\}$, score threshold $s_{\min}$, and IoU suppression threshold $N_{\text{th}} \in [0.3, 0.5]$.
-  \item \textbf{Pruning}: Discard all candidate boxes whose classification score satisfies $s_i < s_{\min}$. Initialize the set of confirmed final detections as empty: $\mathcal{D} \leftarrow \emptyset$.
-  \item \textbf{Iterative Suppression}: While $\mathcal{B} \neq \emptyset$:
-    \begin{enumerate}[noitemsep]
-      \item Select the bounding box with the highest confidence score:
-        \begin{equation}
-        M \leftarrow \argmax_{B_i \in \mathcal{B}} s_i.
-        \end{equation}
-      \item Move $M$ into the set of confirmed detections: $\mathcal{D} \leftarrow \mathcal{D} \cup \{M\}$, and remove $M$ from candidates: $\mathcal{B} \leftarrow \mathcal{B} \setminus \{M\}$.
-      \item For every remaining candidate box $B_j \in \mathcal{B}$, compute spatial overlap with $M$. If:
-        \begin{equation}
-        \text{IoU}(M, B_j) \ge N_{\text{th}},
-        \end{equation}
-        discard $B_j$ from $\mathcal{B}$ as a duplicate detection.
-    \end{enumerate}
-  \item \textbf{Output}: Return the pruned, deduplicated detection set $\mathcal{D}$.
-\end{enumerate}
-
-\paragraph{Computational evolution: From sliding windows to shared convolutions.}
-The computational challenge of object detection motivated one of deep learning's greatest architectural evolutions:
-\begin{itemize}[leftmargin=*]
-  \item \textbf{Naive Sliding Windows}: Evaluated every possible spatial coordinate $(x, y)$, scale, and aspect ratio independently through an entire convolutional network. Evaluating millions of crops independently incurred an astronomical computational cost of $O(H^2 W^2)$ forward passes per image.
-  \item \textbf{R-CNN (Girshick et al., 2014)}~\cite{girshick2014rich}: Reduced the search space by utilizing an external Selective Search heuristic to propose $\sim 2,000$ candidate regions. However, R-CNN cropped and warped each candidate patch independently through AlexNet, requiring $\approx 47$ seconds per image on GPU and preventing real-time deployment.
-  \item \textbf{Fast R-CNN (Girshick, 2015)}~\cite{girshick2015fast}: Introduced \textbf{Shared Convolutional Feature Maps}. Instead of passing 2,000 image patches through the CNN, Fast R-CNN feeds the entire input image through the backbone \textit{once} to extract a high-resolution shared feature map $\mathbf{F}$.
-  \item \textbf{Region of Interest (RoI) Pooling}: Given arbitrary proposed rectangle coordinates $(r, c, h_r, w_r)$ projected onto the shared feature map, RoI Pooling divides the sub-region into a fixed $7 \times 7$ grid of sub-windows and performs max pooling within each grid cell:
-    \begin{equation}
-    (h_r \times w_r \times C) \xrightarrow{\text{RoI Pooling}} (7 \times 7 \times C).
-    \label{eq:roi_pooling_mapping}
-    \end{equation}
-    Because every proposal extracts its fixed-size feature vector directly from the shared feature map, Fast R-CNN replaced 2,000 forward passes with 1 forward pass, achieving a \textbf{$146\times$ acceleration} during inference.
-  \item \textbf{Faster R-CNN (Ren et al., 2015)}~\cite{ren2015faster}: Replaced the CPU-bound Selective Search heuristic entirely with an internal, fully convolutional \textbf{Region Proposal Network (RPN)} that slides $3 \times 3$ convolutional filters over the shared feature map, predicting multi-scale anchor offsets and objectness scores in unified end-to-end GPU memory.
-\end{itemize}
-
-\subsection{Semantic segmentation}
-\label{sec:semantic_segmentation_mechanics}
-
-While object detection encloses targets within coarse bounding boxes, \textbf{Semantic Image Segmentation} requires dense, pixel-level visual understanding: assigning a categorical class label to every individual coordinate $(i, j)$ of the image grid~\cite{prince2023understanding,bishop2024deep}.
-
-\paragraph{Dense pixel-level mathematical mapping.}
-In semantic segmentation, the network maps an image $\mathbf{X} \in \R^{H \times W \times C}$ to a dense categorical label canvas:
-\begin{equation}
-\hat{y}_{i, j} \in \{1, \dots, K\}, \quad \forall (i, j) \in \{1, \dots, H\} \times \{1, \dots, W\}.
-\label{eq:semantic_segmentation_mapping}
-\end{equation}
-The architecture outputs a 3D tensor of unnormalized pixel logits $\mathbf{Z} \in \R^{H \times W \times K}$. At every spatial coordinate $(i, j)$, a spatial Softmax produces a categorical distribution over classes:
-\begin{equation}
-\hat{P}(y_{i,j} = k \mid \mathbf{X}) = \frac{\exp(Z_{i, j, k})}{\sum_{c=1}^K \exp(Z_{i, j, c})}, \quad \forall k \in \{1, \dots, K\}.
-\label{eq:pixelwise_softmax}
-\end{equation}
-The network is optimized end-to-end by minimizing the mean pixel-wise Categorical Cross-Entropy loss:
-\begin{equation}
-\mathcal{L}_{\text{seg}}(\mathbf{Y}, \hat{\mathbf{Y}}) = -\frac{1}{H \cdot W} \sum_{i=1}^H \sum_{j=1}^W \sum_{k=1}^K Y_{i, j, k} \ln \hat{P}(y_{i,j} = k \mid \mathbf{X}).
-\label{eq:pixelwise_cross_entropy}
-\end{equation}
-Unlike whole-image classification (which demands translation invariance), semantic segmentation strictly demands \textbf{translation equivariance}: shifting an input object by $\boldsymbol{\delta}$ must shift the corresponding segmentation mask by the identical displacement vector $\boldsymbol{\delta}$.
-
-\paragraph{The architectural dilemma: Semantic context vs. spatial resolution.}
-Designing deep segmentation networks introduces a fundamental representational trade-off:
-\begin{itemize}[leftmargin=*]
-  \item \textbf{Context Aggregation (The Need to Downsample)}: Individual raw pixels contain no semantic meaning (a single brown pixel could belong to a wooden chair, a dog, or a tree trunk). Correctly recognizing what an object is requires large effective receptive fields spanning wide contextual areas. As derived in Section~\ref{sec:conv_layer_anatomy}, pooling and strided convolutions downsample spatial dimensions ($H \to H/32$), allowing deep neurons to encode global scene semantics (``\textit{What}'').
-  \item \textbf{Boundary Obliteration (The Cost of Downsampling)}: However, downsampling the spatial grid by a factor of 32 obliterates high-frequency spatial boundaries and geometric edges (``\textit{Where}''). Directly upsampling a coarse $7 \times 7$ feature map produces blurry, blob-like segmentation masks devoid of fine contours.
-\end{itemize}
-
-\paragraph{The encoder-decoder architectural topology.}
-To reconcile semantic context with sharp spatial localization, modern deep segmentation architectures adopt the \textbf{Encoder-Decoder (Hourglass)} paradigm:
-\begin{enumerate}[leftmargin=*]
-  \item \textbf{Contractive Path (Encoder)}: A standard convolutional backbone (e.g., VGG or ResNet) that systematically alternates convolutions with strided pooling. Spatial height and width are progressively halved while channel capacity doubles, culminating in a low-resolution semantic bottleneck tensor:
-    \begin{equation}
-    \mathbf{Z}_{\text{bottleneck}} \in \R^{\frac{H}{32} \times \frac{W}{32} \times C_{\text{deep}}}.
-    \end{equation}
-  \item \textbf{Expansive Path (Decoder)}: A sequence of spatial upsampling layers and convolutions that progressively doubles spatial resolution while reducing channel depth ($\frac{H}{32} \to \frac{H}{16} \to \dots \to H$), reconstructing the full-resolution prediction canvas of dimensions $H \times W \times K$.
-\end{enumerate}
-
-\paragraph{Mechanisms of spatial upsampling.}
-Restoring spatial resolution in the decoder requires principled upsampling operators:
-\begin{enumerate}[leftmargin=*]
-  \item \textbf{Bilinear and Nearest-Neighbor Interpolation}: Fixed, parameter-free geometric interpolation. While computationally efficient, these operators contain zero learnable weights and cannot adaptively adjust to complex boundary statistics.
-  \item \textbf{Bed of Nails and Max Unpooling (Noh et al., 2015)}~\cite{noh2015learning,zeiler2014visualizing}: During the contractive path, each max pooling operation records the exact switch coordinates (argmax pixel locations within each $2 \times 2$ window). During decoding, max unpooling places each activation back into its exact original switch coordinate, filling all other positions with zeros. This preserves high-frequency edge locations at zero parameter cost.
-  \item \textbf{Transposed Convolution (Fractionally-Strided Convolution)}:
-    In standard 1D forward convolution with stride $S$, the linear transformation is expressed as matrix multiplication $\mathbf{y} = \mathbf{C} \mathbf{x}$, where $\mathbf{C} \in \R^{M \times N}$ ($M < N$) is a banded Toeplitz matrix downsampling the input.
-    The \textbf{transposed convolution} applies the transpose operator:
-    \begin{equation}
-    \hat{\mathbf{x}} = \mathbf{C}^\top \mathbf{y}, \quad \text{where } \mathbf{C}^\top \in \R^{N \times M}.
-    \end{equation}
-    Spatially, a transposed convolution with stride $S > 1$ inserts $S - 1$ zeros between adjacent rows and columns of the input feature map, subsequently applying a standard convolution with learnable kernel weights $\mathbf{K} \in \R^{C_{\text{out}} \times C_{\text{in}} \times k \times k}$. The output spatial dimension is governed by:
-    \begin{equation}
-    H_{\text{out}} = (H_{\text{in}} - 1) \cdot S - 2P + k + P_{\text{out}},
-    \label{eq:transposed_conv_output_dim}
-    \end{equation}
-    where $P$ is input padding and $P_{\text{out}}$ is output padding. Because kernel weights $\mathbf{K}$ are optimized via backpropagation, transposed convolutions learn data-driven, task-adaptive upsampling filters.
-\end{enumerate}
-
-\paragraph{Skip connections and the U-Net archetype.}
-Even with learnable transposed convolutions, deep encoders lose irrecoverable fine-grained spatial information through repeated pooling. In their landmark work, Long, Shelhamer, and Darrell (2015) introduced \textbf{Fully Convolutional Networks (FCN)}~\cite{long2015fully}, which added shallow feature maps to deep upsampled maps via element-wise addition (FCN-32s, FCN-16s, FCN-8s).
-
-This concept was perfected by Olaf Ronneberger et al. (2015) in the \textbf{U-Net} architecture~\cite{ronneberger2015u}, illustrated in Figure~\ref{fig:unet_architecture_schematic}. U-Net introduced \textbf{long skip connections with channel concatenation}:
-\begin{equation}
-\mathbf{X}_{\text{dec}}^{(l)} = \operatorname{ConvBlock}\left( \left[ \operatorname{Upsample}\left(\mathbf{X}_{\text{dec}}^{(l-1)}\right), \; \mathbf{X}_{\text{enc}}^{(l)} \right] \right).
-\label{eq:unet_skip_concatenation}
-\end{equation}
-By concatenating pristine, uncompressed feature maps $\mathbf{X}_{\text{enc}}^{(l)}$ from early encoder layers directly into corresponding decoder stages, U-Net supplies exact boundary localization coordinates directly to the decoder, overcoming the spatial bottleneck while retaining high-level semantic context.
-
-\begin{figure}[H]
-\centering
-\resizebox{0.95\textwidth}{!}{%
-\begin{tikzpicture}
-  % Styles
-  \tikzset{
-    encblock/.style={rectangle, draw=politoNavy, fill=politoNavy!20, thick, minimum width=1.3cm, align=center, font=\scriptsize},
-    decblock/.style={rectangle, draw=deepblue, fill=skyBlue!30, thick, minimum width=1.3cm, align=center, font=\scriptsize},
-    botblock/.style={rectangle, draw=deepdiveTeal, fill=deepdiveTeal!25, very thick, text width=4.3cm, align=center, font=\scriptsize},
-    poolarrow/.style={-{Stealth[scale=0.85]}, thick, examred},
-    upsparrow/.style={-{Stealth[scale=0.85]}, thick, deepdiveTeal},
-    skiparrow/.style={-{Stealth[scale=0.85]}, very thick, dashed, intuitiongreen}
-  }
-
-  % CONTRACTIVE PATH (LEFT)
-  % Level 1 Encoder
-  \node[encblock, minimum height=3.6cm] (e1) at (0, 3.6) {Conv $3\times 3$\\[2pt]$H \times W$\\[2pt]$C=64$};
-  \node[font=\tiny\bfseries\color{politoNavy}, above=4pt of e1] {Encoder Level 1};
-
-  % Pool 1
-  \node[circle, fill=examred!20, draw=examred, inner sep=2pt] (p1) at (0, 1.4) {\tiny $\downarrow 2$};
-  \draw[poolarrow] (e1.south) -- (p1.north);
-
-  % Level 2 Encoder
-  \node[encblock, minimum height=2.6cm] (e2) at (1.9, 1.4) {Conv $3\times 3$\\[2pt]$(H/2) \times (W/2)$\\[2pt]$C=128$};
-  \draw[poolarrow] (p1.east) -- ++(0.35, 0) |- (e2.west);
-
-  % Pool 2
-  \node[circle, fill=examred!20, draw=examred, inner sep=2pt] (p2) at (1.9, -0.4) {\tiny $\downarrow 2$};
-  \draw[poolarrow] (e2.south) -- (p2.north);
-
-  % Level 3 Encoder
-  \node[encblock, minimum height=1.8cm] (e3) at (3.8, -0.4) {Conv $3\times 3$\\[2pt]$(H/4) \times (W/4)$\\[2pt]$C=256$};
-  \draw[poolarrow] (p2.east) -- ++(0.35, 0) |- (e3.west);
-
-  % Pool 3 (shifted cleanly below e3, above bottleneck connection)
-  \node[circle, fill=examred!20, draw=examred, inner sep=2pt] (p3) at (3.8, -2.1) {\tiny $\downarrow 2$};
-  \draw[poolarrow] (e3.south) -- (p3.north);
-
-  % BOTTLENECK (BOTTOM CENTER)
-  \node[botblock, minimum height=1.3cm] (bot) at (7.0, -3.2) {Bottleneck Conv Block\\[2pt]$(H/8) \times (W/8) \times 512$\\[2pt]\textbf{Deepest Context (``What'')}};
-  \draw[poolarrow] (p3.south) |- (bot.west);
-
-  % EXPANSIVE PATH (RIGHT)
-  % Up 3 (shifted cleanly below d3, above bottleneck connection)
-  \node[circle, fill=deepdiveTeal!20, draw=deepdiveTeal, inner sep=2pt] (u3) at (10.2, -2.1) {\tiny $\uparrow 2$};
-  \draw[upsparrow] (bot.east) -| (u3.south);
-
-  % Level 3 Decoder
-  \node[decblock, minimum height=1.8cm] (d3) at (10.2, -0.4) {UpConv + Cat\\[2pt]$(H/4) \times (W/4)$\\[2pt]$C=256$};
-  \draw[upsparrow] (u3.north) -- (d3.south);
-
-  % Up 2
-  \node[circle, fill=deepdiveTeal!20, draw=deepdiveTeal, inner sep=2pt] (u2) at (12.1, -0.4) {\tiny $\uparrow 2$};
-  \draw[upsparrow] (d3.east) -- (u2.west);
-
-  % Level 2 Decoder
-  \node[decblock, minimum height=2.6cm] (d2) at (12.1, 1.4) {UpConv + Cat\\[2pt]$(H/2) \times (W/2)$\\[2pt]$C=128$};
-  \draw[upsparrow] (u2.north) -- (d2.south);
-
-  % Up 1
-  \node[circle, fill=deepdiveTeal!20, draw=deepdiveTeal, inner sep=2pt] (u1) at (14.0, 1.4) {\tiny $\uparrow 2$};
-  \draw[upsparrow] (d2.east) -- (u1.west);
-
-  % Level 1 Decoder
-  \node[decblock, minimum height=3.6cm] (d1) at (14.0, 3.6) {UpConv + Cat\\[2pt]$H \times W$\\[2pt]$C=64$};
-  \draw[upsparrow] (u1.north) -- (d1.south);
-  \node[font=\tiny\bfseries\color{deepblue}, above=4pt of d1] {Decoder Level 1};
-
-  % Output Head (1x1 conv)
-  \node[rectangle, draw=examred, fill=examred!20, thick, minimum height=3.6cm, minimum width=0.9cm, align=center, font=\scriptsize] (out) at (16.2, 3.6) {$1\times 1$\\[2pt]Conv\\[2pt]Head};
-  \draw[-{Stealth[scale=0.9]}, very thick, examred] (d1.east) -- (out.west);
-  \node[font=\tiny\bfseries\color{examred}, align=center, above=4pt of out] {Output Map\\[1pt]$H \times W \times K$};
-
-  % SKIP CONNECTIONS (Horizontal bridges)
-  \draw[skiparrow] (e1.east) -- node[above, font=\scriptsize\bfseries\color{intuitiongreen}] {Skip Connection (Level 1: High-Res Details)} (d1.west);
-  \draw[skiparrow] (e2.east) -- node[above, font=\scriptsize\bfseries\color{intuitiongreen}] {Skip Connection (Level 2)} (d2.west);
-  \draw[skiparrow] (e3.east) -- node[above, font=\scriptsize\bfseries\color{intuitiongreen}] {Skip Connection (Level 3)} (d3.west);
-
-  % Architectural Legend / Role Callout Box (Positioned below the bottleneck with ample clearance)
-  \node[draw=politoNavy!50, fill=politoNavy!5, rounded corners=4pt, line width=0.8pt, font=\scriptsize, align=left, anchor=north, text width=16.2cm, inner sep=6pt] at (7.9, -4.3) {
-    \textbf{The Semantic-Resolution Division of Labor in U-Net}:\\
-    $\bullet$ \textcolor{politoNavy}{\textbf{Contractive Path (Encoder)}}: Halves spatial grid, doubles channels $\to$ captures global scene semantics (``\textit{What}'').\\
-    $\bullet$ \textcolor{deepblue}{\textbf{Expansive Path (Decoder)}}: Doubles spatial grid via transposed convolutions $\to$ restores input dimensions.\\
-    $\bullet$ \textcolor{intuitiongreen}{\textbf{Skip Connections}}: Transfer pristine uncompressed spatial edges $\to$ recovers boundary localization (``\textit{Where}'').
-  };
-\end{tikzpicture}%
-}
-\caption{The Encoder-Decoder architecture with long skip connections for semantic image segmentation (U-Net archetype). The contractive encoder compresses spatial resolution to capture high-level semantic context, while the expansive decoder upsamples feature maps back to full resolution. Skip connections route fine-grained spatial boundary details across the bottleneck, resolving the trade-off between global semantics and pixel-level localization.}
-\label{fig:unet_architecture_schematic}
-\end{figure}
-
-While convolutional architectures provide the structural machinery for classification, detection, and segmentation, designing a high-capacity architecture on paper is fundamentally distinct from training it successfully. In practical optimization, deep convolutional networks are besieged by severe training pathologies: vanishing and exploding gradients, covariate shifts between cascading layers, numerical instabilities in non-linear activations, and catastrophic overfitting. In Section~\ref{sec:chapter5_synthesis}, we synthesize the foundational insights established across this chapter and construct the formal conceptual bridge to Chapter~\ref{sec:deep_network_training_and_regularization}, where we dissect the mathematical physics of deep network training, activation dynamics, weight initialization, and batch normalization.
-
-
-
-\section{Summary and roadmap}
-\label{sec:chapter5_synthesis}
-
-Across this chapter, we have analyzed how convolutional neural networks revolutionized artificial intelligence by aligning neural network topology with the spatial physics of natural images:
-\begin{enumerate}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
-  \item \textbf{The spatial prior}: Bengio's infinitely strong prior enforces sparse interactions, parameter sharing, and translation equivariance, eliminating the parameter explosion and spatial destruction of dense MLPs.
-  \item \textbf{Receptive field algebra}: Stacking small $3 \times 3$ kernels (the VGG principle) matches the receptive field of larger filters while dramatically reducing parameter complexity and inserting additional non-linearities.
-  \item \textbf{Dimensionality \& decision synthesis}: $1 \times 1$ convolutions enable parameter-efficient channel pooling, while Global Average Pooling (GAP) eliminates millions of fully connected parameters and mitigates overfitting.
-  \item \textbf{Residual learning}: He et al.'s identity shortcut connections ($\mathcal{H}(\vx) = \mathcal{F}(\vx) + \vx$) solve the deep degradation problem, creating an uninterrupted gradient highway that enables networks to scale to hundreds of layers.
-  \item \textbf{Perceptual taxonomy}: Beyond image-level classification, convolutional networks serve as spatial feature extractors for continuous bounding box object detection and dense per-pixel semantic segmentation.
-\end{enumerate}
-
-\paragraph{Janus-faced bridge to Chapter~\ref{sec:deep_network_training_and_regularization}.}
-Designing sophisticated deep architectures (such as deep MLPs and 50-to-152 layer ResNets) on paper is only half the battle. When practitioners attempt to train these deep networks using standard Backpropagation and Gradient Descent, \textbf{naive training catastrophically collapses}:
-\begin{itemize}[noitemsep,topsep=2pt,parsep=0pt,partopsep=0pt]
-  \item \textbf{Activation pathologies}: Sigmoid and Tanh activations saturate, causing gradients to vanish exponentially ($\prod \sigma' \to 0$); non-zero centered activations induce severe zig-zag gradient trajectories; and ReLUs suffer from the catastrophic \textbf{Dying ReLU trap}, where neurons are permanently extinguished by large negative updates.
-  \item \textbf{Weight initialization failure}: Initializing weights with zero breaks symmetry, while small or large random initializations cause activation variances to collapse to zero or explode to saturation within a few layers.
-  \item \textbf{Internal covariate shift}: Continuous weight updates in early layers alter the distribution of inputs to downstream layers, forcing subsequent layers to constantly chase a moving target.
-  \item \textbf{Severe overfitting}: Networks with tens of millions of parameters possess the capacity to memorize completely random labels, necessitating principled regularization.
-\end{itemize}
-In Chapter~\ref{sec:deep_network_training_and_regularization}, we dissect the physics of training deep networks: activation dynamics, Xavier and He weight initialization derivations, Batch Normalization, and modern regularization strategies.
