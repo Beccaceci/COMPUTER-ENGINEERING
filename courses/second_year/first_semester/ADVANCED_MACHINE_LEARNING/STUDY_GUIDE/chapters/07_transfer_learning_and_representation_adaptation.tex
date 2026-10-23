@@ -101,62 +101,213 @@ The answer lies in the \textbf{hierarchical nature of deep visual representation
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[scale=0.92]
-  % Define layer styles
-  \tikzset{
-    stage/.style={rectangle, rounded corners=3mm, draw=politoNavy, fill=white, thick, text width=3.4cm, minimum height=4.2cm, align=center},
-    arrowlabel/.style={font=\bfseries\sffamily\scriptsize, text=politoNavy, align=center}
-  }
+\begin{tikzpicture}[
+    scale=0.88,
+    every node/.style={transform shape},
+    featurebox/.style={draw=politoNavy!70, fill=white, rounded corners=2pt, line width=0.8pt},
+    patch/.style={draw=gray!50, fill=white, rounded corners=1.5pt, minimum size=0.74cm, inner sep=0pt, line width=0.6pt},
+    layerpanel/.style={draw=politoNavy, fill=white, rounded corners=3mm, line width=1.1pt, inner sep=4pt},
+    sectiontitle/.style={font=\bfseries\sffamily\footnotesize, text=politoNavy, align=center},
+    subtitle/.style={font=\sffamily\scriptsize, text=gray!80!black, align=center},
+    detailtext/.style={font=\sffamily\tiny, align=center}
+  ]
 
-  % Stage 1: Low-level features
-  \node[stage, fill=deepblue!8] (s1) at (0, 0) {
-    \textcolor{politoNavy}{\textbf{Stage 1: Early Layers}}\\[1ex]
-    \footnotesize\textbf{Universal Primitives}\\[1.5ex]
-    \raggedright\scriptsize
-    $\bullet$ Gabor-like oriented edges\par
-    $\bullet$ Opponent color blobs\par
-    $\bullet$ Spatial frequency gratings\par
-    $\bullet$ Contrast transitions\\[1.5ex]
-    \centering\textcolor{intuitiongreen!80!black}{\textbf{100\% Task-Agnostic}}
+  % Input Image on the far left
+  \node[layerpanel, fill=gray!8, draw=gray!60, text width=1.7cm, minimum height=6.2cm] (inputpanel) at (-4.1, 0) {};
+  \node[font=\bfseries\sffamily\scriptsize, text=gray!80!black, below=5pt of inputpanel.north] (inputtitle) {Input Image};
+  \node[font=\sffamily\tiny, text=gray!60!black, below=1pt of inputtitle] {$\vx \in \R^{H \times W \times 3}$};
+
+  % Miniature input scene in input panel
+  \begin{scope}[shift={($(inputpanel.center)+(0, 0.4)$)}]
+    \draw[draw=gray!50, fill=white, line width=0.6pt] (-0.72, -0.9) rectangle (0.72, 0.9);
+    % Road
+    \fill[gray!20] (-0.70, -0.88) rectangle (0.70, -0.3);
+    \draw[dashed, line width=0.5pt, gray!50] (-0.70, -0.6) -- (0.70, -0.6);
+    % Tiny Car
+    \draw[line width=0.8pt, politoNavy, fill=deepblue!20, rounded corners=1pt]
+      (-0.52, -0.3) -- (-0.52, -0.15) -- (-0.33, -0.12) -- (-0.18, 0.08) -- 
+      (0.14, 0.08) -- (0.33, -0.12) -- (0.52, -0.15) -- (0.52, -0.3) -- cycle;
+    \fill[black] (-0.33, -0.32) circle (0.08cm);
+    \fill[black] (0.33, -0.32) circle (0.08cm);
+  \end{scope}
+
+  \node[font=\sffamily\tiny, align=center, text=gray!70!black, below=18pt of inputpanel.center] {
+    Raw RGB\\
+    Pixel Grid\\[3pt]
+    \textbf{Unstructured}\\
+    \textbf{Intensities}
   };
 
-  % Stage 2: Mid-level features
-  \node[stage, fill=skyBlue!12] (s2) at (4.5, 0) {
-    \textcolor{politoNavy}{\textbf{Stage 2: Mid Layers}}\\[1ex]
-    \footnotesize\textbf{Motif Combinations}\\[1.5ex]
-    \raggedright\scriptsize
-    $\bullet$ Textures \& surface patterns\par
-    $\bullet$ Geometric corners \& junctions\par
-    $\bullet$ Circular / contour curves\par
-    $\bullet$ Structural parts (wheels, eyes)\\[1.5ex]
-    \centering\textcolor{politoNavy}{\textbf{Semi-Universal}}
+  % Panel 1: Low-level features
+  \node[layerpanel, fill=deepblue!5, text width=3.4cm, minimum height=6.2cm] (panel1) at (-0.7, 0) {};
+  \node[sectiontitle, below=5pt of panel1.north] (title1) {Early Layers ($\text{C}_1$--$\text{C}_2$)};
+  \node[subtitle, below=1pt of title1] (sub1) {\textbf{Low-Level: Primitives}};
+
+  % Draw 2x3 grid of edge/line patches
+  \begin{scope}[shift={($(panel1.center)+(0,0.65)$)}]
+    % Patch (1,1): Horizontal edge
+    \node[patch] (p11) at (-1.1, 0.55) {};
+    \fill[politoNavy!85] ($(p11.south west)+(0.03,0.03)$) rectangle ($(p11.north east)-(0.03,0.37)$);
+    \draw[line width=1.1pt, white] ($(p11.west)+(0.03,0)$) -- ($(p11.east)-(0.03,0)$);
+
+    % Patch (1,2): Vertical edge
+    \node[patch] (p12) at (0, 0.55) {};
+    \fill[deepblue!85] ($(p12.south west)+(0.03,0.03)$) rectangle ($(p12.north east)-(0.37,0.03)$);
+    \draw[line width=1.1pt, white] ($(p12.south)+(0,0.03)$) -- ($(p12.north)-(0,0.03)$);
+
+    % Patch (1,3): Diagonal +45
+    \node[patch] (p13) at (1.1, 0.55) {};
+    \fill[deepdiveTeal!85] ($(p13.south west)+(0.03,0.03)$) -- ($(p13.north east)-(0.03,0.03)$) -- ($(p13.south east)+(-0.03,0.03)$) -- cycle;
+    \draw[line width=1.1pt, white] ($(p13.south west)+(0.06,0.06)$) -- ($(p13.north east)-(0.06,0.06)$);
+
+    % Patch (2,1): Diagonal -45
+    \node[patch] (p21) at (-1.1, -0.45) {};
+    \fill[examred!75] ($(p21.north west)+(0.03,-0.03)$) -- ($(p21.south east)+(-0.03,0.03)$) -- ($(p21.south west)+(0.03,0.03)$) -- cycle;
+    \draw[line width=1.1pt, white] ($(p21.north west)+(0.06,-0.06)$) -- ($(p21.south east)-(0.06,-0.06)$);
+
+    % Patch (2,2): Multi-frequency grating
+    \node[patch] (p22) at (0, -0.45) {};
+    \foreach \x in {-0.24, -0.08, 0.08, 0.24} {
+      \draw[line width=0.9pt, politoNavy!90] ($(p22.center)+(\x,-0.32)$) -- ($(p22.center)+(\x,0.32)$);
+    }
+
+    % Patch (2,3): Color opponency blob
+    \node[patch] (p23) at (1.1, -0.45) {};
+    \fill[skyBlue!60] ($(p23.center)$) circle (0.28cm);
+    \fill[amber] ($(p23.center)$) circle (0.13cm);
+  \end{scope}
+
+  \node[detailtext, below=12pt of p22] (desc1) {
+    \textbf{Universal Primitives:}\\
+    $\bullet$ Oriented lines ($0^\circ, 45^\circ, 90^\circ$)\\
+    $\bullet$ High-contrast step edges\\
+    $\bullet$ Gabor spatial frequency gratings\\
+    $\bullet$ Center-surround color opponency\\[3pt]
+    \textcolor{intuitiongreen!90!black}{\textbf{100\% Task-Agnostic}}
   };
 
-  % Stage 3: High-level features
-  \node[stage, fill=examred!8] (s3) at (9.0, 0) {
-    \textcolor{politoNavy}{\textbf{Stage 3: Late Layers}}\\[1ex]
-    \footnotesize\textbf{Semantic Assemblies}\\[1.5ex]
-    \raggedright\scriptsize
-    $\bullet$ Holistic object topologies\par
-    $\bullet$ Class-specific semantics\par
-    $\bullet$ Domain categories (dog breeds)\par
-    $\bullet$ Task decision boundaries\\[1.5ex]
-    \centering\textcolor{examred}{\textbf{Highly Task-Specific}}
+  % Panel 2: Mid-level features
+  \node[layerpanel, fill=skyBlue!8, text width=3.4cm, minimum height=6.2cm] (panel2) at (4.5, 0) {};
+  \node[sectiontitle, below=5pt of panel2.north] (title2) {Mid Layers ($\text{C}_3$--$\text{C}_4$)};
+  \node[subtitle, below=1pt of title2] (sub2) {\textbf{Mid-Level: Motifs \& Parts}};
+
+  % Draw 2x3 grid of motif/texture patches
+  \begin{scope}[shift={($(panel2.center)+(0,0.65)$)}]
+    % Patch (1,1): Corner / T-junction
+    \node[patch] (m11) at (-1.1, 0.55) {};
+    \draw[line width=1.4pt, politoNavy] ($(m11.west)+(0.08,0)$) -- ($(m11.center)+(0.08,0)$) -- ($(m11.south)+(0.08,0.08)$);
+    \draw[line width=0.9pt, deepblue!70] ($(m11.north)+(0.08,-0.08)$) -- ($(m11.center)+(0.08,0)$);
+
+    % Patch (1,2): Honeycomb / Grid texture
+    \node[patch] (m12) at (0, 0.55) {};
+    \foreach \a in {-0.2, 0, 0.2} {
+      \draw[line width=0.6pt, deepdiveTeal!90] ($(m12.west)+(0.06,\a)$) -- ($(m12.east)+(-0.06,\a)$);
+      \draw[line width=0.6pt, deepdiveTeal!90] ($(m12.south)+(\a,0.06)$) -- ($(m12.north)+(\a,-0.06)$);
+    }
+
+    % Patch (1,3): Curved contour / Arch
+    \node[patch] (m13) at (1.1, 0.55) {};
+    \draw[line width=1.4pt, deepblue] ($(m13.south west)+(0.12,0.1)$) arc[start angle=180, end angle=20, radius=0.25cm];
+
+    % Patch (2,1): Wheel rim / circular part
+    \node[patch] (m21) at (-1.1, -0.45) {};
+    \draw[line width=1.2pt, politoNavy] ($(m21.center)$) circle (0.24cm);
+    \draw[line width=0.7pt, gray!80] ($(m21.center)$) circle (0.12cm);
+    \fill[politoNavy] ($(m21.center)$) circle (0.04cm);
+
+    % Patch (2,2): Headlight / Circular motif
+    \node[patch] (m22) at (0, -0.45) {};
+    \fill[amber!35, draw=amber!90!black, line width=0.9pt] ($(m22.center)$) circle (0.22cm);
+    \draw[line width=0.7pt, amber!90!black] ($(m22.center)-(0.15,0)$) -- ($(m22.center)+(0.15,0)$);
+    \draw[line width=0.7pt, amber!90!black] ($(m22.center)-(0,0.15)$) -- ($(m22.center)+(0,0.15)$);
+
+    % Patch (2,3): Car window polygon / trapezoid
+    \node[patch] (m23) at (1.1, -0.45) {};
+    \draw[line width=1.2pt, skyBlue!90!black, fill=skyBlue!25] 
+      ($(m23.center)+(-0.25,-0.18)$) -- ($(m23.center)+(-0.14,0.2)$) -- 
+      ($(m23.center)+(0.16,0.2)$) -- ($(m23.center)+(0.25,-0.18)$) -- cycle;
+  \end{scope}
+
+  \node[detailtext, below=12pt of m22] (desc2) {
+    \textbf{Motif Combinations:}\\
+    $\bullet$ Geometric corners \& $T$-junctions\\
+    $\bullet$ Surface textures \& regular meshes\\
+    $\bullet$ Circular wheels, rims \& spokes\\
+    $\bullet$ Contour curves \& window polygons\\[3pt]
+    \textcolor{politoNavy}{\textbf{Semi-Universal Visual Motifs}}
   };
 
-  % Connecting arrows
-  \draw[-{Stealth[scale=1.2]}, very thick, draw=politoNavy] (s1) -- (s2) 
-    node[midway, above, arrowlabel] {Spatial\\Composition};
-  \draw[-{Stealth[scale=1.2]}, very thick, draw=politoNavy] (s2) -- (s3) 
-    node[midway, above, arrowlabel] {Semantic\\Abstraction};
+  % Panel 3: High-level features
+  \node[layerpanel, fill=examred!5, text width=3.4cm, minimum height=6.2cm] (panel3) at (9.7, 0) {};
+  \node[sectiontitle, below=5pt of panel3.north] (title3) {Late Layers ($\text{C}_5$--$\text{FC}$)};
+  \node[subtitle, below=1pt of title3] (sub3) {\textbf{High-Level: Holistic Objects}};
+
+  % Draw Holistic Object Assembly (Resembling a complete Car)
+  \begin{scope}[shift={($(panel3.center)+(0,0.65)$)}]
+    \node[patch, minimum width=3.0cm, minimum height=1.9cm, fill=white, draw=politoNavy!50, line width=0.8pt] (carframe) at (0, 0.05) {};
+    
+    % Car body chassis
+    \draw[line width=1.4pt, politoNavy, fill=deepblue!15, rounded corners=2pt]
+      (-1.20, -0.3) -- (-1.20, -0.05) -- (-0.80, 0.0) -- (-0.45, 0.42) -- 
+      (0.35, 0.42) -- (0.80, 0.08) -- (1.15, 0.05) -- (1.20, -0.3) -- cycle;
+    
+    % Car windows
+    \draw[line width=0.9pt, deepblue!80, fill=skyBlue!35]
+      (-0.40, 0.08) -- (-0.37, 0.36) -- (-0.02, 0.36) -- (-0.02, 0.08) -- cycle;
+    \draw[line width=0.9pt, deepblue!80, fill=skyBlue!35]
+      (0.04, 0.08) -- (0.04, 0.36) -- (0.32, 0.36) -- (0.65, 0.08) -- cycle;
+
+    % Wheels
+    \draw[line width=1.3pt, fill=gray!80, draw=black] (-0.70, -0.32) circle (0.20cm);
+    \draw[line width=0.7pt, fill=white] (-0.70, -0.32) circle (0.09cm);
+    \fill[black] (-0.70, -0.32) circle (0.03cm);
+
+    \draw[line width=1.3pt, fill=gray!80, draw=black] (0.70, -0.32) circle (0.20cm);
+    \draw[line width=0.7pt, fill=white] (0.70, -0.32) circle (0.09cm);
+    \fill[black] (0.70, -0.32) circle (0.03cm);
+
+    % Headlight
+    \fill[amber] (1.16, -0.05) circle (0.06cm);
+  \end{scope}
+
+  \node[detailtext, below=8pt of carframe] (desc3) {
+    \textbf{Holistic Representation:}\\
+    $\bullet$ Global object template topology\\
+    $\bullet$ Spatial coordination of parts\\
+    $\bullet$ High-level semantic discrimination\\[4pt]
+    \colorbox{examred!15}{\textbf{\footnotesize Softmax: $\longrightarrow$ \texttt{"car"} (98.4\%)}}
+  };
+
+  % Connecting Arrows
+  \draw[-{Stealth[scale=1.1]}, line width=1.4pt, draw=gray!60] (inputpanel.east) -- (panel1.west)
+    node[midway, above=1pt, font=\sffamily\tiny, text=gray!80!black] {$\text{Conv}_1$};
+
+  \draw[-{Stealth[scale=1.15]}, line width=1.8pt, politoNavy!80] (panel1.east) -- (panel2.west)
+    node[midway, above=3pt, font=\bfseries\sffamily\tiny, text=politoNavy, align=center] {Spatial\\Grouping};
+
+  \draw[-{Stealth[scale=1.15]}, line width=1.8pt, politoNavy!80] (panel2.east) -- (panel3.west)
+    node[midway, above=3pt, font=\bfseries\sffamily\tiny, text=politoNavy, align=center] {Semantic\\Assembly};
+
+  % Top abstraction banner
+  \draw[-{Stealth[scale=1.2]}, line width=1.4pt, politoNavy] 
+    ($(inputpanel.north west)+(-0.1, 0.45)$) -- ($(panel3.north east)+(0.1, 0.45)$)
+    node[midway, above=2pt, font=\bfseries\sffamily\small] {Layer Depth $\longrightarrow$ Increasing Semantic Abstraction \& Spatial Receptive Field};
 
   % Bottom spectrum bar
-  \draw[->, very thick, draw=politoNavy] (-1.8, -2.8) -- (10.8, -2.8)
-    node[midway, below=2pt, font=\bfseries\sffamily\small] {Layer Depth $\longrightarrow$ Increasing Semantic Specificity};
-  \node[font=\bfseries\sffamily\scriptsize, text=intuitiongreen!80!black, left] at (-1.8, -2.8) {Generic Features};
-  \node[font=\bfseries\sffamily\scriptsize, text=examred, right] at (10.8, -2.8) {Task-Specific};
+  \draw[rounded corners=2pt, fill=gray!12, draw=gray!40, line width=0.8pt] 
+    ($(inputpanel.south west)+(-0.1, -0.55)$) rectangle ($(panel3.south east)+(0.1, -1.05)$);
+
+  \node[font=\bfseries\sffamily\scriptsize, text=intuitiongreen!90!black, anchor=west] 
+    at ($(inputpanel.south west)+(0.1, -0.8)$) {$\blacktriangleright$ Generic Primitives (Universal Transfer)};
+  
+  \node[font=\bfseries\sffamily\scriptsize, text=politoNavy, anchor=center] 
+    at ($(panel2.south)+(0, -0.8)$) {$\bullet$ Mid-Level Textures \& Motifs};
+
+  \node[font=\bfseries\sffamily\scriptsize, text=examred!90!black, anchor=east] 
+    at ($(panel3.south east)+(-0.1, -0.8)$) {Task-Specific Templates $\blacktriangleleft$};
+
 \end{tikzpicture}
-\caption{The hierarchical representation spectrum in deep convolutional neural networks (Zeiler \& Fergus, 2014). Early convolutional layers learn universal spatial primitives (oriented Gabor edges, color opponency) that transfer seamlessly to virtually any natural visual domain. Intermediate layers compose edges into motifs, textures, and object parts. Late fully connected and global average pooled layers compute high-level semantic assemblies tuned specifically to the source task categories.}
+\caption{The hierarchical visual feature hierarchy learned by deep convolutional neural networks (Rodol\`a AML Lecture 04.2, Slide 43; Zeiler \& Fergus, 2014; Lee et al., 2009). The network progressively transforms unstructured pixel intensities into structured semantic representations: early convolutional layers detect localized edge orientations, contrast transitions, and color opponencies; intermediate layers spatially combine these primitive edges into recurring motifs, surface textures, geometric corners, and component parts (e.g., wheels, windows, headlights); deep layers assemble these components into holistic, recognizable object templates (e.g., the complete topology of a car) driving the final task prediction.}
 \label{fig:hierarchical_feature_spectrum}
 \end{figure}
 
