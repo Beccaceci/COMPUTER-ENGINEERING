@@ -1,0 +1,42 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+\chapter*{Preface}
+\addcontentsline{toc}{chapter}{Preface}
+
+\section*{Pedagogical vision}
+Large language models (LLMs) are increasingly used in software engineering tasks that involve code synthesis and repair, requirements analysis, and coordination among software agents. These applications rely on probabilistic models trained to represent and generate sequences of text and code. Understanding their use therefore requires both the mathematical foundations of language modeling and an account of how model behavior interacts with software development processes.
+
+This guide accompanies the Master of Science course \emph{Large Language Models for Software Engineering} at Politecnico di Torino, taught by Prof.~Flavio Giobergia and Prof.~Riccardo Coppola. The course is organized around two related areas:
+\begin{enumerate}
+    \item \textbf{Part~I: Foundations of large language models} --- Develops the mathematical and architectural foundations of language modeling, from $n$-gram Markov chains and feedforward networks to distributed word embeddings, recurrent networks, and Transformers. The broader course syllabus also includes pre-training scaling laws, instruction tuning (RLHF and DPO), and parameter-efficient fine-tuning (LoRA and QLoRA).
+    \item \textbf{Part~II: Large language models for software engineering} --- Examines how model capabilities relate to the software development life cycle (SDLC), including prompt engineering, agent frameworks such as ReAct, automated test generation, software maintenance and refactoring, evaluation measures such as $\PassAtK{k}$ and CodeBLEU, and security, intellectual property, and ethical considerations.
+\end{enumerate}
+
+\section*{Visual callout structure}
+Conceptual interpretations, including attention as a differentiable lookup operation and the geometry of high-dimensional vector spaces, accompany the relevant mathematical development. Explanations also address common mathematical errors, such as using inconsistent logarithm bases when computing perplexity. Research context is cited in the text, including foundational work on Transformers and language-model scaling \citep{vaswani2017,brown2020,hoffmann2022}.
+
+\section*{Examination framework and course organization}
+Assessment in the course consists of a written examination and a practical project. The stated examination format and course schedule are:
+\begin{enumerate}
+    \item \textbf{Written Examination (18 Points)}:
+    \begin{itemize}
+        \item The examination lasts 75 minutes and typically contains about 12 questions, combining multiple-choice items with open-ended technical or mathematical derivations.
+        \item Its scope covers foundational and applied software-engineering topics; a score of at least 10/18 is required for a passing result.
+    \end{itemize}
+    \item \textbf{Practical Course Project (14 Points)}:
+    \begin{itemize}
+        \item The project involves implementing an applied LLM-for-software-engineering system in Python and PyTorch, individually or in a small team.
+        \item The examination and project contribute 18 and 14 points, respectively, for a total of 32; a score above 30 earns \emph{30 e Lode} (honors).
+    \end{itemize}
+    \item \textbf{Lecture and Lab Schedule}:
+    \begin{itemize}
+        \item Lectures take place on Monday from 08:30 to 11:30 in Room 8 and cover theoretical foundations.
+        \item Laboratories take place on Wednesday from 11:30 to 13:00 in Room R1 and focus on practical workshops, coding, and PyTorch.
+    \end{itemize}
+\end{enumerate}
+
+\section*{How to use this study guide}
+Each chapter develops its subject through explanatory prose, mathematical derivations, algorithmic procedures, and software-engineering applications. Readers can use the notation chapter as a reference and follow citations to the research that informs the discussion. Checking derivations and implementing core algorithms provide complementary ways to examine the behavior of the models.
+
+\end{document}

@@ -1,0 +1,1055 @@
+\documentclass[../../../main.tex]{subfiles}
+
+\begin{document}
+
+\chapter{Deep Learning Foundations}
+\label{ch:deep_learning_foundations}
+
+The fundamental challenge of artificial intelligence resides in discovering computational mechanisms capable of mapping high-dimensional, unstructured sensory and symbolic observations into structured semantic representations. Classical machine learning systems approached this objective by decoupling feature engineering from statistical inference: domain experts manually designed deterministic transformation pipelines to extract handcrafted numerical descriptors, which were subsequently supplied to shallow linear classifiers or regression models. While computationally tractable in controlled environments, this paradigm proved fragile when confronted with the continuous variability, high dimensionality, and compositional complexity of natural language and perceptual signals.
+
+Deep learning fundamentally alters this architectural philosophy by adopting a connectionist, data-driven formulation. Rather than relying on human engineering to prescribe fixed representational primitives, deep neural networks learn hierarchical feature representations directly from raw data through the end-to-end composition of parameterized, differentiable mathematical functions. Each successive layer computes an abstract geometric transformation of its input, constructing intermediate latent representations that disentangle the underlying factors of variation.
+
+This chapter establishes the theoretical, geometric, and algorithmic foundations of deep feed-forward architectures. We trace the lineage of neural computation from early biological abstractions and the single-layer perceptron, formalize the geometric barriers imposed by linear decision boundaries, derive the space-folding mechanics of non-linear activation functions, establish the statistical grounding of task-specific loss functions under maximum likelihood estimation, and formulate reverse-mode automatic differentiation on computational graphs as the universal optimization engine for deep learning.
+
+\clearpage
+\section{Historical Context and Theoretical Origins}
+\label{sec:dl_historical_motivation}
+
+Understanding the structural necessity of deep neural networks requires examining why classical algorithmic paradigms and shallow statistical models proved insufficient for complex perceptual and linguistic tasks. The progression from symbolic reasoning to modern representation learning illustrates how computational and geometric constraints shaped modern neural architectures.
+
+\subsection{From symbolic artificial intelligence to connectionism}
+\label{subsec:symbolic_to_connectionism}
+
+For several decades following the Dartmouth workshop of 1956, artificial intelligence research was dominated by symbolic systems, colloquially termed Good Old-Fashioned Artificial Intelligence (GOFAI) \citep{russell2020artificial}. This paradigm operated on the physical symbol system hypothesis, positing that intelligent behavior could be instantiated through the formal manipulation of discrete, explicit symbols according to hand-engineered logical rules. Knowledge was encoded using production systems, semantic networks, and first-order predicate calculus, where inference engines evaluated deterministic truth values over closed ontologies.
+
+While symbolic systems demonstrated notable competence in closed, deterministic micro-worlds such as chess or theorem proving, they encountered severe operational bottlenecks when deployed in real-world environments characterized by noise, perceptual ambiguity, and continuous variations. Hand-crafted rule bases were inherently brittle: any scenario outside the codified axioms triggered catastrophic failure, and resolving contradictory evidence in large rule graphs became computationally intractable. More critically, symbolic systems lacked an intrinsic metric of semantic similarity; the discrete symbols \texttt{cat} and \texttt{feline} shared no mathematical relationship in coordinate space, precluding continuous generalization.
+
+In response to these limitations, the connectionist paradigm emerged, proposing that cognitive processing is realized through distributed computation over vast networks of simple, interconnected processing units \citep{mcculloch1943,rosenblatt1958,rumelhart1986}. Rather than storing knowledge in localized, explicit symbolic rules, connectionist networks encode knowledge in the continuous, distributed pattern of synaptic connection strengths (weights) across the entire system. Representation and computation are inherently continuous and differentiable, enabling models to interpolate smoothly across input spaces, tolerate corrupt or incomplete inputs through graceful degradation, and acquire representations directly from empirical data through statistical learning.
+
+\subsection{The curse of dimensionality and high-dimensional geometry}
+\label{subsec:curse_of_dimensionality}
+
+Early statistical approaches to non-linear pattern recognition attempted to circumvent the limitations of linear models by projecting input vectors $\mathbf{x} \in \mathbb{R}^D$ into higher-dimensional feature spaces via fixed basis functions $\phi(\mathbf{x}): \mathbb{R}^D \to \mathbb{R}^M$. A standard linear model was then evaluated on the transformed representations:
+\begin{equation}
+y(\mathbf{x}; \mathbf{w}) = \mathbf{w}^\top \phi(\mathbf{x}) = \sum_{j=1}^M w_j \phi_j(\mathbf{x}) + w_0,
+\end{equation}
+where $\mathbf{w} \in \mathbb{R}^M$ denotes the parameter vector and $w_0$ represents the scalar bias \citep{bishop2024deep}. Although this formulation preserves linear parameter optimization, it suffers directly from the curse of dimensionality when scaling to high-dimensional input spaces.
+
+Consider constructing a complete polynomial basis of order $P$ over an input dimension $D$. The total number of independent polynomial basis functions required scales asymptotically as:
+\begin{equation}
+M = \binom{D + P}{P} = \mathcal{O}\left(D^P\right).
+\end{equation}
+For an input space of moderate dimensionality, such as $D = 100$, a third-order polynomial expansion ($P = 3$) demands $M \approx 1.7 \times 10^5$ parameters, while a fifth-order polynomial ($P = 5$) requires $M \approx 7.5 \times 10^7$ parameters. When processing natural images or tokenized textual contexts where $D \ge 10^3$, the parameter count exceeds any feasible computational or sample budget.
+
+The curse of dimensionality manifests with equal severity in non-parametric and partitioning methods. Suppose the input domain $[0, 1]^D$ is partitioned into regular grid cells by dividing each dimension into $K$ intervals. The total number of hypercubical cells is:
+\begin{equation}
+N_{\text{cells}} = K^D.
+\end{equation}
+If $D = 50$ and each axis is divided into only $K = 10$ bins, the volume is partitioned into $10^{50}$ distinct cells. Because any realistic dataset contains $N \ll 10^{50}$ observations, the overwhelming majority of cells will remain completely unpopulated, causing localized neighborhood estimators to fail through severe sample sparsity.
+
+Furthermore, the geometry of high-dimensional Euclidean space exhibits counter-intuitive properties that undermine distance-based algorithms \citep{bishop2024deep}. Consider a hypersphere of radius $r = 1$ in $D$ dimensions. The volume of the hypersphere is proportional to $r^D$. The fraction of this volume lying within a thin spherical shell of thickness $\epsilon \in (0, 1)$ near the outer surface is given by:
+\begin{equation}
+\frac{V_D(1) - V_D(1 - \epsilon)}{V_D(1)} = 1 - (1 - \epsilon)^D.
+\end{equation}
+As the dimensionality $D \to \infty$, the term $(1 - \epsilon)^D \to 0$, which causes the volume fraction to converge asymptotically to $1$ for any non-zero $\epsilon$:
+\begin{equation}
+\lim_{D \to \infty} \left[ 1 - (1 - \epsilon)^D \right] = 1.
+\end{equation}
+Consequently, in high-dimensional spaces, nearly all the volume of a hypersphere is concentrated in an infinitesimally thin boundary shell. A complementary phenomenon occurs with multivariate Gaussian distributions $\mathcal{N}(\mathbf{0}, \sigma^2 \mathbf{I})$: transforming to spherical polar coordinates and integrating over directional variables reveals that the radial probability density $p(r) \propto r^{D-1} e^{-r^2 / (2\sigma^2)}$ concentrates entirely within a narrow spherical shell of radius $r \approx \sigma \sqrt{D}$. Data points in high dimensions do not cluster around the mean; they reside along an equatorial hypersphere, causing pairwise Euclidean distances between random observations to concentrate tightly around a single constant value.
+
+\subsection{The manifold hypothesis and the expressive power of depth}
+\label{subsec:manifold_hypothesis_depth}
+
+The realization that high-dimensional data points become mutually equidistant under isotropic assumptions led to the formulation of the manifold hypothesis \citep{bishop2024deep,goodfellow2016}. The hypothesis states that natural high-dimensional datasets (such as natural language sentences, audio waveforms, or natural images) do not populate the ambient Euclidean space $\mathbb{R}^D$ uniformly; rather, they concentrate in the immediate vicinity of a low-dimensional, non-linear embedded sub-manifold $\mathcal{M} \subset \mathbb{R}^D$ having intrinsic dimension $d \ll D$.
+
+Fixed basis function models cannot exploit this intrinsic low-dimensional structure because their basis functions $\phi_j(\mathbf{x})$ are chosen prior to observing the data distribution. To model arbitrary functions over the ambient space, fixed basis methods must tile the entire $D$-dimensional volume uniformly, falling victim to the exponential scaling of $K^D$. Conversely, artificial neural networks resolve this impasse by replacing fixed basis functions with parameterized, data-dependent basis functions that are optimized jointly to conform to the geometry of the data manifold.
+
+The capacity of neural networks to parameterize complex manifolds depends critically on network depth. Consider a feed-forward network utilizing Rectified Linear Unit ($\text{ReLU}$) activation functions. Because the ReLU function is piecewise linear, any network constructed from ReLU activations computes a continuous, piecewise linear function that partitions the input domain $\mathbb{R}^{d_{\text{in}}}$ into a collection of convex polyhedral regions, within each of which the model evaluates a distinct affine mapping \citep{prince2023udl,montufar2014number}.
+
+For a shallow network comprising a single hidden layer with $K$ hidden units and a scalar input ($d_{\text{in}} = 1$), the model can construct at most $K + 1$ linear regions, parameterized by $3K + 1$ weights and biases:
+\begin{equation}
+y = \phi_0 + \sum_{j=1}^K \phi_j \max\left(0, \theta_{j0} + \theta_{j1}x\right).
+\end{equation}
+To increase the number of linear regions in a shallow architecture, one must expand the hidden width linearly: achieving $\mathcal{O}(K)$ linear regions requires $\mathcal{O}(K)$ parameters.
+
+In sharp contrast, stacking multiple non-linear layers allows deeper layers to compute piecewise linear compositions of the piecewise linear functions evaluated by preceding layers. Each successive layer folds the input space, replicating the linear partitions constructed by earlier stages. Formalized by Montúfar et al. \citep{montufar2014number}, a deep neural network with $L$ hidden layers, each possessing $K$ hidden units, can partition the input space $\mathbb{R}^{d_{\text{in}}}$ into a number of distinct linear regions that scales exponentially with depth:
+\begin{equation}
+N_{\text{regions}} \ge \left( \left\lfloor \frac{K}{d_{\text{in}}} \right\rfloor \right)^{(L-1) d_{\text{in}}} K^{d_{\text{in}}} = \mathcal{O}\left( K^{L \cdot d_{\text{in}}} \right),
+\end{equation}
+while the total parameter count grows only linearly with depth and quadratically with width:
+\begin{equation}
+N_{\text{parameters}} = \mathcal{O}\left( L \cdot K^2 \right).
+\end{equation}
+This exponential disparity in expressive efficiency provides the fundamental mathematical justification for deep architectures: deep composition generates exponentially complex, multi-scale decision boundaries using a polynomial parameter budget, enabling neural networks to model intricate manifold topologies that remain inaccessible to shallow models.
+
+\clearpage
+\section{The Perceptron and Linear Separability}
+\label{sec:perceptron_linear_barrier}
+
+The conceptual building block of modern neural architectures is the artificial perceptron. To understand why modern deep architectures are structured as hierarchical non-linear networks, one must first analyze the computational properties and geometric limitations of this foundational linear operator.
+
+\subsection{The artificial perceptron}
+\label{subsec:artificial_perceptron}
+
+The mathematical formulation of the artificial neuron originated in the simplified physiological model of biological neurons proposed by Warren McCulloch and Walter Pitts in 1943 \citep{mcculloch1943}, which Frank Rosenblatt subsequently formalized and operationalized as the perceptron learning model in 1958 \citep{rosenblatt1958}. The biological abstraction captures three primary mechanisms: dendrites receive incoming electrochemical impulses, the soma integrates these inputs, and the axon fires an action potential if the accumulated potential surpasses an excitation threshold.
+
+Formally, consider an input vector $\mathbf{x} = [x_1, x_2, \dots, x_n]^\top \in \mathbb{R}^n$. Each input component $x_i$ is scaled by an associated scalar weight $w_i \in \mathbb{R}$, which quantifies the synaptic efficacy of that specific connection. The neuron aggregates these weighted contributions and adds an intrinsic scalar parameter termed the bias, $b \in \mathbb{R}$, yielding a scalar pre-activation value $z \in \mathbb{R}$:
+\begin{equation}
+z = \sum_{i=1}^n w_i x_i + b = \mathbf{w}^\top \mathbf{x} + b,
+\label{eq:perceptron_preactivation}
+\end{equation}
+where $\mathbf{w} = [w_1, w_2, \dots, w_n]^\top \in \mathbb{R}^n$ represents the weight vector. The pre-activation value is subsequently processed by an activation function $f: \mathbb{R} \to \mathcal{Y}$ to produce the final scalar output $y$:
+\begin{equation}
+y = f(z) = f\left(\mathbf{w}^\top \mathbf{x} + b\right).
+\label{eq:perceptron_output}
+\end{equation}
+In Rosenblatt's classical formulation, the activation function is instantiated as the discontinuous Heaviside step function:
+\begin{equation}
+f(z) = \begin{cases} 
+1 & \text{if } z \ge 0, \\ 
+0 & \text{if } z < 0,
+\end{cases}
+\end{equation}
+producing a binary decision variable indicating class membership.
+
+To streamline the algebraic notation, the formulation can be expressed homogeneously by augmenting the input vector with a dummy feature $x_0 = 1$ and defining an augmented weight vector $\tilde{\mathbf{w}} = [w_0, w_1, \dots, w_n]^\top \in \mathbb{R}^{n+1}$ where $w_0 = b$. Under this homogeneous convention, Equation~(\ref{eq:perceptron_preactivation}) simplifies to a single inner product:
+\begin{equation}
+z = \sum_{i=0}^n w_i x_i = \tilde{\mathbf{w}}^\top \tilde{\mathbf{x}},
+\end{equation}
+where $\tilde{\mathbf{x}} = [1, x_1, \dots, x_n]^\top \in \mathbb{R}^{n+1}$.
+
+\subsection{The geometry of decision hyperplanes}
+\label{subsec:hyperplane_geometry}
+
+The operational behavior of the artificial perceptron is governed by the geometric properties of its decision boundary in the Euclidean input space $\mathbb{R}^n$. The decision boundary corresponds to the locus of points where the pre-activation vanishes identically:
+\begin{equation}
+\mathcal{H} = \left\{ \mathbf{x} \in \mathbb{R}^n \;\middle|\; \mathbf{w}^\top \mathbf{x} + b = 0 \right\}.
+\label{eq:decision_hyperplane}
+\end{equation}
+In an $n$-dimensional space, Equation~(\ref{eq:decision_hyperplane}) defines an $(n-1)$-dimensional affine subspace termed a hyperplane. In a two-dimensional input space ($n = 2$), the hyperplane reduces to a standard straight line:
+\begin{equation}
+w_1 x_1 + w_2 x_2 + w_0 = 0 \iff x_2 = -\frac{w_1}{w_2} x_1 - \frac{w_0}{w_2},
+\end{equation}
+assuming $w_2 \neq 0$.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[scale=1.1, >=Stealth]
+    % Coordinate axes
+    \draw[->, thick, color=gray!80] (-1.0, 0) -- (5.0, 0) node[right, color=black] {$x_1$};
+    \draw[->, thick, color=gray!80] (0, -1.0) -- (0, 4.5) node[above, color=black] {$x_2$};
+    
+    % Shaded decision regions
+    \fill[pogreen!10, opacity=0.7] (-0.8, 4.2) -- (4.2, -0.8) -- (4.8, -0.8) -- (4.8, 4.2) -- cycle;
+    \fill[crimsonRed!10, opacity=0.7] (-0.8, 4.2) -- (4.2, -0.8) -- (-0.8, -0.8) -- cycle;
+    
+    % Decision Hyperplane line
+    \draw[line width=1.5pt, politoNavy] (-0.5, 3.9) -- (3.9, -0.5) 
+        node[pos=0.15, above right, font=\small] {$\mathcal{H}: \mathbf{w}^\top \mathbf{x} + b = 0$};
+        
+    % Normal vector w from hyperplane
+    \coordinate (P0) at (1.7, 1.7);
+    \draw[->, line width=1.8pt, crimsonRed] (P0) -- ($(P0) + (1.2, 1.2)$) 
+        node[above right, font=\small\bfseries] {$\mathbf{w}$ (normal)};
+        
+    % Distance from origin to hyperplane
+    \draw[dashed, thick, steelBlue] (0,0) -- (1.7, 1.7) 
+        node[pos=0.45, left, font=\footnotesize] {$d = \frac{|b|}{\|\mathbf{w}\|_2}$};
+    \draw (1.5, 1.5) -- (1.65, 1.35) -- (1.85, 1.55);
+    
+    % Sample data points
+    \node[circle, fill=pogreen, inner sep=2.5pt, label={[pogreen, font=\footnotesize]above right:$\mathcal{C}_1$}] at (3.2, 2.8) {};
+    \node[circle, fill=pogreen, inner sep=2.5pt] at (2.2, 3.4) {};
+    \node[circle, fill=pogreen, inner sep=2.5pt] at (3.8, 1.8) {};
+    \node[circle, fill=pogreen, inner sep=2.5pt] at (4.1, 3.2) {};
+    
+    \node[rectangle, fill=crimsonRed, inner sep=3.0pt, label={[crimsonRed, font=\footnotesize]below left:$\mathcal{C}_0$}] at (0.8, 0.8) {};
+    \node[rectangle, fill=crimsonRed, inner sep=3.0pt] at (1.8, 0.2) {};
+    \node[rectangle, fill=crimsonRed, inner sep=3.0pt] at (0.3, 1.9) {};
+    \node[rectangle, fill=crimsonRed, inner sep=3.0pt] at (1.1, 1.4) {};
+    
+    % Region labels
+    \node[font=\small\bfseries, color=pogreen!80!black] at (3.6, 3.9) {Positive half-space: $\mathbf{w}^\top \mathbf{x} + b > 0$};
+    \node[font=\small\bfseries, color=crimsonRed!80!black] at (0.8, -0.5) {Negative half-space: $\mathbf{w}^\top \mathbf{x} + b < 0$};
+\end{tikzpicture}
+\caption{Geometric partitioning of a two-dimensional input space by an artificial perceptron decision hyperplane $\mathcal{H}$. The parameter vector $\mathbf{w}$ is strictly orthogonal to the decision boundary, while the scalar bias $b$ determines the orthogonal translation of the hyperplane relative to the origin.}
+\label{fig:perceptron_hyperplane}
+\end{figure}
+
+The geometric orientation and placement of the hyperplane are governed by two mathematical properties:
+\begin{enumerate}[label=(\roman*)]
+    \item \textbf{Orthogonality of the weight vector}: The parameter vector $\mathbf{w}$ is strictly orthogonal to every vector lying within the hyperplane $\mathcal{H}$. To verify this, consider two arbitrary points $\mathbf{x}_A, \mathbf{x}_B \in \mathcal{H}$. By definition of the hyperplane:
+    \begin{equation}
+    \mathbf{w}^\top \mathbf{x}_A + b = 0 \quad \text{and} \quad \mathbf{w}^\top \mathbf{x}_B + b = 0.
+    \end{equation}
+    Subtracting the two equalities yields:
+    \begin{equation}
+    \mathbf{w}^\top \left(\mathbf{x}_A - \mathbf{x}_B\right) = 0.
+    \end{equation}
+    Because the difference vector $\mathbf{v} = \mathbf{x}_A - \mathbf{x}_B$ is parallel to the hyperplane and its inner product with $\mathbf{w}$ vanishes, $\mathbf{w}$ is normal to the decision boundary.
+    \item \textbf{Orthogonal distance to the boundary}: The signed orthogonal distance $d(\mathbf{x}, \mathcal{H})$ from an arbitrary point $\mathbf{x} \in \mathbb{R}^n$ to the hyperplane $\mathcal{H}$ is obtained by projecting the displacement vector $(\mathbf{x} - \mathbf{x}_p)$, where $\mathbf{x}_p \in \mathcal{H}$, onto the unit normal vector $\frac{\mathbf{w}}{\|\mathbf{w}\|_2}$:
+    \begin{equation}
+    d(\mathbf{x}, \mathcal{H}) = \frac{\mathbf{w}^\top (\mathbf{x} - \mathbf{x}_p)}{\|\mathbf{w}\|_2} = \frac{\mathbf{w}^\top \mathbf{x} - \mathbf{w}^\top \mathbf{x}_p}{\|\mathbf{w}\|_2} = \frac{\mathbf{w}^\top \mathbf{x} + b}{\|\mathbf{w}\|_2}.
+    \end{equation}
+    Evaluating this expression at the origin ($\mathbf{x} = \mathbf{0}$) yields the perpendicular distance from the coordinate origin to the hyperplane:
+    \begin{equation}
+    d_{\text{origin}} = \frac{|b|}{\|\mathbf{w}\|_2}.
+    \end{equation}
+\end{enumerate}
+The perceptron partitions the input space into two half-spaces: a positive half-space where $\mathbf{w}^\top \mathbf{x} + b > 0$ (yielding $y = 1$) and a negative half-space where $\mathbf{w}^\top \mathbf{x} + b < 0$ (yielding $y = 0$).
+
+\subsection{The linear stacking collapse proof}
+\label{subsec:linear_stacking_collapse}
+
+Given the limitations of a single linear decision boundary, an intuitive proposal involves cascading multiple perceptrons into a multi-layer hierarchical network, where intermediate units supply inputs to subsequent stages. However, if the activation functions between successive layers remain purely linear (that is, $f(z) = z$), the multi-layer architecture collapses algebraically into an ordinary single-layer linear model.
+
+\textit{Proof of linear stacking collapse.} Consider a multi-layer feed-forward network comprising $L$ fully connected linear layers. Let $\mathbf{x} \in \mathbb{R}^{d_0}$ denote the input vector. The first hidden layer computes an affine transformation parameterized by weight matrix $\mathbf{W}_1 \in \mathbb{R}^{d_0 \times d_1}$ and bias vector $\mathbf{b}_1 \in \mathbb{R}^{d_1}$:
+\begin{equation}
+\mathbf{h}_1 = \mathbf{W}_1^\top \mathbf{x} + \mathbf{b}_1.
+\end{equation}
+The second hidden layer processes $\mathbf{h}_1$ linearly via $\mathbf{W}_2 \in \mathbb{R}^{d_1 \times d_2}$ and $\mathbf{b}_2 \in \mathbb{R}^{d_2}$:
+\begin{equation}
+\mathbf{h}_2 = \mathbf{W}_2^\top \mathbf{h}_1 + \mathbf{b}_2 = \mathbf{W}_2^\top \left( \mathbf{W}_1^\top \mathbf{x} + \mathbf{b}_1 \right) + \mathbf{b}_2.
+\end{equation}
+Expanding this expression by distributing the matrix multiplication yields:
+\begin{equation}
+\mathbf{h}_2 = \left( \mathbf{W}_1 \mathbf{W}_2 \right)^\top \mathbf{x} + \left( \mathbf{W}_2^\top \mathbf{b}_1 + \mathbf{b}_2 \right).
+\label{eq:two_layer_collapse}
+\end{equation}
+By defining an effective composite weight matrix $\mathbf{W}' \in \mathbb{R}^{d_0 \times d_2}$ and an effective composite bias vector $\mathbf{b}' \in \mathbb{R}^{d_2}$:
+\begin{equation}
+\mathbf{W}' = \mathbf{W}_1 \mathbf{W}_2 \quad \text{and} \quad \mathbf{b}' = \mathbf{W}_2^\top \mathbf{b}_1 + \mathbf{b}_2,
+\end{equation}
+Equation~(\ref{eq:two_layer_collapse}) simplifies to:
+\begin{equation}
+\mathbf{h}_2 = \mathbf{W}'^\top \mathbf{x} + \mathbf{b}'.
+\end{equation}
+By mathematical induction, compounding $L$ successive linear layers yields:
+\begin{equation}
+\mathbf{y} = \mathbf{W}_{\text{eff}}^\top \mathbf{x} + \mathbf{b}_{\text{eff}}, \quad \text{where} \quad \mathbf{W}_{\text{eff}} = \prod_{l=1}^L \mathbf{W}_l.
+\end{equation}
+Because the product of $L$ linear operators is itself a linear operator, stacking arbitrary numbers of purely linear layers provides zero additional expressive capacity over a single affine layer. Consequently, depth without non-linearity is functionally vacuous.
+
+\subsection{The XOR linear inseparability barrier}
+\label{subsec:xor_inseparability}
+
+The catastrophic consequence of the linear restriction was formally exposed by Marvin Minsky and Seymour Papert in their seminal 1969 monograph \citep{minsky1969perceptrons}, which demonstrated that a single-layer perceptron is incapable of computing the basic exclusive-OR (XOR) logic function.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[scale=1.2, >=Stealth]
+    % Coordinate grid
+    \draw[->, thick, gray!70] (-0.5, 0) -- (2.5, 0) node[right, black] {$x_1$};
+    \draw[->, thick, gray!70] (0, -0.5) -- (0, 2.5) node[above, black] {$x_2$};
+    
+    % Unit square bounding box
+    \draw[dashed, gray!40] (0, 1.5) -- (1.5, 1.5) -- (1.5, 0);
+    
+    % Data points: Class 0 (0,0) and (1,1)
+    \node[rectangle, fill=crimsonRed, inner sep=3.5pt, label={[crimsonRed, font=\small]below left:$(0,0) \to 0$}] (P00) at (0, 0) {};
+    \node[rectangle, fill=crimsonRed, inner sep=3.5pt, label={[crimsonRed, font=\small]above right:$(1,1) \to 0$}] (P11) at (1.5, 1.5) {};
+    
+    % Data points: Class 1 (0,1) and (1,0)
+    \node[circle, fill=pogreen, inner sep=3.0pt, label={[pogreen, font=\small]above left:$(0,1) \to 1$}] (P01) at (0, 1.5) {};
+    \node[circle, fill=pogreen, inner sep=3.0pt, label={[pogreen, font=\small]below right:$(1,0) \to 1$}] (P10) at (1.5, 0) {};
+    
+    % Failed separation lines (candidate hyperplanes)
+    \draw[line width=1.2pt, dashed, gray!80] (-0.3, 1.0) -- (2.0, -0.3) node[right, font=\footnotesize] {Line $A$};
+    \draw[line width=1.2pt, dashed, gray!80] (-0.3, 2.2) -- (2.2, 0.8) node[right, font=\footnotesize] {Line $B$};
+    
+    % Failure annotation
+    \node[draw=crimsonRed, fill=crimsonRed!5, rounded corners=3pt, align=center, font=\footnotesize, text=crimsonRed!90!black] at (3.6, 1.8) {
+        \textbf{Linear inseparability:}\\
+        No single line can isolate\\
+        $\{(0,1), (1,0)\}$ from\\
+        $\{(0,0), (1,1)\}$.
+    };
+\end{tikzpicture}
+\caption{The XOR linear inseparability barrier. The two input classes alternate diagonally across the vertices of the unit square, preventing any single linear hyperplane from isolating Class 1 from Class 0.}
+\label{fig:xor_failure}
+\end{figure}
+
+The XOR truth table maps two binary inputs $x_1, x_2 \in \{0, 1\}$ to a scalar output $y \in \{0, 1\}$ according to:
+\begin{equation}
+\text{XOR}(0, 0) = 0, \quad \text{XOR}(0, 1) = 1, \quad \text{XOR}(1, 0) = 1, \quad \text{XOR}(1, 1) = 0.
+\end{equation}
+For a perceptron with threshold activation $f(z) = \mathbf{1}_{z > 0}$ to compute this function, there must exist real parameters $w_1, w_2, b \in \mathbb{R}$ satisfying four simultaneous linear inequalities:
+\begin{align}
+(x_1 = 0, x_2 = 0) \implies & \quad w_1(0) + w_2(0) + b \le 0 \iff b \le 0, \label{eq:xor_ineq1} \\
+(x_1 = 0, x_2 = 1) \implies & \quad w_1(0) + w_2(1) + b > 0 \iff w_2 + b > 0, \label{eq:xor_ineq2} \\
+(x_1 = 1, x_2 = 0) \implies & \quad w_1(1) + w_2(0) + b > 0 \iff w_1 + b > 0, \label{eq:xor_ineq3} \\
+(x_1 = 1, x_2 = 1) \implies & \quad w_1(1) + w_2(1) + b \le 0 \iff w_1 + w_2 + b \le 0. \label{eq:xor_ineq4}
+\end{align}
+
+\textit{Proof of algebraic contradiction.} Summing the strict inequalities~(\ref{eq:xor_ineq2}) and (\ref{eq:xor_ineq3}) yields:
+\begin{equation}
+(w_2 + b) + (w_1 + b) > 0 \iff w_1 + w_2 + 2b > 0.
+\label{eq:xor_sum_pos}
+\end{equation}
+Conversely, summing inequalities~(\ref{eq:xor_ineq1}) and (\ref{eq:xor_ineq4}) produces:
+\begin{equation}
+(w_1 + w_2 + b) + b \le 0 + 0 \iff w_1 + w_2 + 2b \le 0.
+\label{eq:xor_sum_neg}
+\end{equation}
+Inequality~(\ref{eq:xor_sum_pos}) and Inequality~(\ref{eq:xor_sum_neg}) are mutually contradictory: the scalar quantity $w_1 + w_2 + 2b$ cannot simultaneously be strictly positive and non-positive ($0 < w_1 + w_2 + 2b \le 0$). Hence, no parameters $\{w_1, w_2, b\}$ exist that solve the system. Because the input points alternate diagonally across the vertices of the unit square, the dataset is linearly inseparable, establishing an insurmountable barrier for purely linear units.
+
+\clearpage
+\section{Activation Functions and Non-Linearity}
+\label{sec:non_linearity_activations}
+
+To overcome the linear stacking collapse and solve non-linearly separable problems such as XOR, neural networks must interleave affine transformations with point-wise non-linear mapping functions. These mappings, termed activation functions, provide the mathematical mechanism that enables multi-layer networks to approximate arbitrary functional relationships.
+
+\subsection{Coordinate space folding and the resolution of XOR}
+\label{subsec:coordinate_space_folding}
+
+Non-linear activation functions resolve the linear inseparability barrier by non-linearly warping and folding the input coordinate space. When input points are projected through an intermediate non-linear layer, the underlying geometric distances are altered such that points belonging to different classes, initially entangled in the original space, become linearly separable in the transformed hidden space \citep{goodfellow2016}.
+
+To illustrate this mechanism concretely, we examine the analytical solution to the XOR problem using a two-layer Multi-Layer Perceptron (MLP) equipped with Rectified Linear Unit ($\text{ReLU}$) activations \citep{goodfellow2016}:
+\begin{equation}
+\mathbf{h} = g\left(\mathbf{W}^\top \mathbf{x} + \mathbf{c}\right), \quad y = \mathbf{w}^\top \mathbf{h} + b,
+\end{equation}
+where $g(z) = \max(0, z)$ applies element-wise. Let the network parameters be configured as:
+\begin{equation}
+\mathbf{W} = \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}, \quad \mathbf{c} = \begin{bmatrix} 0 \\ -1 \end{bmatrix}, \quad \mathbf{w} = \begin{bmatrix} 1 \\ -2 \end{bmatrix}, \quad b = 0.
+\end{equation}
+The hidden layer pre-activation vector is given by:
+\begin{equation}
+\mathbf{z} = \mathbf{W}^\top \mathbf{x} + \mathbf{c} = \begin{bmatrix} x_1 + x_2 \\ x_1 + x_2 - 1 \end{bmatrix}.
+\end{equation}
+Applying the non-linear ReLU activation $g(\mathbf{z})$ evaluates the hidden representations $\mathbf{h} = [h_1, h_2]^\top$ for all four input patterns:
+\begin{align}
+\mathbf{x} = [0, 0]^\top &\implies \mathbf{z} = [0, -1]^\top \implies \mathbf{h} = [\max(0, 0), \max(0, -1)]^\top = [0, 0]^\top, \\
+\mathbf{x} = [0, 1]^\top &\implies \mathbf{z} = [1, 0]^\top \implies \mathbf{h} = [\max(0, 1), \max(0, 0)]^\top = [1, 0]^\top, \\
+\mathbf{x} = [1, 0]^\top &\implies \mathbf{z} = [1, 0]^\top \implies \mathbf{h} = [\max(0, 1), \max(0, 0)]^\top = [1, 0]^\top, \\
+\mathbf{x} = [1, 1]^\top &\implies \mathbf{z} = [2, 1]^\top \implies \mathbf{h} = [\max(0, 2), \max(0, 1)]^\top = [2, 1]^\top.
+\end{align}
+The geometric effect of the non-linearity is readily visible: the inputs $(0,1)$ and $(1,0)$, which occupied disjoint coordinates in the original input space, are mapped to the identical latent coordinate $\mathbf{h} = [1, 0]^\top$.
+
+The output layer computes a linear combination of the hidden coordinates:
+\begin{equation}
+y = \mathbf{w}^\top \mathbf{h} + b = 1 \cdot h_1 - 2 \cdot h_2 + 0.
+\end{equation}
+Evaluating the output on each transformed latent point yields:
+\begin{align}
+\mathbf{x} = [0, 0]^\top &\implies y = 1(0) - 2(0) = 0, \\
+\mathbf{x} = [0, 1]^\top &\implies y = 1(1) - 2(0) = 1, \\
+\mathbf{x} = [1, 0]^\top &\implies y = 1(1) - 2(0) = 1, \\
+\mathbf{x} = [1, 1]^\top &\implies y = 1(2) - 2(1) = 0.
+\end{align}
+The model reproduces the XOR truth table with exact precision. By collapsing $(0,1)$ and $(1,0)$ onto a shared latent location while projecting $(1,1)$ away along the second dimension ($h_2 = 1$), the non-linear activation folded the coordinate space, transforming a linearly inseparable problem into a linearly separable representation.
+
+\subsection{The universal approximation theorem}
+\label{subsec:universal_approximation_theorem}
+
+The theoretical expressive power conferred by non-linear hidden units is formalized by the Universal Approximation Theorem (UAT), proved independently by George Cybenko (1989) for sigmoidal activations \citep{cybenko1989} and Kurt Hornik, Maxwell Stinchcombe, and Halbert White (1989) for general non-linearities \citep{hornik1989}.
+
+\begin{theorem}{Universal approximation theorem}{uat}
+Let $\sigma: \mathbb{R} \to \mathbb{R}$ be a continuous, bounded, non-constant activation function. Let $I_n = [0, 1]^n$ denote the compact $n$-dimensional unit hypercube, and let $C(I_n)$ denote the space of continuous real-valued functions on $I_n$. Then, for any target function $f \in C(I_n)$ and any arbitrary error tolerance $\epsilon > 0$, there exists an integer $M \in \mathbb{N}$, a set of real coefficients $v_j \in \mathbb{R}$, weight vectors $\mathbf{w}_j \in \mathbb{R}^n$, and biases $b_j \in \mathbb{R}$ such that the finite sum:
+\begin{equation}
+F(\mathbf{x}) = \sum_{j=1}^M v_j \sigma\left(\mathbf{w}_j^\top \mathbf{x} + b_j\right)
+\end{equation}
+satisfies:
+\begin{equation}
+\sup_{\mathbf{x} \in I_n} \left| F(\mathbf{x}) - f(\mathbf{x}) \right| < \epsilon.
+\end{equation}
+In functional analysis terms, the family of single-hidden-layer feed-forward networks is dense in $C(I_n)$ with respect to the uniform supremum metric.
+\end{theorem}
+
+\textit{Constructive intuition via localized bump functions.} The mathematical mechanism underlying Cybenko's proof can be understood through the constructive superposition of localized rectangular "bump" functions. Consider a one-dimensional input $x \in \mathbb{R}$ and a standard logistic sigmoid activation $\sigma(z) = \frac{1}{1 + e^{-z}}$. By taking the difference between two sigmoids displaced by a distance $\Delta = b - a$ and scaled by an arbitrary steepness parameter $w \gg 0$, one constructs a localized pulse or bump function:
+\begin{equation}
+B(x; a, b, w) = \sigma(w(x - a)) - \sigma(w(x - b)).
+\end{equation}
+As the scaling factor $w \to \infty$, the sigmoid transitions approximate ideal Heaviside steps, causing $B(x)$ to converge to a rectangular gate function that equals 1 on the interval $(a, b)$ and vanishes outside:
+\begin{equation}
+\lim_{w \to \infty} B(x; a, b, w) = \begin{cases} 
+1 & \text{if } x \in (a, b), \\ 
+0 & \text{otherwise}. 
+\end{cases}
+\end{equation}
+In an $n$-dimensional domain, intersecting $2n$ such sigmoidal half-spaces constructs an $n$-dimensional hypercubical localized bump function that isolates a localized neighborhood of volume $\epsilon^n$. By scaling the amplitude of each bump to match the local value of the target function $f(\mathbf{x})$ and tiling the compact domain $I_n$ with a finite collection of such bumps, the network constructs a piecewise-constant Riemann approximation of $f(\mathbf{x})$. Because continuous functions on compact domains are uniformly continuous, taking sufficiently fine partitions guarantees that the approximation error remains strictly bounded below $\epsilon$.
+
+While the Universal Approximation Theorem provides a foundational mathematical guarantee, two critical caveats govern its practical interpretation:
+\begin{enumerate}[label=(\roman*)]
+    \item \textbf{Existence versus learnability}: The theorem is purely an existence proof. It guarantees that a configuration of parameters exists that approximates $f$, but provides no assurance that gradient-based optimization algorithms (such as gradient descent) will successfully discover those parameters from finite, noisy training samples.
+    \item \textbf{Width versus depth efficiency}: The theorem guarantees approximation using a single hidden layer, but the required hidden width $M$ may scale exponentially with the input dimension $n$. As established in Section~\ref{subsec:manifold_hypothesis_depth}, deep hierarchical composition constructs multi-scale piecewise linear partitions using polynomial parameter budgets, rendering deep architectures exponentially more parameter-efficient than shallow networks of equivalent capacity.
+\end{enumerate}
+
+\subsection{Taxonomy of activation functions}
+\label{subsec:activation_taxonomy}
+
+The choice of non-linear activation function directly influences gradient flow, convergence velocity, and representational capacity across deep networks. Table~\ref{tab:activation_comparison} summarizes the mathematical formulations, analytical derivatives, output ranges, and primary failure modes of the canonical activation functions.
+
+\begin{table}[htbp]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\caption{Comparative taxonomy of modern neural activation functions.}
+\label{tab:activation_comparison}
+\begin{tabularx}{\textwidth}{l l l c c X}
+\toprule
+\textbf{Function} & \textbf{Formulation $\sigma(z)$} & \textbf{Derivative $\frac{d\sigma}{dz}$} & \textbf{Range} & \textbf{Zero-Centered} & \textbf{Primary Failure Mode} \\
+\midrule
+\textbf{Sigmoid} & $\frac{1}{1 + e^{-z}}$ & $\sigma(z)(1 - \sigma(z))$ & $(0, 1)$ & No & Severe gradient saturation; zig-zag updates \\
+\textbf{Tanh} & $\frac{e^z - e^{-z}}{e^z + e^{-z}}$ & $1 - \tanh^2(z)$ & $(-1, 1)$ & Yes & Gradient saturation at extreme inputs \\
+\textbf{ReLU} & $\max(0, z)$ & $\mathbf{1}_{z > 0}$ & $[0, \infty)$ & No & "Dying ReLU" (inactive negative half-plane) \\
+\textbf{Leaky ReLU} & $\max(\alpha z, z)$ & $\mathbf{1}_{z > 0} + \alpha \mathbf{1}_{z \le 0}$ & $(-\infty, \infty)$ & Partial & Hyperparameter sensitivity of slope $\alpha$ \\
+\textbf{GELU} & $z \Phi(z)$ & $\Phi(z) + z \phi(z)$ & $(-0.17, \infty)$ & Partial & Higher transcendental computational cost \\
+\textbf{SwiGLU} & $\text{Swish}(\mathbf{x}\mathbf{W}) \otimes (\mathbf{x}\mathbf{V})$ & Gated Jacobian & $(-\infty, \infty)$ & Partial & Increases parameter overhead by $1.5\times$ \\
+\textbf{Softmax} & $\frac{e^{z_i}}{\sum_j e^{z_j}}$ & $S_i(\delta_{ij} - S_j)$ & $(0, 1)$ & No & Sensitive to logit scale; $\mathcal{O}(|\mathcal{V}|)$ cost \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+    \begin{axis}[
+        width=0.85\textwidth,
+        height=6.2cm,
+        grid=major,
+        grid style={dashed, gray!30},
+        axis lines=middle,
+        xlabel={$z$},
+        ylabel={$f(z)$},
+        xmin=-4.2, xmax=4.2,
+        ymin=-1.5, ymax=3.5,
+        legend pos=north west,
+        legend style={font=\footnotesize, fill=white, fill opacity=0.9},
+        cycle list={
+            {crimsonRed, line width=1.5pt},
+            {politoNavy, line width=1.5pt},
+            {pogreen, line width=1.5pt},
+            {intuitionPurple, line width=1.5pt, dashed}
+        }
+    ]
+        % Sigmoid
+        \addplot[crimsonRed, domain=-4.2:4.2, samples=100] {1 / (1 + exp(-x))};
+        \addlegendentry{Sigmoid: $\sigma(z)$}
+        
+        % Tanh
+        \addplot[politoNavy, domain=-4.2:4.2, samples=100] {tanh(x)};
+        \addlegendentry{Tanh: $\tanh(z)$}
+        
+        % ReLU
+        \addplot[pogreen, domain=-4.2:4.2, samples=100] {max(0, x)};
+        \addlegendentry{ReLU: $\max(0, z)$}
+        
+        % GELU approximation
+        \addplot[intuitionPurple, line width=1.4pt, dashed, domain=-4.2:4.2, samples=100] {0.5 * x * (1 + tanh(sqrt(2/pi) * (x + 0.044715 * x^3)))};
+        \addlegendentry{GELU: $z\Phi(z)$}
+    \end{axis}
+\end{tikzpicture}
+\caption{Comparison of primary activation functions across the operational domain $z \in [-4, 4]$.}
+\label{fig:activation_curves}
+\end{figure}
+
+\subsubsection{Logistic sigmoid}
+
+The logistic sigmoid function squashes the entire real line into a bounded interval:
+\begin{equation}
+\sigma(z) = \frac{1}{1 + e^{-z}} = \frac{e^z}{e^z + 1}.
+\end{equation}
+Its first derivative can be written directly in terms of its function values:
+\begin{equation}
+\frac{d\sigma}{dz} = \frac{e^{-z}}{(1 + e^{-z})^2} = \left(\frac{1}{1 + e^{-z}}\right) \left(\frac{e^{-z}}{1 + e^{-z}}\right) = \sigma(z)\left(1 - \sigma(z)\right).
+\end{equation}
+Because the output is bounded in $(0, 1)$, the sigmoid function maps real logits to valid Bernoulli probabilities, making it the canonical choice for binary classification output layers.
+
+However, when employed within deep hidden layers, the sigmoid function exhibits two severe pathologies:
+\begin{enumerate}[label=(\roman*)]
+    \item \textbf{Gradient saturation}: The maximum value of the derivative occurs at the origin, where $\sigma'(0) = 0.5(1 - 0.5) = 0.25$. When the magnitude of the pre-activation becomes moderately large ($|z| > 4$), the derivative rapidly decays to zero ($\sigma'(z) \approx 0$). During backpropagation, error gradients are scaled by this factor; compounding multiple values bounded above by $0.25$ causes the backpropagated gradient to vanish exponentially with depth.
+    \item \textbf{Non-zero-centered outputs}: Because $\sigma(z) \in (0, 1)$, the activations entering subsequent layers are strictly positive ($a_i > 0$). In a linear transformation $z = \sum_i w_i a_i + b$, the gradient of the loss with respect to weight $w_i$ is $\frac{\partial \mathcal{L}}{\partial w_i} = \frac{\partial \mathcal{L}}{\partial z} a_i$. Because all $a_i > 0$, the partial derivatives for all incoming weights to a unit share the exact sign of $\frac{\partial \mathcal{L}}{\partial z}$. Consequently, parameter updates can only move simultaneously in all-positive or all-negative directions, inducing inefficient zig-zag optimization trajectories.
+\end{enumerate}
+
+\subsubsection{Hyperbolic tangent}
+
+The hyperbolic tangent ($\tanh$) function resolves the non-zero-centered limitation of the sigmoid by mapping inputs into the symmetric, zero-centered interval $(-1, 1)$:
+\begin{equation}
+\tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}} = 2\sigma(2z) - 1.
+\end{equation}
+Its first derivative evaluates to:
+\begin{equation}
+\frac{d\tanh(z)}{dz} = 1 - \tanh^2(z).
+\end{equation}
+At the origin, the derivative evaluates to $\tanh'(0) = 1.0$, which is four times larger than that of the sigmoid function, facilitating stronger initial gradient propagation. Furthermore, because outputs have an expected value near zero under symmetric weight initializations, the covariance shifts that produce zig-zag gradient dynamics are mitigated. Nonetheless, the function remains susceptible to saturation plateaus: when $|z| \ge 3$, $|\tanh(z)| \approx 1$ and $\tanh'(z) \to 0$, causing gradients to vanish in deep architectures.
+
+\subsubsection{Rectified linear unit}
+
+The Rectified Linear Unit ($\text{ReLU}$), popularized in deep learning by Glorot and Bengio \citep{glorot2010}, introduces a non-saturating threshold operator:
+\begin{equation}
+\text{ReLU}(z) = \max(0, z) = \begin{cases} 
+z & \text{if } z > 0, \\ 
+0 & \text{if } z \le 0. 
+\end{cases}
+\end{equation}
+Its derivative is piecewise constant:
+\begin{equation}
+\frac{d\text{ReLU}(z)}{dz} = \begin{cases} 
+1 & \text{if } z > 0, \\ 
+0 & \text{if } z < 0, 
+\end{cases}
+\end{equation}
+with the sub-gradient convention setting the derivative to $0$ (or $0.5$) at the non-differentiable point $z = 0$.
+
+The advantages of ReLU over sigmoidal activations are structural:
+\begin{enumerate}[label=(\roman*)]
+    \item \textbf{Non-saturating gradient flow}: For positive pre-activations ($z > 0$), the derivative is identically equal to $1.0$. The gradient passes through the unit without attenuation, mitigating the vanishing gradient problem across deep feed-forward and convolutional networks.
+    \item \textbf{Computational efficiency}: Evaluating $\max(0, z)$ requires only a comparison and conditional assignment, avoiding expensive floating-point exponentials.
+    \item \textbf{Induced sparsity}: When $z \le 0$, the unit outputs exactly zero. In large networks, a significant proportion of units are inactive for any given input, yielding sparse representations that improve interpretability and computational economy.
+\end{enumerate}
+
+\textit{The dying ReLU pathology.} Despite these advantages, ReLU networks suffer from the "dying ReLU" problem \citep{prince2023udl}. If a large gradient update shifts a neuron's incoming weights and bias such that its pre-activation $z = \mathbf{w}^\top \mathbf{x} + b$ is negative for all training examples, the unit outputs zero and its derivative evaluates to zero across the entire dataset:
+\begin{equation}
+\forall \mathbf{x} \in \mathcal{D}_{\text{train}}, \quad z(\mathbf{x}) < 0 \implies \frac{\partial \mathcal{L}}{\partial \mathbf{w}} = \frac{\partial \mathcal{L}}{\partial z} \mathbf{x} = \mathbf{0}.
+\end{equation}
+Once a unit enters this regime, gradient descent cannot provide non-zero updates to alter its incoming weights, permanently deactivating the neuron.
+
+\subsubsection{Leaky rectified linear unit and variants}
+
+To eliminate the dead state of standard ReLUs, the Leaky ReLU assigns a small, fixed positive slope $\alpha > 0$ to the negative half-plane:
+\begin{equation}
+\text{LReLU}(z) = \max(\alpha z, z) = \begin{cases} 
+z & \text{if } z > 0, \\ 
+\alpha z & \text{if } z \le 0, 
+\end{cases}
+\end{equation}
+typically parameterized with $\alpha = 0.01$. Its derivative evaluates to:
+\begin{equation}
+\frac{d\text{LReLU}(z)}{dz} = \begin{cases} 
+1 & \text{if } z > 0, \\ 
+\alpha & \text{if } z \le 0. 
+\end{cases}
+\end{equation}
+Because the gradient remains non-zero ($\alpha > 0$) for negative inputs, neurons receive corrective gradients even when inactive, preventing permanent deactivation. In Parametric ReLU (PReLU), the slope $\alpha$ is treated as a learnable parameter optimized jointly via backpropagation.
+
+\subsubsection{Gaussian error linear unit}
+
+The Gaussian Error Linear Unit ($\text{GELU}$), formulated by Hendrycks and Gimpel in 2016 \citep{hendrycks2016gelu}, serves as the standard activation function across modern foundation models, including BERT, GPT-2, and GPT-3. GELU integrates stochastic regularization directly into a deterministic activation function by weighting inputs by their probability under a standard Gaussian cumulative distribution:
+\begin{equation}
+\text{GELU}(z) = z \Phi(z) = z P(X \le z), \quad \text{where} \quad X \sim \mathcal{N}(0, 1).
+\end{equation}
+The cumulative normal distribution $\Phi(z)$ is defined by the error function $\operatorname{erf}$:
+\begin{equation}
+\Phi(z) = \frac{1}{\sqrt{2\pi}} \int_{-\infty}^z e^{-\frac{t^2}{2}} dt = \frac{1}{2} \left[ 1 + \operatorname{erf}\left(\frac{z}{\sqrt{2}}\right) \right].
+\end{equation}
+For efficient hardware execution, GELU is frequently evaluated using a fast cubic approximation:
+\begin{equation}
+\text{GELU}(z) \approx 0.5z \left( 1 + \tanh\left( \sqrt{\frac{2}{\pi}} \left( z + 0.044715 z^3 \right) \right) \right).
+\end{equation}
+
+Unlike ReLU, GELU is non-monotonic, smooth, and continuously differentiable everywhere. For negative inputs, GELU exhibits a small curvature dip with a local minimum at $z \approx -0.7517$ where $f(z) \approx -0.170$, before smoothly approaching zero as $z \to -\infty$. This smooth transition allows small negative activations to convey gradient information while suppressing large negative outliers.
+
+\subsubsection{SwiGLU and gated linear units}
+
+Modern Large Language Models (such as LLaMA, Mistral, and PaLM) employ Gated Linear Unit ($\text{GLU}$) variants within their feed-forward blocks, specifically SwiGLU \citep{shazeer2020glu}. A standard GLU computes the element-wise product of two linear transformations, one of which is modulated by a gating activation:
+\begin{equation}
+\text{GLU}(\mathbf{x}, \mathbf{W}, \mathbf{V}, \mathbf{b}, \mathbf{c}) = \left(\mathbf{x}\mathbf{W} + \mathbf{b}\right) \otimes \sigma\left(\mathbf{x}\mathbf{V} + \mathbf{c}\right),
+\end{equation}
+where $\otimes$ denotes the element-wise Hadamard product. In SwiGLU, the logistic sigmoid gate is replaced by the Swish activation ($\text{Swish}_\beta(z) = z \sigma(\beta z)$ with $\beta = 1$):
+\begin{equation}
+\text{SwiGLU}(\mathbf{x}) = \left( \mathbf{x}\mathbf{W} \right) \otimes \text{Swish}\left( \mathbf{x}\mathbf{V} \right).
+\end{equation}
+This bilinear multiplicative interaction enables hidden representations to dynamically modulate individual feature channels, yielding superior convergence stability and empirical language modeling performance, offset by a $1.5\times$ parameter expansion within the intermediate MLP projection.
+
+\subsubsection{The softmax operator}
+
+When neural network outputs represent categorical probability distributions over $C$ mutually exclusive classes, the scalar unconstrained pre-activation logits $\mathbf{z} = [z_1, z_2, \dots, z_C]^\top \in \mathbb{R}^C$ must be mapped onto the probability simplex:
+\begin{equation}
+\Delta^{C-1} = \left\{ \mathbf{p} \in \mathbb{R}^C \;\middle|\; p_i \ge 0, \; \sum_{i=1}^C p_i = 1 \right\}.
+\end{equation}
+This transformation is performed by the Softmax operator:
+\begin{equation}
+\hat{y}_i = \operatorname{softmax}(\mathbf{z})_i = \frac{e^{z_i}}{\sum_{j=1}^C e^{z_j}}.
+\label{eq:softmax_definition}
+\end{equation}
+Because the exponential function is strictly positive ($e^{z_i} > 0$), all output probabilities are strictly positive, and normalizing by the partition function $\sum_j e^{z_j}$ guarantees unit sum.
+
+To compute the Jacobian matrix of the Softmax operator, we evaluate the partial derivative of output $\hat{y}_i$ with respect to logit $z_k$:
+\begin{align}
+\frac{\partial \hat{y}_i}{\partial z_k} &= \frac{\partial}{\partial z_k} \left( \frac{e^{z_i}}{\sum_{j=1}^C e^{z_j}} \right).
+\intertext{Applying the quotient rule, we distinguish two cases. When $i = k$:}
+\frac{\partial \hat{y}_i}{\partial z_i} &= \frac{e^{z_i}\sum_{j} e^{z_j} - e^{z_i}e^{z_i}}{\left(\sum_{j} e^{z_j}\right)^2} = \hat{y}_i - \hat{y}_i^2 = \hat{y}_i(1 - \hat{y}_i).
+\intertext{When $i \neq k$:}
+\frac{\partial \hat{y}_i}{\partial z_k} &= \frac{0 \cdot \sum_j e^{z_j} - e^{z_i}e^{z_k}}{\left(\sum_{j} e^{z_j}\right)^2} = -\hat{y}_i \hat{y}_k.
+\end{align}
+Combining both cases using the Kronecker delta $\delta_{ik}$ yields the compact Jacobian formulation:
+\begin{equation}
+\frac{\partial \hat{y}_i}{\partial z_k} = \hat{y}_i \left( \delta_{ik} - \hat{y}_k \right).
+\label{eq:softmax_jacobian}
+\end{equation}
+
+\textit{Numerical stability via shift invariance.} Direct floating-point evaluation of Equation~(\ref{eq:softmax_definition}) causes numerical overflow if $z_i \gg 0$ (e.g., $e^{1000} \to \infty$ yielding \texttt{NaN}) or underflow if all $z_i \ll 0$. The Softmax operator satisfies the shift-invariance property: for any arbitrary scalar constant $c \in \mathbb{R}$:
+\begin{equation}
+\operatorname{softmax}(\mathbf{z} + c)_i = \frac{e^{z_i + c}}{\sum_j e^{z_j + c}} = \frac{e^c e^{z_i}}{e^c \sum_j e^{z_j}} = \frac{e^{z_i}}{\sum_j e^{z_j}} = \operatorname{softmax}(\mathbf{z})_i.
+\end{equation}
+In practical implementations, numerical stability is guaranteed by choosing $c = -\max_k z_k$. The largest exponentiated term evaluates to $e^0 = 1.0$, which prevents overflow while ensuring the denominator contains at least one non-vanishing term.
+
+\clearpage
+\section{Loss Functions and Optimization}
+\label{sec:loss_functions_optimization}
+
+To train a parameterized neural network, one must define a scalar criterion that quantifies the discrepancy between model predictions and empirical ground truth. This objective, termed the loss function, provides the supervisory signal that guides parameter optimization.
+
+\subsection{The operational role of loss functions}
+\label{subsec:loss_functions_role}
+
+Formally, let $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^N$ denote a training dataset sampled from an underlying data-generating distribution $P_{\text{data}}(\mathbf{x}, y)$. A neural network parameterized by $\theta \in \mathbb{R}^P$ evaluates a forward prediction mapping $\hat{y}_i = f(\mathbf{x}_i; \theta)$. The loss function $\mathcal{L}(\hat{y}_i, y_i) \in \mathbb{R}_{\ge 0}$ assigns a non-negative scalar penalty to prediction errors.
+
+Under the framework of Empirical Risk Minimization (ERM), the training objective is to discover a parameter configuration $\theta^*$ that minimizes the empirical risk across the observed sample:
+\begin{equation}
+\theta^* = \arg\min_{\theta} \mathcal{R}_{\text{emp}}(\theta) = \arg\min_{\theta} \left[ \frac{1}{N} \sum_{i=1}^N \mathcal{L}\left( f(\mathbf{x}_i; \theta), y_i \right) \right].
+\end{equation}
+The loss function serves as the sole mathematical feedback channel through which parameter errors are communicated to optimization algorithms. Without a well-defined scalar loss, the system possesses no objective measure of performance and cannot formulate directional gradient vectors for parameter improvement.
+
+\subsection{Task-conditioned output topologies}
+\label{subsec:output_topologies}
+
+A fundamental principle of statistical machine learning is that a single universal loss function cannot exist. Different tasks operate across distinct mathematical domains:
+\begin{enumerate}[label=(\roman*)]
+    \item \textbf{Continuous regression}: Target variables span the unconstrained real line $y \in \mathbb{R}$ or vector spaces $\mathbb{R}^K$.
+    \item \textbf{Binary classification}: Targets represent dichotomous categorical indicators $y \in \{0, 1\}$.
+    \item \textbf{Multi-class classification}: Targets represent discrete class memberships $y \in \{1, \dots, C\}$, geometrically residing on the probability simplex $\Delta^{C-1}$.
+\end{enumerate}
+
+To design mathematically principled loss functions across these diverse regimes, Simon Prince \citep{prince2023udl} formulates the Maximum Likelihood Estimation (MLE) recipe:
+\begin{enumerate}[label=Step \arabic*:]
+    \item Define an appropriate conditional probability distribution $P(y \mid \mathbf{x}; \phi)$ over the target space, parameterized by vector $\phi$.
+    \item Configure the neural network to output the parameters $\phi = f(\mathbf{x}; \theta)$ of that chosen distribution (e.g., predicting mean $\mu$ for a Gaussian, or probability $p$ for a Bernoulli).
+    \item Train the network to maximize the log-likelihood of the observed dataset, or equivalently, minimize the negative log-likelihood (NLL):
+    \begin{equation}
+    \mathcal{L}(\theta) = -\sum_{i=1}^N \log P\left(y_i \;\middle|\; \mathbf{x}_i; \theta\right).
+    \end{equation}
+\end{enumerate}
+This recipe ensures that the loss function is mathematically consistent with the output geometry and noise distribution of the underlying task.
+
+\subsection{Task-specific loss taxonomy and statistical derivations}
+\label{subsec:loss_taxonomy_mle}
+
+Applying the maximum likelihood recipe across canonical distributions produces the standard loss taxonomy employed in modern neural networks.
+
+\subsubsection{Regression via Gaussian noise models}
+
+In continuous regression tasks, we assume the true target $y \in \mathbb{R}$ differs from the model's deterministic prediction $\hat{y} = f(\mathbf{x}; \theta)$ by additive zero-mean Gaussian noise $\epsilon \sim \mathcal{N}(0, \sigma^2)$:
+\begin{equation}
+y = f(\mathbf{x}; \theta) + \epsilon \implies P(y \mid \mathbf{x}; \theta, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left( -\frac{(y - f(\mathbf{x}; \theta))^2}{2\sigma^2} \right).
+\end{equation}
+Evaluating the negative log-likelihood over $N$ independently and identically distributed observations yields:
+\begin{align}
+\mathcal{L}_{\text{NLL}}(\theta) &= -\sum_{i=1}^N \log \left[ \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left( -\frac{(y_i - f(\mathbf{x}_i; \theta))^2}{2\sigma^2} \right) \right] \notag \\
+&= \frac{N}{2} \log\left(2\pi\sigma^2\right) + \frac{1}{2\sigma^2} \sum_{i=1}^N \left( y_i - f(\mathbf{x}_i; \theta) \right)^2.
+\end{align}
+Assuming homoscedastic noise ($\sigma^2$ constant), discarding constant terms, and scaling by $\frac{1}{N}$ recovers the standard Mean Squared Error ($\text{MSE}$) objective:
+\begin{equation}
+\mathcal{L}_{\text{MSE}} = \frac{1}{N} \sum_{i=1}^N \left( y_i - \hat{y}_i \right)^2.
+\end{equation}
+If the noise distribution is modeled instead as Laplacian noise $\epsilon \sim \text{Laplace}(0, b)$ with density $p(\epsilon) = \frac{1}{2b}\exp(-|\epsilon|/b)$, minimizing the negative log-likelihood recovers the Mean Absolute Error ($\text{MAE}$) or $L_1$ loss:
+\begin{equation}
+\mathcal{L}_{\text{MAE}} = \frac{1}{N} \sum_{i=1}^N \left| y_i - \hat{y}_i \right|,
+\end{equation}
+which exhibits enhanced robustness to dataset outliers because penalties scale linearly rather than quadratically.
+
+\subsubsection{Binary classification via Bernoulli distributions}
+
+For binary classification ($y \in \{0, 1\}$), the target is modeled as a Bernoulli random variable conditioned on the input:
+\begin{equation}
+P(y \mid \mathbf{x}) = \hat{y}^y \left( 1 - \hat{y} \right)^{1 - y}, \quad \text{where} \quad \hat{y} = \sigma(z) \in (0, 1).
+\end{equation}
+Evaluating the negative log-likelihood of this distribution yields the Binary Cross-Entropy ($\text{BCE}$) loss:
+\begin{equation}
+\mathcal{L}_{\text{BCE}} = -\frac{1}{N} \sum_{i=1}^N \left[ y_i \log \hat{y}_i + (1 - y_i) \log(1 - \hat{y}_i) \right].
+\end{equation}
+The expression functions as a ground-truth selector:
+\begin{enumerate}[label=(\roman*)]
+    \item When ground-truth $y_i = 1$, the second term $(1 - y_i)$ vanishes identically, reducing the penalty to $-\log \hat{y}_i$. The loss approaches $0$ as $\hat{y}_i \to 1$, but penalizes incorrect predictions with an asymptote approaching $+\infty$ as $\hat{y}_i \to 0$.
+    \item When ground-truth $y_i = 0$, the first term vanishes, reducing the penalty to $-\log(1 - \hat{y}_i)$, which penalizes predictions approaching $\hat{y}_i \to 1$ with infinite cost.
+\end{enumerate}
+
+\subsubsection{Multi-class classification via categorical distributions}
+
+In multi-class classification over $C$ mutually exclusive categories ($y \in \{1, \dots, C\}$), targets are represented as one-hot vectors $\mathbf{y} \in \{0, 1\}^C$ where $\sum_{k=1}^C y_k = 1$. The network predicts a categorical distribution $\hat{\mathbf{y}} = \operatorname{softmax}(\mathbf{z}) \in \Delta^{C-1}$. The conditional likelihood is given by the multinomial density:
+\begin{equation}
+P(\mathbf{y} \mid \mathbf{x}) = \prod_{k=1}^C \hat{y}_k^{y_k}.
+\end{equation}
+Minimizing the negative log-likelihood yields the Categorical Cross-Entropy ($\text{CCE}$) loss:
+\begin{equation}
+\mathcal{L}_{\text{CCE}} = -\sum_{k=1}^C y_k \log \hat{y}_k = -\log \hat{y}_c,
+\end{equation}
+where $c \in \{1, \dots, C\}$ denotes the index of the true positive class ($y_c = 1$).
+
+\subsubsection{Analytical proof of MSE classification failure}
+
+A common pedagogical error involves applying Mean Squared Error to classification tasks equipped with sigmoidal outputs. To demonstrate why this combination fails, we evaluate the gradient of the loss with respect to the pre-activation logit $z$ for a binary classifier ($\hat{y} = \sigma(z)$) under both MSE and BCE.
+
+\textit{Case 1: MSE logit gradient.} The MSE loss for a single observation is $\mathcal{L}_{\text{MSE}} = (y - \hat{y})^2$. Applying the chain rule:
+\begin{equation}
+\frac{\partial \mathcal{L}_{\text{MSE}}}{\partial z} = \frac{\partial \mathcal{L}_{\text{MSE}}}{\partial \hat{y}} \frac{d\hat{y}}{dz} = -2\left(y - \hat{y}\right) \sigma'(z) = -2\left(y - \hat{y}\right) \hat{y}\left(1 - \hat{y}\right).
+\end{equation}
+Now, evaluate the gradient when the model is confident and wrong: suppose the true label is $y = 1$, but the network currently produces a strongly negative logit $z = -5$, such that $\hat{y} = \sigma(-5) \approx 0.0067$. The residual error $(y - \hat{y}) = 1 - 0.0067 = 0.9933$ is maximal. However, the derivative evaluates to:
+\begin{equation}
+\frac{\partial \mathcal{L}_{\text{MSE}}}{\partial z} = -2(0.9933) \cdot (0.0067)(0.9933) \approx -0.0132 \approx 0.
+\end{equation}
+Because the sigmoid derivative saturates ($\sigma'(z) \to 0$ as $|z| \gg 0$), the gradient vanishes despite maximal prediction error. The parameter updates stall, preventing gradient descent from correcting catastrophic misclassifications.
+
+\textit{Case 2: BCE logit gradient.} Evaluating the logit gradient under Binary Cross-Entropy:
+\begin{align}
+\frac{\partial \mathcal{L}_{\text{BCE}}}{\partial z} &= \frac{\partial \mathcal{L}_{\text{BCE}}}{\partial \hat{y}} \frac{d\hat{y}}{dz} \notag \\
+&= \left[ -\frac{y}{\hat{y}} + \frac{1 - y}{1 - \hat{y}} \right] \hat{y}\left(1 - \hat{y}\right) \notag \\
+&= \frac{-y(1 - \hat{y}) + (1 - y)\hat{y}}{\hat{y}(1 - \hat{y})} \hat{y}\left(1 - \hat{y}\right) \notag \\
+&= -y + y\hat{y} + \hat{y} - y\hat{y} \notag \\
+&= \hat{y} - y.
+\label{eq:bce_gradient_collapse}
+\end{align}
+Under cross-entropy, the saturating term $\hat{y}(1 - \hat{y})$ in the denominator of $\frac{\partial \mathcal{L}}{\partial \hat{y}}$ cancels the identical term in the sigmoid derivative $\frac{d\hat{y}}{dz}$. The resulting gradient evaluates to the linear residual error $\hat{y} - y$. If $y = 1$ and $\hat{y} \approx 0.0067$, the gradient evaluates to $\hat{y} - y = 0.0067 - 1 = -0.9933$, providing a strong, unattenuated corrective signal.
+
+Furthermore, analyzing the second derivative demonstrates that $\frac{\partial^2 \mathcal{L}_{\text{MSE}}}{\partial z^2}$ flips signs across logit space, creating non-convex regions and saddle plateaus \citep{goodfellow2016}. Conversely, for BCE:
+\begin{equation}
+\frac{\partial^2 \mathcal{L}_{\text{BCE}}}{\partial z^2} = \frac{d}{dz}\left(\hat{y} - y\right) = \sigma'(z) = \hat{y}\left(1 - \hat{y}\right) > 0, \quad \forall z \in \mathbb{R}.
+\end{equation}
+The strictly positive second derivative proves that Binary Cross-Entropy is strictly convex with respect to the output logits, guaranteeing that no non-convex plateaus impede convergence.
+
+\subsection{The analytical intractability of direct root finding}
+\label{subsec:intractability_root_finding}
+
+In classical linear regression with quadratic loss, the parameter optimization problem admits an exact, closed-form analytical solution. Consider an input data matrix $\mathbf{X} \in \mathbb{R}^{N \times D}$ and target vector $\mathbf{y} \in \mathbb{R}^N$. The quadratic loss function is:
+\begin{equation}
+\mathcal{L}(\mathbf{w}) = \frac{1}{2N} \left\| \mathbf{X}\mathbf{w} - \mathbf{y} \right\|_2^2.
+\end{equation}
+To minimize this loss, one computes the gradient with respect to $\mathbf{w}$ and sets it equal to the zero vector:
+\begin{equation}
+\nabla_{\mathbf{w}} \mathcal{L}(\mathbf{w}) = \frac{1}{N} \mathbf{X}^\top \left( \mathbf{X}\mathbf{w} - \mathbf{y} \right) = \mathbf{0}.
+\end{equation}
+This condition reduces to the system of linear equations:
+\begin{equation}
+\mathbf{X}^\top \mathbf{X}\mathbf{w} = \mathbf{X}^\top \mathbf{y},
+\end{equation}
+which, assuming $\mathbf{X}^\top \mathbf{X}$ is non-singular, yields the Ordinary Least Squares (OLS) normal equations:
+\begin{equation}
+\mathbf{w}^* = \left( \mathbf{X}^\top \mathbf{X} \right)^{-1} \mathbf{X}^\top \mathbf{y}.
+\end{equation}
+
+In sharp contrast, setting $\nabla_\theta \mathcal{L}(\theta) = \mathbf{0}$ fails completely for deep neural networks. In multi-layer architectures, the model output is constructed through nested compositions of affine transformations and non-linear activation functions:
+\begin{equation}
+\hat{y} = f(\mathbf{x}; \theta) = \mathbf{W}_L^\top \sigma\left( \mathbf{W}_{L-1}^\top \dots \sigma\left( \mathbf{W}_1^\top \mathbf{x} + \mathbf{b}_1 \right) + \mathbf{b}_{L-1} \right) + \mathbf{b}_L.
+\end{equation}
+When differentiated, the parameters $\theta = \{\mathbf{W}_l, \mathbf{b}_l\}_{l=1}^L$ appear inside complex transcendental functions (exponentials, piecewise steps, products). Setting the resulting gradient equations to zero yields a coupled system of non-linear transcendental algebraic equations with millions of unknowns:
+\begin{equation}
+\nabla_\theta \mathcal{L}(\theta) = \sum_{i=1}^N \frac{\partial \mathcal{L}_i}{\partial f_i} \nabla_\theta f(\mathbf{x}_i; \theta) = \mathbf{0}.
+\end{equation}
+This system possesses no closed-form analytical root. Moreover, the loss surface $\mathcal{L}(\theta)$ is highly non-convex, characterized by complex landscapes with multiple local minima, degenerate saddle points, and ill-conditioned ravines. Consequently, deep neural networks cannot be solved analytically; their optimization requires iterative, numerical gradient-based methods.
+
+\subsection{Gradient descent and modern optimization heuristics}
+\label{subsec:gradient_descent_heuristics}
+
+Iterative numerical optimization computes successive parameter updates by evaluating local first-order gradient vectors.
+
+\subsubsection{Vanilla gradient descent}
+
+The foundational iterative algorithm is Gradient Descent (GD). At each iteration $t$, the algorithm updates parameter vector $\theta_t$ by taking a step proportional to the negative gradient of the empirical risk:
+\begin{equation}
+\theta_{t+1} = \theta_t - \alpha \nabla_\theta \mathcal{L}(\theta_t),
+\end{equation}
+where $\alpha > 0$ denotes the learning rate hyperparameter.
+
+While intuitive, vanilla gradient descent encounters three severe operational pathologies:
+\begin{enumerate}[label=(\roman*)]
+    \item \textbf{Sensitivity to learning rate}: If $\alpha$ is chosen too small, parameter updates crawl inefficiently, requiring prohibitive computational time. Conversely, if $\alpha$ exceeds the reciprocal of the maximum eigenvalue of the Hessian ($\alpha > \frac{2}{\lambda_{\max}}$), the updates overshoot valleys and diverge.
+    \item \textbf{Oscillations in ill-conditioned ravines}: When the loss surface exhibits high condition numbers (where curvature along one axis is drastically steeper than along another, $\lambda_{\max} \gg \lambda_{\min}$), gradient descent oscillates violently across the steep walls while making negligible progress along the flat base.
+    \item \textbf{Stagnation at saddle points}: In high-dimensional optimization landscapes, local minima are rare; the dominant topological features are saddle points where the gradient vanishes ($\nabla_\theta \mathcal{L} \approx \mathbf{0}$) but some directions exhibit negative curvature. Vanilla GD decelerates severely in the vicinity of saddle plateaus.
+\end{enumerate}
+
+\subsubsection{Momentum}
+
+To dampen high-frequency oscillations across steep ravine walls and accelerate descent along flat valleys, Polyak (1964) introduced the momentum method \citep{goodfellow2016}. Momentum simulates physical inertia by accumulating an exponentially decaying moving average of past gradients into a velocity vector $\mathbf{v}_t$:
+\begin{align}
+\mathbf{v}_t &= \beta \mathbf{v}_{t-1} + (1 - \beta) \nabla_\theta \mathcal{L}(\theta_t), \label{eq:momentum_velocity} \\
+\theta_{t+1} &= \theta_t - \alpha \mathbf{v}_t, \label{eq:momentum_update}
+\end{align}
+where $\beta \in [0, 1)$ represents the momentum decay coefficient (typically $\beta = 0.9$). Along directions where the gradient repeatedly reverses sign, the oscillating terms cancel out in the running average, dampening instability. Along directions where the gradient consistently points in the same direction, the velocity accumulates to an effective magnitude $\frac{1}{1 - \beta}$ times larger than the instantaneous gradient, accelerating convergence through plateaus.
+
+\subsubsection{Adam: Adaptive Moment Estimation}
+
+In deep architectures and large language models, different parameters operate at widely disparate scales and receive gradients of vastly differing frequencies (e.g., embeddings of rare tokens receive sparse, large updates). Adaptive learning rate algorithms assign individual learning rates to each parameter.
+
+The universal optimization standard across foundation models is Adam (Adaptive Moment Estimation), introduced by Kingma and Ba in 2014 \citep{kingma2014adam}. Adam tracks both the exponentially decaying average of past gradients (first raw moment) and the exponentially decaying average of squared gradients (second uncentered moment):
+\begin{align}
+\mathbf{m}_t &= \beta_1 \mathbf{m}_{t-1} + (1 - \beta_1) \mathbf{g}_t, \label{eq:adam_m} \\
+\mathbf{v}_t &= \beta_2 \mathbf{v}_{t-1} + (1 - \beta_2) \mathbf{g}_t^2, \label{eq:adam_v}
+\end{align}
+where $\mathbf{g}_t = \nabla_\theta \mathcal{L}(\theta_t)$, and $\mathbf{g}_t^2$ denotes the element-wise Hadamard square $\mathbf{g}_t \odot \mathbf{g}_t$. The decay hyperparameters are standardly initialized to $\beta_1 = 0.9$ and $\beta_2 = 0.999$.
+
+Because $\mathbf{m}_0$ and $\mathbf{v}_0$ are initialized to the zero vector $\mathbf{0}$, the moment vectors are biased toward zero, particularly during initial training steps when $\beta_1$ and $\beta_2$ are close to $1$. To correct for this initialization artifact, Adam applies analytical bias corrections:
+\begin{equation}
+\hat{\mathbf{m}}_t = \frac{\mathbf{m}_t}{1 - \beta_1^t} \quad \text{and} \quad \hat{\mathbf{v}}_t = \frac{\mathbf{v}_t}{1 - \beta_2^t}.
+\end{equation}
+The parameter update is then evaluated coordinate-wise:
+\begin{equation}
+\theta_{t+1} = \theta_t - \frac{\alpha}{\sqrt{\hat{\mathbf{v}}_t} + \epsilon} \odot \hat{\mathbf{m}}_t,
+\end{equation}
+where $\epsilon \approx 10^{-8}$ prevents division by zero. Adam dynamically rescales updates: parameters with large historical variance receive smaller, dampened steps, while parameters with sparse, small gradients receive amplified steps, ensuring robust optimization dynamics across diverse neural layers.
+
+\clearpage
+\section{Computational Graphs and Backpropagation}
+\label{sec:computational_graphs_ffn}
+
+To execute gradient-based optimization algorithms such as Adam, the learning system must compute the partial derivatives of the scalar loss function with respect to every parameter in the network ($\nabla_\theta \mathcal{L}$). This section establishes the graph-theoretic formalism of computational graphs, derives the reverse-mode automatic differentiation algorithm, and synthesizes these mechanisms into a complete multi-layer feed-forward network.
+
+\subsection{Methods of gradient evaluation}
+\label{subsec:gradient_evaluation_methods}
+
+As formalized by Christopher Bishop and Hugh Bishop (2024, Ch. 8) \citep{bishop2024deep}, there exist four distinct methodological approaches to computing derivatives in numerical systems:
+\begin{enumerate}[label=(\roman*)]
+    \item \textbf{Analytical differentiation}: The manual derivation of derivative expressions by hand using pencil and paper calculus. While mathematically exact, this approach is rigid, labor-intensive, and prone to human algebraic errors. Furthermore, modifying network architecture requires completely re-deriving the analytical formulas from scratch.
+    \item \textbf{Numerical differentiation (finite differences)}: The numerical approximation of partial derivatives via perturbation formulas:
+    \begin{equation}
+    \frac{\partial \mathcal{L}}{\partial \theta_i} \approx \frac{\mathcal{L}(\theta + \epsilon \mathbf{e}_i) - \mathcal{L}(\theta)}{\epsilon},
+    \end{equation}
+    where $\mathbf{e}_i$ denotes the $i$-th standard basis vector, and $\epsilon \approx 10^{-5}$. While universally applicable to black-box functions, numerical differentiation is computationally prohibitive: evaluating the gradient across a model with $D$ parameters requires $D + 1$ complete forward passes, yielding an asymptotic computational complexity of $\mathcal{O}(D)$. For modern foundation models where $D \ge 10^9$, computing a single gradient step would require over one billion forward passes. Furthermore, finite differences suffer from numerical roundoff and truncation errors.
+    \item \textbf{Symbolic differentiation}: Computer algebra systems (such as Mathematica or SymPy) construct symbolic mathematical expressions for derivatives using calculus rules. While exact, symbolic differentiation treats mathematical expressions as abstract trees and suffers from exponential \textit{expression swell}: redundant subexpressions are duplicated repeatedly across the expression tree, resulting in massive computational overhead. Moreover, symbolic engines cannot easily differentiate algorithms containing procedural control flow (loops, branches, and conditional recursion).
+    \item \textbf{Automatic differentiation}: The algorithmic evaluation of exact numerical derivatives by decomposing complex functions into sequences of elementary mathematical primitives whose derivatives are known. Rather than manipulating symbolic expressions, automatic differentiation evaluates numerical derivatives directly during program execution, providing exact gradients at machine precision with computational cost proportional to the forward function evaluation.
+\end{enumerate}
+
+\subsection{Computational graphs and reverse-mode automatic differentiation}
+\label{subsec:dag_reverse_autodiff}
+
+Modern deep learning frameworks implement automatic differentiation by representing neural network execution as a Directed Acyclic Graph (DAG) $G = (\mathcal{V}, \mathcal{E})$ \citep{goodfellow2016,bishop2024deep}.
+\begin{enumerate}[label=(\roman*)]
+    \item The set of vertices $\mathcal{V}$ represents computational operations (such as $+$, $\times$, $\exp$, $\tanh$) or intermediate tensor variables.
+    \item The set of directed edges $\mathcal{E}$ represents the directional flow of tensor values, where a directed edge $(u, v) \in \mathcal{E}$ indicates that node $v$ directly depends on the value computed by node $u$.
+\end{enumerate}
+
+Forward evaluation corresponds to traversing the graph according to a topological sort: any node $v$ can be evaluated once all its incoming parent nodes $\operatorname{parents}(v)$ have completed execution.
+
+\textit{Reverse-mode automatic differentiation (Backpropagation).} To compute gradients, reverse-mode automatic differentiation traverses the computational graph in reverse topological order, starting from the final scalar loss $\mathcal{L}$ and propagating gradient signals backward toward the input and parameter leaves.
+
+Following the adjoint notation introduced by Linnainmaa (1970) and Rumelhart et al. (1986) \citep{rumelhart1986}, we define the adjoint $\bar{u}$ of any intermediate node $u$ as the partial derivative of the final scalar loss with respect to $u$:
+\begin{equation}
+\bar{u} \equiv \frac{\partial \mathcal{L}}{\partial u}.
+\end{equation}
+The multivariable chain rule of calculus states that if a variable $u$ influences the loss $\mathcal{L}$ through multiple downstream dependent nodes $v \in \operatorname{children}(u)$, the total sensitivity $\bar{u}$ is obtained by summing the contributions transmitted through all outgoing edges:
+\begin{equation}
+\bar{u} = \sum_{v \in \operatorname{children}(u)} \bar{v} \frac{\partial v}{\partial u} = \sum_{v \in \operatorname{children}(u)} \frac{\partial \mathcal{L}}{\partial v} \frac{\partial v}{\partial u}.
+\label{eq:adjoint_chain_rule}
+\end{equation}
+
+The computational efficiency of reverse-mode automatic differentiation is profound. Consider a function mapping $D$ parameters to a single scalar loss: $f: \mathbb{R}^D \to \mathbb{R}$.
+\begin{enumerate}[label=(\roman*)]
+    \item \textbf{Forward-mode automatic differentiation} computes directional derivatives (tangents $\dot{v} = \frac{\partial v}{\partial \theta_i}$) forward from the inputs. Computing the gradient with respect to all $D$ parameters requires $D$ distinct forward sweeps, scaling as $\mathcal{O}(D)$.
+    \item \textbf{Reverse-mode automatic differentiation} initiates a single adjoint evaluation at the scalar loss ($\bar{\mathcal{L}} = \frac{\partial \mathcal{L}}{\partial \mathcal{L}} = 1.0$) and sweeps backward across the graph in reverse topological order. All $D$ partial derivatives are evaluated simultaneously in a single backward pass.
+\end{enumerate}
+The time complexity of the reverse sweep is bounded by $\mathcal{O}(|\mathcal{V}| + |\mathcal{E}|)$, which is approximately equal to twice the computational cost of the forward pass ($T_{\text{backward}} \approx 2 \times T_{\text{forward}}$), completely independent of the parameter dimension $D$. This fundamental efficiency renders backpropagation the engine of deep learning.
+
+\subsection{Worked arithmetic calculation of backpropagation}
+\label{subsec:worked_backprop_arithmetic}
+
+To demystify the abstract multivariable calculus of reverse-mode autodiff, we reconstruct the exact step-by-step arithmetic trace demonstrated in the course lecture slides.
+
+Consider a single training observation $(x, y) \in \mathbb{R} \times \mathbb{R}$. The model computes a prediction $\hat{y}$ through the product of two scalar parameters $\theta_1, \theta_2 \in \mathbb{R}$:
+\begin{equation}
+\hat{y} = \theta_1 \theta_2 x.
+\end{equation}
+The optimization objective is the scalar squared error loss:
+\begin{equation}
+\mathcal{L} = \left( \hat{y} - y \right)^2 = \left( \theta_1 \theta_2 x - y \right)^2.
+\end{equation}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[>=Stealth, node distance=1.6cm, every node/.style={font=\small}]
+    % Graph nodes
+    \node[draw, circle, fill=defBlueBg, line width=1pt] (theta1) {$\theta_1$};
+    \node[draw, circle, fill=defBlueBg, line width=1pt, below=0.8cm of theta1] (theta2) {$\theta_2$};
+    \node[draw, rectangle, fill=thmGreenBg, rounded corners, line width=1pt, right=1.6cm of $(theta1)!0.5!(theta2)$] (nodeA) {$a = \theta_1 \theta_2$};
+    \node[draw, circle, fill=gray!15, line width=1pt, above right=0.6cm and 1.2cm of nodeA] (inputX) {$x$};
+    \node[draw, rectangle, fill=thmGreenBg, rounded corners, line width=1pt, right=1.6cm of nodeA] (nodeB) {$b = ax$};
+    \node[draw, circle, fill=gray!15, line width=1pt, above right=0.6cm and 1.2cm of nodeB] (inputY) {$y$};
+    \node[draw, rectangle, fill=thmGreenBg, rounded corners, line width=1pt, right=1.6cm of nodeB] (nodeC) {$c = b - y$};
+    \node[draw, rectangle, fill=crimsonRed!15, rounded corners, line width=1.2pt, right=1.6cm of nodeC] (lossL) {$\mathcal{L} = c^2$};
+
+    % Forward edges
+    \draw[->, thick, politoNavy] (theta1) -- (nodeA);
+    \draw[->, thick, politoNavy] (theta2) -- (nodeA);
+    \draw[->, thick, politoNavy] (nodeA) -- (nodeB);
+    \draw[->, thick, politoNavy] (inputX) -- (nodeB);
+    \draw[->, thick, politoNavy] (nodeB) -- (nodeC);
+    \draw[->, thick, politoNavy] (inputY) -- (nodeC);
+    \draw[->, thick, politoNavy] (nodeC) -- (lossL);
+
+    % Backward adjoint annotations (curved dashed red lines)
+    \draw[->, dashed, line width=1pt, crimsonRed] (lossL) to[bend left=30] 
+        node[above, font=\footnotesize, text=crimsonRed] {$\bar{c} = 2c$} (nodeC);
+    \draw[->, dashed, line width=1pt, crimsonRed] (nodeC) to[bend left=30] 
+        node[above, font=\footnotesize, text=crimsonRed] {$\bar{b} = \bar{c} \cdot 1$} (nodeB);
+    \draw[->, dashed, line width=1pt, crimsonRed] (nodeB) to[bend left=30] 
+        node[above, font=\footnotesize, text=crimsonRed] {$\bar{a} = \bar{b} \cdot x$} (nodeA);
+    \draw[->, dashed, line width=1pt, crimsonRed] (nodeA) to[bend right=25] 
+        node[below left, font=\footnotesize, text=crimsonRed] {$\bar{\theta}_1 = \bar{a} \cdot \theta_2$} (theta1);
+    \draw[->, dashed, line width=1pt, crimsonRed] (nodeA) to[bend left=25] 
+        node[below left, font=\footnotesize, text=crimsonRed] {$\bar{\theta}_2 = \bar{a} \cdot \theta_1$} (theta2);
+\end{tikzpicture}
+\caption{Computational graph representation for the lecture worked example $\mathcal{L} = (\theta_1 \theta_2 x - y)^2$. Solid blue arrows indicate forward topological execution; dashed red arrows trace the reverse-mode adjoint propagation.}
+\label{fig:worked_comp_graph}
+\end{figure}
+
+\textit{Forward evaluation trace.} The computational graph decomposes this loss into a sequence of four elementary intermediate operations:
+\begin{align}
+\text{Node } a &= \theta_1 \theta_2, \label{eq:trace_fwd_a} \\
+\text{Node } b &= a \cdot x = \theta_1 \theta_2 x, \label{eq:trace_fwd_b} \\
+\text{Node } c &= b - y = \theta_1 \theta_2 x - y, \label{eq:trace_fwd_c} \\
+\text{Node } \mathcal{L} &= c^2 = \left( \theta_1 \theta_2 x - y \right)^2. \label{eq:trace_fwd_L}
+\end{align}
+
+\textit{Backward adjoint propagation trace.} In the reverse pass, we evaluate the adjoints $\bar{u} = \frac{\partial \mathcal{L}}{\partial u}$ in reverse topological order:
+\begin{enumerate}[label=Step \arabic*:]
+    \item \textbf{Initialize root adjoint}: At the root node, the derivative of the loss with respect to itself is identically unity:
+    \begin{equation}
+    \bar{\mathcal{L}} = \frac{\partial \mathcal{L}}{\partial \mathcal{L}} = 1.
+    \end{equation}
+    \item \textbf{Adjoint of node $c$}: Differentiating $\mathcal{L} = c^2$ with respect to $c$:
+    \begin{equation}
+    \bar{c} = \frac{\partial \mathcal{L}}{\partial c} = \bar{\mathcal{L}} \frac{\partial \mathcal{L}}{\partial c} = 1 \cdot \left( 2c \right) = 2\left( \theta_1 \theta_2 x - y \right).
+    \end{equation}
+    \item \textbf{Adjoint of node $b$}: Differentiating $c = b - y$ with respect to $b$:
+    \begin{equation}
+    \bar{b} = \frac{\partial \mathcal{L}}{\partial b} = \bar{c} \frac{\partial c}{\partial b} = \bar{c} \cdot 1 = 2\left( \theta_1 \theta_2 x - y \right).
+    \end{equation}
+    \item \textbf{Adjoint of node $a$}: Differentiating $b = a \cdot x$ with respect to $a$:
+    \begin{equation}
+    \bar{a} = \frac{\partial \mathcal{L}}{\partial a} = \bar{b} \frac{\partial b}{\partial a} = \bar{b} \cdot x = \left[ 2\left( \theta_1 \theta_2 x - y \right) \right] x = 2x\left( \theta_1 \theta_2 x - y \right).
+    \end{equation}
+    \item \textbf{Adjoint of parameter $\theta_1$}: Differentiating $a = \theta_1 \theta_2$ with respect to $\theta_1$:
+    \begin{equation}
+    \bar{\theta}_1 = \frac{\partial \mathcal{L}}{\partial \theta_1} = \bar{a} \frac{\partial a}{\partial \theta_1} = \bar{a} \cdot \theta_2 = \left[ 2x\left( \theta_1 \theta_2 x - y \right) \right] \theta_2 = 2\theta_2 x \left( \theta_1 \theta_2 x - y \right).
+    \end{equation}
+    \item \textbf{Adjoint of parameter $\theta_2$}: Differentiating $a = \theta_1 \theta_2$ with respect to $\theta_2$:
+    \begin{equation}
+    \bar{\theta}_2 = \frac{\partial \mathcal{L}}{\partial \theta_2} = \bar{a} \frac{\partial a}{\partial \theta_2} = \bar{a} \cdot \theta_1 = \left[ 2x\left( \theta_1 \theta_2 x - y \right) \right] \theta_1 = 2\theta_1 x \left( \theta_1 \theta_2 x - y \right).
+    \end{equation}
+\end{enumerate}
+With the exact partial derivatives computed, parameter updates under gradient descent evaluate to:
+\begin{align}
+\theta_1 &\leftarrow \theta_1 - \alpha \bar{\theta}_1 = \theta_1 - 2\alpha \theta_2 x \left( \theta_1 \theta_2 x - y \right), \\
+\theta_2 &\leftarrow \theta_2 - \alpha \bar{\theta}_2 = \theta_2 - 2\alpha \theta_1 x \left( \theta_1 \theta_2 x - y \right).
+\end{align}
+This minimal worked example illustrates the operational universality of reverse-mode automatic differentiation: regardless of model depth or topological branching, the global gradient is resolved into localized, modular partial derivative multiplications evaluated backward along computational edges.
+
+\subsection{The complete multi-layer feed-forward network}
+\label{subsec:complete_ffn_ensemble}
+
+We now synthesize all established primitives—linear projections, non-linear activation functions, task-specific loss criteria, and reverse-mode automatic differentiation—into a unified, fully vectorized multi-layer Feed-Forward Network ($\text{FFN}$).
+
+\subsubsection{Vectorized layer equations}
+
+Consider an $L$-layer network. Let $\mathbf{x} \in \mathbb{R}^{d_0}$ denote the input vector, and define $\mathbf{a}^{(0)} \equiv \mathbf{x}$. For each layer $l \in \{1, 2, \dots, L\}$:
+\begin{equation}
+\mathbf{z}^{(l)} = \mathbf{W}^{(l)\top} \mathbf{a}^{(l-1)} + \mathbf{b}^{(l)}, \quad \mathbf{a}^{(l)} = f^{(l)}\left(\mathbf{z}^{(l)}\right),
+\label{eq:ffn_layer_forward}
+\end{equation}
+where:
+\begin{align}
+\mathbf{W}^{(l)} &\in \mathbb{R}^{d_{l-1} \times d_l} && \text{denotes the weight transformation matrix for layer } l, \\
+\mathbf{b}^{(l)} &\in \mathbb{R}^{d_l} && \text{denotes the scalar bias vector for layer } l, \\
+\mathbf{z}^{(l)} &\in \mathbb{R}^{d_l} && \text{denotes the pre-activation logit vector}, \\
+\mathbf{a}^{(l)} &\in \mathbb{R}^{d_l} && \text{denotes the post-activation latent feature representation}, \\
+f^{(l)}(\cdot) & && \text{denotes the element-wise non-linear activation function}.
+\end{align}
+The final output vector $\hat{\mathbf{y}} = \mathbf{a}^{(L)} \in \mathbb{R}^{d_L}$ produces predictions tailored to task topology (e.g., continuous predictions via linear activations for regression, or probability distributions via Softmax for classification).
+
+\subsubsection{Vectorized backpropagation equations}
+
+Let $\mathcal{L}(\hat{\mathbf{y}}, \mathbf{y}^*)$ denote the scalar loss evaluated on ground truth $\mathbf{y}^*$. In vectorized matrix calculus, we define the layer error vector $\bm{\delta}^{(l)} \in \mathbb{R}^{d_l}$ as the gradient of the loss with respect to the pre-activation vector $\mathbf{z}^{(l)}$:
+\begin{equation}
+\bm{\delta}^{(l)} \equiv \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(l)}}.
+\end{equation}
+
+\textit{Output layer error $\bm{\delta}^{(L)}$.} Applying the chain rule to the output layer:
+\begin{equation}
+\bm{\delta}^{(L)} = \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(L)}} = \nabla_{\mathbf{a}^{(L)}} \mathcal{L} \odot f'^{(L)}\left(\mathbf{z}^{(L)}\right),
+\end{equation}
+where $\odot$ denotes the element-wise Hadamard product. As proven in Equation~(\ref{eq:bce_gradient_collapse}), when pairing cross-entropy loss with Softmax or Sigmoid activations, this expression simplifies directly to the residual difference:
+\begin{equation}
+\bm{\delta}^{(L)} = \hat{\mathbf{y}} - \mathbf{y}^*.
+\end{equation}
+
+\textit{Hidden layer error recursion $\bm{\delta}^{(l)}$.} For any internal hidden layer $l \in \{1, \dots, L-1\}$, the error vector $\bm{\delta}^{(l)}$ is evaluated recursively backward from layer $l+1$:
+\begin{equation}
+\bm{\delta}^{(l)} = \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(l)}} = \left( \frac{\partial \mathbf{z}^{(l+1)}}{\partial \mathbf{z}^{(l)}} \right)^\top \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(l+1)}} = \left( \mathbf{W}^{(l+1)} \bm{\delta}^{(l+1)} \right) \odot f'^{(l)}\left(\mathbf{z}^{(l)}\right).
+\label{eq:ffn_error_recursion}
+\end{equation}
+Equation~(\ref{eq:ffn_error_recursion}) demonstrates the structural symmetry of backpropagation: the error signal $\bm{\delta}^{(l+1)}$ is projected backward through the transpose of the forward weight matrix $\mathbf{W}^{(l+1)}$ and subsequently modulated by the local derivative of the activation function $f'^{(l)}(\mathbf{z}^{(l)})$.
+
+\textit{Parameter gradient evaluation.} Once the error vectors $\bm{\delta}^{(l)}$ are evaluated, the gradients of the loss with respect to the weight matrices and bias vectors are obtained via outer products:
+\begin{align}
+\frac{\partial \mathcal{L}}{\partial \mathbf{W}^{(l)}} &= \mathbf{a}^{(l-1)} \left(\bm{\delta}^{(l)}\right)^\top \in \mathbb{R}^{d_{l-1} \times d_l}, \label{eq:ffn_grad_W} \\
+\frac{\partial \mathcal{L}}{\partial \mathbf{b}^{(l)}} &= \bm{\delta}^{(l)} \in \mathbb{R}^{d_l}. \label{eq:ffn_grad_b}
+\end{align}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[>=Stealth, node distance=2.2cm, every node/.style={font=\small}]
+    % Layer containers
+    \node[draw=politoNavy, fill=skyBlue!30, rounded corners, minimum width=2.2cm, minimum height=3.5cm, align=center] (inputLayer) {
+        \textbf{Input Layer}\\
+        $\mathbf{a}^{(0)} = \mathbf{x}$\\
+        $\mathbb{R}^{d_{\text{in}}}$
+    };
+    
+    \node[draw=politoNavy, fill=skyBlue!30, rounded corners, minimum width=2.4cm, minimum height=4.2cm, right=2.0cm of inputLayer, align=center] (hiddenLayer) {
+        \textbf{Hidden Layer $l$}\\
+        $\mathbf{z}^{(l)} = \mathbf{W}^{(l)\top}\mathbf{a}^{(l-1)} + \mathbf{b}^{(l)}$\\
+        $\mathbf{a}^{(l)} = f^{(l)}(\mathbf{z}^{(l)})$\\
+        $\mathbb{R}^{d_{\text{hidden}}}$
+    };
+    
+    \node[draw=politoNavy, fill=skyBlue!30, rounded corners, minimum width=2.4cm, minimum height=3.5cm, right=2.0cm of hiddenLayer, align=center] (outputLayer) {
+        \textbf{Output Layer $L$}\\
+        $\mathbf{z}^{(L)} = \mathbf{W}^{(L)\top}\mathbf{a}^{(L-1)} + \mathbf{b}^{(L)}$\\
+        $\hat{\mathbf{y}} = \operatorname{softmax}(\mathbf{z}^{(L)})$\\
+        $\mathbb{R}^{d_{\text{out}}}$
+    };
+    
+    \node[draw=crimsonRed, fill=crimsonRed!10, rounded corners, minimum width=2.0cm, minimum height=1.8cm, right=1.6cm of outputLayer, align=center] (lossNode) {
+        \textbf{Loss $\mathcal{L}$}\\
+        $\mathcal{L}_{\text{CE}}(\hat{\mathbf{y}}, \mathbf{y}^*)$
+    };
+
+    % Forward signal flow (top)
+    \draw[->, line width=1.5pt, politoNavy] (inputLayer.north east) -- (hiddenLayer.north west)
+        node[midway, above, font=\footnotesize] {$\mathbf{W}^{(1)}, \mathbf{b}^{(1)}$};
+    \draw[->, line width=1.5pt, politoNavy] (hiddenLayer.north east) -- (outputLayer.north west)
+        node[midway, above, font=\footnotesize] {$\mathbf{W}^{(L)}, \mathbf{b}^{(L)}$};
+    \draw[->, line width=1.5pt, politoNavy] (outputLayer) -- (lossNode)
+        node[midway, above, font=\footnotesize] {$\hat{\mathbf{y}}$};
+        
+    % Backward error flow (bottom)
+    \draw[<-, line width=1.5pt, crimsonRed, dashed] (outputLayer.south east) -- (lossNode.south west)
+        node[midway, below, font=\footnotesize, text=crimsonRed] {$\bm{\delta}^{(L)} = \hat{\mathbf{y}} - \mathbf{y}^*$};
+    \draw[<-, line width=1.5pt, crimsonRed, dashed] (hiddenLayer.south east) -- (outputLayer.south west)
+        node[midway, below, font=\footnotesize, text=crimsonRed] {$\mathbf{W}^{(L)} \bm{\delta}^{(L)}$};
+    \draw[<-, line width=1.5pt, crimsonRed, dashed] (inputLayer.south east) -- (hiddenLayer.south west)
+        node[midway, below, font=\footnotesize, text=crimsonRed] {$\mathbf{W}^{(1)} \bm{\delta}^{(1)}$};
+        
+    % Legend indicators
+    \node[above=0.3cm of hiddenLayer, font=\footnotesize\bfseries, color=politoNavy] {Forward Activation Propagation};
+    \node[below=0.6cm of hiddenLayer, font=\footnotesize\bfseries, color=crimsonRed] {Backward Adjoint Error Propagation};
+\end{tikzpicture}
+\caption{Vectorized dataflow schematic across a multi-layer Feed-Forward Network. Solid blue lines trace forward activations; dashed red lines trace the reverse-mode propagation of error vectors $\bm{\delta}^{(l)}$.}
+\label{fig:ffn_vectorized_flow}
+\end{figure}
+
+\subsubsection{Structural limitations of feed-forward networks for sequence processing}
+
+While the multi-layer feed-forward network provides a universal framework for static pattern recognition, its fundamental architectural assumptions break down when deployed on sequential data, such as natural language text, source code, and time series \citep{goodfellow2016,bishop2024deep}. Specifically, standard feed-forward networks exhibit three structural failure modes:
+\begin{enumerate}[label=(\roman*)]
+    \item \textbf{Fixed-dimensional input constraints}: An FFN requires an input vector of strictly fixed dimension $d_{\text{in}}$. However, natural language utterances and software engineering artifacts vary arbitrarily in length. Forcing variable-length sentences into a fixed vector through zero-padding or truncation either wastes computation on empty tokens or discards critical semantic context.
+    \item \textbf{Absence of temporal memory}: Feed-forward layers operate statelessly: each input vector $\mathbf{x}$ is processed in total isolation from preceding observations. The network possesses no persistent internal hidden state to store linguistic dependencies, resolve pronouns, or maintain scope across long programmatic contexts.
+    \item \textbf{Inability to share parameters across sequence positions}: In a standard linear layer $\mathbf{z} = \mathbf{W}^\top \mathbf{x} + \mathbf{b}$, each input feature is assigned a unique, position-dependent weight. If an informative linguistic motif (such as the keyword \texttt{function} or the phrase \textit{"not found"}) appears at token position $t = 1$, the network cannot recognize that identical motif at token position $t = 15$ without separately learning an independent set of weights for those coordinates.
+\end{enumerate}
+
+Overcoming these limitations requires an architecture equipped with persistent internal states and position-invariant parameter sharing. This fundamental representational shift directly motivates the transition to Recurrent Neural Networks, explored in Chapter~\ref{ch:recurrent_neural_networks}.
+
+\clearpage
+\thispagestyle{empty}
+\null
+\clearpage
+
+\end{document}

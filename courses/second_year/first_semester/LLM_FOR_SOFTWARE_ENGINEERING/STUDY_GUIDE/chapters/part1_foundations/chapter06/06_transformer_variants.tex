@@ -1,0 +1,895 @@
+\documentclass[../../../main.tex]{subfiles}
+
+\begin{document}
+
+\chapter{Transformer Variants and Decoding}
+\label{ch:transformer_variants}
+
+Chapter~\ref{ch:transformer_architecture} established the foundational mathematics of the canonical Transformer, detailing how multi-head self-attention, cross-attention, and position-wise feed-forward networks overcome the sequential bottlenecks of recurrent architectures. While that framework was originally formulated as a dual-stack encoder-decoder for bilingual machine translation, subsequent deep learning research recognized that the encoder and decoder perform distinct representational functions that can be decoupled and specialized for different NLP tasks.
+
+This structural divergence produced three principal architectural paradigms: unified encoder-decoder models conditioned on arbitrary task prefixes, encoder-only models leveraging unconstrained bidirectional context for sequence comprehension, and decoder-only models employing causal autoregression for open-ended generative synthesis. Concurrently, generating coherent natural text from autoregressive distributions revealed fundamental limitations in classical maximization decoding algorithms, necessitating the development of probabilistic truncation heuristics.
+
+This chapter provides an exhaustive theoretical and empirical examination of Transformer architectural specializations and decoding mechanics. We begin by analyzing the multi-task text-to-text paradigm embodied by T5, dissecting its prefix-conditioning mechanism and dual-stack computational bottlenecks. We then deconstruct encoder-only representations through BERT, formalizing its tripartite input embedding structure, self-supervised pre-training objectives, emergent attention head specializations, and downstream task adaptation heads. Next, we formalize the decoder-only causal architecture, deriving its exact autoregressive probability factorization, causal masking mechanics, and computational rationale for modern large language models. Finally, we dissect the decoding spectrum, formulating deterministic and stochastic sampling strategies and evaluating their failure modes and empirical behaviors through rigorous mathematical formulations and controlled generation benchmarks.
+
+
+\section{Encoder-Decoder Models}
+\label{sec:encoder_decoder_models}
+
+The canonical Transformer proposed by Vaswani et al.~\cite{vaswani2017} was engineered specifically for sequence-to-sequence machine translation, mapping an input sequence in a source language to a corresponding sequence in a target language. In that original paradigm, model weights were strictly specialized for an isolated task and language pair. The text-to-text transfer framework introduced by Raffel et al.~\cite{raffel2020t5} fundamentally reimagined this dual-stack topology, proving that a single shared parameterization could execute heterogeneous natural language processing tasks by unifying their input-output formats into a shared string-to-string interface.
+
+
+\subsection{The unified text-to-text framework and T5}
+\label{subsec:t5_text_to_text}
+
+Prior to the introduction of unified text-to-text architectures, empirical natural language processing relied on fragmented task-specific design conventions. Researchers typically affixed specialized classification layers atop an encoder for sentiment analysis, token-level linear classifiers for named entity recognition, regression heads for semantic textual similarity, or specialized sequence-to-sequence decoders for summarization and translation. Each downstream objective demanded a bespoke loss formulation, architectural head modification, and dedicated optimization schedule.
+
+The Text-to-Text Transfer Transformer (T5) introduced by Raffel et al.~\cite{raffel2020t5} resolved this fragmentation by reframing every natural language objective as a text generation problem. Formally, let $\mathcal{V}^*$ denote the set of all arbitrary-length token sequences formed from vocabulary $\mathcal{V}$. Regardless of whether the underlying target is continuous regression, categorical classification, span extraction, or sequence translation, both the model input $\mathbf{x} \in \mathcal{V}^*$ and output $\mathbf{y} \in \mathcal{V}^*$ are represented exclusively as plain text strings:
+\begin{equation}
+f_{\boldsymbol{\theta}}: \mathcal{V}^* \to \mathcal{V}^*, \quad \mathbf{y} = f_{\boldsymbol{\theta}}(\mathbf{x}).
+\label{eq:t5_text_to_text_mapping}
+\end{equation}
+
+To enable a single invariant set of network parameters $\boldsymbol{\theta}$ to distinguish between competing functional objectives, T5 introduces \emph{task-specific conditioning prefixes}. The user or training pipeline prepends a discrete textual indicator to the source sequence specifying the operational transformation desired. Figure~\ref{fig:t5_architecture} illustrates this unified conditioning paradigm across four disparate NLP tasks.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+    scale=0.92, transform shape,
+    box/.style={rectangle, draw=crimsonRed!80, fill=cardBg, rounded corners=6pt, line width=1pt, minimum width=4.2cm, minimum height=1.3cm, align=center, font=\footnotesize\sffamily},
+    tasknode/.style={rectangle, draw=steelBlue!80, fill=steelBlue!10, rounded corners=4pt, line width=0.8pt, inner sep=5pt, font=\scriptsize\sffamily, align=left},
+    outnode/.style={rectangle, draw=forestGreen!80, fill=forestGreen!10, rounded corners=4pt, line width=0.8pt, inner sep=5pt, font=\scriptsize\sffamily, align=left},
+    conn/.style={-{Stealth[scale=1.0]}, line width=1pt, draw=bodyGray!80}
+]
+    % Central T5 Model
+    \node[box, fill=crimsonRed!10, minimum width=4.8cm, minimum height=3.8cm] (t5) at (0,0) {
+        \textbf{\large T5 Model}\\[3pt]
+        \textbf{\footnotesize (Shared Parameters $\boldsymbol{\theta}$)}\\[8pt]
+        \begin{tabular}{c}
+        \scriptsize Bidirectional Encoder Stack \\
+        \scriptsize $\Downarrow$ \\
+        \scriptsize Encoder-Decoder Cross-Attention \\
+        \scriptsize $\Downarrow$ \\
+        \scriptsize Autoregressive Causal Decoder Stack
+        \end{tabular}
+    };
+
+    % Left Inputs
+    \node[tasknode, anchor=east] (in1) at (-3.6, 2.0) {\textbf{Translation:}\\ \texttt{"translate English to German:}\\\texttt{What is your profession?"}};
+    \node[tasknode, anchor=east] (in2) at (-3.6, 0.7) {\textbf{Classification (CoLA):}\\ \texttt{"cola sentence: The course}\\\texttt{is jumping well."}};
+    \node[tasknode, anchor=east] (in3) at (-3.6, -0.6) {\textbf{Similarity (STS-B):}\\ \texttt{"stsb sentence1: The rhino ran.}\\\texttt{sentence2: A rhino is running."}};
+    \node[tasknode, anchor=east] (in4) at (-3.6, -1.9) {\textbf{Summarization:}\\ \texttt{"summarize: State of the art}\\\texttt{large language models have..."}};
+
+    % Right Outputs
+    \node[outnode, anchor=west] (out1) at (3.6, 2.0) {\textbf{Target German:}\\ \texttt{"<pad> Was ist dein}\\\texttt{Beruf? </s>"}};
+    \node[outnode, anchor=west] (out2) at (3.6, 0.7) {\textbf{Binary Label:}\\ \texttt{"<pad> not acceptable </s>"}};
+    \node[outnode, anchor=west] (out3) at (3.6, -0.6) {\textbf{Continuous Score:}\\ \texttt{"<pad> 3.8 </s>"}};
+    \node[outnode, anchor=west] (out4) at (3.6, -1.9) {\textbf{Abstractive Summary:}\\ \texttt{"<pad> Modern models solve}\\\texttt{diverse tasks. </s>"}};
+
+    % Connections
+    \draw[conn] (in1.east) -- (t5.165);
+    \draw[conn] (in2.east) -- (t5.175);
+    \draw[conn] (in3.east) -- (t5.185);
+    \draw[conn] (in4.east) -- (t5.195);
+
+    \draw[conn] (t5.15) -- (out1.west);
+    \draw[conn] (t5.5) -- (out2.west);
+    \draw[conn] (t5.-5) -- (out3.west);
+    \draw[conn] (t5.-15) -- (out4.west);
+\end{tikzpicture}
+\caption{The T5 unified text-to-text framework \cite{raffel2020t5}. Heterogeneous downstream tasks are cast into a single uniform string-to-string format conditioned by explicit task prefixes, utilizing identical loss functions and decoding routines.}
+\label{fig:t5_architecture}
+\end{figure}
+
+The mathematical elegance of this formulation lies in the universal applicability of the standard autoregressive maximum-likelihood objective. For any dataset $\mathcal{D} = \{(\mathbf{x}^{(m)}, \mathbf{y}^{(m)})\}_{m=1}^M$, the network is trained using token-level teacher-forced cross-entropy:
+\begin{equation}
+\mathcal{L}_{\text{seq2seq}}(\boldsymbol{\theta}) = -\sum_{m=1}^M \sum_{t=1}^{T_m} \log P\left(y_t^{(m)} \mid y_{<t}^{(m)}, \mathbf{x}^{(m)}; \boldsymbol{\theta}\right),
+\label{eq:t5_seq2seq_loss}
+\end{equation}
+where $y_t^{(m)}$ represents the $t$-th target token of sequence $m$ and $T_m$ is its length. Continuous regression tasks such as STS-B are handled by requiring the model to emit decimal digit tokens (e.g., \texttt{"3.8"}), which are parsed back to floating-point values at inference. Binary classification tasks emit string literals (\texttt{"acceptable"} or \texttt{"not acceptable"}).
+
+Crucially, as emphasized in course lectures, this prefix-conditioning paradigm must not be confused with modern instruction tuning. In T5, the model does not possess open-ended natural language intent comprehension. The prefix strings are rigid, memorized syntactic conditioning triggers encountered during multi-task pre-training. If an unobserved or perturbed phrasing is supplied (for example, substituting \texttt{"can you translate from English to German:"} in place of \texttt{"translate English to German:"}), the conditioning signal degrades significantly because the underlying weights merely map memorized prompt templates to target output manifolds.
+
+
+\subsection{Architectural modifications and pre-training in T5}
+\label{subsec:t5_mechanics}
+
+Beyond its operational text-to-text unification, T5 introduced key architectural deviations from the original 2017 Transformer specification to improve optimization stability and representation quality.
+
+First, T5 dispenses with fixed absolute sinusoidal positional encodings $\mathbf{p}_i \in \mathbb{R}^{d_{\text{model}}}$. Instead, it adopts a parameterized \emph{relative position bias}. Under this formulation, the scalar pre-softmax attention score between query token $i$ and key token $j$ is augmented by a learnable scalar offset $b_{i,j}$:
+\begin{equation}
+A_{i,j} = \frac{\mathbf{q}_i^\top \mathbf{k}_j}{\sqrt{d_k}} + b_{i,j},
+\label{eq:t5_relative_bias}
+\end{equation}
+where $b_{i,j}$ depends strictly on the relative displacement $(i - j)$. To bound the parameter footprint while retaining long-range sensitivity, displacements are mapped into discrete logarithmic buckets. Small relative distances ($|i - j| < 8$) receive exact dedicated bias parameters, whereas larger offsets are compressed logarithmically up to a maximum context window. This structure enforces translation invariance along sequence positions and enables extrapolation across varying sequence lengths.
+
+Second, T5 simplifies the normalization topology by utilizing a modified root-mean-square normalization where the activation vector $\mathbf{x} \in \mathbb{R}^{d_{\text{model}}}$ is normalized strictly by its second moment without subtracting the mean:
+\begin{equation}
+\text{RMSNorm}(\mathbf{x}) = \frac{\mathbf{x}}{\sqrt{\frac{1}{d_{\text{model}}} \sum_{k=1}^{d_{\text{model}}} x_k^2 + \epsilon}} \odot \boldsymbol{\gamma},
+\label{eq:t5_rmsnorm}
+\end{equation}
+where $\boldsymbol{\gamma} \in \mathbb{R}^{d_{\text{model}}}$ is a learned scaling vector and $\epsilon > 0$ guarantees numerical stability. Normalization is placed on the input paths of each sub-block (\emph{Pre-LN}), stabilizing backpropagation gradients through residual connections.
+
+Third, for self-supervised pre-training over the Colossal Clean Crawled Corpus (C4), T5 introduced a compute-efficient \emph{span corruption} objective. Rather than masking individual isolated tokens, contiguous spans of text (averaging 3 tokens in length, totaling $15\%$ of the sequence) are replaced by unique sentinel tokens $\langle\text{extra\_id\_0}\rangle, \langle\text{extra\_id\_1}\rangle, \dots$. The target sequence $\mathbf{y}$ consists exclusively of these sentinel tokens followed by their excised original text. By omitting uncorrupted tokens from the decoder targets, T5 drastically reduces the decoder sequence length during pre-training, yielding substantial computational savings over standard sequence reconstruction.
+
+
+\subsection{Trade-offs and computational bottlenecks of dual-stack models}
+\label{subsec:tradeoffs_enc_dec}
+
+Despite the elegance of the text-to-text abstraction, full encoder-decoder architectures impose structural and computational overheads that ultimately motivated researchers to explore single-stack variants.
+
+\begin{enumerate}
+    \item \textbf{Parameter Redundancy in Separate Stacks}: An encoder-decoder network maintains two complete Transformer stacks. For an $L$-layer architecture with hidden dimension $d_{\text{model}}$ and feed-forward dimension $d_{\text{ff}}$, the model instantiates $L$ bidirectional encoder blocks and $L$ causal decoder blocks. Furthermore, every decoder layer must maintain an additional multi-head cross-attention mechanism with parameter projection matrices $\mathbf{W}^Q_{\text{cross}}, \mathbf{W}^K_{\text{cross}}, \mathbf{W}^V_{\text{cross}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{model}}}$ and $\mathbf{W}^O_{\text{cross}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{model}}}$. When evaluated against a single-stack architecture of equivalent total parameter volume, parameter capacity is split between encoding and decoding stages.
+    
+    \item \textbf{Cross-Attention Memory and Latency Footprint}: In the decoding phase, generating each output token requires computing attention across the entire encoded representation. For an input sequence of length $S$ and an output sequence of length $T$, cross-attention requires materializing and storing key-value tensors $\mathbf{K}_{\text{cross}}, \mathbf{V}_{\text{cross}} \in \mathbb{R}^{S \times d_k}$ across all heads and layers. The cumulative cross-attention computational complexity scales as $\mathcal{O}(L \cdot S \cdot T \cdot d_{\text{model}})$. In latency-critical deployment scenarios, repeatedly attending over static encoder states creates high memory bandwidth demands.
+    
+    \item \textbf{Asymmetric Computational Allocation}: Natural language tasks exhibit marked structural asymmetry. In pure comprehension problems (e.g., text categorization, document retrieval, grammatical acceptability), generating an autoregressive sequence of tokens via a decoder stack is strictly superfluous; a direct pooling of the encoded states provides sufficient representation. Conversely, in open-ended generative tasks (e.g., creative writing, dialogue, code synthesis), there is no distinct "source" sequence to encode; the prompt is merely the initial conditioning segment of a single unified sequence.
+\end{enumerate}
+
+These structural trade-offs led to an architectural fork: removing the autoregressive decoder produced bidirectional \emph{encoder-only} representations, whereas removing the encoder and cross-attention produced causal \emph{decoder-only} generative architectures.
+
+
+\section{Encoder-Only Models}
+\label{sec:encoder_only_bert}
+
+When an application demands deep semantic understanding, entity tagging, syntactic parsing, or document classification rather than open-ended text synthesis, the autoregressive decoder constitutes unnecessary computational overhead. By excising the decoder stack entirely and eliminating the causal triangular attention mask, the model gains unconstrained bidirectional context: every token at every layer attends simultaneously to all prior, concurrent, and subsequent tokens.
+
+The archetypal implementation of this paradigm is BERT (\emph{Bidirectional Encoder Representations from Transformers}), introduced by Devlin et al.~\cite{devlin2019}. Figure~\ref{fig:encoder_only_bert} depicts the architectural topology of an encoder-only model.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+    scale=0.92, transform shape,
+    tok/.style={rectangle, draw=crimsonRed!80, fill=cardBg, rounded corners=3pt, font=\scriptsize\sffamily, minimum width=1.1cm, minimum height=0.6cm, align=center},
+    layer/.style={rectangle, draw=steelBlue!80, fill=steelBlue!10, rounded corners=5pt, font=\small\sffamily\bfseries, minimum width=9.5cm, minimum height=1.1cm, align=center},
+    head/.style={rectangle, draw=forestGreen!80, fill=forestGreen!15, rounded corners=4pt, font=\footnotesize\sffamily\bfseries, minimum width=3.2cm, minimum height=0.8cm, align=center},
+    arr/.style={-{Stealth[scale=1.0]}, line width=1pt, draw=bodyGray!80}
+]
+    % Input Tokens
+    \node[tok] (t0) at (-3.75, 0) {\texttt{[CLS]}};
+    \node[tok] (t1) at (-2.25, 0) {$x_1$};
+    \node[tok] (t2) at (-0.75, 0) {$x_2$};
+    \node[tok] (t3) at (0.75, 0) {\texttt{[SEP]}};
+    \node[tok] (t4) at (2.25, 0) {$x_3$};
+    \node[tok] (t5) at (3.75, 0) {\texttt{[SEP]}};
+    \node[anchor=east, font=\scriptsize\bfseries\sffamily] at (-4.5, 0) {Input Tokens:};
+
+    % Encoder Block
+    \node[layer] (enc) at (0, 1.8) {Bidirectional Transformer Encoder Stack\\ \footnotesize ($L$ Layers, Unconstrained Self-Attention, No Causal Mask)};
+
+    % Connections Input -> Encoder
+    \foreach \i in {0,1,2,3,4,5} {
+        \draw[arr] (t\i.north) -- (enc.south -| t\i.north);
+    }
+
+    % Output Representations
+    \node[tok, fill=steelBlue!20] (h0) at (-3.75, 3.6) {$\mathbf{h}_{[\text{CLS}]}$};
+    \node[tok, fill=steelBlue!20] (h1) at (-2.25, 3.6) {$\mathbf{h}_1$};
+    \node[tok, fill=steelBlue!20] (h2) at (-0.75, 3.6) {$\mathbf{h}_2$};
+    \node[tok, fill=steelBlue!20] (h3) at (0.75, 3.6) {$\mathbf{h}_{[\text{SEP}]}$};
+    \node[tok, fill=steelBlue!20] (h4) at (2.25, 3.6) {$\mathbf{h}_3$};
+    \node[tok, fill=steelBlue!20] (h5) at (3.75, 3.6) {$\mathbf{h}_{[\text{SEP}]}$};
+    \node[anchor=east, font=\scriptsize\bfseries\sffamily] at (-4.5, 3.6) {Hidden Vectors:};
+
+    % Connections Encoder -> Outputs
+    \foreach \i in {0,1,2,3,4,5} {
+        \draw[arr] (enc.north -| h\i.south) -- (h\i.south);
+    }
+
+    % Downstream Task Heads
+    \node[head] (clshead) at (-3.75, 5.0) {Sequence Classification\\ $\text{Softmax}(\mathbf{W}_{\text{cls}}\mathbf{h}_{[\text{CLS}]})$};
+    \node[head, minimum width=6.5cm] (tokhead) at (1.5, 5.0) {Token-Level Heads (NER, MLM, QA)\\ $\text{Softmax}(\mathbf{W}_{\text{tok}}\mathbf{h}_i)$};
+
+    \draw[arr] (h0.north) -- (clshead.south);
+    \draw[arr] (h1.north) -- (tokhead.south -| h1.north);
+    \draw[arr] (h2.north) -- (tokhead.south -| h2.north);
+    \draw[arr] (h4.north) -- (tokhead.south -| h4.north);
+\end{tikzpicture}
+\caption{The Encoder-only architecture (BERT) \cite{devlin2019}. By removing the decoder, bidirectional self-attention enables every token representation to condition simultaneously on the entire context. Sequence-level tasks extract the aggregate vector $\mathbf{h}_{[\text{CLS}]}$, while token-level tagging and span tasks branch directly from individual hidden vectors $\mathbf{h}_i$.}
+\label{fig:encoder_only_bert}
+\end{figure}
+
+
+\subsection{Input representation and special tokens}
+\label{subsec:bert_input_representation}
+
+BERT constructs input representations by summing three distinct embeddings for each sequence position: token embeddings, segment embeddings, and positional embeddings. Figure~\ref{fig:bert_input_encoding} formalizes this composition.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+    scale=0.9, transform shape,
+    elem/.style={rectangle, draw=crimsonRed!80, fill=cardBg, rounded corners=3pt, font=\scriptsize\sffamily, minimum width=1.5cm, minimum height=0.6cm, align=center},
+    sum/.style={circle, draw=bodyGray!80, fill=white, inner sep=1pt, font=\scriptsize\bfseries},
+    arr/.style={-{Stealth[scale=1.0]}, line width=0.9pt, draw=bodyGray!80}
+]
+    % Positions
+    \foreach \x/\label in {0/\texttt{[CLS]}, 2/\texttt{my}, 4/\texttt{dog}, 6/\texttt{[SEP]}, 8/\texttt{he}, 10/\texttt{barks}, 12/\texttt{[SEP]}} {
+        \node[elem, fill=steelBlue!10] (tok_\x) at (\x, 4.2) {\label};
+        \node[elem, fill=forestGreen!10] (seg_\x) at (\x, 2.8) {\ifnum \x<7 $\mathbf{E}_A$ \else $\mathbf{E}_B$ \fi};
+        \node[elem, fill=amberGold!10] (pos_\x) at (\x, 1.4) {$\mathbf{E}_{\text{pos}}(\x)$};
+        \node[sum] (s_\x) at (\x, 0.0) {$+$};
+        \node[elem, fill=crimsonRed!15, minimum height=0.7cm] (out_\x) at (\x, -1.3) {$\mathbf{E}_{\text{in}}(\x)$};
+
+        \draw[arr] (tok_\x) -- (seg_\x);
+        \draw[arr] (seg_\x) -- (pos_\x);
+        \draw[arr] (pos_\x) -- (s_\x);
+        \draw[arr] (s_\x) -- (out_\x);
+    }
+
+    \node[anchor=east, font=\scriptsize\bfseries\sffamily] at (-1.0, 4.2) {Token Embedding:};
+    \node[anchor=east, font=\scriptsize\bfseries\sffamily] at (-1.0, 2.8) {Segment Embedding:};
+    \node[anchor=east, font=\scriptsize\bfseries\sffamily] at (-1.0, 1.4) {Position Embedding:};
+    \node[anchor=east, font=\scriptsize\bfseries\sffamily] at (-1.0, -1.3) {Input Representation:};
+\end{tikzpicture}
+\caption{BERT input representation structure \cite{devlin2019}. The final input representation $\mathbf{E}_{\text{in}}(i)$ is the element-wise sum of the subword token embedding $\mathbf{E}_{\text{token}}$, the binary sentence segment embedding $\mathbf{E}_{\text{segment}} \in \{\mathbf{E}_A, \mathbf{E}_B\}$, and the learned absolute positional embedding $\mathbf{E}_{\text{pos}}(i)$.}
+\label{fig:bert_input_encoding}
+\end{figure}
+
+Formally, for position $i$ in a packed sequence, the input embedding vector $\mathbf{E}_{\text{in}}(i) \in \mathbb{R}^{d_{\text{model}}}$ is defined by:
+\begin{equation}
+\mathbf{E}_{\text{in}}(i) = \mathbf{E}_{\text{token}}(t_i) + \mathbf{E}_{\text{segment}}(s_i) + \mathbf{E}_{\text{pos}}(i),
+\label{eq:bert_input_embedding_sum}
+\end{equation}
+where:
+\begin{enumerate}
+    \item $\mathbf{E}_{\text{token}}(t_i) \in \mathbb{R}^{d_{\text{model}}}$ maps subword tokens $t_i$ derived via WordPiece tokenization ($|\mathcal{V}| \approx 30,522$) into continuous embeddings.
+    \item $\mathbf{E}_{\text{segment}}(s_i) \in \{\mathbf{E}_A, \mathbf{E}_B\}$ denotes a learned segment embedding assigned to distinguish the first sentence (Sentence $A$) from the contiguous or paired second sentence (Sentence $B$).
+    \item $\mathbf{E}_{\text{pos}}(i) \in \mathbb{R}^{d_{\text{model}}}$ represents a learned absolute positional embedding index up to a context length of 512 tokens.
+\end{enumerate}
+
+To structure multi-sentence reasoning and facilitate task classification, BERT introduces two essential delimiter tokens:
+\begin{itemize}
+    \item \texttt{[CLS]} (\emph{Classification}): Always prepended as the zeroth token ($t_0$) of every sequence. Because self-attention is unconstrained, the hidden state $\mathbf{h}_{[\text{CLS}]} \in \mathbb{R}^{d_{\text{model}}}$ accumulates contextual information across all tokens, functioning as an aggregate sequence representation for classification heads.
+    \item \texttt{[SEP]} (\emph{Separator}): Inserted between Sentence $A$ and Sentence $B$, and appended at the final position of the sequence. It acts as an unambiguous structural barrier between distinct semantic segments.
+\end{itemize}
+
+
+\subsection{Pre-training task 1: Masked Language Model (MLM)}
+\label{subsec:bert_masked_lm}
+
+In an unconstrained bidirectional encoder, standard autoregressive next-token prediction is mathematically degenerate: since token $i$ directly attends to token $i+1$, predicting $x_{i+1}$ would trivially reduce to reading the unmasked future token. To train a deep bidirectional representation without informational leakage, Devlin et al.~\cite{devlin2019} designed the \emph{Masked Language Model} (MLM) objective.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+    scale=0.92, transform shape,
+    tok/.style={rectangle, draw=crimsonRed!80, fill=cardBg, rounded corners=3pt, font=\scriptsize\sffamily, minimum width=1.3cm, minimum height=0.6cm, align=center},
+    masktok/.style={rectangle, draw=amberGold!90, fill=amberGold!25, rounded corners=3pt, font=\scriptsize\bfseries\sffamily, minimum width=1.3cm, minimum height=0.6cm, align=center},
+    layer/.style={rectangle, draw=steelBlue!80, fill=steelBlue!10, rounded corners=5pt, font=\small\sffamily\bfseries, minimum width=10.0cm, minimum height=1.1cm, align=center},
+    head/.style={rectangle, draw=forestGreen!80, fill=forestGreen!15, rounded corners=4pt, font=\scriptsize\sffamily\bfseries, minimum width=1.6cm, minimum height=0.6cm, align=center},
+    arr/.style={-{Stealth[scale=1.0]}, line width=1pt, draw=bodyGray!80}
+]
+    % Input sequence
+    \node[tok] (x0) at (-4, 0) {\texttt{[CLS]}};
+    \node[tok] (x1) at (-2.4, 0) {\texttt{my}};
+    \node[masktok] (x2) at (-0.8, 0) {\texttt{[MASK]}};
+    \node[tok] (x3) at (0.8, 0) {\texttt{is}};
+    \node[masktok] (x4) at (2.4, 0) {\texttt{[MASK]}};
+    \node[tok] (x5) at (4, 0) {\texttt{[SEP]}};
+
+    % BERT Encoder
+    \node[layer] (bert) at (0, 1.6) {Bidirectional Transformer Encoder Stack (BERT)};
+
+    \foreach \i in {0,1,2,3,4,5} {
+        \draw[arr] (x\i.north) -- (bert.south -| x\i.north);
+    }
+
+    % Hidden states
+    \node[tok, fill=steelBlue!20] (h2) at (-0.8, 3.0) {$\mathbf{h}_2$};
+    \node[tok, fill=steelBlue!20] (h4) at (2.4, 3.0) {$\mathbf{h}_4$};
+
+    \draw[arr] (bert.north -| h2.south) -- (h2.south);
+    \draw[arr] (bert.north -| h4.south) -- (h4.south);
+
+    % Linear + Softmax heads
+    \node[head] (head2) at (-0.8, 4.2) {Linear + Softmax\\ $\mathcal{V}$ logits};
+    \node[head] (head4) at (2.4, 4.2) {Linear + Softmax\\ $\mathcal{V}$ logits};
+
+    \draw[arr] (h2.north) -- (head2.south);
+    \draw[arr] (h4.north) -- (head4.south);
+
+    % Predicted words
+    \node[anchor=south, font=\scriptsize\bfseries\sffamily, text=forestGreen] at (-0.8, 4.7) {\texttt{"dog"}};
+    \node[anchor=south, font=\scriptsize\bfseries\sffamily, text=forestGreen] at (2.4, 4.7) {\texttt{"cute"}};
+\end{tikzpicture}
+\caption{The Masked Language Model (MLM) pre-training task in BERT. Approximately $15\%$ of input tokens are corrupted. The final contextual hidden states corresponding to corrupted indices are projected onto the vocabulary vocabulary space through a shared linear layer to reconstruct the original tokens.}
+\label{fig:bert_masked_lm}
+\end{figure}
+
+Figure~\ref{fig:bert_masked_lm} shows the MLM execution flow. In each training sequence, approximately $15\%$ of all WordPiece tokens are selected uniformly at random for prediction. However, naively replacing every chosen token with a fixed \texttt{[MASK]} token introduces a severe \emph{pre-training/fine-tuning discrepancy}: the \texttt{[MASK]} token never appears during downstream fine-tuning.
+
+To mitigate this distribution shift, Devlin et al. introduced an $80/10/10$ corruption schedule for the selected $15\%$ candidate positions:
+\begin{enumerate}
+    \item \textbf{$80\%$ of the time}: The token is replaced with the special symbol \texttt{[MASK]}.
+    \item \textbf{$10\%$ of the time}: The token is replaced with a randomly sampled token from the vocabulary $\mathcal{V}$. This induces contextual vigilance: because any token might be an injected error, the network cannot simply learn that non-\texttt{[MASK]} tokens are always correct.
+    \item \textbf{$10\%$ of the time}: The token is left unaltered. This forces the encoder to maintain a faithful representation of the true observed token.
+\end{enumerate}
+
+Formally, let $\mathcal{M}$ denote the set of corrupted token indices. For each index $i \in \mathcal{M}$, the final contextual hidden vector $\mathbf{h}_i \in \mathbb{R}^{d_{\text{model}}}$ is passed through a shared linear projection $\mathbf{W}_{\text{mlm}} \in \mathbb{R}^{|\mathcal{V}| \times d_{\text{model}}}$ followed by a softmax:
+\begin{equation}
+P(x_i = v \mid \mathbf{h}_i) = \frac{\exp(\mathbf{w}_v^\top \mathbf{h}_i + b_v)}{\sum_{v' \in \mathcal{V}} \exp(\mathbf{w}_{v'}^\top \mathbf{h}_i + b_{v'})}.
+\label{eq:bert_mlm_prediction_prob}
+\end{equation}
+The MLM loss is computed strictly over the corrupted positions:
+\begin{equation}
+\mathcal{L}_{\text{MLM}}(\boldsymbol{\theta}) = -\sum_{i \in \mathcal{M}} \log P(x_i = t_i^* \mid \mathbf{h}_i; \boldsymbol{\theta}),
+\label{eq:bert_mlm_cross_entropy_loss}
+\end{equation}
+where $t_i^*$ is the ground-truth token identity before corruption.
+
+
+\subsection{Pre-training task 2: Next Sentence Prediction (NSP)}
+\label{subsec:bert_nsp}
+
+While MLM develops fine-grained token-level contextual representations, many downstream NLP applications (such as Natural Language Inference and Question Answering) require modeling relational semantics between pairs of sentences. To explicitly train sentence relationship modeling, BERT incorporates the \emph{Next Sentence Prediction} (NSP) binary classification objective.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+    scale=0.92, transform shape,
+    tok/.style={rectangle, draw=crimsonRed!80, fill=cardBg, rounded corners=3pt, font=\scriptsize\sffamily, minimum width=1.1cm, minimum height=0.6cm, align=center},
+    layer/.style={rectangle, draw=steelBlue!80, fill=steelBlue!10, rounded corners=5pt, font=\small\sffamily\bfseries, minimum width=10.0cm, minimum height=1.1cm, align=center},
+    head/.style={rectangle, draw=forestGreen!80, fill=forestGreen!15, rounded corners=4pt, font=\scriptsize\sffamily\bfseries, minimum width=2.4cm, minimum height=0.8cm, align=center},
+    arr/.style={-{Stealth[scale=1.0]}, line width=1pt, draw=bodyGray!80}
+]
+    % Inputs
+    \node[tok] (cls) at (-4, 0) {\texttt{[CLS]}};
+    \node[tok, minimum width=3.2cm] (sa) at (-2.0, 0) {Sentence $A$ Tokens};
+    \node[tok] (sep1) at (0.2, 0) {\texttt{[SEP]}};
+    \node[tok, minimum width=3.2cm] (sb) at (2.4, 0) {Sentence $B$ Tokens};
+    \node[tok] (sep2) at (4.6, 0) {\texttt{[SEP]}};
+
+    % BERT
+    \node[layer] (bert) at (0.3, 1.6) {Bidirectional Transformer Encoder Stack (BERT)};
+
+    \draw[arr] (cls.north) -- (bert.south -| cls.north);
+    \draw[arr] (sa.north) -- (bert.south -| sa.north);
+    \draw[arr] (sep1.north) -- (bert.south -| sep1.north);
+    \draw[arr] (sb.north) -- (bert.south -| sb.north);
+    \draw[arr] (sep2.north) -- (bert.south -| sep2.north);
+
+    % CLS hidden
+    \node[tok, fill=steelBlue!20] (hcls) at (-4, 3.0) {$\mathbf{h}_{[\text{CLS}]}$};
+    \draw[arr] (bert.north -| hcls.south) -- (hcls.south);
+
+    % Pooler + Binary Head
+    \node[head] (nsphead) at (-4, 4.4) {Pooler: $\tanh(\mathbf{W}_{\text{pool}}\mathbf{h}_{[\text{CLS}]})$\\ Binary Softmax: $\hat{y}_{\text{NSP}}$};
+    \draw[arr] (hcls.north) -- (nsphead.south);
+
+    % Output label
+    \node[anchor=west, font=\scriptsize\bfseries\sffamily, text=forestGreen] at (-2.3, 4.4) {$\hat{y} \in \{\texttt{IsNext}, \texttt{NotNext}\}$};
+\end{tikzpicture}
+\caption{The Next Sentence Prediction (NSP) pre-training task in BERT. Two sentences are packed into a single input separated by \texttt{[SEP]}. The final pooled representation of \texttt{[CLS]} is classified to determine whether Sentence $B$ logically follows Sentence $A$.}
+\label{fig:bert_nsp}
+\end{figure}
+
+Figure~\ref{fig:bert_nsp} illustrates the NSP formulation. Input sequences are assembled by concatenating sentence pairs:
+\begin{equation}
+\mathbf{x} = (\texttt{[CLS]}, a_1, \dots, a_{|A|}, \texttt{[SEP]}, b_1, \dots, b_{|B|}, \texttt{[SEP]}).
+\end{equation}
+Training instances are sampled according to a balanced binary protocol:
+\begin{itemize}
+    \item \textbf{$50\%$ of instances (Positive Class: \texttt{IsNext})}: Sentence $B$ is the actual contiguous sentence following Sentence $A$ in the source corpus.
+    \item \textbf{$50\%$ of instances (Negative Class: \texttt{NotNext})}: Sentence $B$ is a random sentence sampled independently from another document in the corpus.
+\end{itemize}
+
+At the model output, the hidden state corresponding to the first token, $\mathbf{h}_{[\text{CLS}]} \in \mathbb{R}^{d_{\text{model}}}$, is mapped through a non-linear pooler layer with parameter matrix $\mathbf{W}_{\text{pool}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{model}}}$:
+\begin{equation}
+\mathbf{c} = \tanh(\mathbf{W}_{\text{pool}} \mathbf{h}_{[\text{CLS}]} + \mathbf{b}_{\text{pool}}).
+\label{eq:bert_pooled_cls_representation}
+\end{equation}
+A binary classification projection $\mathbf{W}_{\text{NSP}} \in \mathbb{R}^{2 \times d_{\text{model}}}$ computes the class probabilities:
+\begin{equation}
+P(\text{IsNext} \mid \mathbf{c}) = \frac{\exp(\mathbf{w}_{\text{next}}^\top \mathbf{c})}{\exp(\mathbf{w}_{\text{next}}^\top \mathbf{c}) + \exp(\mathbf{w}_{\text{not}}^\top \mathbf{c})}.
+\label{eq:bert_nsp_probability}
+\end{equation}
+
+The cumulative pre-training loss combines the MLM and NSP objectives over every mini-batch:
+\begin{equation}
+\mathcal{L}_{\text{total}}(\boldsymbol{\theta}) = \mathcal{L}_{\text{MLM}}(\boldsymbol{\theta}) + \mathcal{L}_{\text{NSP}}(\boldsymbol{\theta}).
+\label{eq:bert_total_pretraining_objective}
+\end{equation}
+
+
+\subsection{Attention map anatomy and emergent linguistic structures}
+\label{subsec:bert_attention_map_anatomy}
+
+An instructive insight from the BERT architecture is that multi-head bidirectional self-attention naturally develops specialized linguistic capabilities without explicit syntactic supervision. In $\text{BERT}_{\text{BASE}}$, the model instantiates $L=12$ layers with $H=12$ attention heads per layer, computing:
+\begin{equation}
+N_{\text{maps}} = 12 \times 12 = 144
+\label{eq:bert_total_attention_heads}
+\end{equation}
+distinct attention matrices per sequence. For a sequence of length $N$, each attention map is an $N \times N$ matrix $\mathbf{A} \in [0, 1]^{N \times N}$ where entry $A_{i,j}$ indicates the attention weight that token $i$ assigns to token $j$.
+
+In course lectures, the internal mechanics of these 144 attention heads are analyzed using the running sentence:
+\begin{equation*}
+\texttt{"[CLS] The dog ate the food because it was hungry [SEP]"}
+\end{equation*}
+comprising $N=11$ tokens. Empirical probing of these attention maps, formalizing studies by Clark et al.~\cite{clark2019what} and Michel et al.~\cite{michel2019sixteen}, reveals two striking emergent phenomena:
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+    scale=0.88, transform shape,
+    box/.style={rectangle, draw=crimsonRed!80, fill=cardBg, rounded corners=6pt, line width=1pt, inner sep=8pt, text width=6.6cm, align=left, font=\footnotesize\sffamily},
+    header/.style={font=\small\bfseries\sffamily, text=steelBlue}
+]
+    \node[box] (syntax) at (0, 0) {
+        \textbf{\textcolor{steelBlue}{Syntactic \& Coreference Emergence}}\\[4pt]
+        \begin{itemize}[leftmargin=*, nosep]
+            \item \textbf{Coreference Resolution}: Token \texttt{"it"} pays dominant attention ($A_{it, dog} > 0.82$) to \texttt{"dog"}. The attention mechanism disambiguates pronominal reference using bidirectional context.
+            \item \textbf{Verb-Object Dependency}: Token \texttt{"ate"} directs strong attention to direct object \texttt{"food"}.
+            \item \textbf{Sequential Local Continuity}: Early layers (e.g., Layer 1, Head 1) focus heavily on adjacent tokens ($i \to i+1$ and $i \to i-1$).
+        \end{itemize}
+    };
+
+    \node[box] (delim) at (7.6, 0) {
+        \textbf{\textcolor{crimsonRed}{Delimiter Attention \& No-Op Registers}}\\[4pt]
+        \begin{itemize}[leftmargin=*, nosep]
+            \item \textbf{Delimiter Collapse}: In deeper layers (Layers 9--12), multiple heads assign $\ge 80\%$ of their attention mass directly to \texttt{[SEP]} and \texttt{[CLS]}.
+            \item \textbf{Computational "No-Op"}: As proven by Michel et al.~\cite{michel2019sixteen}, when a specialized head detects no applicable linguistic relationship for a query token, it parks its softmax probability mass on delimiter tokens.
+            \item \textbf{Null Gradient Channel}: Delimiters serve as neutral registers, preventing erroneous modification of contextual features.
+        \end{itemize}
+    };
+\end{tikzpicture}
+\caption{Emergent linguistic specialization and delimiter behavior across BERT attention heads \cite{clark2019what, michel2019sixteen}. Middle layers resolve syntactic dependencies and coreferences, while deeper layers utilize delimiter tokens as computational no-op registers.}
+\label{fig:bert_attention_maps_specialization}
+\end{figure}
+
+\begin{enumerate}
+    \item \textbf{Syntactic and Coreference Specialization}: In middle layers (Layers 5 through 8), individual attention heads function as soft syntactic parsers. For example, when resolving the pronoun \texttt{"it"}, specific heads route their primary attention mass ($A_{i,j} > 0.80$) back to the antecedent noun phrase \texttt{"dog"}. Because the self-attention formula is unconstrained, token representations dynamically absorb semantic properties from their syntactic referents. Similarly, verbs attend directly to their objects (e.g., \texttt{"ate"} attends strongly to \texttt{"food"}).
+    
+    \item \textbf{Delimiter Registers as Computational "No-Ops"}: In higher layers (Layers 9 through 12), an intriguing behavior emerges: an overwhelming fraction of query tokens assign the vast majority of their attention probability to delimiter tokens, predominantly \texttt{[SEP]} and \texttt{[CLS]}. Clark et al.~\cite{clark2019what} established that delimiter tokens act as \emph{computational no-op registers}. Softmax requires rows of the attention matrix to sum strictly to 1:
+    \begin{equation}
+    \sum_{j=1}^N A_{i,j} = 1.
+    \label{eq:softmax_row_sum_one}
+    \end{equation}
+    If a specialized head (e.g., a preposition detector) evaluates a query token that has no relevant dependency in the sentence, it cannot emit a zero vector from softmax. To prevent injecting spurious semantic information into the residual stream, the head routes its attention mass to \texttt{[SEP]}, whose representation functions as a neutral null register.
+\end{enumerate}
+
+
+\subsection{Downstream task adaptation}
+\label{subsec:bert_downstream_finetuning}
+
+To adapt the pre-trained encoder to specific downstream tasks, the pre-training MLM and NSP projection layers are discarded and replaced with lightweight, task-specific output layers. The entire network is then fine-tuned end-to-end:
+
+\begin{enumerate}
+    \item \textbf{Sentence-Level Classification (e.g., SST-2, MNLI)}: The classification head maps the aggregate representation $\mathbf{h}_{[\text{CLS}]}$ through a projection matrix $\mathbf{W}_{\text{cls}} \in \mathbb{R}^{K \times d_{\text{model}}}$:
+    \begin{equation}
+    \hat{\mathbf{y}} = \text{Softmax}(\mathbf{W}_{\text{cls}} \mathbf{h}_{[\text{CLS}]} + \mathbf{b}_{\text{cls}}).
+    \label{eq:bert_finetune_seq_classification}
+    \end{equation}
+    
+    \item \textbf{Token-Level Tagging (e.g., NER, POS Tagging)}: Each token position $i$ passes its hidden vector $\mathbf{h}_i \in \mathbb{R}^{d_{\text{model}}}$ to a shared linear projection $\mathbf{W}_{\text{tok}} \in \mathbb{R}^{C \times d_{\text{model}}}$:
+    \begin{equation}
+    \hat{\mathbf{y}}_i = \text{Softmax}(\mathbf{W}_{\text{tok}} \mathbf{h}_i + \mathbf{b}_{\text{tok}}).
+    \label{eq:bert_finetune_token_classification}
+    \end{equation}
+    
+    \item \textbf{Extractive Question Answering (e.g., SQuAD)}: The model learns two parameter vectors, $\mathbf{s}, \mathbf{e} \in \mathbb{R}^{d_{\text{model}}}$, corresponding to span start and span end predictors. The probability that token $i$ marks the start of the answer span is given by:
+    \begin{equation}
+    P_{\text{start}}(i) = \frac{\exp(\mathbf{s}^\top \mathbf{h}_i)}{\sum_{j=1}^N \exp(\mathbf{s}^\top \mathbf{h}_j)},
+    \label{eq:bert_squad_start_prob}
+    \end{equation}
+    with an identical formulation parameterized by $\mathbf{e}$ for the span terminus.
+\end{enumerate}
+
+
+\section{Decoder-Only Models}
+\label{sec:decoder_only_models}
+
+While bidirectional encoders excel at discriminative understanding and sequence labeling, they cannot naturally synthesize open-ended natural text. Generating a sequence autoregressively with an unconstrained bidirectional model requires repeatedly re-encoding candidate completions with iterative masking heuristics, which is computationally inefficient.
+
+The causal \emph{decoder-only} architecture resolves this limitation by discarding the encoder stack and cross-attention blocks entirely. The prompt sequence is supplied directly as the initial prefix of the decoder stack, and generation proceeds sequentially via strictly causal self-attention.
+
+
+\subsection{Causal autoregressive formulation and architecture topology}
+\label{subsec:causal_autoregression_topology}
+
+In a decoder-only architecture, the joint probability of an arbitrary sequence $\mathbf{x} = (x_1, x_2, \dots, x_N)$ over vocabulary $\mathcal{V}$ is decomposed via the exact probability chain rule without Markov independence assumptions:
+\begin{equation}
+P(\mathbf{x}) = \prod_{i=1}^N P(x_i \mid x_1, x_2, \dots, x_{i-1}) = \prod_{i=1}^N P(x_i \mid \mathbf{x}_{<i}).
+\label{eq:autoregressive_chain_rule}
+\end{equation}
+Taking the negative logarithm yields the canonical autoregressive next-token prediction objective:
+\begin{equation}
+\mathcal{L}_{\text{AR}}(\boldsymbol{\theta}) = -\sum_{i=1}^N \log P(x_i \mid \mathbf{x}_{<i}; \boldsymbol{\theta}).
+\label{eq:clm_objective_formal}
+\end{equation}
+
+To compute representations for all positions $i \in \{1, \dots, N\}$ in parallel during training without violating the causal factorization in Equation~\eqref{eq:autoregressive_chain_rule}, the architecture enforces strict temporal masking within every self-attention layer. Let $\mathbf{Q}, \mathbf{K} \in \mathbb{R}^{N \times d_k}$ denote the query and key projection matrices for a given attention head. The pre-softmax logit matrix is augmented by an additive causal mask $\mathbf{M} \in \{0, -\infty\}^{N \times N}$:
+\begin{equation}
+\mathbf{A} = \text{Softmax}\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}} + \mathbf{M}\right),
+\label{eq:causal_masked_attention}
+\end{equation}
+where the mask matrix $\mathbf{M}$ is defined by:
+\begin{equation}
+M_{i,j} = \begin{cases}
+0 & \text{if } j \le i, \\
+-\infty & \text{if } j > i.
+\end{cases}
+\label{eq:causal_mask_matrix}
+\end{equation}
+
+Because $\exp(-\infty) = 0$, attention weights for all future positions $j > i$ are zero. Thus, the contextual hidden state $\mathbf{h}_i \in \mathbb{R}^{d_{\text{model}}}$ at position $i$ is an exact deterministic function of the prefix $\mathbf{x}_{\le i}$ and remains independent of subsequent tokens $x_{j > i}$.
+
+
+\subsection{Architectural streamlining: eliminating encoder and cross-attention}
+\label{subsec:decoder_streamlining}
+
+Relative to the canonical Transformer, the decoder-only architecture simplifies the processing pipeline:
+
+\begin{enumerate}
+    \item \textbf{Elimination of the Encoder Stack}: Rather than projecting source text into an intermediate representation space via an independent encoder, the conditioning prompt is simply ingested as the initial prefix of the decoder sequence.
+    \item \textbf{Excise of Cross-Attention Sub-Layers}: Because there is no external encoder state, each decoder block contains only two core components: a causal masked multi-head self-attention layer and a position-wise feed-forward network. This reduces the number of matrix projections per layer from eight ($\mathbf{W}^Q, \mathbf{W}^K, \mathbf{W}^V, \mathbf{W}^O$ for self-attention; $\mathbf{W}^Q, \mathbf{W}^K, \mathbf{W}^V, \mathbf{W}^O$ for cross-attention) to four.
+    \item \textbf{Training Parallelism via Teacher Forcing}: Although inference is necessarily sequential (generating one token at a time), training remains fully parallel. The ground-truth sequence is supplied as input, and causal triangular masking ensures that predictions for all positions are computed in a single forward pass under the teacher-forcing paradigm.
+\end{enumerate}
+
+
+\subsection{Convergence on the decoder-only paradigm}
+\label{subsec:decoder_only_dominance}
+
+The NLP research community progressively standardized on decoder-only architectures for large-scale foundation models. This convergence was driven by fundamental computational and operational advantages:
+
+\begin{enumerate}
+    \item \textbf{Homogeneous Key-Value Cache Memory Layout}: In an encoder-decoder architecture, autoregressive generation requires maintaining two separate key-value caches: a static encoder cache $\mathbf{K}_{\text{enc}}, \mathbf{V}_{\text{enc}} \in \mathbb{R}^{S \times d_k}$ and a growing decoder cache $\mathbf{K}_{\text{dec}}, \mathbf{V}_{\text{dec}} \in \mathbb{R}^{t \times d_k}$. Managing heterogeneous memory buffers across distributed accelerator clusters complicates tensor-parallel and pipeline-parallel execution. In contrast, decoder-only architectures maintain a single, append-only key-value cache buffer.
+    
+    \item \textbf{Universal In-Context Sequence Interface}: By unifying input context and output completions into a single autoregressive sequence, decoder-only models natively support few-shot prompting, multi-turn dialogue, and chain-of-thought reasoning without requiring specialized architectural modifications or task-specific fine-tuning.
+\end{enumerate}
+
+The empirical scaling laws, pre-training corpus curation strategies, and historical milestones (from GPT-1 and GPT-2 to massive modern parameter regimes) that established this paradigm's dominance are examined comprehensively in Chapter~\ref{ch:scaling_laws_pretraining}.
+
+
+\section{Decoding and Sampling Strategies}
+\label{sec:decoding_and_sampling}
+
+Regardless of whether an architecture employs an encoder-decoder or decoder-only topology, generating text requires converting continuous output vectors into discrete token sequences. At generation step $t$, the final hidden state $\mathbf{h}_t \in \mathbb{R}^{d_{\text{model}}}$ is projected onto vocabulary $\mathcal{V}$ via the unembedding matrix $\mathbf{W}_U \in \mathbb{R}^{|\mathcal{V}| \times d_{\text{model}}}$ to yield raw logits $\mathbf{z}_t \in \mathbb{R}^{|\mathcal{V}|}$:
+\begin{equation}
+\mathbf{z}_t = \mathbf{W}_U \mathbf{h}_t + \mathbf{b}_U.
+\label{eq:unembedding_projection_formal}
+\end{equation}
+Applying the softmax operator produces a categorical probability distribution over all known tokens:
+\begin{equation}
+P(x_t = v \mid \mathbf{x}_{<t}) = \frac{\exp(z_{t,v})}{\sum_{j=1}^{|\mathcal{V}|} \exp(z_{t,j})}, \quad \forall v \in \{1, \dots, |\mathcal{V}|\}.
+\label{eq:unembedding_softmax_distribution}
+\end{equation}
+
+Selecting discrete tokens $\hat{x}_t$ from this distribution is governed by the \emph{decoding strategy}. As established in course lectures, selecting tokens naively via probability maximization leads to degenerative failure modes. This section formalizes the complete taxonomy of deterministic and stochastic decoding algorithms, illustrated through the running course generation benchmark based on the Sherlock Holmes prompt from Slides~98--112.
+
+
+\subsection{The decoding dilemma: maximization versus degeneration}
+\label{subsec:decoding_dilemma}
+
+A natural formulation of text generation is maximum a posteriori (MAP) decoding, seeking the sequence $\mathbf{y}^* = (\hat{x}_1, \dots, \hat{x}_T)$ that maximizes the joint conditional likelihood:
+\begin{equation}
+\mathbf{y}^* = \arg\max_{\mathbf{y}} P(\mathbf{y} \mid \mathbf{x}_{\text{prompt}}) = \arg\max_{\mathbf{y}} \sum_{t=1}^T \log P(x_t \mid \mathbf{x}_{<t}).
+\label{eq:map_decoding_objective}
+\end{equation}
+
+Exact maximization over the combinatorial space $\mathcal{V}^T$ requires evaluating $|\mathcal{V}|^T$ trajectories, which is computationally intractable for modern vocabularies ($|\mathcal{V}| \ge 32,000$, $T \ge 100$). However, even when approximated, pure likelihood maximization exhibits severe failure modes in open-ended natural text generation. As demonstrated by Holtzman et al.~\cite{holtzman2020}, human language does not maximize probability at every step. Maximization decoding frequently causes \emph{degeneration}, where the model becomes trapped in repetitive loops or emits generic, uninformative phrases.
+
+
+\subsection{Deterministic decoding: greedy search and beam search}
+\label{subsec:deterministic_decoding}
+
+Deterministic decoding strategies map a logit distribution to a unique, reproducible output sequence without stochastic sampling.
+
+\paragraph{Greedy Decoding}
+Greedy search selects the single token with the highest predicted probability at each step:
+\begin{equation}
+\hat{x}_t = \arg\max_{v \in \mathcal{V}} P(x_t = v \mid \mathbf{x}_{<t}) = \arg\max_{v \in \mathcal{V}} z_{t,v}.
+\label{eq:greedy_selection}
+\end{equation}
+
+While computationally minimal ($\mathcal{O}(1)$ selection cost), greedy decoding suffers from two fatal deficiencies:
+\begin{itemize}
+    \item \textbf{Search Myopia}: Greedy decoding cannot look beyond the immediate token. Selecting an apparently optimal token at step $t$ can steer the network into a low-probability manifold at step $t+1$, missing globally higher-likelihood sequences that began with a lower-probability initial token.
+    \item \textbf{Cyclic Repetition Loops}: In open-ended generation, greedy selection reliably causes infinite repetitive loops.
+\end{itemize}
+
+This pathology is highlighted in Slide~100 of the course materials. When conditioning GPT-2 on the Arthur Conan Doyle prompt:
+\begin{quote}
+\emph{"I had called upon my friend, Mr. Sherlock Holmes, one day in the autumn of last year and found him in deep conversation with a very stout, florid-faced, elderly gentleman with fiery red hair. With an apology for my intrusion, I was about to withdraw when Holmes pulled me abruptly into the room and closed the door behind me."}
+\end{quote}
+greedy decoding produces the following degenerate continuation:
+\begin{quote}
+\texttt{"I am sorry, Mr. Holmes," I said, "but I am not going to tell you what I have seen. I am afraid I have not seen you in a long time. I am afraid I have not seen you in a long time. I am afraid I have not seen you in a long time. I am afraid I have not seen you in a long time. I am afraid I have not seen..."}
+\end{quote}
+
+Once a token sequence repeats, the self-attention mechanism reinforces the historical pattern, driving the model into an inescapable degenerative attractor. To mitigate this loop, generation frameworks often introduce \emph{repetition penalties}:
+\begin{equation}
+z'_{t,v} = \begin{cases}
+z_{t,v} / \theta & \text{if } z_{t,v} > 0 \text{ and } v \in \mathbf{x}_{<t}, \\
+z_{t,v} \cdot \theta & \text{if } z_{t,v} \le 0 \text{ and } v \in \mathbf{x}_{<t},
+\end{cases}
+\label{eq:repetition_penalty_formula}
+\end{equation}
+where $\theta > 1.0$ penalizes previously generated tokens.
+
+\paragraph{Beam Search}
+Beam search expands the greedy horizon by tracking the top $B$ most probable partial sequences (the \emph{beam width}) at each step. Let $\mathcal{B}_{t-1} = \{\mathbf{y}_1, \dots, \mathbf{y}_B\}$ denote the set of active hypotheses at step $t-1$. At step $t$, the algorithm evaluates the Cartesian product of all active beams and the entire vocabulary:
+\begin{equation}
+\mathcal{C}_t = \mathcal{B}_{t-1} \times \mathcal{V} = \{(\mathbf{y}_b, v) \mid \mathbf{y}_b \in \mathcal{B}_{t-1}, v \in \mathcal{V}\},
+\label{eq:beam_candidate_set}
+\end{equation}
+scoring each candidate trajectory by its cumulative log-likelihood:
+\begin{equation}
+\text{Score}(\mathbf{y}_b \circ v) = \log P(\mathbf{y}_b \mid \mathbf{x}) + \log P(v \mid \mathbf{x}, \mathbf{y}_b).
+\label{eq:beam_search_log_score}
+\end{equation}
+The set is then pruned back to the top $B$ candidates:
+\begin{equation}
+\mathcal{B}_t = \arg\max_{\mathcal{B} \subset \mathcal{C}_t, |\mathcal{B}|=B} \sum_{\mathbf{y} \in \mathcal{B}} \text{Score}(\mathbf{y}).
+\label{eq:beam_search_prune}
+\end{equation}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+    scale=0.9, transform shape,
+    node/.style={circle, draw=steelBlue!80, fill=steelBlue!15, minimum size=0.9cm, font=\scriptsize\bfseries\sffamily},
+    leaf/.style={rectangle, draw=bodyGray!80, fill=cardBg, rounded corners=3pt, font=\scriptsize\sffamily, inner sep=3pt},
+    pruned/.style={rectangle, draw=crimsonRed!80, fill=crimsonRed!10, rounded corners=3pt, font=\scriptsize\sffamily, text=crimsonRed, inner sep=2pt},
+    arr/.style={-{Stealth[scale=0.9]}, line width=0.8pt, draw=bodyGray!80}
+]
+    % Root
+    \node[node] (root) at (0, 0) {Start};
+
+    % Step 1 (B=2)
+    \node[leaf, draw=forestGreen, fill=forestGreen!15] (b1) at (3, 1.2) {\textbf{"The"} (0.50)};
+    \node[leaf, draw=forestGreen, fill=forestGreen!15] (b2) at (3, -1.2) {\textbf{"A"} (0.40)};
+    \node[pruned] (p1) at (3, -2.5) {"In" (0.10) $\times$};
+
+    \draw[arr] (root) -- node[above, font=\tiny] {0.50} (b1);
+    \draw[arr] (root) -- node[below, font=\tiny] {0.40} (b2);
+    \draw[arr, dashed, draw=crimsonRed] (root) -- (p1);
+
+    % Step 2 Expansions from b1 ("The")
+    \node[leaf, draw=forestGreen, fill=forestGreen!15] (b1_1) at (7, 2.0) {\textbf{"dog"} (0.36)};
+    \node[pruned] (b1_2) at (7, 1.0) {"man" (0.10) $\times$};
+
+    % Step 2 Expansions from b2 ("A")
+    \node[leaf, draw=forestGreen, fill=forestGreen!15] (b2_1) at (7, -0.6) {\textbf{"car"} (0.20)};
+    \node[pruned] (b2_2) at (7, -1.6) {"house" (0.12) $\times$};
+
+    \draw[arr] (b1) -- node[above, font=\tiny] {0.72} (b1_1);
+    \draw[arr, dashed, draw=crimsonRed] (b1) -- (b1_2);
+    \draw[arr] (b2) -- node[above, font=\tiny] {0.50} (b2_1);
+    \draw[arr, dashed, draw=crimsonRed] (b2) -- (b2_2);
+
+    % Annotations
+    \node[anchor=south, font=\scriptsize\bfseries\sffamily] at (0, 0.7) {Step $t=0$};
+    \node[anchor=south, font=\scriptsize\bfseries\sffamily] at (3, 2.2) {Step $t=1$ (Prune to $B=2$)};
+    \node[anchor=south, font=\scriptsize\bfseries\sffamily] at (7, 2.8) {Step $t=2$ (Prune to $B=2$)};
+\end{tikzpicture}
+\caption{Beam search decoding with beam width $B=2$ (inspired by Slide~101). At each step, all $B$ active sequences are expanded across vocabulary candidates and pruned back to the $B$ sequences with highest cumulative probability.}
+\label{fig:beam_search_trellis}
+\end{figure}
+
+Because cumulative probability monotonically decreases with sequence length ($\log P \le 0$), raw beam search exhibits a strong structural bias toward prematurely terminating with short sequences. To counter this, practitioners apply a length normalization penalty:
+\begin{equation}
+\mathcal{S}(\mathbf{y}) = \frac{\sum_{t=1}^T \log P(y_t \mid \mathbf{y}_{<t}, \mathbf{x})}{(5 + T)^\alpha / (5 + 1)^\alpha},
+\label{eq:beam_length_penalty}
+\end{equation}
+where $\alpha \in [0.6, 1.0]$ scales length normalization.
+
+While beam search is standard for deterministic, constrained sequence mapping (e.g., machine translation and abstractive summarization), it is poorly suited for open-ended generation: high probability beams converge on repetitive, bland text.
+
+
+\subsection{Stochastic sampling: temperature scaling, Top-k, and Top-p}
+\label{subsec:stochastic_sampling}
+
+To generate natural, non-repetitive text, decoding must draw tokens stochastically from the predicted distribution: $\hat{x}_t \sim P(x_t \mid \mathbf{x}_{<t})$. However, unrestricted sampling introduces vulnerabilities that require calibrated truncation.
+
+\paragraph{Pure Random Sampling and the Long Tail Risk}
+Under pure multinomial sampling, the next token is sampled directly from the raw softmax distribution over all $|\mathcal{V}|$ tokens. While this guarantees non-deterministic outputs, it exposes generation to the \emph{long tail risk}.
+
+Modern vocabularies contain tens of thousands of tokens ($|\mathcal{V}| \ge 32,000$). Even when individual probability values for implausible words are small (e.g., $P \approx 10^{-4}$), their cumulative probability mass across thousands of tail tokens is substantial. Inevitably, the random draw samples an incoherent or contextually inappropriate token from this distribution tail, permanently derailing subsequent generation.
+
+This failure mode is shown in Slide~103. Under pure random sampling on the Sherlock Holmes prompt, the continuation rapidly devolves into syntactic disarray:
+\begin{quote}
+\texttt{"...It was alarmed me, as I had never heard of him before but last, yet I went to put something into his hand which I carried open and which I then pocketed into the drawer, so as not to be seen until soon afterwards. Then it was as though in a dream, and my amazement owled wild--it seems an impossibility..."}
+\end{quote}
+
+\paragraph{Temperature Scaling}
+Temperature scaling modulates the entropy of the categorical distribution by dividing raw logits by a positive hyperparameter $T > 0$ prior to the softmax operator:
+\begin{equation}
+P_T(x_t = v \mid \mathbf{x}_{<t}) = \frac{\exp(z_{t,v} / T)}{\sum_{j=1}^{|\mathcal{V}|} \exp(z_{t,j} / T)}.
+\label{eq:temperature_softmax}
+\end{equation}
+
+The mathematical behavior across different temperature regimes is bounded by two analytical limits:
+\begin{itemize}
+    \item \textbf{Limit $T \to 0^+$ (Argmax / Zero Entropy)}: Dividing logits by an infinitesimal value exaggerates differences between logits, collapsing the distribution to a Dirac delta centered at the mode:
+    \begin{equation}
+    \lim_{T \to 0^+} P_T(x_t = v \mid \mathbf{x}_{<t}) = \begin{cases}
+    1 & \text{if } v = \arg\max_{j} z_{t,j}, \\
+    0 & \text{otherwise},
+    \end{cases}
+    \label{eq:temperature_zero_limit}
+    \end{equation}
+    recovering deterministic greedy search.
+    
+    \item \textbf{Limit $T \to \infty$ (Uniform Distribution / Maximum Entropy)}: As $T$ approaches infinity, scaled logits converge to zero ($z_{t,v}/T \to 0$), flattening softmax into a discrete uniform distribution:
+    \begin{equation}
+    \lim_{T \to \infty} P_T(x_t = v \mid \mathbf{x}_{<t}) = \frac{1}{|\mathcal{V}|}, \quad \forall v \in \mathcal{V}.
+    \label{eq:temperature_inf_limit}
+    \end{equation}
+\end{itemize}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+    scale=0.9, transform shape,
+    bar/.style={rectangle, rounded corners=1pt, minimum width=0.6cm},
+    axis/.style={-{Stealth[scale=1.0]}, line width=0.8pt, draw=bodyGray!80}
+]
+    % Low Temp (T=0.2)
+    \draw[axis] (-4.5, 0) -- (-1.5, 0) node[right, font=\tiny] {$\mathcal{V}$};
+    \draw[axis] (-4.5, 0) -- (-4.5, 2.5) node[above, font=\tiny] {$P_T(v)$};
+    \node[anchor=south, font=\scriptsize\bfseries\sffamily] at (-3, 2.6) {Low Temp ($T=0.2$)};
+    \draw[fill=steelBlue!80] (-4.2, 0) rectangle (-3.6, 2.2);
+    \draw[fill=steelBlue!30] (-3.4, 0) rectangle (-2.8, 0.15);
+    \draw[fill=steelBlue!30] (-2.6, 0) rectangle (-2.0, 0.03);
+
+    % Standard Temp (T=1.0)
+    \draw[axis] (-0.5, 0) -- (2.5, 0) node[right, font=\tiny] {$\mathcal{V}$};
+    \draw[axis] (-0.5, 0) -- (-0.5, 2.5) node[above, font=\tiny] {$P_T(v)$};
+    \node[anchor=south, font=\scriptsize\bfseries\sffamily] at (1, 2.6) {Standard ($T=1.0$)};
+    \draw[fill=forestGreen!80] (-0.2, 0) rectangle (0.4, 1.4);
+    \draw[fill=forestGreen!50] (0.6, 0) rectangle (1.2, 0.65);
+    \draw[fill=forestGreen!30] (1.4, 0) rectangle (2.0, 0.25);
+
+    % High Temp (T=2.0)
+    \draw[axis] (3.5, 0) -- (6.5, 0) node[right, font=\tiny] {$\mathcal{V}$};
+    \draw[axis] (3.5, 0) -- (3.5, 2.5) node[above, font=\tiny] {$P_T(v)$};
+    \node[anchor=south, font=\scriptsize\bfseries\sffamily] at (5, 2.6) {High Temp ($T=2.0$)};
+    \draw[fill=crimsonRed!80] (3.8, 0) rectangle (4.4, 0.9);
+    \draw[fill=crimsonRed!60] (4.6, 0) rectangle (5.2, 0.75);
+    \draw[fill=crimsonRed!40] (5.4, 0) rectangle (6.0, 0.6);
+\end{tikzpicture}
+\caption{Softmax distribution modulation across temperature regimes. Low temperatures ($T < 1.0$) sharpen probability mass toward the mode, while high temperatures ($T > 1.0$) flatten the distribution toward uniform entropy.}
+\label{fig:temperature_sampling}
+\end{figure}
+
+The qualitative impact of temperature scaling is captured in Slides~109--112 using the Sherlock Holmes benchmark:
+\begin{itemize}
+    \item \textbf{Low Temperature ($T = 0.1$, Slide~109)}: Near-complete probability collapse into repetitive loops:
+    \begin{quote}
+    \texttt{"...I am sorry, Mr. Holmes, for having been so rude to you. I am sorry, Mr. Holmes, for having been so rude to you. I am sorry, Mr. Holmes, for having been so rude to you..."}
+    \end{quote}
+    
+    \item \textbf{Balanced Low Temperature ($T = 0.5$, Slide~110)}: Strong coherence, consistent tone, and natural progression:
+    \begin{quote}
+    \texttt{"...It was a very sad moment, but a true one. After a short time, I was ushered out of the room by the old gentleman, who had come to ask me to come with him to the house. I was quite at ease, and when he told me that he was going to look after me, I said, 'This is not the first time I've seen you.'..."}
+    \end{quote}
+    
+    \item \textbf{High Temperature ($T = 1.1$, Slide~111)}: Increasing lexical diversity with emerging contextual drift:
+    \begin{quote}
+    \texttt{"...We remained there four or five minutes, staring at every hem from the last person who might show up in my passageway. It was dark---black---but dark, almost this glintry and slant field..."}
+    \end{quote}
+    
+    \item \textbf{Very High Temperature ($T = 1.5$, Slide~112)}: Syntactic collapse into hallucinatory gibberish:
+    \begin{quote}
+    \texttt{"...He kept Columbus visibly busy trying secretly rendered strawberries with a reel motif. This anecdote barely IMLEG it off it off 138 ALK\#\#\# elsewhere where 4 doctor m Hiragh benecameth [aintedie\$ andalaptag..."}
+    \end{quote}
+\end{itemize}
+
+\paragraph{Top-$k$ Sampling (Fixed Cardinality Truncation)}
+Introduced by Fan et al.~\cite{fan2018}, Top-$k$ sampling addresses the long-tail vulnerability by restricting the sampling pool to the $k$ most probable tokens. Formally, tokens are sorted in descending order of probability:
+\begin{equation}
+P(x^{(1)} \mid \mathbf{x}_{<t}) \ge P(x^{(2)} \mid \mathbf{x}_{<t}) \ge \dots \ge P(x^{(|\mathcal{V}|)} \mid \mathbf{x}_{<t}).
+\end{equation}
+The sampling support is truncated to the subset $V^{(k)} = \{x^{(1)}, \dots, x^{(k)}\} \subset \mathcal{V}$, and probabilities are renormalized:
+\begin{equation}
+P_{\text{top-}k}(x_t = v \mid \mathbf{x}_{<t}) = \begin{cases}
+\frac{P(x_t = v \mid \mathbf{x}_{<t})}{\sum_{j \in V^{(k)}} P(x_t = j \mid \mathbf{x}_{<t})} & \text{if } v \in V^{(k)}, \\
+0 & \text{otherwise}.
+\end{cases}
+\label{eq:top_k_renormalization}
+\end{equation}
+
+Under Top-$k$ sampling with $k=50$ (Slide~105), the Sherlock Holmes continuation maintains syntactic structure and thematic tone without degenerative loops:
+\begin{quote}
+\texttt{"...'You will think, Doctor, that a man of my age would be so much of a menace to me, if I were to refuse a pass for him. I should rather get a few things away from him than any which might injure his reputation...'"}
+\end{quote}
+
+However, Top-$k$ suffers from a core structural flaw: \emph{fixed cardinality cannot adapt to contextual uncertainty}. In low-entropy contexts where the model is highly confident (e.g., \texttt{"The Eiffel Tower is in"} $\to$ \texttt{"Paris"} with $P=0.98$), a fixed $k=50$ forces the algorithm to sample among 49 implausible tokens. Conversely, in high-entropy contexts where hundreds of valid completions exist, $k=50$ truncates plausible continuations.
+
+\paragraph{Top-$p$ / Nucleus Sampling (Adaptive Cumulative Mass Truncation)}
+To eliminate the rigidity of fixed cardinality, Holtzman et al.~\cite{holtzman2020} introduced \emph{Nucleus} (Top-$p$) sampling. Instead of clipping at a fixed rank $k$, nucleus sampling defines an adaptive candidate set $V^{(p)} \subset \mathcal{V}$ containing the minimal set of tokens whose cumulative probability mass meets or exceeds a target threshold $p \in (0, 1]$:
+\begin{equation}
+\sum_{v \in V^{(p)}} P(x_t = v \mid \mathbf{x}_{<t}) \ge p.
+\label{eq:nucleus_set_definition}
+\end{equation}
+
+Formally, letting tokens be sorted in descending probability order, the cutoff index $k^*$ is determined by:
+\begin{equation}
+k^* = \min \left\{ K \in \{1, \dots, |\mathcal{V}|\} : \sum_{i=1}^K P(x^{(i)} \mid \mathbf{x}_{<t}) \ge p \right\}.
+\label{eq:nucleus_cutoff_index}
+\end{equation}
+The candidate pool is defined by $V^{(p)} = \{x^{(1)}, \dots, x^{(k^*)}\}$, and probabilities are renormalized over this dynamic set:
+\begin{equation}
+P_{\text{top-}p}(x_t = v \mid \mathbf{x}_{<t}) = \begin{cases}
+\frac{P(x_t = v \mid \mathbf{x}_{<t})}{\sum_{j \in V^{(p)}} P(x_t = j \mid \mathbf{x}_{<t})} & \text{if } v \in V^{(p)}, \\
+0 & \text{otherwise}.
+\end{cases}
+\label{eq:nucleus_renormalization}
+\end{equation}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+    scale=0.92, transform shape,
+    bar/.style={rectangle, rounded corners=1pt, minimum width=0.7cm},
+    axis/.style={-{Stealth[scale=1.0]}, line width=0.8pt, draw=bodyGray!80}
+]
+    % Low Entropy Context
+    \draw[axis] (-4.5, 0) -- (-0.5, 0) node[right, font=\tiny] {Rank};
+    \draw[axis] (-4.5, 0) -- (-4.5, 2.5) node[above, font=\tiny] {$P(v)$};
+    \node[anchor=south, font=\scriptsize\bfseries\sffamily] at (-2.5, 2.6) {Low Entropy Context ($k^*=2$)};
+    \draw[fill=forestGreen!80] (-4.2, 0) rectangle (-3.4, 2.1) node[above, font=\tiny] {0.75};
+    \draw[fill=forestGreen!80] (-3.2, 0) rectangle (-2.4, 0.6) node[above, font=\tiny] {0.18};
+    \draw[fill=bodyGray!30] (-2.2, 0) rectangle (-1.4, 0.15);
+    \draw[fill=bodyGray!30] (-1.2, 0) rectangle (-0.4, 0.05);
+    \draw[dashed, draw=forestGreen, line width=1pt] (-2.3, 0) -- (-2.3, 2.3) node[above, font=\tiny\bfseries] {Cum $\ge 0.90$};
+
+    % High Entropy Context
+    \draw[axis] (1.0, 0) -- (6.5, 0) node[right, font=\tiny] {Rank};
+    \draw[axis] (1.0, 0) -- (1.0, 2.5) node[above, font=\tiny] {$P(v)$};
+    \node[anchor=south, font=\scriptsize\bfseries\sffamily] at (3.8, 2.6) {High Entropy Context ($k^*=5$)};
+    \draw[fill=forestGreen!80] (1.2, 0) rectangle (1.8, 0.8) node[above, font=\tiny] {0.25};
+    \draw[fill=forestGreen!80] (2.0, 0) rectangle (2.6, 0.7) node[above, font=\tiny] {0.22};
+    \draw[fill=forestGreen!80] (2.8, 0) rectangle (3.4, 0.6) node[above, font=\tiny] {0.18};
+    \draw[fill=forestGreen!80] (3.6, 0) rectangle (4.2, 0.5) node[above, font=\tiny] {0.15};
+    \draw[fill=forestGreen!80] (4.4, 0) rectangle (5.0, 0.4) node[above, font=\tiny] {0.12};
+    \draw[fill=bodyGray!30] (5.2, 0) rectangle (5.8, 0.1);
+    \draw[dashed, draw=forestGreen, line width=1pt] (5.1, 0) -- (5.1, 2.3) node[above, font=\tiny\bfseries] {Cum $\ge 0.90$};
+\end{tikzpicture}
+\caption{Top-$p$ (Nucleus) sampling mechanism. The candidate pool dynamically expands and contracts based on model confidence: in low-entropy contexts only 2 tokens meet the $p=0.90$ mass threshold, whereas in high-entropy contexts the pool expands to 5 tokens.}
+\label{fig:top_p_sampling}
+\end{figure}
+
+As illustrated in Figure~\ref{fig:top_p_sampling}, nucleus sampling adapts to contextual entropy:
+\begin{itemize}
+    \item When the model is confident, the top few tokens capture most probability mass; the candidate set collapses to $k^* \in \{1, 2, 3\}$, eliminating spurious tail tokens.
+    \item When the distribution is diffuse, the candidate pool automatically expands to hundreds of plausible tokens, preserving creative diversity.
+\end{itemize}
+
+Under nucleus sampling ($p=0.9$, Slide~107), generation maintains high fluency, coherent narrative progression, and natural lexical variation:
+\begin{quote}
+\texttt{"...Mr. Holmes had been talking for a while and seemed very engrossed in the conversation. He wished to conduct his last spoke through the eyes of another, and by that he meant to tell me the whole of the publick story that had been passed from one of them into the other..."}
+\end{quote}
+
+
+\subsection{Empirical decoding comparison and selection guide}
+\label{subsec:empirical_decoding_synthesis}
+
+Table~\ref{tab:decoding_strategies_comparison} synthesizes the mathematical properties, complexity profiles, and operational trade-offs of all six decoding strategies.
+
+\begin{table}[t]
+\centering
+\caption{Comparative analysis of autoregressive decoding strategies.}
+\label{tab:decoding_strategies_comparison}
+\begin{tabularx}{\textwidth}{l p{2.2cm} p{2.0cm} p{3.2cm} X}
+\toprule
+\textbf{Decoding Strategy} & \textbf{Type} & \textbf{Complexity} & \textbf{Primary Failure Mode} & \textbf{Optimal Task Regime} \\
+\midrule
+\textbf{Greedy Search} & Deterministic & $\mathcal{O}(1)$ & Search myopia, cyclic loops & Strict mathematical/code tasks \\
+\textbf{Beam Search} & Deterministic & $\mathcal{O}(B \cdot |\mathcal{V}|)$ & Repetitive generic phrasing & Translation, summarization \\
+\textbf{Random Sampling} & Stochastic & $\mathcal{O}(|\mathcal{V}|)$ & Severe long-tail derailment & High-entropy creative text \\
+\textbf{Temperature} & Stochastic & $\mathcal{O}(|\mathcal{V}|)$ & Extreme entropy drift ($T > 1.5$) & General text generation \\
+\textbf{Top-$k$ Sampling} & Truncated Stoch. & $\mathcal{O}(|\mathcal{V}| \log k)$ & Inflexible fixed pool size & Stylized controlled generation \\
+\textbf{Top-$p$ (Nucleus)} & Truncated Stoch. & $\mathcal{O}(|\mathcal{V}| \log |\mathcal{V}|)$ & Occludes rare valid idioms & Open-ended dialogue, chat \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+In production language modeling systems, practitioners typically chain these mechanisms into a unified multi-stage decoding pipeline:
+\begin{equation}
+\mathbf{z} \xrightarrow{\quad \text{Repetition Penalty} \quad} \mathbf{z}' \xrightarrow{\quad \text{Temperature } T \quad} \mathbf{z}'' \xrightarrow{\quad \text{Top-}k \text{ Truncation} \quad} \mathbf{p}' \xrightarrow{\quad \text{Top-}p \text{ Cutoff} \quad} \hat{x}_t \sim \text{Categorical}(\mathbf{p}'').
+\label{eq:decoding_pipeline_stages}
+\end{equation}
+First, repetition penalties adjust logits of previously emitted tokens. Second, temperature scaling calibrates entropy. Third, Top-$k$ filtering eliminates the outer tail. Fourth, Top-$p$ thresholding dynamically isolates the nucleus. Finally, the next token is sampled from the renormalized distribution.
+
+\end{document}

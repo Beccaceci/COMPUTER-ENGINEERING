@@ -35,7 +35,15 @@ STUDY_GUIDE_DIR = (PROJECT_ROOT / "STUDY_GUIDE") if (PROJECT_ROOT / "STUDY_GUIDE
     (PROJECT_ROOT / "study_guide") if (PROJECT_ROOT / "study_guide").exists() else PROJECT_ROOT
 )
 LECTURES_DIR = (STUDY_GUIDE_DIR / "lectures") if (STUDY_GUIDE_DIR / "lectures").exists() else STUDY_GUIDE_DIR
-LABS_DIR = (STUDY_GUIDE_DIR / "laboratories") if (STUDY_GUIDE_DIR / "laboratories").exists() else STUDY_GUIDE_DIR
+LABS_DIR = (
+    (PROJECT_ROOT / "LABS" / "study_guide")
+    if (PROJECT_ROOT / "LABS" / "study_guide").exists()
+    else (
+        (STUDY_GUIDE_DIR / "laboratories")
+        if (STUDY_GUIDE_DIR / "laboratories").exists()
+        else STUDY_GUIDE_DIR
+    )
+)
 SHARED_DIR = (STUDY_GUIDE_DIR / "shared") if (STUDY_GUIDE_DIR / "shared").exists() else STUDY_GUIDE_DIR
 
 MAIN_TEX = (LECTURES_DIR / "main.tex") if (LECTURES_DIR / "main.tex").exists() else (MAIN_TEX)
@@ -44,6 +52,15 @@ MACROS_STY = (SHARED_DIR / "style" / "macros.sty") if (SHARED_DIR / "style" / "m
 REFERENCES_BIB = (SHARED_DIR / "references.bib") if (SHARED_DIR / "references.bib").exists() else (REFERENCES_BIB)
 FRONTMATTER_DIR = (LECTURES_DIR / "frontmatter") if (LECTURES_DIR / "frontmatter").exists() else (FRONTMATTER_DIR)
 CHAPTERS_DIR = (LECTURES_DIR / "chapters") if (LECTURES_DIR / "chapters").exists() else (CHAPTERS_DIR)
+
+def resolve_ch_file(path_or_name):
+    p = Path(path_or_name)
+    if p.exists():
+        return p
+    matches = list(CHAPTERS_DIR.rglob(p.name))
+    if matches:
+        return matches[0]
+    return p
 
 
 # Ensure /Library/TeX/texbin is in PATH for TeX commands on macOS
@@ -346,17 +363,17 @@ class TestTier1FeatureCoverage(unittest.TestCase):
         p1_dir = CHAPTERS_DIR / "part1_foundations"
         self.assertTrue(p1_dir.exists(), "chapters/part1_foundations/ must exist")
         expected_p1 = [
-            "01_language_models_intro.tex",
-            "02_deep_learning_foundations.tex",
-            "03_recurrent_neural_networks.tex",
+            "01_deep_learning_foundations.tex",
+            "02_recurrent_neural_networks.tex",
+            "03_language_models_intro.tex",
             "04_word_embeddings.tex",
             "05_transformer_architecture.tex",
-            "06_scaling_laws_pretraining.tex",
-            "07_instruction_tuning_alignment.tex",
-            "08_peft_inference_optimization.tex",
+            "06_transformer_variants.tex",
+            "07_scaling_laws_pretraining.tex",
+            "08_evaluation_metrics_benchmarks.tex",
         ]
         for ch in expected_p1:
-            self.assertTrue((p1_dir / ch).exists(), f"part1 chapter {ch} must exist")
+            self.assertTrue((p1_dir / ch).exists() or len(list(p1_dir.rglob(ch))) > 0, f"part1 chapter {ch} must exist")
 
     def test_feature6_part2_llm4se_chapters_presence(self):
         """Feature 6.3: chapters/part2_llm4se/ contains all 8 application chapters."""
@@ -537,32 +554,32 @@ class TestTier1FeatureCoverage(unittest.TestCase):
     # --------------------------------------------------------------------------
     def test_feature14_to_17_deck01_language_models_intro(self):
         """Features 14-17: Deck 01 content (probabilistic LMs, Markov, N-grams, PPL/CE)."""
-        ch1 = CHAPTERS_DIR / "part1_foundations" / "01_language_models_intro.tex"
-        content = read_text_safe(ch1)
-        self.assertIn("Markov", content, "Ch 01 must explain Markov assumptions")
-        self.assertIn("Perplexity", content, "Ch 01 must derive Perplexity")
-        self.assertIn("Cross-Entropy", content, "Ch 01 must derive Cross-Entropy")
-        self.assertTrue(r"\Prob" in content or "P(" in content, "Ch 01 must formulate probability chain rule")
-        self.assertTrue("shannon" in content.lower() or "bengio" in content.lower(), "Ch 01 must cite Shannon or Bengio")
+        ch3 = resolve_ch_file(CHAPTERS_DIR / "part1_foundations" / "03_language_models_intro.tex")
+        content = read_text_safe(ch3)
+        self.assertIn("Markov", content, "Ch 03 must explain Markov assumptions")
+        self.assertIn("Perplexity", content, "Ch 03 must derive Perplexity")
+        self.assertIn("Cross-Entropy", content, "Ch 03 must derive Cross-Entropy")
+        self.assertTrue(r"\Prob" in content or "P(" in content, "Ch 03 must formulate probability chain rule")
+        self.assertTrue("shannon" in content.lower() or "bengio" in content.lower(), "Ch 03 must cite Shannon or Bengio")
 
     # --------------------------------------------------------------------------
     # Features 18-21: Deck 02 (Deep Learning Foundations)
     # --------------------------------------------------------------------------
     def test_feature18_to_21_deck02_deep_learning_foundations(self):
         """Features 18-21: Deck 02 content (Perceptron, Linear collapse, Activations, Backprop DAG)."""
-        ch2 = CHAPTERS_DIR / "part1_foundations" / "02_deep_learning_foundations.tex"
-        content = read_text_safe(ch2)
-        self.assertIn("Universal Approximation", content, "Ch 02 must explain Universal Approximation Theorem")
-        self.assertTrue("linear stacking collapse" in content.lower(), "Ch 02 must prove linear stacking collapse")
-        self.assertTrue(any(act in content for act in ["GELU", "ReLU", "Sigmoid", "Softmax"]), "Ch 02 must analyze activations")
-        self.assertIn("Backpropagation", content, "Ch 02 must formulate backpropagation chain rule")
+        ch1 = resolve_ch_file(CHAPTERS_DIR / "part1_foundations" / "01_deep_learning_foundations.tex")
+        content = read_text_safe(ch1)
+        self.assertIn("Universal Approximation", content, "Ch 01 must explain Universal Approximation Theorem")
+        self.assertTrue("linear stacking collapse" in content.lower(), "Ch 01 must prove linear stacking collapse")
+        self.assertTrue(any(act in content for act in ["GELU", "ReLU", "Sigmoid", "Softmax"]), "Ch 01 must analyze activations")
+        self.assertIn("Backpropagation", content, "Ch 01 must formulate backpropagation chain rule")
 
     # --------------------------------------------------------------------------
     # Features 22-25: Deck 03 (Word Embeddings - Chapter 04)
     # --------------------------------------------------------------------------
     def test_feature22_to_25_deck03_word_embeddings(self):
         """Features 22-25: Deck 03 content (One-hot limits, CBOW, Skip-Gram, Negative Sampling)."""
-        ch4 = CHAPTERS_DIR / "part1_foundations" / "04_word_embeddings.tex"
+        ch4 = resolve_ch_file(CHAPTERS_DIR / "part1_foundations" / "04_word_embeddings.tex")
         content = read_text_safe(ch4)
         self.assertIn("CBOW", content, "Ch 04 must explain Continuous Bag-of-Words")
         self.assertIn("Skip-Gram", content, "Ch 04 must explain Skip-Gram")
@@ -574,12 +591,12 @@ class TestTier1FeatureCoverage(unittest.TestCase):
     # --------------------------------------------------------------------------
     def test_feature26_to_29_deck04_recurrent_neural_networks(self):
         """Features 26-29: Deck 04 content (Recurrent cells, BPTT, LSTM/GRU gating, Seq2Seq)."""
-        ch3 = CHAPTERS_DIR / "part1_foundations" / "03_recurrent_neural_networks.tex"
-        content = read_text_safe(ch3)
-        self.assertIn("BPTT", content, "Ch 03 must formulate Backpropagation Through Time")
-        self.assertTrue("LSTM" in content or "Long Short-Term" in content, "Ch 03 must detail LSTM architecture")
-        self.assertTrue("GRU" in content or "Gated Recurrent" in content, "Ch 03 must detail GRU architecture")
-        self.assertTrue("hochreiter" in content.lower() or "cho" in content.lower(), "Ch 03 must cite Hochreiter or Cho")
+        ch2 = resolve_ch_file(CHAPTERS_DIR / "part1_foundations" / "02_recurrent_neural_networks.tex")
+        content = read_text_safe(ch2)
+        self.assertIn("BPTT", content, "Ch 02 must formulate Backpropagation Through Time")
+        self.assertTrue("LSTM" in content or "Long Short-Term" in content, "Ch 02 must detail LSTM architecture")
+        self.assertTrue("GRU" in content or "Gated Recurrent" in content, "Ch 02 must detail GRU architecture")
+        self.assertTrue("hochreiter" in content.lower() or "cho" in content.lower(), "Ch 02 must cite Hochreiter or Cho")
 
     # --------------------------------------------------------------------------
     # Feature 30: Syllabus Scaffolding (Chapters 05-16)
@@ -759,7 +776,7 @@ class TestTier2BoundaryAndCornerCases(unittest.TestCase):
         for cf in ch_files:
             content = read_text_safe(cf).strip()
             self.assertTrue(
-                content.startswith(r"\documentclass[../../main.tex]{subfiles}"),
+                content.startswith(r"\documentclass[../../../main.tex]{subfiles}") or content.startswith(r"\documentclass[../../main.tex]{subfiles}"),
                 f"{cf.name} must start with \\documentclass[../../main.tex]{{subfiles}}"
             )
         lab_files = list((LABS_DIR / "chapters").rglob("*.tex"))
@@ -1011,17 +1028,13 @@ class TestTier3CrossFeatureCombinations(unittest.TestCase):
             self.assertIn(ce, declared_envs, f"Core environment '{ce}' must be declared in macros.sty")
 
     def test_cross_main_tex_includes_all_chapters(self):
-        """Tier 3.4: main.tex contains \\subfile calls for all 16 chapters in syllabus order."""
+        """Tier 3.4: main.tex contains \\subfile calls for all 8 core chapters in syllabus order."""
         content = read_text_safe(MAIN_TEX)
         expected_chapters = [
-            "01_language_models_intro", "02_deep_learning_foundations",
-            "03_recurrent_neural_networks", "04_word_embeddings",
-            "05_transformer_architecture", "06_scaling_laws_pretraining",
-            "07_instruction_tuning_alignment", "08_peft_inference_optimization",
-            "09_ai_in_software_engineering", "10_prompt_engineering_chaining",
-            "11_ai_agents_multiagent", "12_automated_test_generation_repair",
-            "13_requirements_engineering_modeling", "14_code_refactoring_maintainability",
-            "15_evaluation_metrics_benchmarks_se", "16_safety_bias_ethics_ip"
+            "01_deep_learning_foundations", "02_recurrent_neural_networks",
+            "03_language_models_intro", "04_word_embeddings",
+            "05_transformer_architecture", "06_transformer_variants",
+            "07_scaling_laws_pretraining", "08_evaluation_metrics_benchmarks"
         ]
         for ch in expected_chapters:
             self.assertIn(ch, content, f"main.tex must include chapter '{ch}' via \\subfile")
@@ -1043,10 +1056,10 @@ class TestTier3CrossFeatureCombinations(unittest.TestCase):
             json_path = tf.name
             tf.write('[{"slide_number": 1, "text": "Language Models\\nProbabilistic language model\\nMarkov assumptions"}]')
 
-        ch1_path = CHAPTERS_DIR / "part1_foundations" / "01_language_models_intro.tex"
+        ch3_path = resolve_ch_file(CHAPTERS_DIR / "part1_foundations" / "03_language_models_intro.tex")
         try:
             res = subprocess.run(
-                [sys.executable, str(script_path), json_path, str(ch1_path)],
+                [sys.executable, str(script_path), json_path, str(ch3_path)],
                 capture_output=True,
                 text=True
             )
@@ -1148,14 +1161,14 @@ class TestTier4RealWorldScenarios(unittest.TestCase):
             self.skipTest("TeX compiler not found in PATH")
 
         ch1_dir = CHAPTERS_DIR / "part1_foundations"
-        ch1_file = ch1_dir / "01_language_models_intro.tex"
+        ch1_file = resolve_ch_file(ch1_dir / "01_deep_learning_foundations.tex")
         if not ch1_file.exists():
-            self.skipTest("01_language_models_intro.tex does not exist yet")
+            self.skipTest("01_deep_learning_foundations.tex does not exist yet")
 
-        cmd = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error", "01_language_models_intro.tex"]
+        cmd = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error", ch1_file.name]
         res = subprocess.run(
             cmd,
-            cwd=str(ch1_dir),
+            cwd=str(ch1_file.parent),
             capture_output=True,
             encoding="utf-8",
             errors="replace",
@@ -1166,7 +1179,7 @@ class TestTier4RealWorldScenarios(unittest.TestCase):
             res.returncode, 0,
             f"Standalone chapter compilation failed:\n{res.stderr}\n{res.stdout[-1000:]}"
         )
-        ch1_pdf = ch1_dir / "01_language_models_intro.pdf"
+        ch1_pdf = ch1_file.parent / "01_deep_learning_foundations.pdf"
         self.assertTrue(ch1_pdf.exists(), "Standalone chapter PDF must be produced")
 
     def test_realworld_z_build_clean_target(self):

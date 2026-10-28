@@ -66,7 +66,6 @@ htmlcov/
 # ==============================================================================
 # Course Materials Excluded from Repository (Only Study Guide & Exams published)
 # ==============================================================================
-LABS/
 SLIDES/
 TRANSCRIPTIONS/
 .agents/
@@ -77,3 +76,16 @@ TRANSCRIPTIONS/
 .vscode/
 .idea/
 .system_generated/
+
+# Exclude heavy model weights, checkpoints and raw datasets in LABS
+LABS/**/results/
+LABS/**/checkpoint-*/
+LABS/**/gpt2-medical-finetuned/
+LABS/**/static_quantized_model/
+LABS/**/data/
+LABS/**/*.safetensors
+LABS/**/*.pt
+LABS/**/*.pth
+LABS/**/*.tar.gz
+LABS/**/*.onnx
+LABS/**/*.bin
